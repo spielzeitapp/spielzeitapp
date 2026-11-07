@@ -1,10 +1,11 @@
 import {isClubProfileDesign,defaultClubProfileDesign,type ClubProfileDesign,type ProfileElement} from '../lib/clubProfileDesign';
 import {useDraftHistory} from './useDraftHistory';
 import {useUnsavedProfileGuard} from './useUnsavedProfileGuard';
-import React,{useEffect,useState} from 'react';
+import React,{useCallback,useEffect,useState} from 'react';
 import {supabase} from '../lib/supabaseClient';
 import {listRoster,type RosterPlayer} from '../lib/rosterService';
 import {DEFAULT_PHOTO_LAYOUT} from '../lib/playerPhotoLayout';
+import {ManagerPlayerPhotoEditor} from './ManagerPlayerPhotoEditor';
 import {ManagerProfilePhotoPreview} from './ManagerProfilePhotoPreview';
 type Template='wide'|'square';
 export function ManagerClubPhotoTemplate({clubId,seasonId}:{clubId:string;seasonId:string}){
@@ -16,6 +17,9 @@ export function ManagerClubPhotoTemplate({clubId,seasonId}:{clubId:string;season
  const [saved,setSaved]=useState<Template|null>(null);
  const [players,setPlayers]=useState<RosterPlayer[]>([]);
  const [moving,setMoving]=useState(false);
+ const [editingPhoto,setEditingPhoto]=useState(false),[photoDirty,setPhotoDirty]=useState(false),[rosterVersion,setRosterVersion]=useState(0);
+ const onPhotoDirty=useCallback((value:boolean)=>setPhotoDirty(value),[]);
+ useEffect(()=>{setEditingPhoto(false);setPhotoDirty(false);},[clubId,seasonId]);
  const [player,setPlayer]=useState<RosterPlayer|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
  useEffect(()=>{let active=true;setSaved(null);setError('');setNotice('');
   void (async()=>{const {data,error}=await supabase.from('clubs').select('player_photo_template,player_profile_design').eq('id',clubId).single();
@@ -24,9 +28,10 @@ export function ManagerClubPhotoTemplate({clubId,seasonId}:{clubId:string;season
    history.reset(initial);setSaved(value);
   })();return()=>{active=false;};
  },[clubId]);
- useEffect(()=>{let active=true;setPlayer(null);setPlayers([]);if(seasonId)void listRoster(seasonId).then(r=>{if(active){setPlayers(r.data);setPlayer(r.data.find(p=>p.avatar_url||p.cutout_url)??r.data[0]??null);if(r.error)setError(r.error);}});return()=>{active=false;};},[seasonId]);
+ useEffect(()=>{setPlayer(null);setPlayers([]);},[seasonId]);
+ useEffect(()=>{let active=true;if(seasonId)void listRoster(seasonId).then(r=>{if(active){setPlayers(r.data);setPlayer(previous=>r.data.find(p=>p.id===previous?.id)??r.data.find(p=>p.avatar_url||p.cutout_url)??r.data[0]??null);if(r.error)setError(r.error);}});return()=>{active=false;};},[seasonId,rosterVersion]);
  const dirty=Boolean(saved)&&(saved!==draft||JSON.stringify(savedDesign)!==JSON.stringify(design));
- useUnsavedProfileGuard(dirty);
+ useUnsavedProfileGuard(dirty||photoDirty,photoDirty?'Die Bildgestaltung enthält ungespeicherte Änderungen. Seite trotzdem verlassen? Ungespeicherte Bildänderungen gehen verloren.':undefined);
  useEffect(()=>{if(!saved)return;try{const key=`spielzeit:profile-draft:v1:${clubId}`;if(dirty)window.sessionStorage.setItem(key,JSON.stringify({base:{template:saved,design:savedDesign},draft:{template:draft,design}}));else window.sessionStorage.removeItem(key);}catch{/* Editing remains available without browser storage. */}},[clubId,saved,savedDesign,draft,design,dirty]);
  const save=async()=>{if(!saved||busy)return;setBusy(true);setError('');setNotice('');
   try{const {error}=await supabase.rpc('admin_save_club_profile_design' as never,{p_club_id:clubId,p_template:draft,p_expected:saved,p_design:design,p_expected_design:savedDesign} as never);if(error)throw error;setSaved(draft);setSavedDesign(design);history.reset({template:draft,design});setNotice('Vereinsvorlage gespeichert. Gilt für alle Mannschaften dieses Vereins.');window.dispatchEvent(new Event('manager-setup-changed'));}
@@ -50,8 +55,11 @@ export function ManagerClubPhotoTemplate({clubId,seasonId}:{clubId:string;season
  {notice&&<p role="status" className="mt-3 text-sm text-emerald-800">{notice}</p>}{error&&<p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
  </div><div className="min-w-0 rounded-xl bg-neutral-950 p-3 text-white"><p className="mb-2 text-sm font-semibold">Vorschau · {player?.display_name??'Noch kein Spieler vorhanden'}</p>
  {player?<ManagerProfilePhotoPreview key={seasonId+player.id} clubTemplate={draft} clubDesign={design} onDesignChange={moving&&!busy?value=>{setDesign(value);setNotice('');}:undefined} seasonId={seasonId} trainer={false} layout={player.photo_layout??player.photo_layout_default??{...DEFAULT_PHOTO_LAYOUT,source:player.cutout_url?'cutout':'original'}} photoUrl={player.avatar_url} cutoutUrl={player.cutout_url} firstName={player.first_name??''} lastName={player.last_name??''} number={player.jersey_number}/>:<p className="text-sm text-white/60">Eine Mannschaft mit Kader auswählen, um die Vorschau mit einem Spieler zu sehen.</p>}
- <label className="mt-3 block text-sm">Spieler für Vorschau<select aria-label="Spieler für Vorschau" className="mt-1 min-h-11 w-full rounded-lg border border-white/30 bg-neutral-900 px-3 text-white" value={player?.id??''} onChange={e=>setPlayer(players.find(p=>p.id===e.target.value)??null)}>{players.map(p=><option key={p.id} value={p.id}>{p.display_name} · Nr. {p.jersey_number??'–'}</option>)}</select></label>
- <button type="button" disabled={!saved||busy||!player} aria-pressed={moving} className="mt-3 min-h-11 rounded-lg border border-white/40 px-3 text-sm" onClick={()=>{if(!moving)setDesign(old=>old??defaultClubProfileDesign(draft));setMoving(old=>!old);}}>{moving?'Verschieben beenden':'Elemente direkt verschieben'}</button>
+ <label className="mt-3 block text-sm">Spieler für Vorschau<select disabled={editingPhoto} aria-label="Spieler für Vorschau" className="mt-1 min-h-11 w-full rounded-lg border border-white/30 bg-neutral-900 px-3 text-white" value={player?.id??''} onChange={e=>setPlayer(players.find(p=>p.id===e.target.value)??null)}>{players.map(p=><option key={p.id} value={p.id}>{p.display_name} · Nr. {p.jersey_number??'–'}</option>)}</select></label>
+ <button type="button" disabled={!saved||busy||!player||editingPhoto} aria-pressed={moving} className="mt-3 min-h-11 rounded-lg border border-white/40 px-3 text-sm" onClick={()=>{if(!moving)setDesign(old=>old??defaultClubProfileDesign(draft));setMoving(old=>!old);}}>{moving?'Verschieben beenden':'Elemente direkt verschieben'}</button>
  {moving&&<p className="mt-2 text-xs text-white/70">Name, Nummer, Logo oder Vereinszeile ziehen. Mit Tab auswählen und mit Pfeiltasten verschieben; Umschalt für größere Schritte. Hilfslinien unterstützen die Ausrichtung; in der Nähe rasten Elemente ein. Das verändert nur die Vorschau.</p>}
- <p className="mt-2 text-xs text-white/60">Auswahl wird erst mit „Vereinsvorlage speichern“ übernommen.</p></div></div></section>;
+ <button type="button" disabled={!player||busy||editingPhoto} onClick={()=>{setMoving(false);setEditingPhoto(true);}} className="mt-3 ml-2 min-h-11 rounded-lg border border-white/40 px-3 text-sm disabled:opacity-40">Bild vergrößern & verschieben</button>
+ <p className="mt-2 text-xs text-white/60">Auswahl wird erst mit „Vereinsvorlage speichern“ übernommen.</p></div></div>
+ {editingPhoto&&player&&<div className="mt-5"><ManagerPlayerPhotoEditor key={seasonId+player.id} player={player} seasonId={seasonId} clubTemplate={draft} clubDesign={design} imageOnly onDirtyChange={onPhotoDirty} onClose={()=>setEditingPhoto(false)} onSaved={()=>{setEditingPhoto(false);setRosterVersion(v=>v+1);setNotice("Bildgestaltung gespeichert. Die Vereinsvorlage wird separat gespeichert.");window.dispatchEvent(new Event("manager-setup-changed"));}}/></div>}
+ </section>;
 }
