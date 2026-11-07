@@ -1,0 +1,14 @@
+{
+  "reviewed_source": "009590e8a69a9defa0d82a356eeb18c302824f53",
+  "migration": "supabase/migrations/20261107153529_individual_profile_elements.sql",
+  "approved_blob": "967ec47b0c1bdab057fe4f4044da5686af9d9e4a",
+  "scope": "Extend existing immutable invoker validators with bounded per-membership profileDesign and optional boolean showName/showSeason. No row updates, tables, privileges, actor identity or membership scope changed.",
+  "validation": [
+    "All 12 pending SQL migrations replayed against the relevant LIVE-derived metadata and synthetic rows.",
+    "Old club designs and photo layouts remain valid; individual override accepted. String/null visibility flags, unknown keys, missing nested design and JSON null overrides rejected. A PostgreSQL CHECK constraint accepts the valid override and rejects invalid payload.",
+    "Existing admin/nonadmin/anon permission and stale-save probes still pass.",
+    "Photo editor and club template renderer/save regressions pass; 31 release/security/UI/routing tests pass; configured typecheck and production build pass."
+  ],
+  "limitations": "Same schema-only reconstruction limits as release-profile-preflight-2026-11-07.json; no LIVE business rows read or written.",
+  "publication": "Technical approval only; user still starts protected LIVE publication in Manager."
+}
