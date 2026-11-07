@@ -71,9 +71,11 @@ test('Manager requires a ready preview and explicit confirmation before dispatch
   assert.equal(approveButton().props.disabled,false);
   await act(async()=>approveButton().props.onClick());
   assert.equal(posts.at(-1).action,'approve');assert.equal(posts.at(-1).runId,17);assert.equal(button().props.disabled,true);
-  plan={...plan,technicalReview:{...plan.technicalReview,canApprove:false,report:{passed:false,findings:[{path:'blocked.sql',passed:false,message:'Technische Prüfung erforderlich'}]}}};
+  plan={...plan,technicalReview:{...plan.technicalReview,canApprove:false,message:'Prüfbericht gehört nicht mehr zu diesem Stand. Bitte neu prüfen.',report:{passed:false,findings:[{path:'blocked.sql',passed:false,message:'Technische Prüfung erforderlich'}]}}};
   await act(async()=>renderer.root.findAllByType('button').find(x=>x.children.includes('Stand prüfen')).props.onClick());
   assert.equal(approveButton(),undefined);assert.ok(JSON.stringify(renderer.toJSON()).includes('Noch nicht freigabefähig'));
+  assert.ok(!JSON.stringify(renderer.toJSON()).includes('Prüfbericht gehört nicht mehr'));
+  assert.ok(JSON.stringify(renderer.toJSON()).includes('Automatische Prüfung abgeschlossen.'));
 
  }finally{if(renderer)await act(async()=>renderer.unmount());global.window=previousWindow;global.fetch=previousFetch;}
 });
