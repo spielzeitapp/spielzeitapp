@@ -4,8 +4,8 @@ import { TeamSwitcher } from '../../app/components/TeamSwitcher';
 import { ManagerPlatformContextSelect } from './ManagerPlatformContextSelect';
 import { ManagerContextPicker } from './ManagerContextPicker';
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeftRight, Headphones, LogOut, UserRound, X } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeftRight, Headphones, LogOut, UserRound, MoreHorizontal, X } from 'lucide-react';
 import { TestEnvironmentNotice } from '../../components/TestEnvironmentNotice';
 import { useAuth } from '../../auth/AuthProvider';
 import { useProfile, getDisplayFirstName, profileDisplayName } from '../../auth/useProfile';
@@ -20,7 +20,6 @@ import {
 } from '../../lib/seasonLifecycle';
 import { useManagerWorkMode } from '../ManagerWorkModeContext';
 import { MANAGER_TO_APP_HOME_PATH, ManagerMenuButton } from './ManagerSidebar';
-import { dsGlassIconButtonClass, dsTrainerPillClass } from '../../lib/premiumDesignSystem';
 
 type Props = {
   onOpenSidebar: () => void;
@@ -47,6 +46,7 @@ function labelForTeamSeason(ts: SessionTeamSeasonItem): string {
  */
 export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
   const navigate = useNavigate();
+  const location = useLocation();
   const { branding } = useManagerAppearance();
   const headerRef = useRef<HTMLElement>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -177,6 +177,10 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
     <div aria-hidden className="shrink-0 md:hidden" style={{ height: headerHeight || 'calc(60px + env(safe-area-inset-top))' }} />
     <header ref={headerRef} className="manager-header fixed inset-x-0 top-0 z-30 shrink-0 border-b border-white/10 bg-[#060608] text-white shadow-[0_10px_32px_-8px_rgba(0,0,0,0.65)] pt-[env(safe-area-inset-top)] md:sticky md:inset-x-auto md:bg-[#090909]/[0.98] md:shadow-none md:backdrop-blur-md">
       <TestEnvironmentNotice />
+      <div className="manager-compare-notice">
+        <span><strong>Designvorschau</strong><span className="manager-compare-data"> · gemeinsame TEST-Daten</span></span>
+        <a href={`https://app.spielzeitapp.at${location.pathname}${location.search}${location.hash}`} target="_blank" rel="noopener noreferrer">Bisherige Ansicht ↗</a>
+      </div>
       <div className="relative flex min-h-[60px] items-center gap-2 px-3 py-2 manager-mobile-header md:min-h-[72px] md:gap-3 md:py-2.5 md:px-5 lg:px-8 xl:px-10 2xl:px-12">
         <ManagerMenuButton onClick={onOpenSidebar} />
 
@@ -190,26 +194,18 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
 
         <div className="flex shrink-0 items-center gap-1.5 md:gap-3">
           <ManagerAppearanceToggle />
-          <div className="flex items-start gap-1.5 md:hidden">
-            <TeamSwitcher iconOnly openInApp />
-            <Link
-              to={MANAGER_TO_APP_HOME_PATH}
-              className="manager-round-button"
-              aria-label="Zurück zur SpielzeitApp"
-              title="Zurück zur SpielzeitApp"
-            >
-              <img src="/icon-192.png" alt="" className="h-9 w-9 shrink-0 rounded-full object-contain" />
-            </Link>
-            <div className="flex flex-col items-end gap-0.5">
-              <Link to="/manager/mehr" className={dsGlassIconButtonClass()} aria-label="Profil und Einstellungen">
-                <UserRound className="h-[1.1rem] w-[1.1rem]" />
-              </Link>
-              {roleHint ? (
-                <span className={`${dsTrainerPillClass()} !max-w-none !px-2`} title={roleHint.replace(/_/g, ' ')}>
-                  {mobileRoleLabel}
-                </span>
-              ) : null}
-            </div>
+          <div className="manager-mobile-tools md:hidden">
+            <Link to="/manager/mehr" className="manager-tool-button" aria-label="Profil und Einstellungen"><UserRound size={19} /></Link>
+            <details className="manager-tools-menu">
+              <summary className="manager-tool-button" aria-label="Weitere Manager-Aktionen"><MoreHorizontal size={20} /></summary>
+              <div className="manager-tools-popover">
+                <p>{displayName} · {mobileRoleLabel}</p>
+                <div className="manager-tools-favorites"><span>Favoriten</span><TeamSwitcher iconOnly openInApp /></div>
+                <Link to={MANAGER_TO_APP_HOME_PATH}>Zurück zur SpielzeitApp ↗</Link>
+                {canSwitchMode && !supportSession && <button type="button" onClick={() => isTrainerMode ? switchToAdministration() : switchToTrainer()}>{isTrainerMode ? adminSwitchButtonLabel : 'Als Trainer arbeiten'}</button>}
+                <button type="button" onClick={() => void onLogout()}>Abmelden</button>
+              </div>
+            </details>
           </div>
 
           {workMode === 'platform_admin' && !supportSession ? <ManagerPlatformContextSelect /> : headerTeamSeasons.length > 1 ? (
@@ -300,7 +296,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
       ) : null}
 
       <div className="border-t border-white/[0.06] px-3 pb-2 pt-1.5 md:hidden">
-        <ManagerContextPicker seasons={headerTeamSeasons} value={selectValue} label={contextLine} onSelect={onContextChange} modes={supportSession ? [] : availableModes} mode={workMode} onModeChange={setWorkMode} />
+        {workMode === 'platform_admin' && !supportSession ? <ManagerPlatformContextSelect mobile /> : <ManagerContextPicker seasons={headerTeamSeasons} value={selectValue} label={contextLine} onSelect={onContextChange} modes={supportSession ? [] : availableModes} mode={workMode} onModeChange={setWorkMode} />}
       </div>
     </header>
     </>

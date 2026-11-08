@@ -7,7 +7,13 @@ import { resolve } from "path";
  * Backend: VAPID_PUBLIC_KEY muss derselbe öffentliche Key wie VITE_VAPID_PUBLIC_KEY sein.
  */
 export default defineConfig(({ mode }) => {
-  loadEnv(mode, process.cwd(), "");
+  const env = loadEnv(mode, process.cwd(), "");
+  if (process.env.VERCEL_GIT_COMMIT_REF === 'preview/vereinszentrale-modern') {
+    const endpoint = process.env.VITE_SUPABASE_URL || env.VITE_SUPABASE_URL || '';
+    if (!/^https:\/\/acbaecjzoabafbsjrzvr\.supabase\.co\/?$/.test(endpoint)) {
+      throw new Error('Designvergleich benötigt die bestehende TEST-Datenbank. Keine LIVE-Verbindung erlaubt.');
+    }
+  }
 
   return {
     base: "/",
