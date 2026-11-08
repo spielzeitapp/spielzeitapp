@@ -16,7 +16,6 @@ import {
   Home,
   Menu,
   Shield,
-  Smartphone,
   Users,
   X,
 } from "lucide-react";
@@ -385,20 +384,16 @@ function ClubSeasonContent({
             </div>
             <div className="usc-hero-copy">
               <span className="usc-eyebrow">
-                Unser Verein. Unsere Leidenschaft.
+                Unser Verein. Unser Team.
               </span>
-              <h1>
-                GEMEINSAM
-                <br />
-                <em>ROHRBACH.</em>
-              </h1>
+              <h1>USC Rohrbach</h1>
               <p>
                 {season.age_group} · Saison {season.season?.name}
               </p>
             </div>
           </section>
           <div className="usc-section-head">
-            <h2>Am Ball.</h2>
+            <h2>Nächstes Spiel</h2>
             <button onClick={() => setTab("spiele")}>
               Alle Spiele <ChevronRight size={16} />
             </button>
@@ -420,7 +415,7 @@ function ClubSeasonContent({
             </p>
           )}
           <div className="usc-section-head">
-            <h2>Aus dem Vereinsleben.</h2>
+            <h2>Aktuelles</h2>
             <span className="usc-eyebrow">{season.age_group}</span>
           </div>
           {feed.loading ? (
@@ -542,12 +537,12 @@ function ClubSeasonContent({
             <span className="usc-eyebrow">{season.season?.name}</span>
             <h1>
               {season.age_group === "KM"
-                ? "Kampfmannschaft."
+                ? "Kampfmannschaft"
                 : season.age_group === "RES"
-                  ? "Reserve."
+                  ? "Reserve"
                   : season.age_group}
             </h1>
-            <p>Die Menschen hinter unserem Spiel.</p>
+            <p>Unser Team · {roster.players.length} Spieler</p>
           </div>
           <div className="usc-tabs">
             <button
@@ -797,14 +792,6 @@ export function UscClubApp() {
         <button
           className="usc-icon-button"
           type="button"
-          onClick={() => setInstall(true)}
-          aria-label="USC-App zum Home-Bildschirm hinzufügen"
-        >
-          <Smartphone />
-        </button>
-        <button
-          className="usc-icon-button"
-          type="button"
           onClick={() => setMenu(true)}
           aria-label="Vereinsmenü öffnen"
         >
@@ -864,7 +851,7 @@ export function UscClubApp() {
         ) : (
           <>
             <label className="usc-team-select">
-              <span>Deine Mannschaft</span>
+              <span>Mannschaft</span>
               <select
                 value={season.id}
                 onChange={(e) =>
@@ -982,6 +969,7 @@ export function UscClubApp() {
           <button
             key={id}
             type="button"
+            aria-label={label}
             onClick={() => setTab(id)}
             aria-current={
               tab === id || (tab === "tabelle" && id === "spiele")
@@ -1011,13 +999,8 @@ export function UscClubApp() {
             <X />
           </button>
         </div>
-        <p className="usc-eyebrow">Dein Verein. Immer dabei.</p>
-        {tabs.map(({ id, label }) => (
-          <button className="usc-menu-main" key={id} onClick={() => setTab(id)}>
-            {label}
-            <ChevronRight />
-          </button>
-        ))}
+        <h2>Mehr beim USC</h2>
+        <p>Alles rund um unseren Verein.</p>
         <div className="usc-menu-extras">
           <button onClick={() => setTab("tabelle")}>Tabelle</button>
           <button onClick={() => openClub("funktionaere")}>Funktionäre</button>

@@ -153,7 +153,7 @@ const mount = async (path) => {
 const click = async (label) => {
   const btn = tree.root
     .findAllByType("button")
-    .find((b) => b.children.some((c) => c === label));
+    .find((b) => b.props["aria-label"] === label || b.children.some((c) => c === label));
   assert.ok(btn, label);
   await act(async () => btn.props.onClick());
 };
