@@ -1,3 +1,4 @@
+import {listPlayerPhotoMotifs} from './playerPhotoMotifs';
 import { isInternalChampionshipFixture } from './championshipVisibility';
 import { supabase } from './supabaseClient';
 import { loadAutoMatchdayFeedEnabledByMatchId } from './autoMatchdayFeedEnabled';
@@ -258,11 +259,13 @@ async function resolveMatchdayPlayerMotif(event: EventRowLite): Promise<Matchday
   if (roster.error) {
     mdLog('motif roster unavailable', { eventId: event.id, error: roster.error });
   }
+  const savedMotifs=await listPlayerPhotoMotifs(event.team_season_id).catch(()=>[]);
+  const preferred=(id:string)=>savedMotifs.find(m=>m.player_id===id&&m.purpose==='matchday'&&m.layout?.source==='cutout')?.cutout_url;
   const rosterCandidates = roster.data
-    .filter((player) => Boolean(player.cutout_url?.trim()))
+    .filter((player) => Boolean(preferred(player.id)||player.cutout_url?.trim()))
     .map((player) => ({
       playerId: player.id,
-      imageUrl: player.cutout_url!.trim(),
+      imageUrl: preferred(player.id)||player.cutout_url!.trim(),
       playerName: player.display_name,
     }));
   const previousPlayerId = await loadPreviousMatchdayPlayerId(event.team_season_id, event.id);

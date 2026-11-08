@@ -1,3 +1,4 @@
+import {savePlayerPhotoMotif,uploadPlayerMotif,type PlayerPhotoMotif} from '../lib/playerPhotoMotifs';
 import {PortraitCutoutRetouch} from './PortraitCutoutRetouch';
 import {rohrbachPortraitLayout} from '../lib/rohrbachPortraitLayout';
 import {uploadPortraitBackground,validatePortraitBackground} from '../lib/portraitBackgroundUpload';
@@ -14,7 +15,7 @@ import {preparedPlayerPortrait} from '../lib/playerPhotoDisplay';
 import {removePortraitBackground} from '../lib/removePortraitBackground';
 import {uploadStaffProfileCutout,uploadPlayerProfileCutout} from '../lib/profileCutoutUpload';
 import {supabase} from '../lib/supabaseClient';
-export function ManagerPlayerPhotoEditor({player,seasonId,onSaved,onClose,global=false,trainer=false,clubTemplate,clubDesign,imageOnly=false,onDirtyChange,unified=false,onBusyChange}:{player:RosterPlayer;seasonId:string;global?:boolean;trainer?:boolean;onSaved:()=>void;onClose:()=>void;clubTemplate?:'wide'|'square';clubDesign?:ClubProfileDesign|null;imageOnly?:boolean;onDirtyChange?:(dirty:boolean)=>void;unified?:boolean;onBusyChange?:(busy:boolean)=>void}) {
+export function ManagerPlayerPhotoEditor({player,seasonId,onSaved,onClose,global=false,trainer=false,clubTemplate,clubDesign,imageOnly=false,onDirtyChange,unified=false,onBusyChange,motif}:{motif?:PlayerPhotoMotif;player:RosterPlayer;seasonId:string;global?:boolean;trainer?:boolean;onSaved:()=>void;onClose:()=>void;clubTemplate?:'wide'|'square';clubDesign?:ClubProfileDesign|null;imageOnly?:boolean;onDirtyChange?:(dirty:boolean)=>void;unified?:boolean;onBusyChange?:(busy:boolean)=>void}) {
  const [baseline]=useState<PlayerPhotoLayout>(()=>({...DEFAULT_PHOTO_LAYOUT,...(global?player.photo_layout_default:player.photo_layout??player.photo_layout_default)}));
  const history=useDraftHistory(baseline);
  const layout=history.value;
@@ -69,16 +70,16 @@ export function ManagerPlayerPhotoEditor({player,seasonId,onSaved,onClose,global
    }
    let trainerCutout:string|null=null;
    if(!reset&&pending&&layout.source==='cutout'){
-    const uploaded=await (trainer?uploadStaffProfileCutout:uploadPlayerProfileCutout)(seasonId,player.id,new File([pending],'portrait.png',{type:'image/png'}));
+    const uploaded=motif?{cutoutUrl:await uploadPlayerMotif(seasonId,player.id,motif.purpose,pending,true),error:null}:await (trainer?uploadStaffProfileCutout:uploadPlayerProfileCutout)(seasonId,player.id,new File([pending],'portrait.png',{type:'image/png'}));
     if(uploaded.error||!uploaded.cutoutUrl)throw new Error(uploaded.error||'Freisteller konnte nicht gespeichert werden.');
-    if(trainer){trainerCutout=uploaded.cutoutUrl;}else{
+    if(trainer||motif){trainerCutout=uploaded.cutoutUrl;}else{
     const {data,error:photoError}=await supabase.from('players').update({cutout_url:uploaded.cutoutUrl}).eq('id',player.id).select('id').single();
     if(photoError||!data)throw new Error(photoError?.message||'Keine Berechtigung zum Speichern des Freistellers.');
     }
-    if(!trainer){setStoredCutout(uploaded.cutoutUrl);setPending(null);}
+    if(!trainer&&!motif){setStoredCutout(uploaded.cutoutUrl);setPending(null);}
    }
-   const {error}=await supabase.rpc(trainer?'save_staff_photo_layout':global?'admin_save_global_photo_layout':'admin_save_player_photo_layout',{p_team_season_id:seasonId,...(trainer?{p_user_id:player.id,p_cutout_url:trainerCutout}:global?{p_replace_individual:replaceAll}:{p_player_id:player.id}),p_layout:reset||inherit?null:savedLayout,p_expected:(global?player.photo_layout_default:player.photo_layout)??null});
-   if(error)throw error;initialLayout.current=savedLayout;history.reset(savedLayout);setBackgroundFile(null);setInherit(false);onDirtyChange?.(false);onSaved();
+   const {error}=motif?(await savePlayerPhotoMotif({...motif,cutout_url:trainerCutout??motif.cutout_url,layout:reset||inherit?null:savedLayout},motif.revision),{error:null}):await supabase.rpc(trainer?'save_staff_photo_layout':global?'admin_save_global_photo_layout':'admin_save_player_photo_layout',{p_team_season_id:seasonId,...(trainer?{p_user_id:player.id,p_cutout_url:trainerCutout}:global?{p_replace_individual:replaceAll}:{p_player_id:player.id}),p_layout:reset||inherit?null:savedLayout,p_expected:(global?player.photo_layout_default:player.photo_layout)??null});
+   if(error)throw error;if(motif&&trainerCutout){setStoredCutout(trainerCutout);setPending(null);}initialLayout.current=savedLayout;history.reset(savedLayout);setBackgroundFile(null);setInherit(false);onDirtyChange?.(false);onSaved();
   }catch(e){setError(e instanceof Error?e.message:(e as {message?:string}).message||'Speichern fehlgeschlagen.');}finally{setBusy(false);}
  };
  const slider=(key:Exclude<keyof PlayerPhotoLayout,'profileDesign'|'background'|'backgroundImageUrl'|'source'|'rotation'>,label:string,min=0,max=100)=><label className="block text-sm" key={key}>{label}: {layout[key]??(key==='brightness'?100:'')}<input aria-label={label} type="range" min={min} max={max} value={layout[key]??(key==='brightness'?100:0)} disabled={busy||generating||readingBackground||retouching} onChange={e=>patch(key,Number(e.target.value))} className="block w-full"/></label>;
