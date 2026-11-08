@@ -144,11 +144,47 @@
           "value": "SAMEORIGIN"
         }
       ]
+    },
+    {
+      "source": "/usc.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/clubs/usc-rohrbach/manifest.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json; charset=utf-8"
+        }
+      ]
     }
   ],
   "rewrites": [
-    { "source": "/manager", "destination": "/manager.html" },
-    { "source": "/manager/(.*)", "destination": "/manager.html" },
+    {
+      "source": "/app/usc-rohrbach",
+      "destination": "/usc.html"
+    },
+    {
+      "source": "/app/usc-rohrbach/(.*)",
+      "destination": "/usc.html"
+    },
+    {
+      "source": "/manager",
+      "destination": "/manager.html"
+    },
+    {
+      "source": "/manager/(.*)",
+      "destination": "/manager.html"
+    },
     {
       "source": "/demo",
       "destination": "/demo.html"
