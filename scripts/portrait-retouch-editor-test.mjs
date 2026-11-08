@@ -11,7 +11,7 @@ const b=await build({entryPoints:['src/manager/ManagerPlayerPhotoEditor.tsx'],bu
  b.onResolve({filter:/supabaseClient$/},()=>({path:'db',namespace:'fixture'}));
  b.onResolve({filter:/profileCutoutUpload$/},()=>({path:'upload',namespace:'fixture'}));
  b.onResolve({filter:/PortraitCutoutRetouch$/},()=>({path:'dialog',namespace:'fixture'}));
- b.onLoad({filter:/.*/,namespace:'fixture'},({path})=>({loader:'js',contents:path==='db'?'export const supabase=globalThis.__retouchDb':path==='upload'?'export const uploadStaffProfileCutout=globalThis.__retouchUpload;export const uploadPlayerProfileCutout=globalThis.__retouchUpload;':`import React from 'react';export function PortraitCutoutRetouch({onApply,onClose,originalSource}){if(originalSource!=="https://example.test/original.jpg")throw Error("Missing original photo for sleeve restoration");return React.createElement('div',null,React.createElement('button',{onClick:()=>onApply(globalThis.__retouchApply)},'Apply correction'),React.createElement('button',{onClick:onClose},'Cancel correction'));}`}));
+ b.onLoad({filter:/.*/,namespace:'fixture'},({path})=>({loader:'js',contents:path==='db'?'export const supabase=globalThis.__retouchDb':path==='upload'?'export const uploadStaffProfileCutout=globalThis.__retouchUpload;export const uploadPlayerProfileCutout=globalThis.__retouchUpload;':`import React from 'react';export function PortraitCutoutRetouch({onApply,onClose,originalSource,source,sourceIsOriginal,initialMode}){if(originalSource!=="https://example.test/original.jpg")throw Error("Missing original photo for sleeve restoration");globalThis.__retouchDialog={source,sourceIsOriginal,initialMode};return React.createElement('div',null,React.createElement('button',{onClick:()=>onApply(globalThis.__retouchApply)},'Apply correction'),React.createElement('button',{onClick:onClose},'Cancel correction'));}`}));
 }}]});
 const m={exports:{}};new Function('require','module','exports',b.outputFiles[0].text)(require,m,m.exports);const Editor=m.exports.ManagerPlayerPhotoEditor;
 const player={id:'fixture',display_name:'Test Player',first_name:'Test',last_name:'Player',cutout_url:'https://example.test/cutout.png',avatar_url:'https://example.test/original.jpg'};let root;
@@ -24,4 +24,12 @@ await act(async()=>button('Freisteller-Kanten nachbessern').props.onClick());awa
 await act(async()=>button('Rohrbach-Anordnung vorschlagen').props.onClick());assert.equal(calls.length,0,'position preset is also preview only');
 await act(async()=>button('90° nach links').props.onClick());assert.equal(calls.length,0,'rotation remains preview until save');
 await act(async()=>button('Für Test Player speichern').props.onClick());assert.equal(uploads.length,1);assert.equal(uploads[0][0],'season-fixture');assert.equal(uploads[0][1],'fixture');assert.equal(updates.length,1);assert.equal(calls.at(-1).args.p_layout.rotation,270);assert.equal(calls.at(-1).args.p_layout.source,'cutout');assert.equal(calls.at(-1).args.p_layout.profileDesign.name.y,82);assert.equal(calls.at(-1).args.p_layout.profileDesign.logo.visible,false);assert.equal(calls.at(-1).args.p_player_id,'fixture');
+await act(async()=>root.unmount());
+const beforeUploads=uploads.length,beforeCalls=calls.length;
+await act(async()=>{root=create(React.createElement(Editor,{player:{...player,cutout_url:null},seasonId:'season-fixture',unified:true,onSaved(){},onClose(){}}));});
+assert.equal(button('Manuell aus Original freistellen').props.disabled,false,'manual mode needs no previous cutout');
+await act(async()=>button('Manuell aus Original freistellen').props.onClick());
+assert.equal(globalThis.__retouchDialog.source,player.avatar_url);assert.equal(globalThis.__retouchDialog.sourceIsOriginal,true);assert.equal(globalThis.__retouchDialog.initialMode,'outline');
+await act(async()=>button('Apply correction').props.onClick());assert.equal(uploads.length,beforeUploads);assert.equal(calls.length,beforeCalls,'manual mask is a draft until Save');
+await act(async()=>button('Für Test Player speichern').props.onClick());assert.equal(uploads.length,beforeUploads+1);assert.equal(calls.at(-1).args.p_layout.source,'cutout');
 await act(async()=>root.unmount());console.log('PASS editor retouch integration: cancel, unsaved correction/preset previews and explicit scoped cutout upload + layout save.');
