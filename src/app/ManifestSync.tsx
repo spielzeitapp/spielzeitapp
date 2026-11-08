@@ -12,15 +12,14 @@ function isInternalDomain(): boolean {
 }
 
 function ensureManifestLink(href: string): void {
-  let link = document.getElementById(MANIFEST_ID) as HTMLLinkElement | null;
+  let link = (document.getElementById(MANIFEST_ID) ?? document.querySelector('head link[rel="manifest"]')) as HTMLLinkElement | null;
   if (!link) {
-    const existing = document.querySelector('head link[rel="manifest"]');
-    if (existing) existing.remove();
     link = document.createElement('link');
     link.rel = 'manifest';
-    link.id = MANIFEST_ID;
     document.head.appendChild(link);
   }
+  // Reuse the initial link: installation must not observe an intermediate manifest.
+  link.id = MANIFEST_ID;
   if (link.getAttribute('href') !== href) {
     link.href = href;
   }

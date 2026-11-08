@@ -22,6 +22,7 @@ export default defineConfig(({ mode }) => {
           app: resolve(__dirname, "app.html"),
           demo: resolve(__dirname, "demo.html"),
           manager: resolve(__dirname, "manager.html"),
+          usc: resolve(__dirname, "usc.html"),
         },
         onwarn(warning, defaultHandler) {
           if (

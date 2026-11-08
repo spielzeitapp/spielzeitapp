@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="de-AT">
+  <head>
+    <meta charset="UTF-8" />
+    <title>USC Rohrbach</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- Installation metadata must be correct in the original HTML, before any JS. -->
+    <link id="app-manifest" rel="manifest" href="/clubs/usc-rohrbach/manifest.json" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/clubs/usc-rohrbach/icon-180.png" />
+    <link rel="icon" type="image/png" href="/clubs/usc-rohrbach/icon-192.png" />
+    <meta name="application-name" content="USC Rohrbach" />
+    <meta name="theme-color" content="#101214" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="USC Rohrbach" />
+    <script>
+      window.__HOST_IS_INTERNAL__ = true;
+      if (window.location.pathname === '/usc.html') {
+        window.location.replace('/app/usc-rohrbach' + window.location.search + window.location.hash);
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
