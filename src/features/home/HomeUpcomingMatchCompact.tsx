@@ -1,3 +1,9 @@
+import {ClubLogo} from '../../components/branding/ClubLogo';
+import {useMatchClubBranding} from '../../hooks/useMatchClubBranding';
+import {useClubOpponentLogos,preferredClubLogo} from '../../hooks/useClubOpponentLogos';
+import {getClubLogo} from '../../lib/teamLogos';
+import {scheduleClubName} from '../../lib/scheduleClubIdentity';
+import {isUscRohrbachResult} from '../../lib/resultFeedPresentation';
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Clock, MapPin } from 'lucide-react';
@@ -28,6 +34,8 @@ export const HomeUpcomingMatchCompact: React.FC<Props> = ({
   const { event, status } = pick;
   const opponent = (event.opponent ?? 'Gegner').trim() || 'Gegner';
   const ourFullName = (teamName ?? getOurTeamDisplayName()).trim() || getOurTeamDisplayName();
+  const club=useMatchClubBranding(event.team_season_id);
+  const logos=useClubOpponentLogos([opponent],event.team_season_id);
   const ourParts = parseClubDisplayName(ourFullName);
   const matchLabel = getMatchTypeLabel(event.match_type ?? event.type);
 
@@ -59,6 +67,20 @@ export const HomeUpcomingMatchCompact: React.FC<Props> = ({
 
   const placeShort = formatFeedVenueShort(event.location ?? event.address) ?? '';
 
+  if(isUscRohrbachResult(ourFullName)) {
+    const own=scheduleClubName(ourFullName), away=event.is_home===false;
+    const ownLogo=getClubLogo(own,{logoUrl:club.brand?.logo_url});
+    const oppLogo=getClubLogo(opponent,{logoUrl:preferredClubLogo(opponent,logos,event.opponent_logo_url)});
+    return <PremiumCard as="section" aria-label="Nächstes Spiel" className="border-white/20 bg-gradient-to-br from-zinc-900 to-black">
+      <Link to={eventLink} className="block px-4 py-3">
+        <div className="mb-3 flex items-center justify-between gap-2 border-b border-white/10 pb-2"><strong className="text-[11px] uppercase tracking-[.12em] text-white/75">{titleLine}</strong><span className="text-[10px] font-bold uppercase text-white/60">{matchLabel}</span></div>
+        <div className="flex items-center gap-3"><ClubLogo removeDarkBackground src={away?oppLogo:ownLogo} alt="" className="h-11 w-12 shrink-0 object-contain"/>
+          <div className="min-w-0 flex-1"><p className="text-sm font-bold leading-snug text-white">{away?opponent:own} – {away?own:opponent}</p><p className="mt-1 flex items-center gap-1.5 text-xs text-white/65"><Clock size={13}/>{timeStr}</p></div>
+          <ChevronRight className="h-4 w-4 shrink-0 text-white/50"/>
+        </div>
+      </Link>
+    </PremiumCard>;
+  }
   return (
     <PremiumCard
       as="section"

@@ -9,7 +9,7 @@ for(const isHome of [true,false])for(const [home,away,state]of [[0,3,isHome?'los
  const p={team_season_id:'usc',our_team_name:'KM USC Rohrbach',is_home:isHome,home_score:home,away_score:away,home_team_name:isHome?'KM USC Rohrbach':'ASK Loosdorf',away_team_name:isHome?'ASK Loosdorf':'KM USC Rohrbach',home_logo_url:'https://example.test/home.png',away_logo_url:'https://example.test/away.png'};
  const html=renderToStaticMarkup(React.createElement(Artwork,{...common,payload:p}));
  assert.match(html,/result-poster--usc/);assert.match(html,/#GEMEINSAMSTARK/);assert.doesNotMatch(html,/#GEMEINSAMEINTEAM|KM USC/);
- assert.match(html,/KM · 2026\/27/);assert.match(html,/usc-original.png/);assert.match(html,new RegExp(`data-result-state="${state}"`));
+ assert.match(html,/SPIELERGEBNIS/);assert.match(html,/Fr\.|Sa\./);assert.match(html,/usc-original.png/);assert.match(html,new RegExp(`data-result-state="${state}"`));
  assert.match(html,new RegExp(`${home}:${away}`));assert.doesNotMatch(html,/UNSERE TORSCHÜTZEN/);
  const text=caption({ourTeamName:p.our_team_name,opponentName:'ASK Loosdorf',homeScore:home,awayScore:away,resultState:state,isHome});
  assert.match(text,/#GEMEINSAMSTARK/);assert.doesNotMatch(text,/KM USC|wir lernen/);

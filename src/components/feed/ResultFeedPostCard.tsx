@@ -349,7 +349,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
 
           {captionTrim ? (
             <div className={FEED_POST_CAPTION_AFTER_MEDIA_CLASS}>
-              <FeedCaption text={captionTrim} />
+              <FeedCaption text={isUscRohrbachResult(p.our_team_name) ? captionTrim.replace(/(?:^|\n)\s*#GEMEINSAMSTARK\s*(?=\n|$)/g, '').trim() : captionTrim} />
             </div>
           ) : null}
 
@@ -368,7 +368,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
 
   return (
     <FeedPostArticleShell
-      className=""
+      className={isUscRohrbachResult(p.our_team_name) ? "result-feed--usc" : ""}
       style={{ boxShadow: presentation.articleShadow }}
       data-feed-result-card="clean-v1"
     >
@@ -400,17 +400,15 @@ export const ResultFeedPostCard: React.FC<Props> = ({
 
             {captionTrim ? (
               <div className="sz-club-feed-inset mt-0.5 rounded-2xl border px-2 py-2 sm:px-2.5 sm:py-2.5">
-                <p className="sz-club-feed-accent-text text-[10px] font-black uppercase tracking-[0.14em] sm:text-[11px]">
-                  Kurzbericht
-                </p>
+                <>{!isUscRohrbachResult(p.our_team_name) ? <p className="sz-club-feed-accent-text text-[10px] font-black uppercase tracking-[0.14em] sm:text-[11px]">Kurzbericht</p> : null}</>
                 <div className="mt-1 min-w-0">
-                  <FeedCaption text={captionTrim} />
+                  <FeedCaption text={isUscRohrbachResult(p.our_team_name) ? captionTrim.replace(/(?:^|\n)\s*#GEMEINSAMSTARK\s*(?=\n|$)/g, '').trim() : captionTrim} />
                 </div>
               </div>
             ) : null}
 
-            <div className="pt-1">
-              <FeedGameCtaLink to={gameHref}>Zum Spielbericht</FeedGameCtaLink>
+            <div className={isUscRohrbachResult(p.our_team_name) ? "usc-result-cta pt-1" : "pt-1"}>
+              <FeedGameCtaLink to={gameHref}>{isUscRohrbachResult(p.our_team_name) ? "Spielbericht ansehen" : "Zum Spielbericht"}</FeedGameCtaLink>
             </div>
         </div>
       </div>
