@@ -11,11 +11,12 @@ const b=await build({entryPoints:['src/manager/ManagerPlayerPhotoEditor.tsx'],bu
  b.onResolve({filter:/supabaseClient$/},()=>({path:'db',namespace:'fixture'}));
  b.onResolve({filter:/profileCutoutUpload$/},()=>({path:'upload',namespace:'fixture'}));
  b.onResolve({filter:/PortraitCutoutRetouch$/},()=>({path:'dialog',namespace:'fixture'}));
- b.onLoad({filter:/.*/,namespace:'fixture'},({path})=>({loader:'js',contents:path==='db'?'export const supabase=globalThis.__retouchDb':path==='upload'?'export const uploadStaffProfileCutout=globalThis.__retouchUpload;export const uploadPlayerProfileCutout=globalThis.__retouchUpload;':`import React from 'react';export function PortraitCutoutRetouch({onApply,onClose}){return React.createElement('div',null,React.createElement('button',{onClick:()=>onApply(globalThis.__retouchApply)},'Apply correction'),React.createElement('button',{onClick:onClose},'Cancel correction'));}`}));
+ b.onLoad({filter:/.*/,namespace:'fixture'},({path})=>({loader:'js',contents:path==='db'?'export const supabase=globalThis.__retouchDb':path==='upload'?'export const uploadStaffProfileCutout=globalThis.__retouchUpload;export const uploadPlayerProfileCutout=globalThis.__retouchUpload;':`import React from 'react';export function PortraitCutoutRetouch({onApply,onClose,originalSource}){if(originalSource!=="https://example.test/original.jpg")throw Error("Missing original photo for sleeve restoration");return React.createElement('div',null,React.createElement('button',{onClick:()=>onApply(globalThis.__retouchApply)},'Apply correction'),React.createElement('button',{onClick:onClose},'Cancel correction'));}`}));
 }}]});
 const m={exports:{}};new Function('require','module','exports',b.outputFiles[0].text)(require,m,m.exports);const Editor=m.exports.ManagerPlayerPhotoEditor;
 const player={id:'fixture',display_name:'Test Player',first_name:'Test',last_name:'Player',cutout_url:'https://example.test/cutout.png',avatar_url:'https://example.test/original.jpg'};let root;
 await act(async()=>{root=create(React.createElement(Editor,{player,seasonId:'season-fixture',unified:true,onSaved(){},onClose(){}}));});
+assert.equal(root.root.findByProps({'aria-label':'Freisteller-Kanten'}).props.value,'gentle','new cutouts default to preserving clothes');
 const button=text=>root.root.findAllByType('button').find(n=>n.children.join('')===text);
 await act(async()=>button('Freisteller-Kanten nachbessern').props.onClick());assert.equal(button('Für Test Player speichern').props.disabled,true);
 await act(async()=>button('Cancel correction').props.onClick());assert.equal(calls.length,0);assert.equal(uploads.length,0);
