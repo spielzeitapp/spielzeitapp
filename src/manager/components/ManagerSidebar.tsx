@@ -1,3 +1,5 @@
+import { useManagerAppearance } from '../appearance/ManagerAppearance';
+import { ClubLogo } from '../../components/branding/ClubLogo';
 import { isStagingApp } from '../../lib/appEnvironment';
 import React, { useCallback, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -131,6 +133,7 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
     onClose();
   }, [onClose]);
   const location = useLocation();
+  const { branding, clubName } = useManagerAppearance();
   const { workMode, supportSession, availableModes } = useManagerWorkMode();
   const { isModuleEnabled } = useManagerClubModules();
   const {access:communicationAccess}=useCommunicationAccess();
@@ -166,8 +169,8 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
       >
         <div className="flex h-[72px] shrink-0 items-center justify-between gap-2 border-b border-white/10 px-5 pt-[env(safe-area-inset-top)] lg:pt-0">
           <Link to={platformGlobal ? '/manager/plattform' : '/manager'} className="flex min-w-0 items-center gap-2" onClick={closeOnNav}>
-            <img src="/manager-icon-192.png" alt="" className="h-9 w-9 rounded-lg" />
-            <span className="truncate text-[16px] font-bold">Spielzeit Manager</span>
+            {branding?.logo_url ? <ClubLogo src={branding.logo_url} alt="Vereinslogo" className="manager-identity-logo" /> : <img src="/manager-icon-192.png" alt="" className="h-9 w-9 rounded-lg" />}
+            <span className="truncate text-[16px] font-bold">Vereinszentrale</span>
           </Link>
           <button
             type="button"
@@ -180,7 +183,7 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
         </div>
 
         <p className="px-5 pt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-red-400">
-          {workMode === 'trainer' ? 'Trainer' : supportSession ? supportSession.clubName : workMode === 'platform_admin' ? 'Plattform' : 'Verein'}
+          {clubName ?? (workMode === 'trainer' ? 'Trainer' : workMode === 'platform_admin' ? 'Plattform' : 'Verein')}
         </p>
 
         <nav className="mt-2 flex-1 overflow-y-auto px-2.5 pb-4 manager-sidebar-scroll">

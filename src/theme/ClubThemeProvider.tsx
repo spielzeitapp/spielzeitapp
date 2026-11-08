@@ -42,6 +42,13 @@ export const ClubThemeProvider: React.FC<React.PropsWithChildren<{ brandingOverr
   const routeTeamId = requestedId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestedId) ? requestedId : null;
   const teamSeasonId = combinedView ? null : routeTeamId ?? singleFilterId ?? viewTeamSeasonId ?? selectedTeamSeasonId;
   const isDemo = location.pathname.startsWith('/demo');
+  const [brandingRevision, setBrandingRevision] = useState(0);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const refresh = () => setBrandingRevision(value => value + 1);
+    window.addEventListener('spielzeit:club-branding-changed', refresh);
+    return () => window.removeEventListener('spielzeit:club-branding-changed', refresh);
+  }, []);
   const [loaded, setLoaded] = useState<{ teamSeasonId: string; branding: ClubBranding | null } | null>(null);
   // Do not show the previous club's colors while the next club is loading.
   const storedBranding = brandingOverride ?? (!combinedView && !isDemo && loaded?.teamSeasonId === teamSeasonId
@@ -58,7 +65,7 @@ export const ClubThemeProvider: React.FC<React.PropsWithChildren<{ brandingOverr
       setLoaded({ teamSeasonId, branding: result.data });
     });
     return () => { cancelled = true; };
-  }, [isDemo, teamSeasonId, combinedView, brandingOverride]);
+  }, [isDemo, teamSeasonId, combinedView, brandingOverride, brandingRevision]);
 
   useEffect(() => {
     const root = document.documentElement;

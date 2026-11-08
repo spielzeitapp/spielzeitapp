@@ -107,5 +107,6 @@ export async function saveClubBranding(clubId: string, branding: ClubBranding, l
   }
   const { error } = await supabase.rpc('admin_set_club_branding', { p_club_id: clubId, p_logo_url: logoUrl,
     p_primary_color: branding.primary_color, p_secondary_color: branding.secondary_color, p_accent_color: branding.accent_color });
+  if (!error && typeof window !== 'undefined') window.dispatchEvent(new Event('spielzeit:club-branding-changed'));
   return { error: error?.message ?? null };
 }
