@@ -1,3 +1,8 @@
+import { MatchCardGameCore } from "../../components/match/MatchCardGameCore";
+import { TeamHeroFrame } from "../../components/team/TeamHeroFrame";
+import { TeamSquadShowcase } from "../../components/team/TeamSquadShowcase";
+import { TeamTrainerShowcase } from "../../components/team/TeamTrainerShowcase";
+import { PastMatchResultCard } from "../../components/schedule/PastMatchResultCard";
 import { uscEventLink } from "./uscEventLink";
 import { UscMatchReport } from "./UscMatchReport";
 import { uscAuthPath } from "./uscAuth";
@@ -25,6 +30,7 @@ import { useTeamFeedPosts } from "../../hooks/useTeamFeedPosts";
 import { usePlayers, type PlayerItem } from "../../hooks/usePlayers";
 import {
   useTeamStaff,
+  type TeamStaffMember,
   staffDisplayName,
   staffRoleLabelDe,
 } from "../../hooks/useTeamStaff";
@@ -50,6 +56,8 @@ import {
 } from "./uscClub";
 import { useUscClub } from "./useUscClub";
 import "./uscClubApp.css";
+
+const NO_OWN_PLAYERS = new Set<string>();
 
 const tabs = [
   { id: "home", label: "Home", icon: Home },
@@ -123,22 +131,9 @@ function ClubMatch({
         {date(event.starts_at)} ·{" "}
         {event.is_home === false ? "Auswärts" : "Heimspiel"}
       </span>
-      <span className="usc-encounter">
-        <span className="usc-match-team">
-          <ClubLogo src={sides[0].logo} removeDarkBackground alt="" />
-          <strong>{sides[0].name}</strong>
-        </span>
-        <span className="usc-match-score">
-          {finished
-            ? `${score.score_home}:${score.score_away}`
-            : time(event.starts_at)}
-          <small>{finished ? "Spiel beendet" : "Anpfiff"}</small>
-        </span>
-        <span className="usc-match-team">
-          <ClubLogo src={sides[1].logo} removeDarkBackground alt="" />
-          <strong>{sides[1].name}</strong>
-        </span>
-      </span>
+      <div className="usc-shared-game">
+        <MatchCardGameCore headerTitle={null} leftName={sides[0].name} rightName={sides[1].name} leftLogoUrl={sides[0].logo} opponentLogoUrl={sides[1].logo} timeDisplay={time(event.starts_at)} isMatch showScore={finished} homeScore={score?.score_home ?? 0} awayScore={score?.score_away ?? 0} kickoffLocation={null} meetupTimeOnly="" showMeetupPill={false} compactScheduleHero suppressCompactScheduleFooter kickoffHeaderLabel={finished ? "Endstand" : "Anpfiff"} />
+      </div>
       <span className="usc-match-venue">
         {formatFeedVenueShort(event.location) || "Spielort noch offen"}
         <ChevronRight size={17} />
@@ -190,6 +185,13 @@ function ClubSeasonContent({
   const roster = usePlayers(tab === "teams" ? season.id : null);
   const staff = useTeamStaff(tab === "teams" ? season.id : null);
   const [player, setPlayer] = useState<PlayerItem | null>(null);
+  const [trainer, setTrainer] = useState<TeamStaffMember | null>(null);
+  const [trainerIndex, setTrainerIndex] = useState(0);
+  const trainerDialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (trainer) trainerDialog.current?.showModal();
+    else trainerDialog.current?.close();
+  }, [trainer]);
   const [detail, setDetail] = useState<EventRow | null>(null);
   useEffect(() => {
     setDetail(
@@ -257,7 +259,6 @@ function ClubSeasonContent({
     "alle",
   );
   const [rosterTab, setRosterTab] = useState<"kader" | "trainer">("kader");
-  const [search, setSearch] = useState("");
   const matchDialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     let active = true;
@@ -360,11 +361,10 @@ function ClubSeasonContent({
       ),
     [events, scores],
   );
-  const players = roster.players.filter((p) =>
-    p.display_name
-      .toLocaleLowerCase("de")
-      .includes(search.toLocaleLowerCase("de")),
-  );
+  const activePlayers = useMemo(() => roster.players
+    .filter((p) => (p.status ?? "active") === "active")
+    .sort((a, b) => (a.jersey_number ?? 9999) - (b.jersey_number ?? 9999) || a.display_name.localeCompare(b.display_name, "de")), [roster.players]);
+  const players = activePlayers;
   return (
     <div className="usc-season-content" onClickCapture={keepClubNavigation}>
       {tab === "home" ? (
@@ -454,8 +454,7 @@ function ClubSeasonContent({
             <span className="usc-eyebrow">
               {season.age_group} · {season.season?.name}
             </span>
-            <h1>Spiele.</h1>
-            <p>Spielplan und Ergebnisse aus deiner SpielzeitApp.</p>
+            <div className="usc-title-actions"><h1>Spielplan</h1><button onClick={() => setTab("tabelle")}>Zur Tabelle <ChevronRight size={16} /></button></div>
           </div>
           <div className="usc-tabs" aria-label="Spiele filtern">
             {(["alle", "kommende", "vergangene"] as const).map((f) => (
@@ -479,14 +478,12 @@ function ClubSeasonContent({
             </p>
           ) : (
             <div className="usc-match-list">
-              {visibleMatches.map((event) => (
-                <ClubMatch
-                  key={event.id}
-                  event={event}
-                  score={scores.get(event.match_id || "")}
-                  onOpen={() => openDetail(event)}
-                />
-              ))}
+              {visibleMatches.map((event) => {
+                const score = scores.get(event.match_id || "");
+                return score?.status === "finished" && score.score_home != null && score.score_away != null ? (
+                  <PastMatchResultCard key={event.id} ev={event} ageGroup={season.age_group} ourTeamName="USC Rohrbach" opponentLogoUrl={event.opponent_logo_url} scoreHome={score.score_home} scoreAway={score.score_away} forcePublicView={false} compact onNavigate={() => openDetail(event)} />
+                ) : <ClubMatch key={event.id} event={event} score={score} onOpen={() => openDetail(event)} />;
+              })}
               {!visibleMatches.length ? (
                 <p className="usc-note">Keine Spiele in dieser Auswahl.</p>
               ) : null}
@@ -508,7 +505,7 @@ function ClubSeasonContent({
             <span className="usc-eyebrow">
               {season.age_group} · {season.season?.name}
             </span>
-            <h1>Tabelle.</h1>
+            <div className="usc-title-actions"><h1>Tabelle</h1><button onClick={() => setTab("spiele")}>Zum Spielplan <ChevronRight size={16} /></button></div>
           </div>
           {table.loading ? (
             <p className="usc-note" role="status">
@@ -533,17 +530,15 @@ function ClubSeasonContent({
       ) : null}
       {tab === "teams" ? (
         <>
-          <div className="usc-page-title">
-            <span className="usc-eyebrow">{season.season?.name}</span>
-            <h1>
-              {season.age_group === "KM"
-                ? "Kampfmannschaft"
-                : season.age_group === "RES"
-                  ? "Reserve"
-                  : season.age_group}
-            </h1>
-            <p>Unser Team · {roster.players.length} Spieler</p>
-          </div>
+          <TeamHeroFrame className="usc-team-hero" photoSrc={photo?.photo_url} photoStyle={photo ? teamPhotoImageStyle(photo) : undefined}>
+            <div className="flex items-end gap-3">
+              <ClubLogo src={USC_LOGO} removeDarkBackground alt="USC Rohrbach" className="h-14 w-24 shrink-0 object-contain" />
+              <div className="min-w-0 pb-1">
+                <h1 className="text-2xl font-black uppercase leading-tight tracking-tight">USC Rohrbach</h1>
+                <p className="mt-2 text-xs font-bold uppercase tracking-wider text-white/75">{season.age_group} · Saison {season.season?.name}</p>
+              </div>
+            </div>
+          </TeamHeroFrame>
           <div className="usc-tabs">
             <button
               aria-pressed={rosterTab === "kader"}
@@ -557,18 +552,11 @@ function ClubSeasonContent({
             >
               Trainer
             </button>
+            <button onClick={() => setTab("spiele")}>Spiele</button>
           </div>
           {rosterTab === "kader" ? (
             <>
-              <label className="usc-search">
-                Spieler suchen
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Name eingeben…"
-                  type="search"
-                />
-              </label>
+              <div className="usc-roster-heading"><h2>Unser Team</h2><span>{activePlayers.length} Spieler</span></div>
               {roster.loading ? (
                 <p className="usc-note" role="status">
                   Kader wird geladen…
@@ -578,32 +566,17 @@ function ClubSeasonContent({
                   {roster.error}
                 </p>
               ) : (
-                <div className="usc-player-grid">
-                  {players.map((p) => (
-                    <button
-                      type="button"
-                      key={p.id}
-                      onClick={() => setPlayer(p)}
-                      aria-label={`Profil von ${p.display_name} öffnen`}
-                    >
-                      <ProfileHeroCard
-                        variant="player"
-                        watermark={p.jersey_number?.toString() || ""}
-                        firstNameLine={p.first_name || ""}
-                        lastNameLine={p.last_name || p.display_name}
-                        teamSeasonLabel={`${season.age_group} · ${season.season?.name}`}
-                        teamName="USC Rohrbach"
-                        teamLogoUrl={USC_LOGO}
-                        photoUrl={p.avatar_url}
-                        cutoutUrl={p.cutout_url}
-                        initials={p.display_name.slice(0, 2)}
-                        photoLayout={p.photo_layout ?? p.photo_layout_default}
-                        clubTemplate={p.club_photo_template}
-                        clubDesign={p.club_profile_design}
-                      />
-                    </button>
-                  ))}
-                </div>
+                <TeamSquadShowcase
+                  teamName="USC Rohrbach"
+                  teamSeasonLabel={`${season.age_group} · ${season.season?.name}`}
+                  teamLogoUrl={USC_LOGO}
+                  players={players}
+                  ownPlayerIds={NO_OWN_PLAYERS}
+                  onPlayerClick={setPlayer}
+                  trainerCount={staff.staff.length}
+                  onSwipePastEnd={() => { setTrainerIndex(0); setRosterTab("trainer"); }}
+                  onTrainerSelect={(index) => { setTrainerIndex(index); setRosterTab("trainer"); }}
+                />
               )}
               {!roster.loading && !roster.error && !players.length ? (
                 <p className="usc-note">Keine Spieler in dieser Auswahl.</p>
@@ -618,31 +591,11 @@ function ClubSeasonContent({
               {staff.error}
             </p>
           ) : (
-            <div className="usc-player-grid">
-              {staff.staff.map((member) => (
-                <div key={member.user_id}>
-                  <ProfileHeroCard
-                    variant="trainer"
-                    watermark=""
-                    firstNameLine={member.first_name || ""}
-                    lastNameLine={member.last_name || ""}
-                    teamSeasonLabel={`${season.age_group} · ${season.season?.name}`}
-                    teamName="USC Rohrbach"
-                    teamLogoUrl={USC_LOGO}
-                    roleLabel={staffRoleLabelDe(member.role)}
-                    photoUrl={member.avatar_url}
-                    cutoutUrl={member.cutout_url}
-                    initials={staffDisplayName(member).slice(0, 2)}
-                    photoLayout={member.photo_layout}
-                  />
-                </div>
-              ))}
-              {!staff.staff.length ? (
-                <p className="usc-note">
-                  Noch keine Trainerprofile hinterlegt.
-                </p>
-              ) : null}
-            </div>
+            <>
+              <div className="usc-roster-heading"><h2>Unsere Trainer</h2><span>{staff.staff.length} Trainer</span></div>
+              <TeamTrainerShowcase trainers={staff.staff} onTrainerClick={setTrainer} initialIndex={trainerIndex} onSwipePastStart={() => setRosterTab("kader")} />
+              {!staff.staff.length ? <p className="usc-note">Noch keine Trainerprofile hinterlegt.</p> : null}
+            </>
           )}
         </>
       ) : null}
@@ -658,11 +611,18 @@ function ClubSeasonContent({
           canManage={false}
           onClose={() => setPlayer(null)}
           onEdit={() => {}}
-          profilePlayers={roster.players}
-          squadPlayers={roster.players}
+          profilePlayers={activePlayers}
+          squadPlayers={activePlayers}
           onPlayerChange={setPlayer}
         />
       ) : null}
+      <dialog className="usc-dialog" ref={trainerDialog} onCancel={() => setTrainer(null)} onClose={() => setTrainer(null)} aria-label="Trainerprofil">
+        <button className="usc-dialog-close" aria-label="Trainerprofil schließen" onClick={() => setTrainer(null)}><X /></button>
+        {trainer ? <>
+          <ProfileHeroCard variant="trainer" watermark="" firstNameLine={trainer.first_name || ""} lastNameLine={trainer.last_name || ""} teamSeasonLabel={`${season.age_group} · ${season.season?.name}`} teamName="USC Rohrbach" teamLogoUrl={USC_LOGO} roleLabel={staffRoleLabelDe(trainer.role)} photoUrl={trainer.avatar_url} cutoutUrl={trainer.cutout_url} initials={staffDisplayName(trainer).slice(0, 2)} photoLayout={trainer.photo_layout} />
+          <h2>{staffDisplayName(trainer)}</h2><p>{staffRoleLabelDe(trainer.role)}</p>
+        </> : null}
+      </dialog>
       <dialog
         className="usc-dialog"
         ref={matchDialog}
@@ -850,31 +810,14 @@ export function UscClubApp() {
           </section>
         ) : (
           <>
-            <label className="usc-team-select">
-              <span>Mannschaft</span>
-              <select
-                value={season.id}
-                onChange={(e) =>
-                  setParams((previous) => {
-                    const next = new URLSearchParams(previous);
-                    next.set("teamSeason", e.target.value);
-                    next.delete("event");
-                    return next;
-                  })
-                }
-              >
-                {club.seasons.map((s) => (
-                  <option value={s.id} key={s.id}>
-                    {s.age_group === "KM"
-                      ? "Kampfmannschaft"
-                      : s.age_group === "RES"
-                        ? "Reserve"
-                        : s.age_group}{" "}
-                    · {s.season?.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {tab !== "verein" ? <div className="usc-team-picker" role="group" aria-label="Mannschaft wählen">
+              <div className="usc-team-picker-heading"><span>Mannschaften</span><span>{season.season?.name}</span></div>
+              <div className="usc-team-chips">
+                {club.seasons.map((s) => <button key={s.id} type="button" aria-label={`${s.age_group === "KM" ? "Kampfmannschaft" : s.age_group === "RES" ? "Reserve" : s.age_group} · ${s.season?.name}`} aria-pressed={season.id === s.id} onClick={() => setParams((previous) => {
+                  const next = new URLSearchParams(previous); next.set("teamSeason", s.id); next.delete("event"); return next;
+                })}>{s.age_group === "KM" ? "Kampfmannschaft" : s.age_group === "RES" ? "Reserve" : s.age_group}{s.season?.name !== season.season?.name ? ` · ${s.season?.name}` : ""}</button>)}
+              </div>
+            </div> : null}
             {tab !== "verein" ? (
               <ClubSeasonContent
                 key={season.id}

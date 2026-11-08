@@ -62,16 +62,21 @@ const mocks = {
   useTeamFeedPosts:
     'export const useTeamFeedPosts=(id,team,opts)=>{if(!opts.skipEnsures)throw Error("Club app must not generate posts");return {activePosts:[{post:{id:"real-post",team_season_id:id}}],loading:false,error:null,refetch(){}}};',
   usePlayers:
-    "export const usePlayers=()=>({players:[],loading:false,error:null});",
+    "export const usePlayers=(id)=>({players:globalThis.__uscFixture.players?.[id]??[],loading:false,error:null});",
   useTeamStaff:
-    'export const useTeamStaff=()=>({staff:[],loading:false,error:null});export const staffDisplayName=()=>"Trainer";export const staffRoleLabelDe=()=>"Trainer";',
+    'export const useTeamStaff=(id)=>({staff:globalThis.__uscFixture.staff?.[id]??[],loading:false,error:null});export const staffDisplayName=()=>"Trainer";export const staffRoleLabelDe=()=>"Trainer";',
   supabaseClient: `export const supabase={from:table=>{globalThis.__uscReadCalls.push(table);const q={select:()=>q,eq:()=>q,in:()=>q,maybeSingle:()=>Promise.resolve({data:null,error:null}),then:fn=>Promise.resolve({data:table==='matches'?[{id:'m-old',status:'finished',score_home:4,score_away:0}]:[],error:null}).then(fn)};return q;}};`,
   HomeFeedPostRenderer:
     'import React from "react";export const HomeFeedPostRenderer=({item})=>React.createElement("article",null,"Vorhandener USC-Beitrag "+item.post.id);',
-  PlayerProfileModal: "export const PlayerProfileModal=()=>null;",
+  PlayerProfileModal: "export const PlayerProfileModal=(props)=>{globalThis.__uscProfile=props;return null;};",
   ProfileHeroCard: "export const ProfileHeroCard=()=>null;",
   OefbCompetitionTable:
     'import React from "react";export const OefbCompetitionTable=({teamSeasonId})=>React.createElement("section",null,"Tabelle "+teamSeasonId);',
+  MatchCardGameCore:'import React from "react";export const MatchCardGameCore=({leftName,rightName,timeDisplay})=>React.createElement("div",null,leftName," ",timeDisplay," ",rightName);',
+  TeamHeroFrame:'import React from "react";export const TeamHeroFrame=({children})=>React.createElement("section",null,children);',
+  TeamSquadShowcase:'import React from "react";export const TeamSquadShowcase=(props)=>{globalThis.__uscSquad=props;const {players,onPlayerClick}=props;return React.createElement("section",{"aria-label":"Spieler-Karussell"},players.map(p=>React.createElement("button",{key:p.id,onClick:()=>onPlayerClick(p)},p.display_name)));};',
+  TeamTrainerShowcase:'import React from "react";export const TeamTrainerShowcase=(props)=>{globalThis.__uscTrainers=props;return React.createElement("section",{"aria-label":"Trainer-Karussell"});};',
+  PastMatchResultCard:'import React from "react";export const PastMatchResultCard=({ev,scoreHome,scoreAway,onNavigate})=>React.createElement("button",{onClick:onNavigate},ev.opponent.replace(/\\s*-\\s*/g,"-")," ",scoreHome+":"+scoreAway);',
   UscMatchReport:'export const UscMatchReport=()=>null;',
   oefbTableSettings:
     'export const getOefbTableSettings=async()=>({data:{competitionId:"",sourceUrl:"https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2026-27/KM/Tabellen/",teamName:"Rohrbach / Gölsen"},error:null});',
@@ -100,7 +105,7 @@ const b = await build({
         b.onResolve(
           {
             filter:
-              /AuthProvider$|useUscClub$|useEvents$|useTeamFeedPosts$|usePlayers$|useTeamStaff$|supabaseClient$|HomeFeedPostRenderer$|PlayerProfileModal$|ProfileHeroCard$|OefbCompetitionTable$|oefbTableSettings$|UscMatchReport$/,
+              /AuthProvider$|useUscClub$|useEvents$|useTeamFeedPosts$|usePlayers$|useTeamStaff$|supabaseClient$|HomeFeedPostRenderer$|PlayerProfileModal$|ProfileHeroCard$|OefbCompetitionTable$|oefbTableSettings$|UscMatchReport$|MatchCardGameCore$|TeamHeroFrame$|TeamSquadShowcase$|TeamTrainerShowcase$|PastMatchResultCard$/,
           },
           (a) => ({ path: a.path.split("/").pop(), namespace: "mock" }),
         );
@@ -172,13 +177,35 @@ await click("vergangene");
 assert.match(html(), /Ober-Grafendorf/);
 assert.doesNotMatch(html(), /Wilhelmsburg/);
 await act(async () =>
-  tree.root.findByType("select").props.onChange({ target: { value: "res" } }),
+  tree.root.findAllByType("button").find((b) => b.props["aria-label"] === "Reserve · 2026/27").props.onClick(),
 );
 assert.match(html(), /Reserve/);
 await act(async () => tree.unmount());
 await mount("/app/usc-rohrbach?tab=tabelle");
 assert.match(html(), /Tabelle km/);
 await act(async () => tree.unmount());
+fixtures.players = {km:[
+  {id:"p4",display_name:"Josef Gradinger",first_name:"Josef",last_name:"Gradinger",jersey_number:4,status:"active",photo_layout:{brightness:120}},
+  {id:"p2",display_name:"Leonidas Rotteneder",first_name:"Leonidas",last_name:"Rotteneder",jersey_number:2,status:"active"},
+  {id:"paused",display_name:"Pausiert",status:"paused"}
+],res:[]};
+fixtures.staff = {km:[{user_id:"coach",role:"head_coach",first_name:"Trainer",last_name:"USC"}],res:[]};
+await mount("/app/usc-rohrbach?tab=teams");
+assert.deepEqual(globalThis.__uscSquad.players.map(p=>p.id),["p2","p4"]);
+assert.equal(globalThis.__uscSquad.players[1].photo_layout.brightness,120);
+await act(async()=>globalThis.__uscSquad.onPlayerClick(fixtures.players.km[0]));
+assert.equal(globalThis.__uscProfile.player.id,"p4");
+assert.equal(globalThis.__uscProfile.teamSeasonId,"km");
+assert.equal(globalThis.__uscProfile.canManage,false);
+await act(async()=>globalThis.__uscSquad.onTrainerSelect(0));
+assert.equal(globalThis.__uscTrainers.trainers[0].user_id,"coach");
+await click("Reserve · 2026/27");
+assert.equal(globalThis.__uscSquad.players.length,0);
+assert.match(html(), /RES/);
+await click("Spiele");
+await click("Zur Tabelle ");
+assert.match(html(), /Tabelle res/);
+await act(async()=>tree.unmount());
 globalThis.__uscUser = null;
 globalThis.__uscReadCalls = [];
 await mount("/app/usc-rohrbach");
