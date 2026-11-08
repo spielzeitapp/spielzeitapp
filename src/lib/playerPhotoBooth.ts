@@ -14,3 +14,15 @@ export async function photoBoothFile(source:CanvasImageSource,width:number,heigh
  const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('Foto konnte nicht erstellt werden.')),'image/jpeg',0.9));
  return new File([blob],'spielerfoto.jpg',{type:'image/jpeg'});
 }
+
+/** Preserve the entire imported phone photograph for later crop/rotation edits. */
+export async function photoBoothImportFile(source:CanvasImageSource,width:number,height:number):Promise<File> {
+ if(width<=0||height<=0)throw Error('Das Foto konnte nicht geöffnet werden.');
+ const scale=Math.min(1,1800/Math.max(width,height)),canvas=document.createElement('canvas');
+ canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
+ const ctx=canvas.getContext('2d');if(!ctx)throw Error('Bildverarbeitung ist nicht verfügbar.');
+ ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+ ctx.drawImage(source,0,0,canvas.width,canvas.height);
+ const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('Foto konnte nicht erstellt werden.')),'image/jpeg',.92));
+ return new File([blob],'handyfoto.jpg',{type:'image/jpeg'});
+}

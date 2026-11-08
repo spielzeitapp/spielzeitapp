@@ -1,3 +1,4 @@
+import {listPlayerPhotoMotifs,PHOTO_LABELS} from '../../lib/playerPhotoMotifs';
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Download, Palette, Share2, X } from 'lucide-react';
@@ -31,12 +32,13 @@ export function MatchdayDesignButton({ design, save, poster, teamSeasonId, demo 
   useEffect(() => {
     if (!open) return;
     let active = true;
-    if (!demo) void listRoster(teamSeasonId, 'active').then(result => {
+    if (!demo) void Promise.all([listRoster(teamSeasonId, 'active'),listPlayerPhotoMotifs(teamSeasonId).catch(()=>[])]).then(([result,motifs]) => {
       if (!active) return;
       const players: MatchdayDesign[] = result.data.filter(p => p.cutout_url).map(p => ({
         template: 'player', playerId: p.id, imageUrl: p.cutout_url!, playerName: p.display_name,
       }));
-      setChoices([...DEMO_MATCHDAY_DESIGNS, ...players]);
+      const extras:MatchdayDesign[]=motifs.flatMap(m=>{const p=result.data.find(p=>p.id===m.player_id);return p?[{template:'player' as const,playerId:p.id,imageUrl:m.layout?.source==='cutout'&&m.cutout_url?m.cutout_url:m.original_url,playerName:p.display_name+' · '+PHOTO_LABELS[m.purpose]}]:[];});
+      setChoices([...DEMO_MATCHDAY_DESIGNS, ...players, ...extras]);
     });
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape' && !busy) setOpen(false); };
     window.addEventListener('keydown', key);

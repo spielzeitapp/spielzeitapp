@@ -72,7 +72,7 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
     },
     ref,
   ) {
-    const brightness=usePosterPlayerBrightness(playerImageUrl?playerId:null,teamSeasonId);
+    const brightness=usePosterPlayerBrightness(playerImageUrl?playerId:null,teamSeasonId,playerImageUrl);
     const typeLabel = getMatchTypeLabel(matchType ?? undefined);
     const showAnnouncement = announcementTiming && status === 'today';
     const competitionLabel = buildFeedMatchMetaLine(
