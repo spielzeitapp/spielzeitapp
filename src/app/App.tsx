@@ -95,6 +95,8 @@ import { DemoEventPage } from '../demo/pages/DemoEventPage';
 import { DemoTournamentPage } from '../demo/pages/DemoTournamentPage';
 import { DEMO_MATCH_ID_LIVE } from '../demo/demoDataSource';
 
+const UscClubApp = React.lazy(() => import('../features/club/UscClubApp').then(m => ({default:m.UscClubApp})));
+
 /** /demo/players/:playerId → produktive TeamPage mit Profil-Modal */
 function DemoPlayerProfileRedirect(): React.ReactElement {
   const { playerId } = useParams<{ playerId: string }>();
@@ -232,6 +234,7 @@ class AppErrorBoundary extends Component<
 function InternalRoutes(): React.ReactElement {
   return (
     <Routes>
+      <Route path="app/usc-rohrbach" element={<React.Suspense fallback={<p className="p-6 text-white/70">USC-App wird geladen…</p>}><UscClubApp /></React.Suspense>} />
       <Route path="app.html" element={<Navigate to="/app" replace />} />
       {/* Öffentliche Trainer-Demo – gemeinsamer Einstieg + produktives Layout, kein Login */}
       <Route path="demo" element={<DemoLayout />}>
@@ -440,6 +443,7 @@ function InternalRoutes(): React.ReactElement {
 function PublicRoutes(): React.ReactElement {
   return (
     <Routes>
+      <Route path="app/usc-rohrbach" element={<React.Suspense fallback={<p className="p-6 text-white/70">USC-App wird geladen…</p>}><UscClubApp /></React.Suspense>} />
       <Route path="app.html" element={<Navigate to="/" replace />} />
       <Route path="demo" element={<DemoLayout />}>
         <Route path="desktop" element={<DemoDesktopTrainerPage />} />
