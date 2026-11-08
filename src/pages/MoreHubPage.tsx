@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, CalendarDays, CalendarRange, ChevronRight, Dumbbell, Music2, Link2, Settings, Smartphone, Users, Wrench } from 'lucide-react';
+import { Bell, Camera, CalendarDays, CalendarRange, ChevronRight, Dumbbell, Music2, Link2, Settings, Smartphone, Users, Wrench } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { supabase } from '../lib/supabaseClient';
@@ -148,6 +148,8 @@ export const MoreHubPage: React.FC = () => {
       isTrainerToolsRole(effectiveRole));
   /** Rollen-Vorschau: nur echte Plattformadmin-Rolle aus user_roles, nie Preview/Membership. */
   const showPreviewLink = !isDemo && isPlatformAdminBackendRole(backendRole);
+  const fotoboxSeasonId=viewTeamSeasonId??selectedTeamSeasonId??selectedTeamSeason?.id;
+  const fotoboxHref=fotoboxSeasonId?`/manager/saisons/${encodeURIComponent(fotoboxSeasonId)}/kader?fotobox=1`:'/manager/saisons';
   const showManagerLink = !isDemo && canAccessManager(backendRole, memberships ?? []);
   const showParentAccessLink = !isDemo && canViewParentLinks(normalizeRole(effectiveRole));
   /** Push-/Reminder-Debug in der Demo immer aus — keine echten Writes/Pushes. */
@@ -314,6 +316,7 @@ export const MoreHubPage: React.FC = () => {
       <LayoutDiagnostics />
 
       <nav className="grid gap-2 md:grid-cols-2 lg:grid-cols-3" aria-label="Mehr-Menü">
+        {showPreviewLink&&<Link to={fotoboxHref} className={dsPanelRowClass()}><span className="flex items-center gap-3"><Camera className="h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden/><span><span className="block">Fotobox</span><span className="block text-[11px] text-white/60">Spielerfotos aufnehmen · Fernsteuerung verbinden</span></span></span><ChevronRight className="h-5 w-5 text-white/40" aria-hidden/></Link>}
         {showManagerLink ? (
           <Link to="/manager/musikstudio" className={dsPanelRowClass()}>
             <span className="flex items-center gap-3">
