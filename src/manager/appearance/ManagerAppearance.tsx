@@ -10,7 +10,7 @@ const AppearanceContext = createContext<{mode:AppearanceMode;toggle:()=>void;bra
 export function useManagerAppearance(){ return useContext(AppearanceContext); }
 
 /** Local theme scope: never writes app session, club settings, or global CSS variables. */
-export function ManagerAppearance({children}:{children:React.ReactNode}) {
+export function ManagerAppearance({children,modern=false}:{children:React.ReactNode;modern?:boolean}) {
   const location=useLocation();
   const {selectedTeamSeasonId,viewTeamSeasonId,selectedTeamSeason,viewTeamSeason}=useSession();
   const {supportSession,workMode}=useManagerWorkMode();
@@ -37,7 +37,7 @@ export function ManagerAppearance({children}:{children:React.ReactNode}) {
   const value=useMemo(()=>({mode,toggle:()=>setMode(v=>v==='day'?'night':'day'),branding,clubName}),[mode,branding,clubName]);
   const style={'--manager-club-primary':palette.primary,'--manager-club-secondary':palette.secondary,'--manager-action':palette.accent,'--manager-on-action':palette.onAccent,'--manager-link':palette.link,
     '--club-primary-rgb':palette.primaryRgb,'--club-secondary-rgb':palette.secondaryRgb,'--club-accent-rgb':palette.accentRgb,'--club-border-rgb':palette.accentRgb,'--club-accent-text-rgb':palette.darkAccent.slice(1).match(/../g)!.map(x=>parseInt(x,16)).join(' '),'--club-on-accent':palette.onAccent} as React.CSSProperties;
-  return <AppearanceContext.Provider value={value}><div data-manager-appearance={mode} data-manager-club={scope??'platform'} style={style} className="manager-shell manager-club-workspace flex min-h-[100dvh] w-full min-w-0 flex-1 max-md:h-[100dvh] max-md:overflow-hidden">{children}</div></AppearanceContext.Provider>;
+  return <AppearanceContext.Provider value={value}><div data-manager-modern={modern ? "true" : undefined} data-manager-appearance={mode} data-manager-club={scope??'platform'} style={style} className="manager-shell manager-club-workspace flex min-h-[100dvh] w-full min-w-0 flex-1 max-md:h-[100dvh] max-md:overflow-hidden">{children}</div></AppearanceContext.Provider>;
 }
 export function ManagerAppearanceToggle(){
   const {mode,toggle}=useManagerAppearance();

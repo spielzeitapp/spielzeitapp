@@ -166,9 +166,30 @@
           "value": "application/manifest+json; charset=utf-8"
         }
       ]
+    },
+    {
+      "source": "/vereinszentrale/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     }
   ],
   "rewrites": [
+    {
+      "source": "/vereinszentrale",
+      "destination": "/vereinszentrale.html"
+    },
+    {
+      "source": "/vereinszentrale/(.*)",
+      "destination": "/vereinszentrale.html"
+    },
     {
       "source": "/app/usc-rohrbach",
       "destination": "/usc.html"

@@ -1,3 +1,4 @@
+import { managerComparisonHref } from '../lib/managerComparison';
 import { uscAuthTarget, uscAuthPath } from '../features/club/uscAuth';
 import { UscAuthBrand, UscAuthFooter } from '../features/club/UscAuthBrand';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -201,7 +202,7 @@ export const LoginPage: React.FC = () => {
       if (cancelled) return;
       clearEmailConfirmFlow();
       if (dest.hardReplace) {
-        window.location.replace(dest.path);
+        window.location.replace(managerComparisonHref(dest.path));
         return;
       }
       navigate(dest.path, { replace: true });
@@ -272,7 +273,7 @@ export const LoginPage: React.FC = () => {
       clearEmailConfirmFlow();
 
       if (dest.hardReplace) {
-        window.location.replace(dest.path);
+        window.location.replace(managerComparisonHref(dest.path));
         return;
       }
       navigate(dest.path, { replace: true });

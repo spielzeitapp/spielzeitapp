@@ -1,3 +1,5 @@
+import { isManagerComparison } from '../lib/managerComparison';
+import { ManagerComparisonLayout } from './ManagerComparisonLayout';
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { ManagerHeader } from './components/ManagerHeader';
@@ -22,7 +24,7 @@ import './appearance/managerAppearance.css';
  * Shell für alle /manager-Seiten: volle Fensterbreite, dunkle Navigation, helle Arbeitsfläche.
  * max-width gilt nur für den Content — nie für Sidebar+Header gemeinsam.
  */
-export function ManagerLayout(): React.ReactElement {
+function LegacyManagerLayout(): React.ReactElement {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { viewTeamSeason, selectedTeamSeason } = useSession();
@@ -82,3 +84,5 @@ export function ManagerLayout(): React.ReactElement {
     </ManagerAccessGate>
   );
 }
+
+export function ManagerLayout(): React.ReactElement { return isManagerComparison() ? <ManagerComparisonLayout /> : <LegacyManagerLayout />; }

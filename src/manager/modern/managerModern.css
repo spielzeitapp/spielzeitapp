@@ -1,0 +1,108 @@
+/* Comparison branch only. Shared shell, original routes, forms and permissions. */
+[data-manager-modern] { --manager-success:#08775b; --manager-warning:#92520d; --manager-danger:#b22d43; font-feature-settings:'cv02','cv03','cv04','cv11'; }
+[data-manager-modern][data-manager-appearance=night] { --manager-bg:#15171c; --manager-surface:#202329; --manager-surface-alt:#292d35; --manager-border:#383d47; --manager-muted:#b4bbc9; --manager-success:#81e3bc; --manager-warning:#ffcd80; --manager-danger:#ffabb6; }
+[data-manager-modern] .manager-shell__content { max-width:1600px; }
+[data-manager-modern] .manager-header { box-shadow:none; background:var(--manager-surface)!important; color:var(--manager-text)!important; border-color:var(--manager-border); }
+[data-manager-modern] .manager-header :is(p.text-white,.text-white\/80,.text-white\/45,.text-white\/60) { color:var(--manager-text)!important; }
+[data-manager-modern] .manager-header :is(button,a).border-white\/15 { color:var(--manager-text)!important; border-color:var(--manager-border)!important; }
+[data-manager-modern] .manager-appearance-toggle { border-color:var(--manager-border); background:var(--manager-surface-alt); color:var(--manager-text); }
+[data-manager-modern] .manager-compare-notice { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:4px 12px; padding:6px 20px; font-size:11px; line-height:17px; color:var(--manager-muted); border-bottom:1px solid var(--manager-border); background:var(--manager-surface-alt); }
+[data-manager-modern] .manager-compare-notice a { color:var(--manager-link); font-weight:700; white-space:nowrap; }
+[data-manager-modern] .manager-tool-button { display:flex; align-items:center; justify-content:center; width:40px; height:40px; background:var(--manager-surface-alt); color:var(--manager-text); border:1px solid var(--manager-border); border-radius:50%; cursor:pointer; }
+[data-manager-modern] .manager-mobile-tools { align-items:center; gap:6px; }
+[data-manager-modern] .manager-tools-menu { position:relative; }
+[data-manager-modern] .manager-tools-menu summary { list-style:none; }
+[data-manager-modern] .manager-tools-menu summary::-webkit-details-marker { display:none; }
+[data-manager-modern] .manager-tools-popover { position:absolute; right:0; top:48px; width:250px; max-width:calc(100vw - 24px); padding:8px; background:var(--manager-surface); border:1px solid var(--manager-border); border-radius:18px; box-shadow:0 20px 45px #0004; z-index:70; }
+[data-manager-modern] .manager-tools-popover :is(a,button,p,.manager-tools-favorites) { display:flex; width:100%; min-height:44px; align-items:center; justify-content:space-between; padding:9px 12px; text-align:left; font-size:13px; color:var(--manager-text); border-radius:10px; }
+[data-manager-modern] .manager-tools-popover p { color:var(--manager-muted); font-size:11px; border-bottom:1px solid var(--manager-border); border-radius:0; }
+[data-manager-modern] .manager-platform-context-mobile { display:grid; gap:8px; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); }
+[data-manager-modern] .manager-platform-context-mobile label { max-width:none; color:var(--manager-muted)!important; font-size:10px; }
+[data-manager-modern] .manager-platform-context-mobile label[hidden] { display:none; }
+[data-manager-modern] .manager-platform-context-mobile select { margin-top:3px; font-size:12px; }
+[data-manager-modern] .manager-dashboard-hero { border-radius:22px; box-shadow:none; }
+[data-manager-modern] .manager-modern-platform>div:first-child h1 { font-size:clamp(26px,2.5vw,34px); font-weight:800; letter-spacing:-.045em; }
+[data-manager-modern] .manager-modern-stat { padding:20px; border-radius:20px; box-shadow:none; position:relative; }
+[data-manager-modern] .manager-modern-stat>div>span { background:var(--manager-accent-soft); color:var(--manager-link); border-radius:12px; }
+[data-manager-modern] .manager-modern-stat .text-3xl { margin:10px 0 6px; font-size:34px; font-weight:750; }
+[data-manager-modern] .manager-attention-strip { display:flex; gap:12px; align-items:center; border:1px solid var(--manager-border); border-radius:16px; background:var(--manager-surface); padding:14px 18px; }
+[data-manager-modern] .manager-attention-strip>span { flex:1; font-size:13px; }
+[data-manager-modern] .manager-attention-strip small { display:block; color:var(--manager-muted); margin-top:2px; font-size:12px; }
+[data-manager-modern] .manager-attention-strip>a { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:var(--manager-link); min-height:44px; }
+[data-manager-modern] [data-state=done] { --manager-status:var(--manager-success); }
+[data-manager-modern] [data-state=missing] { --manager-status:var(--manager-danger); }
+[data-manager-modern] :is([data-state=review],[data-state=started]) { --manager-status:var(--manager-warning); }
+[data-manager-modern] [data-state=skipped] { --manager-status:var(--manager-muted); }
+[data-manager-modern] .manager-attention-strip>svg { color:var(--manager-status); }
+[data-manager-modern] .manager-club-filters { display:flex; gap:10px; }
+[data-manager-modern] .manager-club-filters label { flex:1; }
+[data-manager-modern] .manager-club-filters :is(input,select) { min-height:44px; border:1px solid var(--manager-border); border-radius:13px; padding:10px 14px; font-size:13px; width:100%; }
+[data-manager-modern] .manager-club-filters select { width:auto; }
+[data-manager-modern] .manager-club-table tbody tr:hover { background:var(--manager-surface-alt); }
+[data-manager-modern] .manager-club-table td:first-child a { display:flex; align-items:center; min-height:40px; }
+/* Compact checklist, with semantic colors on dark and light surfaces. */
+[data-manager-modern] .manager-modern-checklist { border-radius:22px; box-shadow:none; }
+[data-manager-modern] .manager-modern-checklist>div:first-child { display:flex; flex-direction:column; gap:18px; }
+[data-manager-modern] .manager-modern-checklist>div:first-child>div { width:100%; }
+[data-manager-modern] .manager-checklist-preview { order:2; width:100%; border:1px solid var(--manager-border); border-radius:14px; padding:0 16px; }
+[data-manager-modern] .manager-checklist-preview summary { display:flex; align-items:center; justify-content:space-between; min-height:48px; font-size:13px; font-weight:700; cursor:pointer; }
+[data-manager-modern] .manager-checklist-preview>div { padding-bottom:16px; }
+[data-manager-modern] .manager-next-step { display:flex; align-items:center; justify-content:space-between; text-align:left; gap:16px; width:100%; margin-top:18px; padding:16px 18px; border:1px solid var(--manager-border); border-left:4px solid var(--manager-action); border-radius:15px; background:var(--manager-accent-soft); color:var(--manager-text); }
+[data-manager-modern] .manager-next-step small { display:block; font-size:9px; letter-spacing:.15em; font-weight:800; color:var(--manager-muted); }
+[data-manager-modern] .manager-next-step strong { display:block; margin-top:5px; font-size:16px; }
+[data-manager-modern] [data-manager-summary] { display:block; overflow:hidden; border:1px solid var(--manager-border); border-radius:15px; }
+[data-manager-modern] .manager-checklist-summary-row { display:grid; grid-template-columns:1fr 1.3fr; align-items:center; gap:4px 12px; min-height:58px; width:100%; padding:13px 15px; border:0; border-bottom:1px solid var(--manager-border); border-radius:0; background:var(--manager-surface)!important; color:var(--manager-text)!important; }
+[data-manager-modern] .manager-checklist-summary-row>span:nth-child(2) { margin:0; text-align:right; font-size:12px; color:var(--manager-status); }
+[data-manager-modern] .manager-checklist-summary-row>span:nth-child(3) { display:none; }
+[data-manager-modern] [data-manager-summary]>p { margin:0; padding:12px 15px; font-size:11px; line-height:1.5; }
+[data-manager-modern] .manager-checklist-steps button { background:var(--manager-surface)!important; border-color:var(--manager-border)!important; box-shadow:none; }
+[data-manager-modern] .manager-checklist-steps button>span:nth-child(2),[data-manager-modern] .manager-checklist-steps button>svg { color:var(--manager-status)!important; }
+[data-manager-modern] .manager-checklist-steps button[aria-current=step] { border-color:var(--manager-action)!important; outline:1px solid var(--manager-action); }
+[data-manager-modern] .manager-modern-checklist [aria-label=Einrichtungsstatus] { gap:6px; }
+[data-manager-modern] .manager-modern-checklist [aria-label=Einrichtungsstatus]>span { padding:5px 9px; font-size:10px; }
+[data-manager-modern] .manager-sidebar a[aria-current=page] { border-radius:13px; }
+@media(min-width:768px) {
+ [data-manager-modern] .manager-mobile-tools { display:none; }
+ [data-manager-modern] .manager-header>div.manager-mobile-header { flex-wrap:wrap; }
+ [data-manager-modern] .manager-sidebar { width:242px; }
+ [data-manager-modern] .manager-modern-checklist>div:first-child { padding:24px; }
+ [data-manager-modern] .manager-checklist-preview[open]>div { max-width:740px; margin:auto; }
+}
+@media(max-width:767px) {
+ [data-manager-modern] .manager-mobile-tools { display:flex; }
+ [data-manager-modern] .manager-header .manager-mobile-header { min-height:64px; gap:6px; }
+ [data-manager-modern] .manager-header .manager-mobile-header>div:first-of-type { gap:7px; }
+ [data-manager-modern] .manager-compare-notice { padding:5px 12px; font-size:10px; }
+
+ [data-manager-modern] .manager-modern-platform { padding:22px 16px 12px; }
+ [data-manager-modern] .manager-modern-platform>div:first-child>button { font-size:11px; padding:8px 12px; }
+ [data-manager-modern] .manager-modern-stat { padding:15px; min-height:120px; }
+ [data-manager-modern] .manager-modern-stat .text-3xl { font-size:29px; }
+ [data-manager-modern] .manager-modern-stat>div>span { padding:6px; }
+ [data-manager-modern] .manager-modern-stat>div>div>p:first-child { font-size:11px; }
+ [data-manager-modern] .manager-modern-stat>div>div>p:last-child { font-size:10px; line-height:1.4; }
+ [data-manager-modern] .manager-modern-platform>.grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+ [data-manager-modern] .manager-attention-strip { padding:10px 12px; gap:8px; }
+ [data-manager-modern] .manager-attention-strip small { font-size:10px; }
+ [data-manager-modern] .manager-club-filters { flex-wrap:wrap; }
+ [data-manager-modern] .manager-club-filters select { max-width:46%; font-size:11px; padding-left:8px; }
+ [data-manager-modern] .manager-club-table thead { display:none; }
+ [data-manager-modern] .manager-club-table :is(table,tbody) { display:block; }
+ [data-manager-modern] .manager-club-table tr { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); padding:10px 16px 14px; gap:6px 12px; }
+ [data-manager-modern] .manager-club-table td { display:block; padding:3px 0; font-size:12px; }
+ [data-manager-modern] .manager-club-table td::before { content:attr(data-label); display:block; font-size:9px; color:var(--manager-muted); margin-bottom:2px; }
+ [data-manager-modern] .manager-club-table td:first-child { grid-column:1/-1; font-size:15px; font-weight:750; }
+ [data-manager-modern] .manager-club-table td:first-child::before { display:none; }
+ [data-manager-modern] .manager-club-table td:last-child { grid-column:2/-1; }
+ [data-manager-modern] .manager-mobile-workspace { padding-bottom:calc(122px + env(safe-area-inset-bottom))!important; scroll-padding-bottom:120px; }
+ [data-manager-modern] nav[aria-label='Mobile Manager-Navigation']>div { min-height:68px; border-radius:24px; background:color-mix(in srgb,var(--manager-surface) 95%,transparent)!important; box-shadow:0 8px 30px #0003; }
+ [data-manager-modern] nav[aria-label='Mobile Manager-Navigation']>div>span { display:none; }
+ [data-manager-modern] .manager-modern-checklist>div:first-child { padding:16px; }
+ [data-manager-modern] .manager-modern-checklist>div:first-child>div>div:nth-child(2)>label { flex-basis:100%; }
+ [data-manager-modern] .manager-modern-checklist h2 { font-size:18px; letter-spacing:-.03em; }
+ [data-manager-modern] .manager-modern-checklist h2+p { font-size:12px; line-height:1.6; }
+ [data-manager-modern] .manager-checklist-steps { display:flex; overflow-x:auto; gap:8px; padding:14px; scroll-snap-type:x proximity; }
+ [data-manager-modern] .manager-checklist-steps li { flex:0 0 210px; margin-top:0!important; scroll-snap-align:start; }
+ [data-manager-modern] .manager-checklist-steps li button { height:100%; min-height:72px; padding:10px; }
+}
+@media(prefers-reduced-motion:reduce) { [data-manager-modern] * { scroll-behavior:auto!important; transition:none!important; } }

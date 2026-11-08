@@ -1,3 +1,5 @@
+import { isManagerComparison } from '../lib/managerComparison';
+import { ManagerComparisonSetupChecklist } from './ManagerComparisonSetupChecklist';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, ChevronRight, ClipboardCheck, RefreshCw } from 'lucide-react';
 import { loadSetup, saveSetup, setupSteps, setupReady, type SetupCheck, type SetupKey, type SetupSnapshot } from '../lib/managerSetup';
@@ -15,7 +17,7 @@ const stepAppearance = {
 };
 
 type Props = { detail: ClubDetail; seasonId: string; onSelect: (id: string) => void; onAction: (key: SetupKey, id: string) => void; preview?: React.ReactNode; hideSelector?: boolean; initialStep?: string | null };
-export function ManagerSetupChecklist({ detail, seasonId, onSelect, onAction, preview, hideSelector = false, initialStep }: Props) {
+function LegacyManagerSetupChecklist({ detail, seasonId, onSelect, onAction, preview, hideSelector = false, initialStep }: Props) {
   const [teamPhoto, setTeamPhoto] = useState<boolean | null>(null);
   const [snapshot, setSnapshot] = useState<SetupSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -110,3 +112,5 @@ export function ManagerSetupChecklist({ detail, seasonId, onSelect, onAction, pr
     </div>}
   </section>;
 }
+
+export function ManagerSetupChecklist(props: Props) { return isManagerComparison() ? <ManagerComparisonSetupChecklist {...props} /> : <LegacyManagerSetupChecklist {...props} />; }
