@@ -3,6 +3,8 @@ import {createPortal} from 'react-dom';
 import {Camera,RefreshCw,ImagePlus,X,Check,SwitchCamera} from 'lucide-react';
 import type {RosterPlayer} from '../lib/rosterService';
 import {DEFAULT_PHOTO_LAYOUT} from '../lib/playerPhotoLayout';
+import {startLivePlayerPortrait} from '../lib/livePlayerPortrait';
+import './managerPlayerPhotoBooth.css';
 import {photoBoothFile} from '../lib/playerPhotoBooth';
 import {removePortraitBackground} from '../lib/removePortraitBackground';
 import {uploadPlayerProfilePhoto,uploadPlayerProfileCutout} from '../lib/profileCutoutUpload';
@@ -17,6 +19,7 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,onSave
  const [mode,setMode]=useState<'portrait'|'celebration'>('portrait'),[facing,setFacing]=useState<'environment'|'user'>('environment');
  const [draft,setDraft]=useState<Draft|null>(null),[processing,setProcessing]=useState(false),[saving,setSaving]=useState(false);
  const [cameraReady,setCameraReady]=useState(false),[cameraError,setCameraError]=useState(''),[error,setError]=useState(''),[notice,setNotice]=useState('');
+ const [live,setLive]=useState(true),[liveFrame,setLiveFrame]=useState(''),[liveError,setLiveError]=useState('');
  const [autoNext,setAutoNext]=useState(true),[restart,setRestart]=useState(0),[remove,setRemove]=useState(true);
  const video=useRef<HTMLVideoElement>(null),stream=useRef<MediaStream|null>(null),dialog=useRef<HTMLDivElement>(null),fileInput=useRef<HTMLInputElement>(null);
  const version=useRef(0),locked=useRef(false),mounted=useRef(true),busy=processing||saving;
@@ -44,6 +47,11 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,onSave
   document.addEventListener('visibilitychange',visibility);
   return()=>{active=false;stop();document.removeEventListener('visibilitychange',visibility);};
  },[draft,facing,restart]);
+ useEffect(()=>{
+  setLiveFrame('');setLiveError('');
+  if(!live||!remove||!cameraReady||draft||busy||!video.current)return;
+  return startLivePlayerPortrait(video.current,aspect,facing==='user',setLiveFrame,()=>{setLiveFrame('');setLiveError('Live-Hintergrund hier nicht verfügbar. Das Foto wird nach der Aufnahme freigestellt.');});
+ },[live,remove,cameraReady,draft,busy,aspect,facing,selected]);
  const close=()=>{if(saving)return;if((draft||processing)&&!window.confirm('Aufgenommenes Foto verwerfen?'))return;onClose();};
  const discard=()=>{version.current++;setDraft(null);setError('');setNotice('');};
  async function prepare(file:File){
@@ -85,17 +93,23 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,onSave
  return createPortal(<div className="fixed inset-0 z-[300] overflow-y-auto bg-slate-950/80 p-0 sm:p-4" onKeyDown={e=>{
   if(e.key==='Escape'){e.stopPropagation();close();}
   if(e.key==='Tab'){const nodes=dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),select:not(:disabled),input:not(:disabled),[tabindex="0"]');if(!nodes?.length)return;const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&(document.activeElement===first||document.activeElement===dialog.current)){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}
- }}><div ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="fotobox-title" aria-busy={busy} className="mx-auto min-h-full w-full max-w-lg bg-white text-slate-900 sm:min-h-0 sm:overflow-hidden sm:rounded-2xl" style={{paddingBottom:'max(16px, env(safe-area-inset-bottom))'}}>
+ }}><div ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="fotobox-title" aria-busy={busy} className="manager-player-fotobox mx-auto min-h-full w-full max-w-lg bg-white text-slate-900 sm:min-h-0 sm:overflow-hidden sm:rounded-2xl" style={{paddingBottom:'max(16px, env(safe-area-inset-bottom))'}}>
   <header className="flex items-center justify-between bg-[#292c31] p-4 text-white"><div><h2 id="fotobox-title" className="text-xl font-bold">{draft?'Foto prüfen':'Spieler-Fotobox'}</h2><p className="text-xs text-slate-300">{draft?'Vorschau im Vereinslook':'Aufnehmen · prüfen · übernehmen'}</p></div><button type="button" aria-label="Fotobox schließen" disabled={saving} onClick={close} className="flex h-11 w-11 items-center justify-center rounded-full border border-white/25"><X/></button></header>
-  <div className="space-y-4 p-4"><label className="block text-sm font-semibold">Spieler · {index+1} von {players.length}<select aria-label="Spieler auswählen" value={selected} disabled={busy||Boolean(draft)} onChange={e=>{setSelected(e.target.value);setNotice('');}} className="mt-1 min-h-11 w-full rounded-xl border p-2">{players.map(p=><option key={p.id} value={p.id}>{p.display_name} · {p.jersey_number??'–'}</option>)}</select></label>
+  <div className="space-y-4 p-4"><label className="block text-sm font-semibold">Spieler · {index+1} von {players.length}<select aria-label="Spieler auswählen" value={selected} disabled={busy||Boolean(draft)} onChange={e=>{setSelected(e.target.value);setNotice('');}} className="mt-1 min-h-12 w-full rounded-xl border border-slate-300 bg-white p-3 text-base font-semibold text-slate-900">{players.map(p=><option key={p.id} value={p.id}>{p.display_name} · {p.jersey_number??'–'}</option>)}</select></label>
   {!draft?<>
    <div className="flex rounded-xl bg-slate-100 p-1">{(['portrait','celebration'] as const).map(value=><button type="button" key={value} aria-pressed={mode===value} disabled={busy} onClick={()=>setMode(value)} className={`min-h-11 flex-1 rounded-lg font-semibold ${mode===value?'bg-red-700 text-white':''}`}>{value==='portrait'?'Porträt':'Torjubel'}</button>)}</div>
    <div className="relative overflow-hidden rounded-2xl bg-slate-900" style={{aspectRatio:aspect}}>
     <video ref={video} autoPlay playsInline muted onLoadedData={()=>setCameraReady(true)} aria-label="Livekamera" className="absolute inset-0 h-full w-full object-cover" style={{transform:facing==='user'?'scaleX(-1)':undefined}}/>
-    <svg aria-hidden="true" viewBox="0 0 400 500" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full"><rect x="20" y="25" width="360" height="450" rx="12" fill="none" stroke="white" strokeWidth="2" strokeDasharray="8 6"/>{mode==='portrait'?<path d="M155 115 a45 55 0 1 0 90 0 a45 55 0 1 0 -90 0 M155 170 L145 195 Q70 205 65 300 L55 460 M245 170 L255 195 Q330 205 335 300 L345 460" fill="none" stroke="white" strokeWidth="2"/>:<path d="M170 140 a30 38 0 1 0 60 0 a30 38 0 1 0 -60 0 M170 178 L145 200 L85 110 L65 55 M230 178 L255 200 L315 110 L335 55 M145 200 L140 365 L260 365 L255 200" fill="none" stroke="white" strokeWidth="2"/>}</svg>
-    <p className="absolute left-3 right-3 top-3 rounded-lg bg-black/60 p-2 text-center text-sm text-white">{mode==='portrait'?'Kopf und Schultern im Rahmen':'Arme und Hände im Rahmen lassen'}</p>
+    {live&&remove&&liveFrame&&player&&<div className="fotobox-live-preview absolute inset-0"><ManagerProfilePhotoPreview seasonId={seasonId} layout={{...layout,source:'cutout'}} photoUrl={liveFrame} cutoutUrl={liveFrame} firstName={player.first_name??''} lastName={player.last_name??''} number={player.jersey_number} trainer={false} clubTemplate={template} clubDesign={player.club_profile_design}/></div>}
+    {!liveFrame&&<svg aria-hidden="true" viewBox="0 0 400 500" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full"><rect x="20" y="25" width="360" height="450" rx="12" fill="none" stroke="white" strokeWidth="2" strokeDasharray="8 6"/>{mode==='portrait'?<path d="M155 115 a45 55 0 1 0 90 0 a45 55 0 1 0 -90 0 M155 170 L145 195 Q70 205 65 300 L55 460 M245 170 L255 195 Q330 205 335 300 L345 460" fill="none" stroke="white" strokeWidth="2"/>:<path d="M170 140 a30 38 0 1 0 60 0 a30 38 0 1 0 -60 0 M170 178 L145 200 L85 110 L65 55 M230 178 L255 200 L315 110 L335 55 M145 200 L140 365 L260 365 L255 200" fill="none" stroke="white" strokeWidth="2"/>}</svg>}
+    {!liveFrame&&<p className="absolute left-3 right-3 top-3 rounded-lg bg-black/60 p-2 text-center text-sm text-white">{liveFrame?'Live · Vereinslook':mode==='portrait'?'Kopf und Schultern im Rahmen':'Arme und Hände im Rahmen lassen'}</p>}
     {cameraError&&<p role="status" className="absolute inset-x-4 bottom-4 rounded-xl bg-white p-3 text-sm">{cameraError}</p>}
    </div>
+   <label className="flex min-h-11 items-center gap-3 rounded-xl border border-slate-300 bg-slate-50 p-3 text-base font-semibold"><input aria-label="Vereinslook live anzeigen" type="checkbox" checked={live} disabled={busy||!remove} onChange={e=>setLive(e.target.checked)}/>Vereinslook live anzeigen</label>
+   {live&&remove&&!liveFrame&&cameraReady&&!liveError&&<p role="status" className="text-sm text-slate-700">Live-Vorschau wird geladen… Du kannst bereits fotografieren.</p>}
+   {liveFrame&&<p className="text-sm font-semibold text-emerald-800">Live · Vereinslook aktiv</p>}
+   {liveError&&<p role="status" className="text-sm text-slate-700">{liveError}</p>}
+   <p className="text-sm text-slate-700">{template==='square'?'Quadratisches Spielerbild':'Spielerbild im Querformat'} · gleicher Zuschnitt beim Auslösen. {liveFrame?'Größe und Position im Vereinslook prüfen.':'Etwas Abstand halten, damit Kopf und Arme Platz haben.'}</p>
    <div className="flex items-center justify-between gap-3"><button type="button" aria-label="Kamera / Bild auswählen" disabled={busy} onClick={()=>fileInput.current?.click()} className="flex min-h-11 flex-col items-center gap-1 p-2 text-xs"><ImagePlus/>Kamera / Bild</button><button type="button" aria-label="Foto aufnehmen" disabled={busy||!cameraReady} onClick={()=>void capture()} className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-slate-200 bg-red-700 text-white disabled:opacity-40"><Camera size={30}/></button><button type="button" aria-label="Kamera wechseln" disabled={busy} onClick={()=>setFacing(f=>f==='user'?'environment':'user')} className="flex min-h-11 flex-col items-center gap-1 p-2 text-xs"><SwitchCamera/>Wechseln</button></div>
    <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden" onChange={e=>{const file=e.target.files?.[0];e.target.value='';void choose(file);}}/>
    {cameraError&&<button type="button" disabled={busy} onClick={()=>setRestart(n=>n+1)} className="min-h-11 w-full rounded-xl border font-semibold">Kamera neu starten</button>}

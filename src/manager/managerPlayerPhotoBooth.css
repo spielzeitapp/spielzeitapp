@@ -1,0 +1,13 @@
+/* The portal lives outside manager-shell. Pin control colours independently of
+   iOS dark mode and the underlying club theme. */
+.manager-player-fotobox { color-scheme: light; color: #0f172a; }
+.manager-player-fotobox select,
+.manager-player-fotobox select option { background: #fff !important; color: #0f172a !important; -webkit-text-fill-color: #0f172a !important; color-scheme: light; }
+.manager-player-fotobox input[type='checkbox'] { width: 20px; height: 20px; accent-color: #b91c1c; flex-shrink: 0; }
+.manager-player-fotobox button:disabled { opacity: .45; }
+.fotobox-live-preview [data-manager-artwork],
+.fotobox-live-preview [data-profile-artwork] { height: 100%; min-height: 0; max-height: none; margin-bottom: 0; }
+.manager-player-fotobox button:focus-visible,
+.manager-player-fotobox select:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
+
+.fotobox-live-preview [data-manager-artwork] > div { height: 100%; }
