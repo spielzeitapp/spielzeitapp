@@ -1,3 +1,6 @@
+import { uscEventLink } from "./uscEventLink";
+import { UscMatchReport } from "./UscMatchReport";
+import { uscAuthPath } from "./uscAuth";
 import { isStagingApp } from "../../lib/appEnvironment";
 import { OefbCompetitionTable } from "../../components/schedule/OefbCompetitionTable";
 import {
@@ -5,7 +8,7 @@ import {
   type OefbTableSettings,
 } from "../../lib/oefbTableSettings";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowUpRight,
   CalendarDays,
@@ -154,6 +157,28 @@ function ClubSeasonContent({
   tab: ClubTab;
   setTab: (tab: ClubTab) => void;
 }) {
+  const navigate = useNavigate();
+  const [routeParams, setRouteParams] = useSearchParams();
+  const eventQuery = routeParams.get("event");
+  const openDetail = (event: EventRow) =>
+    setRouteParams((previous) => {
+      const next = new URLSearchParams(previous);
+      next.set("event", event.id);
+      return next;
+    });
+  const closeDetail = () => {
+    setDetail(null);
+    if (eventQuery)
+      setRouteParams(
+        (previous) => {
+          const next = new URLSearchParams(previous);
+          next.delete("event");
+          return next;
+        },
+        { replace: true },
+      );
+  };
+
   const {
     events,
     loading: eventsLoading,
@@ -167,6 +192,35 @@ function ClubSeasonContent({
   const staff = useTeamStaff(tab === "teams" ? season.id : null);
   const [player, setPlayer] = useState<PlayerItem | null>(null);
   const [detail, setDetail] = useState<EventRow | null>(null);
+  useEffect(() => {
+    setDetail(
+      eventQuery
+        ? (events.find(
+            (e) => e.id === eventQuery && e.team_season_id === season.id,
+          ) ?? null)
+        : null,
+    );
+  }, [eventQuery, events, season.id]);
+  const keepClubNavigation = (e: React.MouseEvent<HTMLElement>) => {
+    if (
+      e.defaultPrevented ||
+      e.button !== 0 ||
+      e.metaKey ||
+      e.ctrlKey ||
+      e.shiftKey ||
+      e.altKey
+    )
+      return;
+    const anchor = (e.target as Element).closest("a[href]");
+    const href = anchor?.getAttribute("href");
+    if (!href) return;
+    const target = uscEventLink(href, events, season.id);
+    if (target) {
+      e.preventDefault();
+      setPlayer(null);
+      navigate(target);
+    }
+  };
   const [scores, setScores] = useState<Map<string, Score>>(new Map());
   const [scoreError, setScoreError] = useState(false);
   const [scoreRetry, setScoreRetry] = useState(0);
@@ -313,7 +367,7 @@ function ClubSeasonContent({
       .includes(search.toLocaleLowerCase("de")),
   );
   return (
-    <>
+    <div className="usc-season-content" onClickCapture={keepClubNavigation}>
       {tab === "home" ? (
         <>
           <section className="usc-hero">
@@ -357,7 +411,7 @@ function ClubSeasonContent({
             <ClubMatch
               event={next}
               score={scores.get(next.match_id || "")}
-              onOpen={() => setDetail(next)}
+              onOpen={() => openDetail(next)}
               hero
             />
           ) : (
@@ -435,7 +489,7 @@ function ClubSeasonContent({
                   key={event.id}
                   event={event}
                   score={scores.get(event.match_id || "")}
-                  onOpen={() => setDetail(event)}
+                  onOpen={() => openDetail(event)}
                 />
               ))}
               {!visibleMatches.length ? (
@@ -617,8 +671,8 @@ function ClubSeasonContent({
       <dialog
         className="usc-dialog"
         ref={matchDialog}
-        onCancel={() => setDetail(null)}
-        onClose={() => setDetail(null)}
+        onCancel={closeDetail}
+        onClose={closeDetail}
         aria-label="Spieldetails"
       >
         {detail ? (
@@ -627,7 +681,7 @@ function ClubSeasonContent({
               type="button"
               className="usc-dialog-close"
               aria-label="Spieldetails schließen"
-              onClick={() => setDetail(null)}
+              onClick={closeDetail}
             >
               <X />
             </button>
@@ -646,20 +700,57 @@ function ClubSeasonContent({
             {detail.notes ? (
               <p className="usc-match-notes">{detail.notes}</p>
             ) : null}
-            <Link className="usc-action" to={`/app/events/${detail.id}`}>
-              Spiel in SpielzeitApp öffnen <ArrowUpRight size={18} />
-            </Link>
+            {detail.match_id ? (
+              <UscMatchReport
+                key={detail.match_id}
+                matchId={detail.match_id}
+                finished={scores.get(detail.match_id)?.status === "finished"}
+                score={
+                  scores.get(detail.match_id)?.score_home != null &&
+                  scores.get(detail.match_id)?.score_away != null
+                    ? `${scores.get(detail.match_id)!.score_home}:${scores.get(detail.match_id)!.score_away}`
+                    : null
+                }
+              />
+            ) : null}
+            <button
+              className="usc-action"
+              type="button"
+              onClick={() => {
+                closeDetail();
+                setTab("spiele");
+              }}
+            >
+              Zurück zum Spielplan
+            </button>
           </>
         ) : null}
       </dialog>
-    </>
+    </div>
   );
 }
 
 export function UscClubApp() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [signingOut, setSigningOut] = useState(false);
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const logOut = async () => {
+    setSigningOut(true);
+    setAccountError(null);
+    try {
+      await signOut();
+      setMenu(false);
+      navigate(uscAuthPath("anmelden"), { replace: true });
+    } catch {
+      setAccountError("Abmelden ist fehlgeschlagen. Bitte erneut versuchen.");
+    } finally {
+      setSigningOut(false);
+    }
+  };
   const club = useUscClub(user?.id ?? null);
   const [params, setParams] = useSearchParams();
+  const clubReturnPath = `${USC_APP_PATH}${params.toString() ? `?${params.toString()}` : ""}`;
   const tab = clubTab(params.get("tab"));
   const season =
     club.seasons.find((s) => s.id === params.get("teamSeason")) ??
@@ -672,6 +763,7 @@ export function UscClubApp() {
   const setTab = (id: ClubTab) => {
     setParams((previous) => {
       const next = new URLSearchParams(previous);
+      next.delete("event");
       if (id === "home") next.delete("tab");
       else next.set("tab", id);
       return next;
@@ -737,9 +829,9 @@ export function UscClubApp() {
             </p>
             <Link
               className="usc-action"
-              to={`/login?next=${encodeURIComponent(USC_APP_PATH)}`}
+              to={uscAuthPath("anmelden", clubReturnPath)}
             >
-              Mit SpielzeitApp anmelden <ArrowUpRight size={18} />
+              Beim USC Rohrbach anmelden <ArrowUpRight size={18} />
             </Link>
             <button
               className="usc-install-link"
@@ -779,6 +871,7 @@ export function UscClubApp() {
                   setParams((previous) => {
                     const next = new URLSearchParams(previous);
                     next.set("teamSeason", e.target.value);
+                    next.delete("event");
                     return next;
                   })
                 }
@@ -930,6 +1023,18 @@ export function UscClubApp() {
           <button onClick={() => openClub("funktionaere")}>Funktionäre</button>
           <button onClick={() => openClub("sponsoren")}>Sponsoren</button>
           <button onClick={() => openClub("fanshop")}>Fanshop</button>
+          {user ? (
+            <button
+              type="button"
+              disabled={signingOut}
+              onClick={() => void logOut()}
+            >
+              {signingOut ? "Wird abgemeldet…" : "Abmelden"}
+            </button>
+          ) : (
+            <Link to={uscAuthPath("anmelden", clubReturnPath)}>Anmelden</Link>
+          )}
+          {accountError ? <p role="alert">{accountError}</p> : null}
           <button
             onClick={() => {
               setMenu(false);

@@ -1,5 +1,7 @@
+import {uscAuthTarget} from '../features/club/uscAuth';
+import {UscAuthBrand,UscAuthFooter} from '../features/club/UscAuthBrand';
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { supabase } from '../lib/supabaseClient';
@@ -19,6 +21,9 @@ const inputClass =
  */
 export const SetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
+  const location=useLocation();
+  const clubReturnTo=uscAuthTarget(location.pathname,location.search);
+  const destination=clubReturnTo ?? '/app';
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -44,19 +49,19 @@ export const SetPasswordPage: React.FC = () => {
 
       if (isEmailConfirmFlow()) {
         clearEmailConfirmFlow();
-        navigate('/app', { replace: true });
+        navigate(destination, { replace: true });
         return;
       }
 
       // Kein Recovery-Kontext → nicht als Passwort-Setzen missbrauchen
-      navigate('/app', { replace: true });
+      navigate(destination, { replace: true });
     }
 
     void gate();
     return () => {
       alive = false;
     };
-  }, [navigate]);
+  }, [navigate,destination]);
 
   useEffect(() => {
     const onFocusIn = (e: FocusEvent) => {
@@ -95,13 +100,14 @@ export const SetPasswordPage: React.FC = () => {
     }
     clearPasswordRecoveryFlow();
     setSuccess(true);
-    setTimeout(() => navigate('/app', { replace: true }), 800);
+    setTimeout(() => navigate(destination, { replace: true }), 800);
   };
 
   if (checking || !allowed) {
     return (
-      <div className="py-2">
+      <div className={`py-2 ${clubReturnTo ? 'usc-auth-page usc-auth-recovery' : ''}`}>
         <Card>
+        {clubReturnTo ? <UscAuthBrand/> : null}
           <CardTitle>Weiterleitung…</CardTitle>
           <p className="mt-1 text-sm text-[var(--text-sub)]">Einen Moment bitte.</p>
         </Card>
@@ -110,8 +116,9 @@ export const SetPasswordPage: React.FC = () => {
   }
 
   return (
-    <div className="py-2">
+    <div className={`py-2 ${clubReturnTo ? 'usc-auth-page usc-auth-recovery' : ''}`}>
       <Card>
+        {clubReturnTo ? <UscAuthBrand/> : null}
         <CardTitle>Passwort festlegen</CardTitle>
         <p className="mt-1 text-sm text-[var(--text-sub)]">
           Lege ein neues Passwort für die Anmeldung fest. Danach kannst du dich mit E-Mail und
@@ -168,6 +175,7 @@ export const SetPasswordPage: React.FC = () => {
             </div>
           </form>
         )}
+        {clubReturnTo ? <UscAuthFooter/> : null}
       </Card>
     </div>
   );
