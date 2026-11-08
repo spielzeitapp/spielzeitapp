@@ -35,6 +35,8 @@ const textButton=text=>root.root.findAllByType('button').find(b=>b.children.some
 const mount=async()=>act(async()=>{root=create(React.createElement(Booth,{players,seasonId:'season',onSaved:()=>saved++,onClose:()=>closed++}),{createNodeMock:el=>el.type==='video'?{videoWidth:1920,videoHeight:1080,play:async()=>{},srcObject:null}:el.props.role==='dialog'?{focus(){}}:null});});
 await mount();
 assert.equal(writes.length,0);assert.equal(button('Foto aufnehmen').props.disabled,true);
+assert.equal(root.root.findByProps({'aria-label':'Vereinslook live anzeigen'}).props.checked,false,'Live inference is optional, camera starts without model loading');
+assert.equal(root.root.findAllByType('svg').find(n=>n.props.viewBox==='0 0 400 300')?.props.viewBox,'0 0 400 300','Wide camera guide keeps natural proportions');
 await act(async()=>root.root.findByType('video').props.onLoadedData());
 await act(async()=>button('Foto aufnehmen').props.onClick());
 assert.equal(writes.length,0,'Capture and segmentation never persist before acceptance');
