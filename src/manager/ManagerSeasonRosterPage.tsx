@@ -1,3 +1,4 @@
+import {ManagerPhotoRemoteController} from './ManagerPhotoRemoteController';
 import {ManagerPlayerPhotoBooth} from './ManagerPlayerPhotoBooth';
 import {ManagerRosterPhotos} from './ManagerRosterPhotos';
 import {ManagerClubPhotoTemplate} from './ManagerClubPhotoTemplate';
@@ -56,6 +57,8 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
   } | null>(null);
   const [reportParams]=useSearchParams();
   const reportGameId=reportParams.get('oefbReport');
+  const remoteCameraId=reportParams.get('fotoboxCamera')??undefined;
+  const [remoteControl,setRemoteControl]=useState(false);
   const [globalPhoto,setGlobalPhoto]=useState(false);
   const [boothPlayer,setBoothPlayer]=useState<string|null>(null);
   const [photoDirty,setPhotoDirty]=useState(false),[photoBusy,setPhotoBusy]=useState(false);
@@ -263,7 +266,9 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      {boothPlayer&&seasonId&&canEdit&&<ManagerPlayerPhotoBooth key={seasonId} seasonId={seasonId} players={players.filter(p=>p.status!=='archived')} initialPlayerId={boothPlayer} onSaved={async()=>{await reloadRoster(seasonId);}} onClose={()=>setBoothPlayer(null)}/>}
+      {boothPlayer&&seasonId&&canEdit&&<ManagerPlayerPhotoBooth key={seasonId} seasonId={seasonId} players={players.filter(p=>p.status!=='archived')} initialPlayerId={boothPlayer} remoteSessionId={remoteCameraId} onSaved={async()=>{await reloadRoster(seasonId);}} onClose={()=>setBoothPlayer(null)}/>}
+      {seasonId&&canEdit&&remoteControl&&<ManagerPhotoRemoteController seasonId={seasonId} players={players.filter(p=>p.status!=='archived')} onClose={()=>setRemoteControl(false)}/>}
+      {seasonId&&canEdit&&remoteCameraId&&!boothPlayer&&players.length>0&&<section className="rounded-2xl border border-red-200 bg-white p-4"><h2 className="text-lg font-bold">Kamera-Handy für die Fotobox</h2><p className="my-3 text-sm">Dieses Handy fotografiert, das iPad steuert. Nach dem Verbinden Kamerazugriff erlauben und diese Ansicht geöffnet lassen. Auf beiden Geräten dasselbe Manager-Konto verwenden.</p><button type="button" onClick={()=>openBooth(players.find(p=>p.status!=='archived')?.id??players[0].id)} className="min-h-12 rounded-xl bg-red-700 p-3 font-bold text-white">Kamera mit iPad verbinden</button></section>}
       <header>
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
           <Link to="/manager/saisons" className="hover:text-red-700">
@@ -330,7 +335,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
         </p>
       ) : null}
 
-      {canEdit && seasonId&&players.some(p=>p.status!=='archived')?<section className="rounded-2xl border border-slate-200 bg-white p-4"><h2 className="font-bold">Spieler-Fotobox</h2><p className="my-2 text-sm text-slate-600">Porträt oder Torjubel direkt aufnehmen, prüfen und als Spielerfoto übernehmen. Mit Schablone und Vereinsvorschau.</p><button type="button" onClick={()=>{openBooth(players.find(p=>p.status!=='archived')!.id);}} className="min-h-11 rounded-xl bg-red-700 px-4 py-2 font-semibold text-white">Kamera öffnen · Spieler-Fotobox</button></section>:null}
+      {canEdit && seasonId&&players.some(p=>p.status!=='archived')?<section className="rounded-2xl border border-slate-200 bg-white p-4"><h2 className="font-bold">Spieler-Fotobox</h2><p className="my-2 text-sm text-slate-600">Porträt oder Torjubel direkt aufnehmen, prüfen und als Spielerfoto übernehmen. Mit Schablone und Vereinsvorschau.</p><button type="button" onClick={()=>{openBooth(players.find(p=>p.status!=='archived')!.id);}} className="min-h-11 rounded-xl bg-red-700 px-4 py-2 font-semibold text-white">Kamera öffnen · Spieler-Fotobox</button><button type="button" onClick={()=>{if(canSwitchPhoto()){setGlobalPhoto(false);setPhotoDirty(false);setRemoteControl(true);window.scrollTo({top:0,behavior:'smooth'});}}} className="ml-2 mt-2 min-h-11 rounded-xl border border-red-700 px-4 py-2 font-semibold text-red-700">iPad-Fernsteuerung · QR-Code</button></section>:null}
       {canEdit && seasonId?<ManagerRosterPhotos key={`team-photo:${seasonId}`} seasonId={seasonId} onSaved={()=>setNotice('Mannschaftsfoto gespeichert.')}/>:null}
       {canEdit && players.length>0 && meta?.clubId ? <section id="roster-photo-editor" className="scroll-mt-40"><button type="button" onClick={()=>{if(!canSwitchPhoto())return;setPhotoEditingId(null);setGlobalPhoto(!globalPhoto);}} className="mb-3 min-h-11 rounded-xl border border-slate-200 bg-white px-4 font-semibold text-red-700">{globalPhoto?'Fotoeditor schließen':'Spielerfotos gestalten'}</button>{globalPhoto&&<ManagerClubPhotoTemplate key={`${seasonId}:${photoEditingId??'team'}`} clubId={meta.clubId} seasonId={seasonId!} onDirtyChange={setPhotoDirty} onBusyChange={setPhotoBusy} initialPlayerId={photoEditingId??undefined} initialScope={photoEditingId?'player':'team'} onSaved={()=>{void reloadRoster(seasonId!);}}/>}</section>:null}
       {(

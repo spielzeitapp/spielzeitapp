@@ -1,3 +1,4 @@
+import {usePhotoRemoteCamera} from './usePhotoRemoteCamera';
 import React,{useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {Camera,RefreshCw,ImagePlus,X,Check,SwitchCamera} from 'lucide-react';
@@ -14,8 +15,8 @@ import {supabase} from '../lib/supabaseClient';
 import {ManagerProfilePhotoPreview} from './ManagerProfilePhotoPreview';
 import {useUnsavedProfileGuard} from './useUnsavedProfileGuard';
 
-type Draft={file:File;url:string;cutout:Blob|null;cutoutUrl:string|null};
-export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initialStep='portrait',onSaved,onClose}:{seasonId:string;players:RosterPlayer[];initialPlayerId?:string;initialStep?:PhotoStep;onSaved:()=>void|Promise<void>;onClose:()=>void}) {
+type Draft={id:string;file:File;url:string;cutout:Blob|null;cutoutUrl:string|null};
+export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initialStep='portrait',onSaved,onClose,remoteSessionId}:{remoteSessionId?:string;seasonId:string;players:RosterPlayer[];initialPlayerId?:string;initialStep?:PhotoStep;onSaved:()=>void|Promise<void>;onClose:()=>void}) {
  const [selected,setSelected]=useState(players.find(p=>p.id===initialPlayerId)?.id??players[0]?.id??'');
  const [mode,setMode]=useState<PhotoStep>(initialStep),[facing,setFacing]=useState<'environment'|'user'>('environment');
  const [draft,setDraft]=useState<Draft|null>(null),[processing,setProcessing]=useState(false),[saving,setSaving]=useState(false);
@@ -65,7 +66,7 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
   const url=URL.createObjectURL(file);
   try{if(remove){try{cutout=await removePortraitBackground(url,'gentle');cutoutUrl=URL.createObjectURL(cutout);}catch{if(token===version.current)setNotice('Freistellung nicht möglich. Du kannst das Original übernehmen oder noch einmal fotografieren.');}}
    if(!mounted.current||token!==version.current){URL.revokeObjectURL(url);if(cutoutUrl)URL.revokeObjectURL(cutoutUrl);return;}
-   setDraft({file,url,cutout,cutoutUrl});
+   setDraft({id:crypto.randomUUID(),file,url,cutout,cutoutUrl});
   }catch(e){URL.revokeObjectURL(url);throw e;}
  }
  async function capture(){
@@ -113,11 +114,24 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
    advance('saved');
   }catch(e){setError((e as {message?:string}).message||'Speichern fehlgeschlagen. Bitte erneut versuchen.');}finally{locked.current=false;setSaving(false);}
  }
+ const remote=usePhotoRemoteCamera(remoteSessionId,seasonId,{playerId:selected,step:mode,ready:cameraReady,busy:busy||locked.current,draftId:draft?.id??null,finished,error,notice,layout},draft?.file??null,draft?.cutout??null,async command=>{
+  if(locked.current)throw Error('Das Handy arbeitet noch. Bitte kurz warten.');
+  if(command.action==='capture')await capture();
+  else if(command.action==='accept')await save();
+  else if(command.action==='retake')discard();
+  else if(command.action==='skip')advance('skipped');
+  else if(command.action==='select'){
+   if(!players.some(p=>p.id===command.playerId))throw Error('Spieler nicht im aktiven Kader.');
+   setSelected(command.playerId);setMode(command.step);setNotice('');setError('');
+  }
+ });
+ useEffect(()=>{if(!remote.ended)return;stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;setCameraReady(false);setCameraError(remote.error||'Fernsteuerung beendet. Fotobox schließen und neu verbinden.');},[remote.ended]);
  return createPortal(<div className="fixed inset-0 z-[300] overflow-y-auto bg-slate-950/80 p-0 sm:p-4" onKeyDown={e=>{
   if(e.key==='Escape'){e.stopPropagation();close();}
   if(e.key==='Tab'){const nodes=dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),select:not(:disabled),input:not(:disabled),[tabindex="0"]');if(!nodes?.length)return;const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&(document.activeElement===first||document.activeElement===dialog.current)){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}
  }}><div ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="fotobox-title" aria-busy={busy} className="manager-player-fotobox mx-auto min-h-full w-full max-w-lg bg-white text-slate-900 sm:min-h-0 sm:overflow-hidden sm:rounded-2xl" style={{paddingBottom:'max(16px, env(safe-area-inset-bottom))'}}>
   <header className="flex items-center justify-between bg-[#292c31] p-4 text-white"><div><h2 id="fotobox-title" className="text-xl font-bold">{draft?'Foto prüfen':'Spieler-Fotobox'}</h2><p className="text-xs text-slate-300">{draft?'Vorschau im Vereinslook':'Aufnehmen · prüfen · übernehmen'}</p></div><button type="button" aria-label="Fotobox schließen" disabled={saving} onClick={close} className="flex h-11 w-11 items-center justify-center rounded-full border border-white/25"><X/></button></header>
+  {remoteSessionId&&<p role="status" className={`p-3 text-sm font-semibold ${remote.connected?'bg-emerald-50 text-emerald-900':'bg-amber-50 text-amber-900'}`}>{remote.connected?'Mit iPad verbunden · Handy geöffnet lassen':remote.error||'Verbindung zum iPad wird hergestellt…'}</p>}
   <div className="space-y-4 p-4"><label className="block text-sm font-semibold">Spieler · {index+1} von {players.length}<select aria-label="Spieler auswählen" value={selected} disabled={busy||Boolean(draft)} onChange={e=>{setSelected(e.target.value);setMode('portrait');setNotice('');setFinished(false);}} className="mt-1 min-h-12 w-full rounded-xl border border-slate-300 bg-white p-3 text-base font-semibold text-slate-900">{players.map(p=><option key={p.id} value={p.id}>{p.display_name} · {p.jersey_number??'–'}</option>)}</select></label>
   {finished?<section className="space-y-3 rounded-xl bg-emerald-50 p-4" role="status"><h3 className="text-lg font-bold">Fotoserie abgeschlossen</h3><p>{Object.values(results).filter(v=>v==='saved').length} Fotos gespeichert · {Object.values(results).filter(v=>v==='skipped').length} Schritte übersprungen.</p><p className="text-sm">Profil-, Spieltag- und Jubelfotos sind getrennt gespeichert. Freistellen, Helligkeit und Ausschnitt kannst du unter „Foto gestalten“ bearbeiten.</p><button type="button" onClick={onClose} className="min-h-11 rounded-xl bg-red-700 px-4 font-semibold text-white">Fertig</button></section>:!draft?<>
    <div className="flex rounded-xl bg-slate-100 p-1">{PHOTO_STEPS.map(value=><button type="button" key={value} aria-pressed={mode===value} disabled={busy} onClick={()=>setMode(value)} className={`min-h-11 flex-1 rounded-lg font-semibold ${mode===value?'bg-red-700 text-white':''}`}>{PHOTO_LABELS[value]}</button>)}</div>
@@ -152,6 +166,7 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
   </>:null}
   {processing&&<p role="status" className="rounded-xl bg-slate-100 p-3 text-sm">Foto wird vorbereitet{remove?' und freigestellt':''}… Beim ersten Mal werden Bildwerkzeuge geladen.</p>}
   {notice&&<p role="status" className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">{notice}</p>}
+  {remote.connected&&remote.error&&<p role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{remote.error}</p>}
   {error&&<p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</p>}
   </div>
  </div></div>,document.body);
