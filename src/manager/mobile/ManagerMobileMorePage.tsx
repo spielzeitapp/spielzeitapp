@@ -1,7 +1,7 @@
 import { useManagerClubModules } from '../ManagerClubModulesContext';
 import { managerModuleKeyForLocation } from '../managerWorkMode';
 import React from 'react';
-import { CalendarDays, ChevronRight, History, LayoutTemplate, LogOut, Monitor, MapPinned, BookOpen, Dumbbell, Shield, Table2, Users, Trophy, Newspaper, Mic, Music2, Share2 } from 'lucide-react';
+import { CalendarDays, Camera, ChevronRight, History, LayoutTemplate, LogOut, Monitor, MapPinned, BookOpen, Dumbbell, Shield, Table2, Users, Trophy, Newspaper, Mic, Music2, Share2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { getDisplayFirstName, profileDisplayName, useProfile } from '../../auth/useProfile';
@@ -54,6 +54,7 @@ export function ManagerMobileMorePage(): React.ReactElement {
       ) : null}
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-white/[0.09] bg-[#111114]">
+        {workMode==='platform_admin'&&<MoreLink to={importSeason&&!isSeasonArchived(importSeason.status)?`/manager/saisons/${encodeURIComponent(importSeason.id)}/kader?fotobox=1`:'/manager/saisons'} icon={Camera} title="Fotobox" detail="Spielerfotos aufnehmen · Fernsteuerung verbinden"/>}
         <MoreLink to="/manager" icon={Users} title="Startübersicht" detail="Schnellzugriff und aktuelle Termine" />
         <MoreLink to="/manager/teams" icon={Users} title="Meine Mannschaften" detail="Freigegebene Mannschaften und Saisonen" />
         <MoreLink to="/manager/training/einheiten" icon={Dumbbell} title="Trainingsplanung" detail="Trainingseinheiten vorbereiten" />
