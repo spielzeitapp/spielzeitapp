@@ -21,13 +21,13 @@ type Props = {
   scorers: { playerName: string; detail: string }[];
 };
 
-function ClubMark({ name, src }: { name: string; src: string }) {
+function ClubMark({ name, src, fullName=false }: { name: string; src: string; fullName?:boolean }) {
   const fallback = getClubLogo(name);
   const [failed, setFailed] = React.useState(false);
   React.useEffect(() => setFailed(false), [src]);
   return <div className="result-poster-club">
     <ClubLogo removeDarkBackground src={displayLogoUrl(failed ? fallback : src || fallback)} alt={`${scheduleClubName(name)} Logo`} onError={() => setFailed(true)} />
-    <PosterClubName name={scheduleClubName(name)} wrap />
+    <>{fullName ? <span className="result-poster-full-name">{scheduleClubName(name).replace(/\s*-\s*/g,'-')}</span> : <PosterClubName name={scheduleClubName(name)} wrap />}</>
   </div>;
 }
 
@@ -43,21 +43,21 @@ export const ResultPosterArtwork = React.forwardRef<HTMLDivElement, Props>(funct
   const state = ownScore > opponentScore ? 'win' : ownScore < opponentScore ? 'loss' : 'draw';
   return <div ref={ref} style={matchClub.style} data-manager-artwork className={`result-poster result-poster--${state} ${usc ? 'result-poster--usc' : ''}`} data-result-state={state}>
     <div className="result-poster-content">
-      {usc ? <div className="result-poster-identity">
-        <ClubLogo removeDarkBackground src={matchClub.brand?.logo_url || (p.is_home ? p.home_logo_url : p.away_logo_url)} alt="" />
-        <div><strong>{scheduleClubName(p.our_team_name)}</strong><small>{[ageGroup || 'KM', seasonLabel?.match(/20\d{2}\/\d{2,4}/)?.[0]].filter(Boolean).join(' · ')}</small></div>
-      </div> : null}
-      <header>
+      {usc ? <header className="usc-result-heading">
+        <div><strong>SPIELERGEBNIS</strong><span>{competition}</span></div>
+        <p>{[date, p.is_home ? 'Heimspiel' : 'Auswärts'].filter(Boolean).join(' · ')}</p>
+      </header> : <header>
         <h2>ENDSTAND</h2>
-        {ageGroup && !usc ? <div className="result-poster-age">{ageGroup}</div> : null}
+        {ageGroup ? <div className="result-poster-age">{ageGroup}</div> : null}
         <p className="result-poster-competition">{competition}</p>
-      </header>
+      </header>}
       <div className="result-poster-match">
-        <ClubMark name={p.home_team_name} src={p.is_home ? matchClub.brand?.logo_url || p.home_logo_url : p.home_logo_url} />
+        <ClubMark fullName={usc} name={p.home_team_name} src={p.is_home ? matchClub.brand?.logo_url || p.home_logo_url : p.home_logo_url} />
         <div className="result-poster-score">
-          <strong style={{ fontSize: `${Math.min(20, 64 / scoreText.length)}cqw` }}>{scoreText}</strong>
+          {usc ? <span className="usc-result-score-label">ENDSTAND</span> : null}
+          <strong style={{ fontSize: `${Math.min(usc ? 17 : 20, (usc ? 54 : 64) / scoreText.length)}cqw` }}>{scoreText}</strong>
         </div>
-        <ClubMark name={p.away_team_name} src={!p.is_home ? matchClub.brand?.logo_url || p.away_logo_url : p.away_logo_url} />
+        <ClubMark fullName={usc} name={p.away_team_name} src={!p.is_home ? matchClub.brand?.logo_url || p.away_logo_url : p.away_logo_url} />
       </div>
       <div className="result-poster-summary">
         {periods ? <p className="result-poster-periods">{periods}</p> : null}
@@ -70,7 +70,7 @@ export const ResultPosterArtwork = React.forwardRef<HTMLDivElement, Props>(funct
         </li>)}</ul>
       </section> : null}
       {date || venue ? <div className="result-poster-details">
-        {date ? <p><CalendarDays aria-hidden /><span>{date}</span></p> : null}
+        {date && !usc ? <p><CalendarDays aria-hidden /><span>{date}</span></p> : null}
         {venue ? <p><MapPin aria-hidden /><span>{venue}</span></p> : null}
       </div> : null}
       <footer>{usc ? '#GEMEINSAMSTARK' : <>#GEMEINSAM<span>EINTEAM</span></>}</footer>

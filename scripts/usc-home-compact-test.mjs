@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';import {build} from 'esbuild';import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),React=require('react'),{renderToStaticMarkup}=require('react-dom/server'),{MemoryRouter}=require('react-router-dom');
+const b=await build({entryPoints:['src/features/home/HomeUpcomingMatchCompact.tsx'],bundle:true,format:'cjs',platform:'node',packages:'external',write:false,define:{'import.meta.env':'{}','import.meta.env.BASE_URL':'"/"'},plugins:[{name:'context',setup(b){b.onResolve({filter:/^react$/},()=>({path:'react',external:true}));b.onResolve({filter:/supabaseClient$/},()=>({path:'db',namespace:'db'}));b.onLoad({filter:/.*/,namespace:'db'},()=>({contents:'export const supabase={};'}));b.onResolve({filter:/useMatchClubBranding$|useClubOpponentLogos$|demoPaths$|\/ui$/},a=>({path:a.path,namespace:'mock'}));b.onLoad({filter:/.*/,namespace:'mock'},a=>({contents:a.path.endsWith('/ui')?'import React from "react"; export const PremiumCard=({children})=>React.createElement("section",null,children)':a.path.endsWith('demoPaths')?'export const useInternalBasePath=()=>"/app"':a.path.endsWith('useMatchClubBranding')?'export const useMatchClubBranding=()=>({brand:{logo_url:"https://example.test/usc.png"}})':'export const useClubOpponentLogos=()=>new Map(); export const preferredClubLogo=(name,map,fallback)=>fallback;'}));}}]});
+const m={exports:{}};new Function('require','module','exports',b.outputFiles[0].text)(require,m,m.exports);
+for(const home of [true,false]){
+ const pick={status:'next',event:{id:'event',team_season_id:'usc-season',is_home:home,opponent:'Wilhelmsburg',opponent_logo_url:'https://example.test/ask.png',starts_at:'2027-01-24T12:00:00Z',match_type:'friendly'}};
+ const html=renderToStaticMarkup(React.createElement(MemoryRouter,null,React.createElement(m.exports.HomeUpcomingMatchCompact,{pick,teamName:'KM USC Rohrbach'})));
+ assert.match(html,/https:\/\/example.test\/(usc|ask).png/);assert.match(html,/13:00/);assert.match(html,/\/app\/events\/event/);assert.doesNotMatch(html,/KM USC/);
+ assert.ok(html.includes(home?'USC Rohrbach – Wilhelmsburg':'Wilhelmsburg – USC Rohrbach'));
+}
+console.log('PASS actual compact upcoming USC card: correct home/away order, stored logos, Vienna time and working event link.');
