@@ -8,7 +8,7 @@ export function usePhotoRemoteCamera(sessionId:string|undefined,seasonId:string,
  snapshot.current={...status,handled,...(preview.id===status.draftId?{original:preview.original,cutout:preview.cutout}:{})};
  useEffect(()=>{
   let active=true;setPreview({id:null});if(!sessionId||!file||!status.draftId)return;
-  void Promise.all([remotePhotoThumbnail(file),cutout?remotePhotoThumbnail(cutout):Promise.resolve(undefined)]).then(([original,transparent])=>{if(active)setPreview({id:status.draftId,original,cutout:transparent});}).catch(()=>{if(active)setError('Die iPad-Vorschau konnte nicht übertragen werden. Aufnahme am Handy prüfen.');});
+  void Promise.all([remotePhotoThumbnail(file),cutout?remotePhotoThumbnail(cutout):Promise.resolve(undefined)]).then(([original,transparent])=>{if(active)setPreview({id:status.draftId,original,cutout:transparent});}).catch(()=>{if(active)setError('Die Vorschau an der Fernsteuerung konnte nicht übertragen werden. Aufnahme am Stativgerät prüfen.');});
   return()=>{active=false;};
  },[sessionId,status.draftId,file,cutout]);
  useEffect(()=>{
@@ -20,7 +20,7 @@ export function usePhotoRemoteCamera(sessionId:string|undefined,seasonId:string,
    if(!active)return;
    try{
     const row=await readRemoteSession(sessionId);if(!active)return;
-    if(row.team_season_id!==seasonId||row.camera_id!==cameraId)throw Object.assign(Error('Kamera-Verbindung wurde beendet. Bitte am iPad neu koppeln.'),{remoteEnded:true});
+    if(row.team_season_id!==seasonId||row.camera_id!==cameraId)throw Object.assign(Error('Kamera-Verbindung wurde beendet. Bitte an der Fernsteuerung neu koppeln.'),{remoteEnded:true});
     const command=row.command;
     if(command&&command.id!==row.ack&&command.id!==processed){
      if(await acknowledgeRemoteCommand(sessionId,cameraId,command)){
@@ -29,7 +29,7 @@ export function usePhotoRemoteCamera(sessionId:string|undefined,seasonId:string,
        if(remoteCommandMatches(command,latest.current)){
         // Keep heartbeat/polling alive while the phone segments or saves a photo.
         void(async()=>{try{await handler.current(command);}catch(e){if(active)setError((e as Error).message);}finally{if(active)setHandled(command.id);}})();
-       }else{setError('Die Ansicht war nicht mehr aktuell. Bitte am iPad den aktuellen Schritt prüfen und erneut wählen.');setHandled(command.id);}
+       }else{setError('Die Ansicht war nicht mehr aktuell. Bitte an der Fernsteuerung den aktuellen Schritt prüfen und erneut wählen.');setHandled(command.id);}
       }
      }
     }

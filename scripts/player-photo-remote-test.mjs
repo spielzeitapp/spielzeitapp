@@ -43,15 +43,15 @@ const controllerLib=await compile('src/manager/ManagerPhotoRemoteController.tsx'
 });
 const mountController=async()=>act(async()=>{root=create(React.createElement(controllerLib.ManagerPhotoRemoteController,{seasonId:'season',players:[{id:'p1',display_name:'Synthetic Player',first_name:'Synthetic',last_name:'Player'}],onClose:()=>ended++}));});
 const buttonText=text=>root.root.findAllByType('button').find(b=>b.children.includes(text));
-await mountController();await act(async()=>buttonText('Handy verbinden · QR-Code anzeigen').props.onClick());
+await mountController();await act(async()=>buttonText('Stativkamera verbinden · QR-Code anzeigen').props.onClick());
 assert.ok(root.root.findByType('a').props.href.endsWith('?fotoboxCamera='+controllerRow.id));
 assert.equal(root.root.findAllByType('video').length,0,'Controller never requests a camera');
 await act(async()=>buttonText('Foto auslösen').props.onClick());assert.equal(sent[0].action,'capture');assert.equal(sent[0].draftId,null);assert.equal(buttonText('Foto auslösen').props.disabled,true,'Unconfirmed shutter command disables repeated taps');
 await act(async()=>root.unmount());controllerRow.state={...ready,draftId};
-await mountController();await act(async()=>buttonText('Handy verbinden · QR-Code anzeigen').props.onClick());
+await mountController();await act(async()=>buttonText('Stativkamera verbinden · QR-Code anzeigen').props.onClick());
 assert.equal(buttonText('Übernehmen').props.disabled,true,'Saving is unavailable before the transmitted preview exists');
 await act(async()=>root.unmount());controllerRow.state={...ready,draftId,original:'data:image/jpeg;base64,fixture'};
-await mountController();await act(async()=>buttonText('Handy verbinden · QR-Code anzeigen').props.onClick());
+await mountController();await act(async()=>buttonText('Stativkamera verbinden · QR-Code anzeigen').props.onClick());
 await act(async()=>buttonText('Übernehmen').props.onClick());assert.equal(sent.at(-1).action,'accept');assert.equal(sent.at(-1).draftId,draftId);
 await act(async()=>buttonText('Verbindung beenden').props.onClick());assert.equal(ended,1);await act(async()=>root.unmount());
 console.log('PASS controller: same-origin QR link, no camera access, guarded shutter, preview required for accept, exact draft ID and explicit close.');
