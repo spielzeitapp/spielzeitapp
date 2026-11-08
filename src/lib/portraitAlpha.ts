@@ -1,15 +1,17 @@
-export type PortraitEdgeCleanup = 'normal' | 'strong';
+export type PortraitEdgeCleanup = 'gentle' | 'normal' | 'strong';
 
 /** Trim uncertain segmentation fringes; do not key out white pixels in jerseys. */
 export function portraitAlpha(confidence:Float32Array,width:number,height:number,cleanup:PortraitEdgeCleanup='normal'):Uint8ClampedArray {
  if(width<1||height<1||confidence.length!==width*height)throw Error('Ungültige Personenmaske.');
- const strong=cleanup==='strong',low=strong?0.65:0.45,high=strong?0.93:0.82;
+ const strong=cleanup==='strong',gentle=cleanup==='gentle',low=gentle?0.25:strong?0.65:0.45,high=gentle?0.7:strong?0.93:0.82;
  const alpha=new Uint8ClampedArray(confidence.length);
  for(let i=0;i<alpha.length;i++){
   const value=Number.isFinite(confidence[i])?confidence[i]:0;
   const t=Math.max(0,Math.min(1,(value-low)/(high-low)));
   alpha[i]=Math.round(255*t*t*(3-2*t));
  }
+ // Clothing-preserving mode keeps narrow sleeves and uncertain boundaries.
+ if(gentle)return alpha;
  // A small separable minimum filter removes the thin upsampled edge fringe.
  // Radius scales with source resolution and never exceeds three pixels.
  const radius=Math.min(3,Math.max(1,Math.round(Math.max(width,height)/(strong?400:900))));
