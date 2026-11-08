@@ -1,3 +1,4 @@
+import {isUscRohrbachResult} from '../../lib/resultFeedPresentation';
 import {ClubLogo} from '../branding/ClubLogo';
 import React from 'react';
 import { getClubLogoUrl, isValidLogoUrl } from '../../utils/logoResolver';
@@ -73,7 +74,9 @@ type TeamBlockProps = {
 };
 
 function TeamBlock({ logoUrl, prefix, name, hero, compact = false }: TeamBlockProps) {
-  const imgClass = hero
+  const imgClass = isUscRohrbachResult(`${prefix ?? ""} ${name}`)
+    ? "h-16 w-full max-w-28 shrink-0 sm:h-20 sm:max-w-32"
+    : hero
     ? 'h-[52px] w-[52px] sm:h-[60px] sm:w-[60px]'
     : compact
       ? 'h-[50px] w-[50px] shrink-0 min-[390px]:h-[60px] min-[390px]:w-[60px]'

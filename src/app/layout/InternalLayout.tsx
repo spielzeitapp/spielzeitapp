@@ -333,7 +333,7 @@ export const InternalLayout: React.FC = () => {
       <div className={`app app--internal min-h-screen bg-black text-white ${isTouchLayout ? 'app--touch' : ''} ${useTabletRail ? 'app--tablet-rail' : ''}`}>
         <Header />
         <main
-          className={`app__content appMain pt-[var(--app-header-offset)] ${pathClean === '/app/tabelle' ? 'max-md:!px-0' : ''} ${isDemo && location.pathname === '/demo/home' ? 'max-md:!px-0' : ''} ${
+          className={`app__content appMain pt-[var(--app-header-offset)] ${pathClean === '/app/tabelle' ? 'max-md:!px-0' : ''} ${pathClean === '/app/home' || pathClean === '/demo/home' ? 'max-sm:!px-0' : ''} ${isDemo && location.pathname === '/demo/home' ? 'max-md:!px-0' : ''} ${
             useTabletRail
               ? 'pb-6'
               : isTouchLayout

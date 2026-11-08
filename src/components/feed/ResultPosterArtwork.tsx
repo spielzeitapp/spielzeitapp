@@ -25,7 +25,7 @@ function ClubMark({ name, src, fullName=false }: { name: string; src: string; fu
   const fallback = getClubLogo(name);
   const [failed, setFailed] = React.useState(false);
   React.useEffect(() => setFailed(false), [src]);
-  return <div className="result-poster-club">
+  return <div className={`result-poster-club ${isUscRohrbachResult(name) ? "result-poster-club--wide" : ""}`}>
     <ClubLogo removeDarkBackground src={displayLogoUrl(failed ? fallback : src || fallback)} alt={`${scheduleClubName(name)} Logo`} onError={() => setFailed(true)} />
     <>{fullName ? <span className="result-poster-full-name">{scheduleClubName(name).replace(/\s*-\s*/g,'-')}</span> : <PosterClubName name={scheduleClubName(name)} wrap />}</>
   </div>;

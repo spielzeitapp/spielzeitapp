@@ -645,7 +645,7 @@ export const HomePage: React.FC = () => {
                   {filteredActivePosts.map((item) => (
                     <div
                       key={item.post.id}
-                      className={'home-feed-edge w-full min-w-0 max-w-full'}
+                      className={'home-feed-edge min-w-0 -mx-3 w-[calc(100%+1.5rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-full'}
                     >
                       <HomeFeedPostRenderer
                         item={item}
@@ -732,7 +732,7 @@ export const HomePage: React.FC = () => {
                             <div className="h-px flex-1 bg-white/10" />
                           </div>
                         ) : null}
-                        <div className={'home-feed-edge w-full min-w-0 max-w-full'}>
+                        <div className={'home-feed-edge min-w-0 -mx-3 w-[calc(100%+1.5rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-full'}>
                           <HomeFeedPostRenderer
                             item={item}
                             eventById={eventById}

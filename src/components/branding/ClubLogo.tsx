@@ -9,12 +9,15 @@ function preparedSource(src: string,removeDarkBackground:boolean): Promise<strin
   if (!pending) {
     pending = (async () => {
       try {
-        const response = await fetch(displayLogoUrl(src));
+        const displaySource = displayLogoUrl(src);
+        const fetchSource = displaySource.startsWith('/api/oefb/table?view=photo&url=')
+          ? `${displaySource}&quality=logo` : displaySource;
+        const response = await fetch(fetchSource);
         if (!response.ok) return src;
         const blob = await response.blob();
         if (!['image/png', 'image/jpeg', 'image/webp'].includes(blob.type) || blob.size > 5 * 1024 * 1024) return src;
         const result = await prepareLogoFile(new File([blob], 'club-logo', { type: blob.type }),{removeDarkBackground});
-        if (!result.changed) return src;
+        if (!result.changed && fetchSource === displaySource) return src;
         return new Promise<string>((resolve, reject) => {
           const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(result.file);
         });

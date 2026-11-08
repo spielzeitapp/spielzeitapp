@@ -65,3 +65,7 @@
 .result-poster--usc footer { margin-top:2cqw; padding-top:2.5cqw; font-size:4.8cqw; }
 .usc-result-cta a { background:linear-gradient(135deg,#e4e6ea,#aeb3bb) !important; border:1px solid #f1f3f780 !important; color:#111318 !important; box-shadow:inset 0 1px 0 #ffffff80; }
 .result-feed--usc .sz-club-feed-inset { border:0; background:transparent; border-radius:0; }
+
+/* Wide USC wordmark needs the full side column, rather than a square crest box. */
+.result-poster--usc .result-poster-match { grid-template-columns:minmax(0,1.15fr) minmax(0,1.1fr) minmax(0,1.15fr); }
+.result-poster--usc .result-poster-club--wide img { width:28cqw; height:23cqw; max-width:100%; }
