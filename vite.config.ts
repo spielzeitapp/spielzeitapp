@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           main: resolve(__dirname, "index.html"),
+          comparison: resolve(__dirname, "vereinszentrale.html"),
           preview: resolve(__dirname, "preview.html"),
           app: resolve(__dirname, "app.html"),
           demo: resolve(__dirname, "demo.html"),

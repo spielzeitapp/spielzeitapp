@@ -1,3 +1,5 @@
+import { isManagerComparison } from '../lib/managerComparison';
+import { ManagerComparisonPlatformDashboardPage } from './ManagerComparisonPlatformDashboardPage';
 import { ManagerLiveReleasePanel } from './ManagerLiveReleasePanel';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
@@ -47,7 +49,7 @@ function formatActivity(value: string | null): string {
   return new Date(value).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-export function ManagerPlatformDashboardPage({ releaseOnly = false }: { releaseOnly?: boolean } = {}): React.ReactElement {
+function LegacyManagerPlatformDashboardPage({ releaseOnly = false }: { releaseOnly?: boolean } = {}): React.ReactElement {
   const { backendRole, loading: sessionLoading } = useSession();
   const allowed = isPlatformAdminRole(backendRole);
   const [stats, setStats] = useState<PlatformDashboardStats | null>(null);
@@ -234,3 +236,5 @@ export function ManagerPlatformDashboardPage({ releaseOnly = false }: { releaseO
     </>
   );
 }
+
+export function ManagerPlatformDashboardPage(props: { releaseOnly?: boolean } = {}): React.ReactElement { return isManagerComparison() ? <ManagerComparisonPlatformDashboardPage {...props} /> : <LegacyManagerPlatformDashboardPage {...props} />; }
