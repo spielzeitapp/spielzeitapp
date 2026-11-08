@@ -1,3 +1,5 @@
+import { uscAuthTarget, uscAuthPath } from '../features/club/uscAuth';
+import { UscAuthBrand, UscAuthFooter } from '../features/club/UscAuthBrand';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Eye, EyeOff, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -104,7 +106,9 @@ export const LoginPage: React.FC = () => {
   const fromStatePath = fromState?.pathname
     ? `${fromState.pathname}${fromState.search ?? ''}`
     : null;
-  const nextRaw = searchParams.get('next') ?? '';
+  const clubReturnTo = uscAuthTarget(location.pathname,location.search);
+  const isUscLogin = Boolean(clubReturnTo);
+  const nextRaw = clubReturnTo ?? searchParams.get('next') ?? '';
   const nextFromQuery = isSafeAuthRedirectPath(nextRaw) ? nextRaw : null;
   const orphanT = searchParams.get('t');
   const inviteConfirmedFlag =
@@ -207,9 +211,11 @@ export const LoginPage: React.FC = () => {
     };
   }, [authLoading, user, isParentInviteFlow, nextSafe, safeFromState, navigate]);
 
+  useEffect(()=>{if(isUscLogin && user && !authLoading && !isParentInviteFlow)navigate(clubReturnTo!,{replace:true});},[isUscLogin,user,authLoading,isParentInviteFlow,clubReturnTo,navigate]);
+
   if (showPlayerLogin) {
     return (
-      <div className={AUTH_PAGE_SHELL_CLASS}>
+      <div className={`${AUTH_PAGE_SHELL_CLASS} ${isUscLogin ? 'usc-auth-page' : ''}`}>
         <PlayerLoginPanel onBack={() => setShowPlayerLogin(false)} />
       </div>
     );
@@ -295,13 +301,13 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className={AUTH_PAGE_SHELL_CLASS}>
-      <div className={AUTH_PAGE_CARD_CLASS}>
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-red-700 via-red-500 to-red-800" />
-        <div className="pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-red-600/10 blur-3xl" />
+    <div className={`${AUTH_PAGE_SHELL_CLASS} ${isUscLogin ? 'usc-auth-page' : ''}`}>
+      <div className={`${AUTH_PAGE_CARD_CLASS} ${isUscLogin ? 'usc-auth-card' : ''}`}>
+        <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-red-700 via-red-500 to-red-800 ${isUscLogin ? 'usc-auth-accent' : ''}`} />
+        <div className={`pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-red-600/10 blur-3xl ${isUscLogin ? 'usc-auth-glow' : ''}`} />
 
         <header className="relative">
-          {isManagerLogin ? (
+          {isUscLogin ? <UscAuthBrand/> : isManagerLogin ? (
             <div className="flex items-center gap-3" aria-label="Spielzeit Manager">
               <img src="/manager-icon-192.png" alt="" className="h-[4.25rem] w-[4.25rem] rounded-2xl" />
               <span className="text-xl font-black tracking-tight text-white">Spielzeit <span className="text-red-500">Manager</span></span>
@@ -314,7 +320,7 @@ export const LoginPage: React.FC = () => {
             />
           )}
           <h1 className="mt-3 text-2xl font-bold tracking-tight text-white">
-            Willkommen zurück
+            {isUscLogin ? 'Beim USC Rohrbach anmelden' : 'Willkommen zurück'}
           </h1>
         </header>
 
@@ -415,7 +421,7 @@ export const LoginPage: React.FC = () => {
               <span>Angemeldet bleiben</span>
             </label>
             <Link
-              to="/forgot-password"
+              to={isUscLogin ? uscAuthPath('passwort-vergessen',clubReturnTo!) : '/forgot-password'}
               className="shrink-0 rounded text-sm font-semibold text-red-300 hover:text-red-200 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/50"
             >
               Passwort vergessen?
@@ -445,11 +451,11 @@ export const LoginPage: React.FC = () => {
             disabled={loading || (isTurnstileConfigured && !captchaToken)}
             className="!h-12 !rounded-xl !text-base !font-bold shadow-[0_12px_28px_rgba(220,38,38,0.22)]"
           >
-            {loading ? 'Wird angemeldet…' : 'Anmelden'}
+            {loading ? 'Wird angemeldet…' : isUscLogin ? 'Beim USC anmelden' : 'Anmelden'}
           </Button>
         </form>
 
-        {playerLoginEnabled && !isParentInviteFlow && !isManagerLogin ? (
+        {playerLoginEnabled && !isParentInviteFlow && !isManagerLogin && !isUscLogin ? (
           <div className="relative mt-5 border-t border-white/10 pt-5">
             <button
               type="button"
@@ -465,7 +471,7 @@ export const LoginPage: React.FC = () => {
         ) : null}
 
         <div className="relative mt-4 flex flex-col gap-2.5">
-          {!isParentInviteFlow && !isManagerLogin && window.location.hostname !== 'spielzeitapp.at' ? (
+          {!isParentInviteFlow && !isManagerLogin && !isUscLogin && window.location.hostname !== 'spielzeitapp.at' ? (
             <>
               <Link
                 to="/demo"
@@ -484,7 +490,7 @@ export const LoginPage: React.FC = () => {
               Noch kein Konto?{' '}
               <Link
                 to={
-                  nextSafe
+                  isUscLogin ? uscAuthPath('registrieren',clubReturnTo!) : nextSafe
                     ? `/register?${buildParentInviteAuthQuery({ next: nextSafe, email })}`
                     : '/register'
                 }
@@ -495,6 +501,7 @@ export const LoginPage: React.FC = () => {
             </p>
           ) : null}
         </div>
+        {isUscLogin ? <UscAuthFooter/> : null}
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+import {uscAuthTarget} from '../features/club/uscAuth';
 import { isUscAppPath, USC_MANIFEST, USC_APP_ICON } from '../features/club/uscClub';
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -37,8 +38,7 @@ export function ManifestSync(): null {
   const { pathname, search } = useLocation();
 
   useEffect(() => {
-    const next = pathname === '/login' ? new URLSearchParams(search).get('next') : null;
-    const usc = isUscAppPath(pathname) || Boolean(next && isUscAppPath(next.split('?')[0]));
+    const usc = isUscAppPath(pathname) || Boolean(uscAuthTarget(pathname,search));
     const demo = pathname === '/demo' || pathname.startsWith('/demo/');
     const manager = pathname.startsWith('/manager');
     const href = usc ? USC_MANIFEST : demo

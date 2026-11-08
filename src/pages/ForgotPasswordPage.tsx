@@ -1,5 +1,7 @@
+import { uscAuthTarget, uscAuthPath } from '../features/club/uscAuth';
+import { UscAuthBrand, UscAuthFooter } from '../features/club/UscAuthBrand';
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { supabase } from '../lib/supabaseClient';
 import { AUTH_PASSWORD_RECOVERY_PATH, getAuthRedirectUrl } from '../lib/authRedirect';
@@ -21,6 +23,8 @@ const inputClass =
  * Link leads to /app/set-password where user sets the new password.
  */
 export const ForgotPasswordPage: React.FC = () => {
+  const location=useLocation();
+  const clubReturnTo=uscAuthTarget(location.pathname,location.search);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -41,7 +45,7 @@ export const ForgotPasswordPage: React.FC = () => {
     }
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
-      redirectTo: getAuthRedirectUrl(AUTH_PASSWORD_RECOVERY_PATH),
+      redirectTo: getAuthRedirectUrl(clubReturnTo ? `${AUTH_PASSWORD_RECOVERY_PATH}?next=${encodeURIComponent(clubReturnTo)}` : AUTH_PASSWORD_RECOVERY_PATH),
       captchaToken: captchaToken ?? undefined,
     });
     setCaptchaToken(null);
@@ -58,8 +62,9 @@ export const ForgotPasswordPage: React.FC = () => {
   };
 
   return (
-    <div className={AUTH_PAGE_SHELL_CLASS}>
-      <div className={AUTH_PAGE_CARD_CLASS}>
+    <div className={`${AUTH_PAGE_SHELL_CLASS} ${clubReturnTo ? 'usc-auth-page' : ''}`}>
+      <div className={`${AUTH_PAGE_CARD_CLASS} ${clubReturnTo ? 'usc-auth-card' : ''}`}>
+        {clubReturnTo ? <UscAuthBrand/> : null}
         <h1 className="text-xl font-semibold text-white">Passwort zurücksetzen</h1>
         <p className="mt-1 text-sm text-white/60">
           E-Mail eingeben – wir schicken dir einen Link zum Festlegen eines neuen Passworts.
@@ -104,10 +109,11 @@ export const ForgotPasswordPage: React.FC = () => {
         </form>
 
         <p className="mt-6 border-t border-white/10 pt-4 text-center text-sm text-white/60">
-          <Link to="/login" className="text-white/80 hover:text-white hover:underline">
+          <Link to={clubReturnTo ? uscAuthPath('anmelden',clubReturnTo) : '/login'} className="text-white/80 hover:text-white hover:underline">
             Zurück zur Anmeldung
           </Link>
         </p>
+        {clubReturnTo ? <UscAuthFooter/> : null}
       </div>
     </div>
   );

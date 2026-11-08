@@ -72,6 +72,7 @@ const mocks = {
   ProfileHeroCard: "export const ProfileHeroCard=()=>null;",
   OefbCompetitionTable:
     'import React from "react";export const OefbCompetitionTable=({teamSeasonId})=>React.createElement("section",null,"Tabelle "+teamSeasonId);',
+  UscMatchReport:'export const UscMatchReport=()=>null;',
   oefbTableSettings:
     'export const getOefbTableSettings=async()=>({data:{competitionId:"",sourceUrl:"https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2026-27/KM/Tabellen/",teamName:"Rohrbach / Gölsen"},error:null});',
 };
@@ -99,7 +100,7 @@ const b = await build({
         b.onResolve(
           {
             filter:
-              /AuthProvider$|useUscClub$|useEvents$|useTeamFeedPosts$|usePlayers$|useTeamStaff$|supabaseClient$|HomeFeedPostRenderer$|PlayerProfileModal$|ProfileHeroCard$|OefbCompetitionTable$|oefbTableSettings$/,
+              /AuthProvider$|useUscClub$|useEvents$|useTeamFeedPosts$|usePlayers$|useTeamStaff$|supabaseClient$|HomeFeedPostRenderer$|PlayerProfileModal$|ProfileHeroCard$|OefbCompetitionTable$|oefbTableSettings$|UscMatchReport$/,
           },
           (a) => ({ path: a.path.split("/").pop(), namespace: "mock" }),
         );
@@ -181,13 +182,13 @@ await act(async () => tree.unmount());
 globalThis.__uscUser = null;
 globalThis.__uscReadCalls = [];
 await mount("/app/usc-rohrbach");
-assert.match(html(), /Mit SpielzeitApp anmelden/);
+assert.match(html(), /Beim USC Rohrbach anmelden/);
 assert.doesNotMatch(html(), /Vorhandener USC-Beitrag/);
 assert.deepEqual(globalThis.__uscReadCalls, []);
 assert.ok(
   tree.root
     .findAllByType("a")
-    .some((a) => a.props.href.includes("/login?next=")),
+    .some((a) => a.props.href.includes("/anmelden?next=")),
 );
 await act(async () => tree.unmount());
 const manifest = JSON.parse(

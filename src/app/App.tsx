@@ -234,6 +234,9 @@ class AppErrorBoundary extends Component<
 function InternalRoutes(): React.ReactElement {
   return (
     <Routes>
+      <Route path="app/usc-rohrbach/anmelden" element={<LoginPage />} />
+      <Route path="app/usc-rohrbach/registrieren" element={<RegisterPage />} />
+      <Route path="app/usc-rohrbach/passwort-vergessen" element={<ForgotPasswordPage />} />
       <Route path="app/usc-rohrbach" element={<React.Suspense fallback={<p className="p-6 text-white/70">USC-App wird geladen…</p>}><UscClubApp /></React.Suspense>} />
       <Route path="app.html" element={<Navigate to="/app" replace />} />
       {/* Öffentliche Trainer-Demo – gemeinsamer Einstieg + produktives Layout, kein Login */}
@@ -443,6 +446,9 @@ function InternalRoutes(): React.ReactElement {
 function PublicRoutes(): React.ReactElement {
   return (
     <Routes>
+      <Route path="app/usc-rohrbach/anmelden" element={<LoginPage />} />
+      <Route path="app/usc-rohrbach/registrieren" element={<RegisterPage />} />
+      <Route path="app/usc-rohrbach/passwort-vergessen" element={<ForgotPasswordPage />} />
       <Route path="app/usc-rohrbach" element={<React.Suspense fallback={<p className="p-6 text-white/70">USC-App wird geladen…</p>}><UscClubApp /></React.Suspense>} />
       <Route path="app.html" element={<Navigate to="/" replace />} />
       <Route path="demo" element={<DemoLayout />}>

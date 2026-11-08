@@ -1,3 +1,4 @@
+import {uscAuthTarget,uscAuthPath} from '../features/club/uscAuth';
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
@@ -36,6 +37,8 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({ children, allowedBacke
       const next = `${location.pathname}${location.search}`;
       return <Navigate to={`/manager/login?next=${encodeURIComponent(next)}`} state={{ from: location }} replace />;
     }
+    const clubReturnTo=uscAuthTarget(location.pathname,location.search);
+    if(clubReturnTo)return <Navigate to={uscAuthPath('anmelden',clubReturnTo)} state={{from:location}} replace/>;
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
