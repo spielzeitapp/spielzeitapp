@@ -10,6 +10,8 @@ globalThis.window={confirm:()=>true,dispatchEvent(){}};
 globalThis.Image=class {naturalWidth=1600;naturalHeight=1200;async decode(){}};
 globalThis.__boothWrite=async(kind,args)=>{writes.push({kind,args});if(fail&&kind==='avatar')return{error:'Upload nicht erlaubt'};if(kind==='avatar')return{avatarUrl:'/new.jpg',error:null};if(kind==='cutout')return{cutoutUrl:'/new.png',error:null};return{data:{id:'p1'},error:null};};
 const fixtures={
+ 'managerPlayerPhotoBooth.css':'export default {};',
+ livePlayerPortrait:'export const startLivePlayerPortrait=()=>()=>{};',
  'react-dom':'export const createPortal=x=>x;',
  supabaseClient:'export const supabase={from:table=>({upsert:args=>globalThis.__boothWrite(table,args),update:args=>({eq:()=>({select:()=>({single:()=>globalThis.__boothWrite(table,args)})})})}),rpc:(name,args)=>globalThis.__boothWrite(name,args)};',
  profileCutoutUpload:'export const uploadPlayerProfilePhoto=(...a)=>globalThis.__boothWrite("avatar",a),uploadPlayerProfileCutout=(...a)=>globalThis.__boothWrite("cutout",a);',
