@@ -7,16 +7,21 @@ import { resolve } from "path";
  * Backend: VAPID_PUBLIC_KEY muss derselbe öffentliche Key wie VITE_VAPID_PUBLIC_KEY sein.
  */
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "");
-  if (process.env.VERCEL_GIT_COMMIT_REF === 'preview/vereinszentrale-modern') {
-    const endpoint = process.env.VITE_SUPABASE_URL || env.VITE_SUPABASE_URL || '';
-    if (!/^https:\/\/acbaecjzoabafbsjrzvr\.supabase\.co\/?$/.test(endpoint)) {
-      throw new Error('Designvergleich benötigt die bestehende TEST-Datenbank. Keine LIVE-Verbindung erlaubt.');
-    }
+  loadEnv(mode, process.cwd(), "");
+  const comparisonPreview = process.env.VERCEL_GIT_COMMIT_REF === 'preview/vereinszentrale-modern';
+  // Public client configuration already served by TEST. No privileged server keys.
+  const comparisonClient = comparisonPreview ? require('./src/manager/modern/previewClientConfig.json') : null;
+  if (comparisonClient && comparisonClient.url !== 'https://acbaecjzoabafbsjrzvr.supabase.co') {
+    throw new Error('Designvergleich benötigt die bestehende TEST-Datenbank.');
   }
 
   return {
     base: "/",
+    ...(comparisonClient ? { define: {
+      'import.meta.env.VITE_APP_ENV': JSON.stringify('staging'),
+      'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(comparisonClient.url),
+      'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(comparisonClient.publishableKey),
+    } } : {}),
     plugins: [react()],
     build: {
       /** Vite-Standard-Warnung bei großen Bundles (harmlos für Deploy) */

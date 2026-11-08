@@ -98,6 +98,7 @@
  [data-manager-modern] nav[aria-label='Mobile Manager-Navigation']>div { min-height:68px; border-radius:24px; background:color-mix(in srgb,var(--manager-surface) 95%,transparent)!important; box-shadow:0 8px 30px #0003; }
  [data-manager-modern] nav[aria-label='Mobile Manager-Navigation']>div>span { display:none; }
  [data-manager-modern] .manager-modern-checklist>div:first-child { padding:16px; }
+ [data-manager-modern] .manager-modern-checklist>div:first-child>div>div:nth-child(2)>label { flex-basis:100%; }
  [data-manager-modern] .manager-modern-checklist h2 { font-size:18px; letter-spacing:-.03em; }
  [data-manager-modern] .manager-modern-checklist h2+p { font-size:12px; line-height:1.6; }
  [data-manager-modern] .manager-checklist-steps { display:flex; overflow-x:auto; gap:8px; padding:14px; scroll-snap-type:x proximity; }
