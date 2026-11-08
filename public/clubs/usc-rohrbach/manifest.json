@@ -1,0 +1,15 @@
+{
+  "id": "/app/usc-rohrbach",
+  "name": "USC Rohrbach",
+  "short_name": "USC Rohrbach",
+  "description": "Spiele, Teams und Vereinsleben des USC Rohrbach – powered by SpielzeitApp.",
+  "start_url": "/app/usc-rohrbach",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#101214",
+  "theme_color": "#101214",
+  "icons": [
+    {"src":"/clubs/usc-rohrbach/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"/clubs/usc-rohrbach/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"}
+  ]
+}

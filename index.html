@@ -33,7 +33,14 @@
       // Select Demo installation metadata before React and the install sheet load.
       (function() {
         var path = window.location.pathname;
-        if (path === '/demo' || path.indexOf('/demo/') === 0) {
+        var next = path === '/login' ? new URLSearchParams(window.location.search).get('next') : '';
+        if (path === '/app/usc-rohrbach' || path.indexOf('/app/usc-rohrbach/') === 0 || (next && (next.split('?')[0] === '/app/usc-rohrbach'))) {
+          document.querySelector('link[rel="manifest"]').setAttribute('href', '/clubs/usc-rohrbach/manifest.json');
+          document.querySelector('link[rel="apple-touch-icon"]').setAttribute('href', '/clubs/usc-rohrbach/icon-180.png');
+          document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', 'USC Rohrbach');
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#101214');
+          document.title = 'USC Rohrbach';
+        } else if (path === '/demo' || path.indexOf('/demo/') === 0) {
           document.querySelector('link[rel="manifest"]').setAttribute('href', '/manifest-demo.json');
           document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', 'Spielzeit Demo');
           document.title = 'SpielzeitApp Demo';

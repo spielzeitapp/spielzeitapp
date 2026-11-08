@@ -1,3 +1,4 @@
+import { isUscAppPath, USC_MANIFEST, USC_APP_ICON } from '../features/club/uscClub';
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
@@ -33,12 +34,14 @@ function ensureManifestLink(href: string): void {
  * - sonst → /manifest.json (nur lokale Public-Dev-Variante)
  */
 export function ManifestSync(): null {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
 
   useEffect(() => {
+    const next = pathname === '/login' ? new URLSearchParams(search).get('next') : null;
+    const usc = isUscAppPath(pathname) || Boolean(next && isUscAppPath(next.split('?')[0]));
     const demo = pathname === '/demo' || pathname.startsWith('/demo/');
     const manager = pathname.startsWith('/manager');
-    const href = demo
+    const href = usc ? USC_MANIFEST : demo
       ? '/manifest-demo.json'
       : manager
       ? '/manifest-manager.json'
@@ -49,13 +52,14 @@ export function ManifestSync(): null {
         : '/manifest.json';
     ensureManifestLink(href);
     const icon = document.querySelector('head link[rel="apple-touch-icon"]') as HTMLLinkElement | null;
-    if (icon) icon.href = manager ? '/manager-apple-touch-icon.png' : '/apple-touch-icon.png';
+    if (icon) icon.href = usc ? USC_APP_ICON : manager ? '/manager-apple-touch-icon.png' : '/apple-touch-icon.png';
     const title = document.querySelector('head meta[name="apple-mobile-web-app-title"]') as HTMLMetaElement | null;
-    if (title) title.content = demo ? 'Spielzeit Demo' : manager ? 'Spielzeit Manager' : 'SpielzeitApp';
-    if (demo) document.title = 'SpielzeitApp Demo';
+    if (title) title.content = usc ? 'USC Rohrbach' : demo ? 'Spielzeit Demo' : manager ? 'Spielzeit Manager' : 'SpielzeitApp';
+    if (usc) document.title = 'USC Rohrbach';
+    else if (demo) document.title = 'SpielzeitApp Demo';
     else if (manager) document.title = 'Spielzeit Manager';
-    else if (document.title === 'Spielzeit Manager' || document.title === 'SpielzeitApp Demo') document.title = 'SpielzeitApp';
-  }, [pathname]);
+    else if (document.title === 'Spielzeit Manager' || document.title === 'SpielzeitApp Demo' || document.title === 'USC Rohrbach') document.title = 'SpielzeitApp';
+  }, [pathname, search]);
 
   return null;
 }

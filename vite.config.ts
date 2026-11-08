@@ -38,6 +38,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      allowedHosts: ["terminal.local"], // Managed development preview only.
       host: true,
       port: 5173,
       strictPort: true, // ✅ wenn 5173 belegt -> Fehler statt Port-Wechsel
