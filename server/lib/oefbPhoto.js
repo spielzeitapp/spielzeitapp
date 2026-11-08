@@ -4,7 +4,10 @@ module.exports = async function handler(req, res) {
   let url;
   try { url = new URL(String(req.query?.url || '')); } catch { return res.status(400).end(); }
   if (url.protocol !== 'https:' || url.host !== 'vereine.oefb.at' || url.username || url.password || url.search || url.hash || !/^\/netzwerk\/imagedownload\/[a-zA-Z0-9_.%-]+\.(?:jpe?g|png|webp)$/i.test(url.pathname)) return res.status(400).end();
-  const larger = req.query?.quality === 'portrait' ? url.href.replace(/-80-80-([a-zA-Z0-9_%]+\.(?:jpe?g|png|webp))$/i, '-400-400-$1') : url.href;
+  // Club pages embed tiny JPEG thumbnails; prefer the same original crest as a larger PNG.
+  const larger = req.query?.quality === 'logo'
+    ? url.href.replace(/-60-60-([a-zA-Z0-9_%]+)\.(?:jpe?g|png|webp)$/i, '-300-300-$1.png')
+    : req.query?.quality === 'portrait' ? url.href.replace(/-80-80-([a-zA-Z0-9_%]+\.(?:jpe?g|png|webp))$/i, '-400-400-$1') : url.href;
   const sources = larger === url.href ? [url.href] : [larger, url.href];
   let status = 502;
   for (const source of sources) {

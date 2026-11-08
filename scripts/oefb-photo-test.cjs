@@ -14,5 +14,14 @@ async function request(url,quality){const res={headers:{},statusCode:0,setHeader
  assert.equal((await request(small,'portrait')).statusCode,200);assert.deepEqual(seen,[small.replace('-80-80-','-400-400-'),small]);
  seen.length=0;global.fetch=async(u)=>{seen.push(u);return new Response(Uint8Array.from([255,216,255,0]),{headers:{'Content-Type':'image/jpeg'}});};
  assert.equal((await request(small,'portrait')).statusCode,200);assert.equal(seen.length,1);assert.ok(seen[0].includes('-400-400-'));
+ const crest='https://vereine.oefb.at/netzwerk/imagedownload/club-60-60-token.jpg';
+ seen.length=0;
+ global.fetch=async u=>{seen.push(u);return new Response(Uint8Array.from([137,80,78,71,13,10,26,10]),{headers:{'Content-Type':'image/png'}});};
+ assert.equal((await request(crest,'logo')).statusCode,200);
+ assert.deepEqual(seen,[crest.replace('-60-60-token.jpg','-300-300-token.png')]);
+ seen.length=0;
+ global.fetch=async u=>{seen.push(u);return u.endsWith('.png')?new Response('missing',{status:404}):new Response(Uint8Array.from([255,216,255,0]),{headers:{'Content-Type':'image/jpeg'}});};
+ assert.equal((await request(crest,'logo')).statusCode,200);
+ assert.deepEqual(seen,[crest.replace('-60-60-token.jpg','-300-300-token.png'),crest]);
  console.log('PASS: fixed host/path, no credentials/ports/queries/SVG, no redirects, byte validation and image delivery.');
 }finally{global.fetch=original;}})().catch(e=>{console.error(e);process.exitCode=1});

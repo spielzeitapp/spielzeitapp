@@ -1,3 +1,4 @@
+import {isUscRohrbachResult} from '../../lib/resultFeedPresentation';
 import {scheduleClubName} from '../../lib/scheduleClubIdentity';
 import {ClubLogo} from '../branding/ClubLogo';
 import React from 'react';
@@ -78,7 +79,7 @@ function TeamLogoBlock({ src, label }: { src: string; label: string }) {
     <ClubLogo removeDarkBackground
       src={src}
       alt={label}
-      className="h-[4.5rem] w-[4.5rem] shrink-0 object-contain [filter:drop-shadow(0_0_14px_rgba(255,255,255,0.18))] sm:h-20 sm:w-20"
+      className={`${isUscRohrbachResult(label) ? "h-20 w-28 max-w-full sm:h-24 sm:w-32" : "h-[4.5rem] w-[4.5rem] sm:h-20 sm:w-20"} shrink-0 object-contain [filter:drop-shadow(0_0_14px_rgba(255,255,255,0.18))]`}
       onError={(e) => {
         const img = e.currentTarget as HTMLImageElement;
         if (img.src.endsWith('/logos/placeholder-shield-a.png')) return;
@@ -204,7 +205,7 @@ export function PastMatchResultCard({
         <div className="flex min-w-0 flex-1 flex-col justify-center pr-3">
           <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(74px,0.85fr)_minmax(0,1fr)] items-center gap-1">
             <div className="flex min-w-0 flex-col items-center text-center">
-              <ClubLogo removeDarkBackground src={homeLogoSrc} alt="" className="h-12 w-12 object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))]" />
+              <ClubLogo removeDarkBackground src={homeLogoSrc} alt="" className={`${isUscRohrbachResult(homeName) ? "h-14 w-full max-w-24" : "h-12 w-12"} object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))]`} />
               <span className="mt-1 w-full min-w-0 text-[12px] font-semibold leading-tight text-white/88">
                 <PosterClubName name={homeName} wrap />
               </span>
@@ -217,7 +218,7 @@ export function PastMatchResultCard({
               ) : null}
             </div>
             <div className="flex min-w-0 flex-col items-center text-center">
-              <ClubLogo removeDarkBackground src={awayLogoSrc} alt="" className="h-12 w-12 object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))]" />
+              <ClubLogo removeDarkBackground src={awayLogoSrc} alt="" className={`${isUscRohrbachResult(awayName) ? "h-14 w-full max-w-24" : "h-12 w-12"} object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))]`} />
               <span className="mt-1 w-full min-w-0 text-[12px] font-semibold leading-tight text-white/88">
                 <PosterClubName name={awayName} wrap />
               </span>
