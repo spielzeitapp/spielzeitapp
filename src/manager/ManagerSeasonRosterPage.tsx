@@ -1,3 +1,4 @@
+import {ManagerPlayerPhotoBooth} from './ManagerPlayerPhotoBooth';
 import {ManagerRosterPhotos} from './ManagerRosterPhotos';
 import {ManagerClubPhotoTemplate} from './ManagerClubPhotoTemplate';
 import { OefbPlayerPhoto } from '../components/OefbPlayerPhoto';
@@ -56,8 +57,10 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
   const [reportParams]=useSearchParams();
   const reportGameId=reportParams.get('oefbReport');
   const [globalPhoto,setGlobalPhoto]=useState(false);
+  const [boothPlayer,setBoothPlayer]=useState<string|null>(null);
   const [photoDirty,setPhotoDirty]=useState(false),[photoBusy,setPhotoBusy]=useState(false);
   const canSwitchPhoto=()=>!photoBusy&&(!photoDirty||window.confirm('Ungespeicherte Gestaltung verwerfen?'));
+  const openBooth=(id:string)=>{if(!canSwitchPhoto())return;setGlobalPhoto(false);setPhotoDirty(false);setBoothPlayer(id);};
   const [photoEditingId,setPhotoEditingId] = useState<string|null>(null);
   const [players, setPlayers] = useState<RosterPlayer[]>([]);
   const [oefbIds, setOefbIds] = useState<Record<string, string>>({});
@@ -260,6 +263,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
+      {boothPlayer&&seasonId&&canEdit&&<ManagerPlayerPhotoBooth key={seasonId} seasonId={seasonId} players={players.filter(p=>p.status!=='archived')} initialPlayerId={boothPlayer} onSaved={async()=>{await reloadRoster(seasonId);}} onClose={()=>setBoothPlayer(null)}/>}
       <header>
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
           <Link to="/manager/saisons" className="hover:text-red-700">
@@ -326,6 +330,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
         </p>
       ) : null}
 
+      {canEdit && seasonId&&players.some(p=>p.status!=='archived')?<section className="rounded-2xl border border-slate-200 bg-white p-4"><h2 className="font-bold">Spieler-Fotobox</h2><p className="my-2 text-sm text-slate-600">Porträt oder Torjubel direkt aufnehmen, prüfen und als Spielerfoto übernehmen. Mit Schablone und Vereinsvorschau.</p><button type="button" onClick={()=>{openBooth(players.find(p=>p.status!=='archived')!.id);}} className="min-h-11 rounded-xl bg-red-700 px-4 py-2 font-semibold text-white">Kamera öffnen · Spieler-Fotobox</button></section>:null}
       {canEdit && seasonId?<ManagerRosterPhotos key={`team-photo:${seasonId}`} seasonId={seasonId} onSaved={()=>setNotice('Mannschaftsfoto gespeichert.')}/>:null}
       {canEdit && players.length>0 && meta?.clubId ? <section id="roster-photo-editor" className="scroll-mt-40"><button type="button" onClick={()=>{if(!canSwitchPhoto())return;setPhotoEditingId(null);setGlobalPhoto(!globalPhoto);}} className="mb-3 min-h-11 rounded-xl border border-slate-200 bg-white px-4 font-semibold text-red-700">{globalPhoto?'Fotoeditor schließen':'Spielerfotos gestalten'}</button>{globalPhoto&&<ManagerClubPhotoTemplate key={`${seasonId}:${photoEditingId??'team'}`} clubId={meta.clubId} seasonId={seasonId!} onDirtyChange={setPhotoDirty} onBusyChange={setPhotoBusy} initialPlayerId={photoEditingId??undefined} initialScope={photoEditingId?'player':'team'} onSaved={()=>{void reloadRoster(seasonId!);}}/>}</section>:null}
       {(
@@ -365,6 +370,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center gap-3">
+                    {canEdit&&p.status!=='archived'?<button type="button" onClick={()=>{openBooth(p.id);}} className="min-h-11 text-[12px] font-semibold text-red-700">Foto aufnehmen</button>:null}
                     {canEdit ? <button type="button" onClick={() => {if(!canSwitchPhoto())return;setPhotoEditingId(p.id);setGlobalPhoto(true);requestAnimationFrame(()=>document.getElementById('roster-photo-editor')?.scrollIntoView({behavior:'smooth',block:'start'}));}} className="text-[12px] font-semibold text-red-700">Foto gestalten</button> : null}
                     {canEdit ? <button type="button" onClick={() => editPlayer(p)} className="text-[12px] font-semibold text-red-700">Bearbeiten</button> : null}
                     <Link to={`/app/team?teamSeason=${encodeURIComponent(seasonId??'')}&player=${encodeURIComponent(p.id)}`} className="text-[12px] font-semibold text-red-700">Profil</Link>
