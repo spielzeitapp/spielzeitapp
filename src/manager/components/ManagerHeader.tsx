@@ -1,3 +1,5 @@
+import { ManagerAppearanceToggle, useManagerAppearance } from '../appearance/ManagerAppearance';
+import { ClubLogo } from '../../components/branding/ClubLogo';
 import { TeamSwitcher } from '../../app/components/TeamSwitcher';
 import { ManagerPlatformContextSelect } from './ManagerPlatformContextSelect';
 import { ManagerContextPicker } from './ManagerContextPicker';
@@ -45,6 +47,7 @@ function labelForTeamSeason(ts: SessionTeamSeasonItem): string {
  */
 export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
   const navigate = useNavigate();
+  const { branding } = useManagerAppearance();
   const headerRef = useRef<HTMLElement>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
 
@@ -178,14 +181,15 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
         <ManagerMenuButton onClick={onOpenSidebar} />
 
         <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-2.5">
-          <img src="/manager-icon-192.png" alt="" className="h-9 w-9 shrink-0 rounded-xl md:hidden" />
+          {branding?.logo_url ? <ClubLogo src={branding.logo_url} alt="Vereinslogo" className="manager-identity-logo" /> : <img src="/manager-icon-192.png" alt="" className="h-9 w-9 shrink-0 rounded-xl md:hidden" />}
           <div className="min-w-0">
-            <p className="truncate text-[14px] font-black tracking-tight text-white md:hidden">Spielzeit <span className="text-red-400">Manager</span></p>
-            <p className="hidden truncate text-[18px] font-bold tracking-tight text-white md:block md:text-[20px]">Manager</p>
+            <p className="truncate text-[14px] font-black tracking-tight text-white md:hidden">Vereinszentrale</p>
+            <p className="hidden truncate text-[18px] font-bold tracking-tight text-white md:block md:text-[20px]">Vereinszentrale</p>
           </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5 md:gap-3">
+          <ManagerAppearanceToggle />
           <div className="flex items-start gap-1.5 md:hidden">
             <TeamSwitcher iconOnly openInApp />
             <Link

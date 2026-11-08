@@ -87,7 +87,7 @@ function Card({
   return (
     <section className="flex flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-5">
       <div className="mb-3 flex items-center gap-2">
-        {icon ? <span className="text-red-700/80">{icon}</span> : null}
+        {icon ? <span className="manager-brand-icon text-red-700/80">{icon}</span> : null}
         <h2 className="text-[13px] font-semibold tracking-tight text-slate-800">{title}</h2>
       </div>
       <div className="min-h-0 flex-1 text-[14px] text-slate-700">{children}</div>
@@ -551,7 +551,8 @@ export function ManagerDashboardPage(): React.ReactElement {
     </div>
 
     <div className="hidden space-y-6 md:block">
-      <header className="space-y-1">
+      <header className="manager-dashboard-hero space-y-1">
+        <p className="manager-dashboard-hero__eyebrow">Dein Verein. Eine Zentrale.</p>
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-[1.75rem]">
           {greetingPrefix()}
           {firstName ? `, ${firstName}` : ''}
@@ -559,6 +560,7 @@ export function ManagerDashboardPage(): React.ReactElement {
         <p className="text-[14px] text-slate-500">
           Hier ist der aktuelle Überblick für {ageLabel.startsWith('U') ? `deine ${ageLabel}` : ageLabel}.
         </p>
+        <div className="manager-dashboard-hero__line" aria-hidden />
       </header>
 
       {!hasActive ? (

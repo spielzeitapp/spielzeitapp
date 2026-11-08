@@ -15,6 +15,8 @@ import './managerShell.css';
 import './managerDesktopWorkspace.css';
 import './managerSeasonWorkspace.css';
 import './managerMobile.css';
+import { ManagerAppearance } from './appearance/ManagerAppearance';
+import './appearance/managerAppearance.css';
 
 /**
  * Shell für alle /manager-Seiten: volle Fensterbreite, dunkle Navigation, helle Arbeitsfläche.
@@ -40,7 +42,7 @@ export function ManagerLayout(): React.ReactElement {
     <ManagerAccessGate>
       <ManagerWorkModeProvider>
         <CommunicationAccessProvider><ManagerClubModulesProvider>
-        <div className="manager-shell flex min-h-[100dvh] w-full min-w-0 flex-1 bg-[#F4F5F7] text-slate-900 max-md:h-[100dvh] max-md:overflow-hidden">
+        <ManagerAppearance>
           <ManagerSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
           <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-[#F4F5F7]">
             <ManagerHeader onOpenSidebar={() => setSidebarOpen(true)} />
@@ -74,7 +76,7 @@ export function ManagerLayout(): React.ReactElement {
             </main>
             <ManagerMobileNav />
           </div>
-        </div>
+        </ManagerAppearance>
         </ManagerClubModulesProvider></CommunicationAccessProvider>
       </ManagerWorkModeProvider>
     </ManagerAccessGate>
