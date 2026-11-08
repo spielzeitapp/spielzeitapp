@@ -41,6 +41,7 @@ export function PortraitCutoutRetouch({source,originalSource,rotation=0,onApply,
   finally{clearTimeout(timeout);if(live)setLoading(false);}})();
   return()=>{live=false;alive.current=false;clearTimeout(timeout);controller.abort();base.current=null;original.current=null;previous?.focus?.();};
  },[source,originalSource,rotation]);
+ const selectedToolStyle={borderColor:'rgb(var(--club-accent-rgb,37 99 235))',backgroundColor:'rgb(var(--club-accent-rgb,37 99 235) / .15)',color:'inherit'};
  const point=(e:React.PointerEvent<HTMLCanvasElement>)=>portraitPoint(e.clientX,e.clientY,e.currentTarget.getBoundingClientRect());
  const start=(e:React.PointerEvent<HTMLCanvasElement>)=>{
   if(loading||exporting||error||e.button!==0||e.isPrimary===false)return;const p=point(e),ctx=e.currentTarget.getContext('2d');if(!p||!ctx)return;
@@ -67,8 +68,8 @@ export function PortraitCutoutRetouch({source,originalSource,rotation=0,onApply,
   <h3 className="font-bold">Freisteller-Kanten nachbessern</h3>
   <p className="text-sm">Fehlt ein Ärmel oder ein Stück Trikot? „Aus Original wiederherstellen“ wählen und nur über die fehlende Stelle malen. „Radierer“ entfernt Hintergrundreste. Mit kleinen Pinselstrichen arbeiten, damit kein Fotohintergrund zurückkommt.</p>
   <div className="flex flex-wrap gap-2" role="group" aria-label="Korrekturwerkzeug">
-   <button type="button" aria-pressed={mode==='erase'} disabled={loading||exporting} onClick={()=>setMode('erase')} className={`min-h-11 rounded-lg border px-3 py-2 ${mode==='erase'?'border-blue-700 bg-blue-50 font-bold':''}`}>Radierer</button>
-   <button type="button" aria-pressed={mode==='restore'} disabled={loading||exporting||!canRestore} onClick={()=>setMode('restore')} className={`min-h-11 rounded-lg border px-3 py-2 disabled:opacity-40 ${mode==='restore'?'border-blue-700 bg-blue-50 font-bold':''}`}>Aus Original wiederherstellen</button>
+   <button type="button" aria-pressed={mode==='erase'} disabled={loading||exporting} onClick={()=>setMode('erase')} style={mode==='erase'?selectedToolStyle:undefined} className={`min-h-11 rounded-lg border px-3 py-2 ${mode==='erase'?'font-bold':''}`}>Radierer</button>
+   <button type="button" aria-pressed={mode==='restore'} disabled={loading||exporting||!canRestore} onClick={()=>setMode('restore')} style={mode==='restore'?selectedToolStyle:undefined} className={`min-h-11 rounded-lg border px-3 py-2 disabled:opacity-40 ${mode==='restore'?'font-bold':''}`}>Aus Original wiederherstellen</button>
   </div>
   {!originalSource&&<p className="text-xs text-slate-600">Zum Wiederherstellen wird das Originalfoto des Spielers benötigt.</p>}
   {restoreError&&<p role="status" className="text-sm text-amber-800">{restoreError} Der Radierer bleibt verfügbar.</p>}
