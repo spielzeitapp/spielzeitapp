@@ -19,7 +19,7 @@ export const FeedPostArticleShell = React.forwardRef<HTMLElement, Props>(functio
       ref={ref}
       as="article"
       showAmbientGlow={showAmbientGlow}
-      className={cn('sz-club-feed-shell w-full min-w-0 shadow-xl', className)}
+      className={cn('sz-club-feed-shell w-full min-w-0 max-w-full box-border shadow-xl', className)}
       {...rest}
     >
       {children}

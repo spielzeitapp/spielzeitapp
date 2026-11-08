@@ -457,13 +457,16 @@
     inset 0 0 0 1px rgb(var(--club-border-rgb) / 0.045) !important;
 }
 
-/* Social-Feed auf Handys: Beitrag wirklich randlos wie Instagram/Facebook. */
+/* Feed cards stay within the actual app column, including inset mobile layouts. */
 @media (max-width: 639px) {
   .app-home .home-feed-edge > .sz-club-feed-shell,
   .app-home .home-feed-edge > .sz-feed-club-scope > .sz-club-feed-shell {
-    border-left-width: 0 !important;
-    border-right-width: 0 !important;
-    border-radius: 0 !important;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    border-left-width: 1px !important;
+    border-right-width: 1px !important;
+    border-radius: 16px !important;
     box-shadow: none !important;
   }
 }
