@@ -15,6 +15,13 @@ const allowed = raw
   .map((s) => s.trim())
   .filter(Boolean);
 
+// Isolated design comparison: only the existing staging project may build it.
+// The develop/main rules and their deployments remain unchanged.
+if (ref === 'preview/vereinszentrale-modern' && allowed.includes('develop') && !allowed.includes('main')) {
+  console.log('[vercel-ignore-build] staging-only design comparison preview');
+  process.exit(1);
+}
+
 if (allowed.includes(ref)) {
   console.log(`[vercel-ignore-build] build allowed for branch "${ref}" (allow=${allowed.join(',')})`);
   process.exit(1);
