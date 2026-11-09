@@ -33,11 +33,11 @@ begin
  select count(*),count(*) filter(where e.status not in ('finished','canceled') or coalesce(m.live_is_running,false) or m.status='live'),max(e.starts_at) filter(where e.status<>'canceled') into total_games,open_games,last_game
  from public.events e left join public.matches m on m.id=e.match_id where e.team_season_id=p_source and (e.kind in ('match','tournament') or e.type in ('game','match','tournament')) and coalesce(e.match_type,'league') not in ('friendly','test','testspiel');
  select count(*) into running from public.matches where team_season_id=p_source and (status='live' or coalesce(live_is_running,false));
- select coalesce(jsonb_agg(jsonb_build_object('id',p.id,'name',concat_ws(' ',p.first_name,p.last_name),'number',coalesce(r.jersey_number,p.jersey_number,p.number)) order by p.last_name,p.first_name),'[]') into roster
+ select coalesce(jsonb_agg(jsonb_build_object('id',p.id,'name',concat_ws(' ',p.first_name,p.last_name),'number',coalesce(r.jersey_number,p.jersey_number,p.number),'roster_status',coalesce(r.status::text,p.status::text,'active')) order by p.last_name,p.first_name),'[]') into roster
  from public.players p left join public.team_season_players r on r.player_id=p.id and r.team_season_id=p_source
  where p.id in (
-  select rr.player_id from public.team_season_players rr where rr.team_season_id=p_source and rr.status<>'archived' and rr.is_active
-  union select pp.id from public.players pp where pp.team_season_id=p_source and coalesce(pp.is_active,true) and coalesce(pp.status,'active')<>'archived' and not exists(select 1 from public.team_season_players rr where rr.team_season_id=p_source and rr.player_id=pp.id)
+  select rr.player_id from public.team_season_players rr where rr.team_season_id=p_source and rr.status<>'archived' and rr.left_at is null
+  union select pp.id from public.players pp where pp.team_season_id=p_source and coalesce(pp.status,'active')<>'archived' and not exists(select 1 from public.team_season_players rr where rr.team_season_id=p_source and rr.player_id=pp.id)
  );
  select ts.id,ts.status,ss.name season_name,ts.age_group into target from public.team_seasons ts join public.seasons ss on ss.id=ts.season_id
  where ts.prepared_from_team_season_id=p_source order by (ts.status='draft') desc,ts.created_at desc limit 1;
@@ -143,7 +143,7 @@ begin
  if p_players is not null and exists(select 1 from unnest(p_players) x where not(x=any(eligible))) then raise exception 'Kaderauswahl ist nicht mehr aktuell'; end if;
  eligible:=coalesce(p_players,eligible);
  insert into public.team_season_players(player_id,team_season_id,jersey_number,position,status,is_active,is_laz_player,photo_layout)
- select p.id,p_target,coalesce(r.jersey_number,p.jersey_number,p.number),coalesce(r.position,p.position),'active',true,coalesce(r.is_laz_player,p.is_laz_player,false),r.photo_layout
+ select p.id,p_target,coalesce(r.jersey_number,p.jersey_number,p.number),coalesce(r.position,p.position),case when coalesce(r.status::text,p.status::text)='paused' or coalesce(r.is_active,p.is_active,true)=false then 'paused' else 'active' end,case when coalesce(r.status::text,p.status::text)='paused' then false else coalesce(r.is_active,p.is_active,true) end,coalesce(r.is_laz_player,p.is_laz_player,false),r.photo_layout
  from public.players p left join public.team_season_players r on r.player_id=p.id and r.team_season_id=p_source where p.id=any(eligible)
  on conflict(player_id,team_season_id) do nothing;
  insert into public.memberships(user_id,team_season_id,role,photo_layout)

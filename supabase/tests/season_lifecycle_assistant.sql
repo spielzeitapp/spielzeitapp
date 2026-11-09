@@ -64,6 +64,7 @@ do $$declare a uuid:=(select id from lifecycle_test_context where key='source');
 end $$;
 reset role;
 update public.matches set status='finished',live_is_running=false where id=(select id from lifecycle_test_context where key='match');
+update public.team_season_players set status='paused',is_active=false where player_id=(select id from lifecycle_test_context where key='player');
 set local role authenticated;
 select set_config('request.jwt.claim.sub',(select id::text from lifecycle_test_context where key='trainer'),true);
 do $$declare a uuid:=(select id from lifecycle_test_context where key='source');x jsonb;target uuid;begin
@@ -80,6 +81,7 @@ do $$declare a uuid:=(select id from lifecycle_test_context where key='source');
  x:=season_lifecycle.snapshot(a);target:=(x->>'target_id')::uuid;
  if (select count(*) from public.team_season_players where team_season_id=target)<>1 or (select count(*) from public.team_season_players where team_season_id=a)<>1 then raise exception 'Roster duplicate or source lost';end if;
  if (select count(*) from public.matches where team_season_id=a)<>1 or exists(select 1 from public.matches where team_season_id=target) then raise exception 'Historical statistics moved';end if;
+ if not exists(select 1 from public.team_season_players where team_season_id=target and status='paused' and not is_active) then raise exception 'Paused player was dropped or activated';end if;
  if not exists(select 1 from public.team_photos where team_season_id=target) then raise exception 'Photo missing';end if;
  if has_schema_privilege('authenticated','season_lifecycle','USAGE') or has_function_privilege('authenticated','season_lifecycle.tick()','EXECUTE') then raise exception 'Private worker exposed';end if;
 end $$;

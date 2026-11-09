@@ -3,7 +3,7 @@ export type LifecycleSnapshot = {
  source_id:string;team_id:string;club_name:string;team_name:string;season_name:string;status:string;age_group:string|null;
  next_season_name:string|null;next_age_group:string|null;target_id:string|null;target_status:string|null;target_season_name:string|null;target_age_group:string|null;
  known_games:number;open_games:number;running_games:number;last_game_at:string|null;possible_end:boolean;fingerprint:string;snoozed_until:string|null;
- roster:Array<{id:string;name:string;number:number|null}>;
+ roster:Array<{id:string;name:string;number:number|null;roster_status?:string}>;
 };
 export function parseOefbSeasonTarget(url:string): {name:string;age:string}|null {
  try {const u=new URL(url);if(u.protocol!=='https:'||u.hostname!=='vereine.oefb.at')return null;
