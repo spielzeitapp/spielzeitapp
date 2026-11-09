@@ -614,3 +614,8 @@
 .usc-news-empty { margin: 0 16px 24px; padding: 24px 18px; border: 1px solid #ffffff20; border-radius: 16px; text-align: center; }
 .usc-news-empty h2 { font-size: 18px; font-weight: 800; }
 .usc-news-empty p { margin-top: 10px; font-size: 13px; line-height: 1.6; color: #bfc6d0; }
+
+.usc-nav-icon { width: 26px; height: 26px; object-fit: contain; opacity: .75; }
+.usc-nav-icon-ball { width: 28px; height: 28px; }
+.usc-bottom-nav button[aria-current="page"] .usc-nav-icon { opacity: 1; filter: drop-shadow(0 0 8px #ffffff35); }
+.usc-team-chips { touch-action: pan-x pan-y; }

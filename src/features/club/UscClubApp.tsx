@@ -1,3 +1,5 @@
+import { UscTeamPicker } from "./UscTeamPicker";
+import { useMatchClubBranding } from "../../hooks/useMatchClubBranding";
 import { UscClubNewsHome } from "./UscClubNewsHome";
 import { MatchCardGameCore } from "../../components/match/MatchCardGameCore";
 import { TeamHeroFrame } from "../../components/team/TeamHeroFrame";
@@ -17,12 +19,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowUpRight,
-  CalendarDays,
   ChevronRight,
-  Home,
   Menu,
-  Shield,
-  Users,
   X,
 } from "lucide-react";
 import { useAuth } from "../../auth/AuthProvider";
@@ -47,6 +45,8 @@ import { formatFeedVenueShort } from "../../lib/eventLocation";
 import { getMatchTypeLabel } from "../../components/match/matchCardLabels";
 import {
   USC_APP_PATH,
+  USC_CLUB_ID,
+  clubSeasonTeamName,
   USC_LOGO,
   USC_APP_ICON,
   clubTab,
@@ -59,10 +59,10 @@ import "./uscClubApp.css";
 const NO_OWN_PLAYERS = new Set<string>();
 
 const tabs = [
-  { id: "home", label: "Home", icon: Home },
-  { id: "spiele", label: "Spiele", icon: CalendarDays },
-  { id: "teams", label: "Teams", icon: Users },
-  { id: "verein", label: "Verein", icon: Shield },
+  { id: "home", label: "Home", iconFile: "home-ball.png" },
+  { id: "spiele", label: "Spiele", iconFile: "pitch.svg" },
+  { id: "teams", label: "Teams", iconFile: "team.svg" },
+  { id: "verein", label: "Verein", iconFile: "more.svg" },
 ] as const;
 const date = (iso: string) =>
   new Intl.DateTimeFormat("de-AT", {
@@ -91,17 +91,21 @@ function ClubMatch({
   score,
   onOpen,
   hero = false,
+  teamName = "USC Rohrbach",
+  teamLogo = USC_LOGO,
 }: {
   event: EventRow;
   score?: Score;
   onOpen?: () => void;
   hero?: boolean;
+  teamName?: string;
+  teamLogo?: string;
 }) {
   const finished =
     score?.status === "finished" &&
     score.score_home != null &&
     score.score_away != null;
-  const own = { name: "USC Rohrbach", logo: USC_LOGO };
+  const own = { name: teamName, logo: teamLogo };
   const opponent = {
     name: (event.opponent || "Gegner noch offen").replace(/\s*-\s*/g, "-"),
     logo: getClubLogo(event.opponent || "", {
@@ -151,6 +155,10 @@ function ClubSeasonContent({
   setTab: (tab: ClubTab) => void;
 }) {
   const navigate = useNavigate();
+  const { brand, style: teamStyle } = useMatchClubBranding(season.id);
+  const teamName = clubSeasonTeamName(season);
+  const teamLogo = brand?.logo_url || (season.team.club_id === USC_CLUB_ID ? USC_LOGO : getClubLogo(teamName));
+
   const [routeParams, setRouteParams] = useSearchParams();
   const eventQuery = routeParams.get("event");
   const openDetail = (event: EventRow) =>
@@ -333,7 +341,7 @@ function ClubSeasonContent({
     .sort((a, b) => (a.jersey_number ?? 9999) - (b.jersey_number ?? 9999) || a.display_name.localeCompare(b.display_name, "de")), [roster.players]);
   const players = activePlayers;
   return (
-    <div className="usc-season-content" onClickCapture={keepClubNavigation}>
+    <div className="usc-season-content" style={teamStyle} onClickCapture={keepClubNavigation}>
       {tab === "spiele" ? (
         <>
           <div className="usc-page-title">
@@ -367,8 +375,8 @@ function ClubSeasonContent({
               {visibleMatches.map((event) => {
                 const score = scores.get(event.match_id || "");
                 return score?.status === "finished" && score.score_home != null && score.score_away != null ? (
-                  <PastMatchResultCard key={event.id} ev={event} ageGroup={season.age_group} ourTeamName="USC Rohrbach" opponentLogoUrl={event.opponent_logo_url} scoreHome={score.score_home} scoreAway={score.score_away} forcePublicView={false} compact onNavigate={() => openDetail(event)} />
-                ) : <ClubMatch key={event.id} event={event} score={score} onOpen={() => openDetail(event)} />;
+                  <PastMatchResultCard key={event.id} ev={event} ageGroup={season.age_group} ourTeamName={teamName} opponentLogoUrl={event.opponent_logo_url} scoreHome={score.score_home} scoreAway={score.score_away} forcePublicView={false} compact onNavigate={() => openDetail(event)} />
+                ) : <ClubMatch key={event.id} event={event} score={score} teamName={teamName} teamLogo={teamLogo} onOpen={() => openDetail(event)} />;
               })}
               {!visibleMatches.length ? (
                 <p className="usc-note">Keine Spiele in dieser Auswahl.</p>
@@ -418,9 +426,9 @@ function ClubSeasonContent({
         <>
           <TeamHeroFrame className="usc-team-hero" photoSrc={photo?.photo_url} photoStyle={photo ? teamPhotoImageStyle(photo) : undefined}>
             <div className="flex items-end gap-3">
-              <ClubLogo src={USC_LOGO} removeDarkBackground alt="USC Rohrbach" className="h-14 w-24 shrink-0 object-contain" />
+              <ClubLogo src={teamLogo} removeDarkBackground alt={teamName} className="h-14 w-24 shrink-0 object-contain" />
               <div className="min-w-0 pb-1">
-                <h1 className="text-2xl font-black uppercase leading-tight tracking-tight">USC Rohrbach</h1>
+                <h1 className="text-2xl font-black uppercase leading-tight tracking-tight">{teamName}</h1>
                 <p className="mt-2 text-xs font-bold uppercase tracking-wider text-white/75">{season.age_group} · Saison {season.season?.name}</p>
               </div>
             </div>
@@ -453,9 +461,9 @@ function ClubSeasonContent({
                 </p>
               ) : (
                 <TeamSquadShowcase
-                  teamName="USC Rohrbach"
+                  teamName={teamName}
                   teamSeasonLabel={`${season.age_group} · ${season.season?.name}`}
-                  teamLogoUrl={USC_LOGO}
+                  teamLogoUrl={teamLogo}
                   players={players}
                   ownPlayerIds={NO_OWN_PLAYERS}
                   onPlayerClick={setPlayer}
@@ -491,8 +499,8 @@ function ClubSeasonContent({
           role="fan"
           teamSeasonId={season.id}
           teamSeasonLabel={`${season.age_group} · ${season.season?.name}`}
-          teamName="USC Rohrbach"
-          teamLogoUrl={USC_LOGO}
+          teamName={teamName}
+          teamLogoUrl={teamLogo}
           photoUrl={player.avatar_url}
           canManage={false}
           onClose={() => setPlayer(null)}
@@ -505,7 +513,7 @@ function ClubSeasonContent({
       <dialog className="usc-dialog" ref={trainerDialog} onCancel={() => setTrainer(null)} onClose={() => setTrainer(null)} aria-label="Trainerprofil">
         <button className="usc-dialog-close" aria-label="Trainerprofil schließen" onClick={() => setTrainer(null)}><X /></button>
         {trainer ? <>
-          <ProfileHeroCard variant="trainer" watermark="" firstNameLine={trainer.first_name || ""} lastNameLine={trainer.last_name || ""} teamSeasonLabel={`${season.age_group} · ${season.season?.name}`} teamName="USC Rohrbach" teamLogoUrl={USC_LOGO} roleLabel={staffRoleLabelDe(trainer.role)} photoUrl={trainer.avatar_url} cutoutUrl={trainer.cutout_url} initials={staffDisplayName(trainer).slice(0, 2)} photoLayout={trainer.photo_layout} />
+          <ProfileHeroCard variant="trainer" watermark="" firstNameLine={trainer.first_name || ""} lastNameLine={trainer.last_name || ""} teamSeasonLabel={`${season.age_group} · ${season.season?.name}`} teamName={teamName} teamLogoUrl={teamLogo} roleLabel={staffRoleLabelDe(trainer.role)} photoUrl={trainer.avatar_url} cutoutUrl={trainer.cutout_url} initials={staffDisplayName(trainer).slice(0, 2)} photoLayout={trainer.photo_layout} />
           <h2>{staffDisplayName(trainer)}</h2><p>{staffRoleLabelDe(trainer.role)}</p>
         </> : null}
       </dialog>
@@ -531,6 +539,8 @@ function ClubSeasonContent({
             </span>
             <ClubMatch
               event={detail}
+              teamName={teamName}
+              teamLogo={teamLogo}
               score={scores.get(detail.match_id || "")}
             />
             <h2>Spielinformationen</h2>
@@ -696,14 +706,10 @@ export function UscClubApp() {
           </section>
         ) : (
           <>
-            {tab !== "verein" && tab !== "home" ? <div className="usc-team-picker" role="group" aria-label="Mannschaft wählen">
-              <div className="usc-team-picker-heading"><span>Mannschaften</span><span>{season.season?.name}</span></div>
-              <div className="usc-team-chips">
-                {club.seasons.map((s) => <button key={s.id} type="button" aria-label={`${s.age_group === "KM" ? "Kampfmannschaft" : s.age_group === "RES" ? "Reserve" : s.age_group} · ${s.season?.name}`} aria-pressed={season.id === s.id} onClick={() => setParams((previous) => {
-                  const next = new URLSearchParams(previous); next.set("teamSeason", s.id); next.delete("event"); return next;
-                })}>{s.age_group === "KM" ? "Kampfmannschaft" : s.age_group === "RES" ? "Reserve" : s.age_group}{s.season?.name !== season.season?.name ? ` · ${s.season?.name}` : ""}</button>)}
-              </div>
-            </div> : null}
+            {tab !== "verein" && tab !== "home" ? <UscTeamPicker seasons={club.seasons} selectedId={season.id} onSelect={(id) => {
+              if (!club.seasons.some((item) => item.id === id)) return;
+              setParams((previous) => { const next = new URLSearchParams(previous); next.set("teamSeason", id); next.delete("event"); return next; });
+            }} /> : null}
             {tab === "home" ? <UscClubNewsHome key={`${user.id}:${club.seasons.map((item) => item.id).join(",")}`} seasons={club.seasons} /> : null}
             {tab !== "verein" && tab !== "home" ? (
               <ClubSeasonContent
@@ -795,7 +801,7 @@ export function UscClubApp() {
         </footer>
       </main>
       <nav className="usc-bottom-nav" aria-label="Vereinsnavigation">
-        {tabs.map(({ id, label, icon: Icon }) => (
+        {tabs.map(({ id, label, iconFile }) => (
           <button
             key={id}
             type="button"
@@ -807,7 +813,7 @@ export function UscClubApp() {
                 : undefined
             }
           >
-            <Icon size={22} />
+            <img src={`${import.meta.env.BASE_URL || "/"}icons/${iconFile}`} alt="" className={`usc-nav-icon ${id === "home" ? "usc-nav-icon-ball" : ""}`} decoding="async" draggable={false} />
             <span>{label}</span>
           </button>
         ))}

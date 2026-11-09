@@ -4,7 +4,7 @@ import { HomeFeedPostRenderer } from "../../components/feed/HomeFeedPostRenderer
 import { useEvents, type EventRow } from "../../hooks/useEvents";
 import { useTeamFeedPosts } from "../../hooks/useTeamFeedPosts";
 import { sortFeedPostsChronologically } from "../../lib/feedPostPriority";
-import { sortClubSeasons, type ClubSeason } from "./uscClub";
+import { sortClubSeasons, clubSeasonTeamName, type ClubSeason } from "./uscClub";
 import { formatDateTimeMediumDeVienna } from "../../lib/notifications/format";
 import { uscEventLink } from "./uscEventLink";
 
@@ -49,7 +49,7 @@ export function UscClubNewsHome({ seasons }: { seasons: ClubSeason[] }) {
     {events.error ? <div className="usc-note" role="alert">Verknüpfte Termine konnten nicht geladen werden.<button onClick={() => void events.refetch()}>Termine erneut laden</button></div> : null}
     <div className="usc-club-feed">{posts.map((item) => {
       const season = bySeason.get(item.post.team_season_id)!;
-      return <HomeFeedPostRenderer key={item.post.id} item={item} eventById={eventById} finishedEventIds={finished} teamLabel="USC Rohrbach" seasonLabel={`${season.age_group} · ${season.season?.name ?? ""}`} staffCanDelete={false} onFeedPostUpdated={() => void feed.refetch()} />;
+      return <HomeFeedPostRenderer key={item.post.id} item={item} eventById={eventById} finishedEventIds={finished} teamLabel={clubSeasonTeamName(season)} seasonLabel={`${season.age_group} · ${season.season?.name ?? ""}`} staffCanDelete={false} onFeedPostUpdated={() => void feed.refetch()} />;
     })}</div>
     {!feed.loading && !feed.error && !posts.length ? <div className="usc-news-empty"><h2>Noch keine Beiträge</h2><p>Hier erscheinen Spieltag, Kader, Ergebnisse und veröffentlichte Beiträge aus unserem Vereinsleben.</p></div> : null}
     <dialog className="usc-dialog" ref={detailDialog} aria-label="Termindetails" onCancel={() => setDetail(null)} onClose={() => setDetail(null)}>
