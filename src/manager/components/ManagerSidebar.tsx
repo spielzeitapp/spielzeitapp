@@ -1,3 +1,5 @@
+import { useSession } from '../../auth/useSession';
+import { isSeasonArchived } from '../../lib/seasonLifecycle';
 import { useManagerAppearance } from '../appearance/ManagerAppearance';
 import { ClubLogo } from '../../components/branding/ClubLogo';
 import { isStagingApp } from '../../lib/appEnvironment';
@@ -7,6 +9,7 @@ import {
   BookOpen,
   Building2,
   CalendarDays,
+  Camera,
   Dumbbell,
   History,
   Home,
@@ -77,6 +80,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   seasons: CalendarDays,
   video: Video,
   'media-studio': Newspaper,
+  fotobox: Camera,
   'social-media': Share2,
   'speaker-studio': Mic,
   'music-studio': Music2,
@@ -134,9 +138,16 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
   }, [onClose]);
   const location = useLocation();
   const { branding, clubName } = useManagerAppearance();
-  const { workMode, supportSession, availableModes } = useManagerWorkMode();
+  const { workMode, supportSession, availableModes, contextTeamSeasons } = useManagerWorkMode();
   const { isModuleEnabled } = useManagerClubModules();
   const {access:communicationAccess}=useCommunicationAccess();
+  const { viewTeamSeason, selectedTeamSeason } = useSession();
+  const currentSeason = viewTeamSeason ?? selectedTeamSeason;
+  const photoSeason = currentSeason && !isSeasonArchived(currentSeason.status)
+    && contextTeamSeasons.some((season) => season.id === currentSeason.id) ? currentSeason : null;
+  const fotoboxTo = photoSeason
+    ? `/manager/saisons/${encodeURIComponent(photoSeason.id)}/kader?fotobox=1`
+    : '/manager/saisons';
   const platformGlobal = workMode === 'platform_admin' && !supportSession;
 
   useEffect(() => {
@@ -210,13 +221,17 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
               <ul className="space-y-0.5">
                 {items.map((item) => {
                   if (item.status === 'ready' && item.to) {
-                    const isActive = navItemActive(location.pathname, location.search, item.to);
+                    const to = item.id === 'fotobox' ? fotoboxTo : item.to;
+                    const isPhotoView = new URLSearchParams(location.search).get('fotobox') === '1';
+                    const isActive = item.id === 'fotobox'
+                      ? Boolean(photoSeason) && navItemActive(location.pathname, location.search, to)
+                      : !isPhotoView && navItemActive(location.pathname, location.search, to);
                     const ItemIcon = NAV_ICONS[item.id] ?? LayoutDashboard;
                     const appIconSrc = managerAppIconSrc(item.id);
                     return (
                       <li key={item.id}>
                         <Link
-                          to={item.to}
+                          to={to}
                           onClick={closeOnNav}
                           aria-current={isActive ? 'page' : undefined}
                           className={[

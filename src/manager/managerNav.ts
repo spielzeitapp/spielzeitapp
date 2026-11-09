@@ -95,6 +95,7 @@ export const MANAGER_NAV_SECTIONS: readonly ManagerNavSection[] = [
     id: 'content',
     label: 'Content',
     items: [
+      { id: 'fotobox', label: 'Fotobox', to: '/manager/saisons', status: 'ready', platformAdminOnly: true },
       { id: 'social', label: 'Feed & Beiträge', to: '/manager/home', status: 'ready' },
       { id: 'media-studio', label: 'Vereinsmedien', to: '/manager/vereinsmedien', status: 'ready' },
       { id: 'social-media', label: 'Social Media', to: '/manager/social-media', status: 'ready' },
