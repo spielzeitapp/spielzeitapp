@@ -178,17 +178,18 @@ export function ManagerComparisonHeader({ onOpenSidebar }: Props): React.ReactEl
     <header ref={headerRef} className="manager-header fixed inset-x-0 top-0 z-30 shrink-0 border-b border-white/10 bg-[#060608] text-white shadow-[0_10px_32px_-8px_rgba(0,0,0,0.65)] pt-[env(safe-area-inset-top)] md:sticky md:inset-x-auto md:bg-[#090909]/[0.98] md:shadow-none md:backdrop-blur-md">
       <TestEnvironmentNotice />
       <div className="manager-compare-notice">
-        <span><strong>Designvorschau</strong><span className="manager-compare-data"> · gemeinsame TEST-Daten</span></span>
+        <span><strong>Designvergleich</strong><span className="manager-compare-data"> · gemeinsame TEST-Daten</span></span>
         <a href={`${window.location.origin}${location.pathname}${location.search}${location.hash}`} target="_blank" rel="noopener noreferrer">Bisherige Ansicht ↗</a>
       </div>
-      <div className="relative flex min-h-[60px] items-center gap-2 px-3 py-2 manager-mobile-header md:min-h-[72px] md:gap-3 md:py-2.5 md:px-5 lg:px-8 xl:px-10 2xl:px-12">
+      <div className="central-header-bar relative flex min-h-[60px] items-center gap-2 px-3 py-2 manager-mobile-header md:min-h-[72px] md:gap-3 md:py-2.5 md:px-5 lg:px-8 xl:px-10 2xl:px-12">
         <ManagerMenuButton onClick={onOpenSidebar} />
 
         <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-2.5">
           {branding?.logo_url ? <ClubLogo src={branding.logo_url} alt="Vereinslogo" className="manager-identity-logo" /> : <img src="/manager-icon-192.png" alt="" className="h-9 w-9 shrink-0 rounded-xl md:hidden" />}
-          <div className="min-w-0">
-            <p className="truncate text-[14px] font-black tracking-tight text-white md:hidden">Vereinszentrale</p>
-            <p className="hidden truncate text-[18px] font-bold tracking-tight text-white md:block md:text-[20px]">Vereinszentrale</p>
+          <div className="central-header-identity min-w-0">
+            <span className="central-workspace-label">Workspace <span aria-hidden>›</span></span>
+            <p className="truncate text-[14px] font-black tracking-tight text-white md:hidden">Zentrale</p>
+            <p className="hidden truncate text-[18px] font-bold tracking-tight text-white md:block md:text-[20px]">Zentrale</p>
           </div>
         </div>
 
@@ -295,7 +296,7 @@ export function ManagerComparisonHeader({ onOpenSidebar }: Props): React.ReactEl
         </div>
       ) : null}
 
-      <div className="border-t border-white/[0.06] px-3 pb-2 pt-1.5 md:hidden">
+      <div className="central-header-context border-t border-white/[0.06] px-3 pb-2 pt-1.5 md:hidden">
         {workMode === 'platform_admin' && !supportSession ? <ManagerComparisonPlatformContextSelect mobile /> : <ManagerContextPicker seasons={headerTeamSeasons} value={selectValue} label={contextLine} onSelect={onContextChange} modes={supportSession ? [] : availableModes} mode={workMode} onModeChange={setWorkMode} />}
       </div>
     </header>
