@@ -1,3 +1,5 @@
+import { isManagerComparison } from '../lib/managerComparison';
+import { ManagerComparisonWelcome } from './components/ManagerComparisonWelcome';
 import { isStagingApp } from '../lib/appEnvironment';
 import {ManagerClubProfileFormat} from './ManagerClubProfileFormat';
 import {ManagerClubPhotoTemplate} from './ManagerClubPhotoTemplate';
@@ -418,7 +420,13 @@ export function ManagerClubDetailPage(): React.ReactElement {
 
   return (
     <div className="w-full max-w-none space-y-5">
-      <div>
+      {isManagerComparison() && detail?.id === clubId && <ManagerComparisonWelcome clubName={detail.name} season={selectedSeason?.season_name} onAction={() => openSetupSection('manager-setup-checklist')} stats={[
+        {label:'Mannschaften',value:detail.teams.length,hint:'Im Verein angelegt'},
+        {label:'Aktive Saisonen',value:detail.team_seasons.filter(s=>s.status==='active').length,hint:'Für eure Mannschaften'},
+        {label:'Verantwortliche',value:detail.staff.length,hint:'Trainer und Funktionäre'},
+        {label:'Termine & Spiele',value:detail.dependencies.events,hint:'Im Verein gespeichert'},
+      ]} />}
+      <div className={isManagerComparison() ? 'central-club-actions' : undefined}>
         <Link to="/manager/vereine" className="text-[13px] font-semibold text-red-700 hover:text-red-800">
           ← Zurück zur Übersicht
         </Link>

@@ -1,3 +1,4 @@
+import { ManagerComparisonWelcome } from './components/ManagerComparisonWelcome';
 import { ManagerLiveReleasePanel } from './ManagerLiveReleasePanel';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
@@ -86,22 +87,8 @@ export function ManagerComparisonPlatformDashboardPage({ releaseOnly = false }: 
   return (
     <>
     <div className="manager-modern-platform w-full max-w-none space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-red-700/80">Plattform</p>
-          <h1 className="mt-1 text-2xl font-semibold text-slate-900">Deine Verwaltung</h1>
-          <p className="mt-1 max-w-3xl text-[14px] text-slate-600">
-            Gesamtüberblick über Vereine, Benutzer, Mannschaften und den Einrichtungsstatus.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => void reload()}
-          className="inline-flex min-h-[44px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 hover:bg-slate-50"
-        >
-          Aktualisieren
-        </button>
-      </div>
+      <ManagerComparisonWelcome actionLabel="Verein auswählen" />
+      <div className="central-section-heading"><h2>Deine Plattform im Überblick</h2><button type="button" onClick={() => void reload()} disabled={loading} className="central-text-action">{loading?'Wird geladen…':'Aktualisieren ↻'}</button></div>
 
       {error ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-800">{error}</div>
