@@ -7,6 +7,8 @@ on:
       - 'scripts/season-lifecycle-assistant-test.mjs'
       - 'scripts/central-workspace-test.mjs'
       - 'scripts/central-reference-test.mjs'
+      - 'scripts/manager-shared-layout-test.mjs'
+      - 'scripts/manager-comparison-routing-test.mjs'
       - '.github/workflows/season-lifecycle-checks.yml'
 permissions:
   contents: read
@@ -25,6 +27,7 @@ jobs:
       - run: node scripts/season-lifecycle-assistant-test.mjs
       - run: node scripts/central-workspace-test.mjs
       - run: node scripts/central-reference-test.mjs
+      - run: node scripts/manager-shared-layout-test.mjs
       - run: node scripts/team-view-selection-test.mjs
       - run: node scripts/manager-player-fotobox-test.mjs
       - run: node scripts/club-photo-template-test.mjs
