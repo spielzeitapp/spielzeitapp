@@ -1,3 +1,8 @@
+import {TeamSchedulePage} from '../../pages/TeamSchedulePage';
+import {CalendarPage} from '../../pages/CalendarPage';
+import {TrainerProfilePage} from '../../pages/TrainerProfilePage';
+import {MatchDetailPage} from '../../pages/MatchDetail/MatchDetailPage';
+import {EventDetailPage} from '../../pages/EventDetailPage';
 import React from 'react';
 import {Route,Routes,useNavigate,useLocation} from 'react-router-dom';
 import {LivePage} from '../../pages/LivePage';
@@ -17,7 +22,7 @@ export function PreviewPages() {
   React.useEffect(()=>{document.querySelector('.appMain')?.scrollTo(0,0);},[pathname]);
   return <>
     <nav className="preview-toolbar flex flex-wrap content-start gap-1 bg-neutral-950 p-2 text-white" aria-label="Vorschauseite wählen">
-      {[['Splash','intro/splash'],['Welcome','intro/welcome'],['Home','home'],['Termine','termine'],['Team','team'],['Profil','profile'],['Mehr','mehr']].map(([label,path]) => <button className="rounded border border-white/25 px-2 py-1 text-xs" key={path} onClick={()=>navigate('/app/'+path)}>{label}</button>)}
+      {[['Splash','intro/splash'],['Welcome','intro/welcome'],['Home','home'],['Termine','termine'],['Team','team'],['Live','live'],['Tabelle','tabelle'],['Profil','profile'],['Mehr','mehr']].map(([label,path]) => <button className="rounded border border-white/25 px-2 py-1 text-xs" key={path} onClick={()=>navigate('/app/'+path)}>{label}</button>)}
       <span className="w-full text-[10px] text-white/60">Vorschau · Fanansicht · Scrollen und Navigation möglich · Speichern gesperrt</span>
     </nav>
     <div className="preview-app-viewport text-white" onSubmitCapture={e=>{e.preventDefault();e.stopPropagation();}} onClickCapture={e=>{
@@ -29,7 +34,12 @@ export function PreviewPages() {
         <Route path="/app/intro/welcome" element={<WelcomeScreen previewOnly />} />
         <Route path="*" element={<div className="app bg-black"><Header /><main className="app__content appMain pt-[var(--app-header-offset)] pb-32"><Routes>
           <Route path="/app/home" element={<AppHomePage />} /><Route path="/app/termine" element={<SchedulePage />} />
-          <Route path="/app/team" element={<TeamPage />} /><Route path="/app/profile" element={<ProfilePage />} />
+          <Route path="/app/team" element={<TeamPage />} />
+          <Route path="/app/team/trainer/:userId" element={<TrainerProfilePage />} />
+          <Route path="/app/events/:eventId" element={<EventDetailPage />} />
+          <Route path="/app/match/:id" element={<MatchDetailPage />} />
+          <Route path="/app/termine/calendar" element={<CalendarPage />} />
+          <Route path="/app/spielplan" element={<TeamSchedulePage />} /><Route path="/app/profile" element={<ProfilePage />} />
           <Route path="/app/live/*" element={<LivePage />} />
           <Route path="/app/tabelle" element={<CompetitionPage />} />
           <Route path="/app/mehr" element={<MorePage />} />
