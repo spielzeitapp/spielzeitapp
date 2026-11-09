@@ -26,3 +26,16 @@ const config=JSON.parse(fs.readFileSync('vercel.json','utf8'));
 function rewrite(path){const row=config.rewrites.find(r=>new RegExp('^'+r.source+'$').test(path));return row?.destination;}
 assert.equal(rewrite('/vereinszentrale'),'/vereinszentrale.html');assert.equal(rewrite('/vereinszentrale/manager/login'),'/vereinszentrale.html');assert.equal(rewrite('/manager'),'/manager.html');assert.equal(rewrite('/manager/teams'),'/manager.html');
 console.log('PASS: separate workspace namespace, login/deep links, no double prefix, existing Manager navigation and Vercel routes retained.');
+
+const {managerSurfaceHref}=mod.exports;
+for (const path of ['/manager/team?tab=trainers#profile','/manager/saisons/abc/kader?player=123','/manager/training/einheiten/new']) {
+ const modern=managerSurfaceHref(path,true);
+ assert.equal(modern,'/vereinszentrale'+path);
+ assert.equal(managerSurfaceHref(modern,false),path);
+ assert.equal(managerSurfaceHref(modern,true),modern);
+}
+for(const path of ['//evil.example/manager','https://evil.example','/app/home','/manager-false','/vereinszentrale-false']) {
+ assert.equal(managerSurfaceHref(path,true),'/vereinszentrale/manager');
+ assert.equal(managerSurfaceHref(path,false),'/manager');
+}
+console.log('PASS: appearance switching preserves the editor, query and anchor; rejects unrelated/external paths.');

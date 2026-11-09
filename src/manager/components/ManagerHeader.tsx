@@ -1,10 +1,11 @@
+import { managerSurfaceHref } from '../../lib/managerComparison';
 import { ManagerAppearanceToggle, useManagerAppearance } from '../appearance/ManagerAppearance';
 import { ClubLogo } from '../../components/branding/ClubLogo';
 import { TeamSwitcher } from '../../app/components/TeamSwitcher';
 import { ManagerPlatformContextSelect } from './ManagerPlatformContextSelect';
 import { ManagerContextPicker } from './ManagerContextPicker';
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeftRight, Headphones, LogOut, UserRound, X } from 'lucide-react';
 import { TestEnvironmentNotice } from '../../components/TestEnvironmentNotice';
 import { useAuth } from '../../auth/AuthProvider';
@@ -47,6 +48,7 @@ function labelForTeamSeason(ts: SessionTeamSeasonItem): string {
  */
 export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
   const navigate = useNavigate();
+  const location = useLocation();
   const { branding } = useManagerAppearance();
   const headerRef = useRef<HTMLElement>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -255,6 +257,12 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
               Verein verwalten
             </Link>
           ) : null}
+
+          <a href={managerSurfaceHref(`${location.pathname}${location.search}${location.hash}`, true)}
+            className="inline-flex min-h-10 items-center rounded-lg border border-white/20 px-3 text-[12px] font-semibold text-white"
+            title="Dieselbe Seite mit denselben Daten in der neuen Vereinszentrale öffnen">
+            Neue Vereinszentrale ↗
+          </a>
 
           <div className="hidden text-right md:block">
             <p className="truncate text-[13px] font-semibold text-white">{displayName}</p>

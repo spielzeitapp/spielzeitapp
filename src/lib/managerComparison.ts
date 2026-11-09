@@ -18,3 +18,14 @@ export function managerToolPath(path:string, currentPath=typeof window!=='undefi
   if(!/^\/app\/(home|termine|team|events|match|match-preparation|match-lineup|live|spielplan|tabelle|nachrichten|mehr)(?=[/?#]|$)/.test(path))return path;
   return path.replace(/^\/app\//,'/manager/');
 }
+
+/** Switch the appearance of the same Manager page, keeping its query and anchor.
+ * Full-document navigation deliberately reuses the existing authenticated session.
+ */
+export function managerSurfaceHref(path: string, modern: boolean): string {
+  if (!path.startsWith('/') || path.startsWith('//')) return modern ? MANAGER_COMPARISON_BASE + '/manager' : '/manager';
+  const internal = isManagerComparisonPath(path.split(/[?#]/)[0])
+    ? path.slice(MANAGER_COMPARISON_BASE.length) : path;
+  if (!/^\/manager(?=[/?#]|$)/.test(internal)) return modern ? MANAGER_COMPARISON_BASE + '/manager' : '/manager';
+  return modern ? MANAGER_COMPARISON_BASE + internal : internal;
+}
