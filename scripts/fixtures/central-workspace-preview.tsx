@@ -1,20 +1,14 @@
-// Development-only visual fixture. No user data, credentials or database writes.
-import React, {useState} from 'react';
+// Development-only full-shell inspection. All values below are EXAMPLE DATA.
+import React,{useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {MemoryRouter} from 'react-router-dom';
 import {ManagerCentralWorkspace} from '../../src/manager/modern/ManagerCentralWorkspace';
+import {ManagerReferenceDashboard} from '../../src/manager/modern/ManagerReferenceDashboard';
+import {ManagerReferenceSidebar} from '../../src/manager/modern/ManagerReferenceSidebar';
+import {ManagerComparisonHeader} from '../../src/manager/components/ManagerComparisonHeader';
 import {clubAppearance} from '../../src/manager/appearance/clubAppearance';
-import {Modal} from '../../src/app/ui/Modal';
 const query=new URLSearchParams(location.search),mode=query.get('mode')==='day'?'day':'night',melk=query.get('club')==='melk';
 const palette=clubAppearance(melk?'#164A9D':'#111114',melk?'#F5C400':'#FFFFFF',melk?'#F5C400':'#E6E8EB',mode);
-function Preview(){const [dialog,setDialog]=useState(false);return <div data-manager-modern="true" data-manager-appearance={mode} data-manager-club={melk?'club:melk':'club:rohrbach'} className="manager-club-workspace min-w-0 w-full" style={{minHeight:'100vh','--manager-club-primary':palette.primary,'--manager-club-secondary':palette.secondary,'--manager-action':palette.accent,'--manager-on-action':palette.onAccent,'--manager-link':palette.link} as React.CSSProperties}>
- <div className="p-3 text-xs" style={{color:'var(--manager-muted)'}}>UI-PRÜFUNG · BEISPIELDATEN · {melk?'Melk Blau/Gelb':'Rohrbach Schwarz/Weiß'} · {mode}</div>
- <div className="manager-shell__content p-4"><ManagerCentralWorkspace>
- <header className="mb-5"><h1 className="text-2xl font-bold text-slate-900">Trainingsplanung</h1><p className="mt-2 text-sm text-slate-500">Einheiten, Termine und Kader im gemeinsamen Vereinslook.</p></header>
- <div className="grid gap-4 md:grid-cols-2"><section className="rounded-2xl border border-slate-200 bg-white p-5"><h2 className="font-bold text-slate-900">Training bearbeiten</h2><label className="mt-4 block text-sm text-slate-700">Bezeichnung<input className="mt-1 w-full rounded-lg border border-slate-200 p-3" defaultValue="Passspiel & Spielaufbau"/></label><label className="mt-4 block text-sm text-slate-700">Mannschaft<select className="mt-1 w-full border p-3"><option>U12 · 2026/27</option><option>U13 · 2026/27</option></select></label><p className="mt-4 text-sm text-slate-500">Dienstag · 17:30 Uhr · Trainingsplatz</p><button className="mt-4 rounded-full bg-red-700 px-5 py-3 font-semibold text-white" onClick={()=>setDialog(true)}>Termin bearbeiten</button></section>
- <section className="rounded-2xl border border-slate-200 bg-white p-5"><h2 className="font-bold">Einrichtungsstatus</h2><div className="mt-4 rounded-xl border border-green-200 bg-green-50 p-3 text-green-800">✓ Mannschaftsfoto vorhanden</div><div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-900">! Trainerzuordnung prüfen</div><div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-rose-800">! Rückennummer ergänzen</div><div data-manager-artwork className="mt-5 rounded-xl bg-black p-4 text-white"><strong>SPIELERGRAFIK</strong><p className="text-white/60">Eigene Farben bleiben erhalten.</p></div></section></div>
- <section className="mt-4 overflow-auto rounded-2xl border border-slate-200 bg-white p-3"><table><thead><tr><th>Einheit</th><th>Datum</th><th>Status</th></tr></thead><tbody><tr><td>Passspiel</td><td>Di · 17:30</td><td>Geplant</td></tr><tr><td>Spielaufbau</td><td>Do · 17:30</td><td>Entwurf</td></tr></tbody></table></section>
- </ManagerCentralWorkspace></div><div data-central-portals className="central-modal-scope"/>
- <Modal open={dialog} title="Termin bearbeiten" onClose={()=>setDialog(false)} footer={<button className="rounded-full bg-red-700 px-5 py-3 text-white" onClick={()=>setDialog(false)}>Übernehmen</button>}><label>Bezeichnung<input className="mt-2 w-full rounded-xl border p-3" defaultValue="Passspiel & Spielaufbau"/></label><p className="mt-4 text-sm text-slate-500">Dialog im selben Vereinsstil.</p></Modal>
- </div>;}
-createRoot(document.getElementById('root')!).render(<MemoryRouter initialEntries={['/manager/training/einheiten']}><Preview/></MemoryRouter>);
+function Preview(){const [open,setOpen]=useState(false);return <div data-manager-modern="true" data-manager-appearance={mode} className="szc-app manager-club-workspace flex min-w-0 w-full" style={{minHeight:'100vh','--manager-club-primary':palette.primary,'--manager-club-secondary':palette.secondary,'--manager-action':palette.accent,'--manager-accent-soft':'color-mix(in srgb,var(--manager-action) 12%,var(--manager-surface))','--manager-on-action':palette.onAccent,'--manager-link':palette.link,'--accent':palette.accent,'--secondary':palette.primary,'--accent-ink':palette.onAccent} as React.CSSProperties}>
+ <ManagerReferenceSidebar open={open} onClose={()=>setOpen(false)}/><div className="flex min-w-0 flex-1 flex-col"><ManagerComparisonHeader onOpenSidebar={()=>setOpen(true)}/><main className="manager-mobile-workspace"><div className="manager-shell__content"><p style={{fontSize:10,marginBottom:12,color:'var(--manager-muted)'}}>UI-PRÜFUNG · BEISPIELDATEN</p><ManagerCentralWorkspace><ManagerReferenceDashboard/></ManagerCentralWorkspace></div></main></div></div>;}
+createRoot(document.getElementById('root')!).render(<MemoryRouter initialEntries={['/manager']}><Preview/></MemoryRouter>);

@@ -1,10 +1,11 @@
 import {ManagerCentralWorkspace} from './modern/ManagerCentralWorkspace';
 import './modern/centralWorkspace.css';
+import './modern/centralFonts.css';
 import { ManagerSeasonLifecycleAssistant } from './components/ManagerSeasonLifecycleAssistant';
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { ManagerComparisonHeader } from './components/ManagerComparisonHeader';
-import { ManagerSidebar } from './components/ManagerSidebar';
+import {ManagerReferenceSidebar} from './modern/ManagerReferenceSidebar';
 import { ManagerAccessGate } from './ManagerAccessGate';
 import {CommunicationAccessProvider} from './CommunicationAccessContext';
 import { ManagerWorkModeProvider } from './ManagerWorkModeContext';
@@ -21,6 +22,7 @@ import './managerMobile.css';
 import { ManagerAppearance } from './appearance/ManagerAppearance';
 import './appearance/managerAppearance.css';
 import './modern/managerModern.css';
+import './modern/centralReference.css';
 
 /**
  * Shell für alle /manager-Seiten: volle Fensterbreite, dunkle Navigation, helle Arbeitsfläche.
@@ -47,7 +49,7 @@ export function ManagerComparisonLayout(): React.ReactElement {
       <ManagerWorkModeProvider>
         <CommunicationAccessProvider><ManagerClubModulesProvider>
         <ManagerAppearance modern>
-          <ManagerSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <ManagerReferenceSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
           <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-[#F4F5F7]">
             <ManagerComparisonHeader onOpenSidebar={() => setSidebarOpen(true)} />
             {viewingArchive && context ? (

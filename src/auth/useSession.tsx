@@ -268,7 +268,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const id = viewTeamSeasonId;
     const userId = authUser!.id;
     void Promise.resolve(supabase.from('team_seasons')
-      .select('id,team_id,season_id,status,display_name,age_group,teams(id,name,age_group,clubs(logo_url)),seasons(id,name)')
+      .select('id,team_id,season_id,status,display_name,age_group,teams(id,name,club_id,age_group,clubs(name,logo_url)),seasons(id,name)')
       .eq('id', id).maybeSingle()).then(({ data, error }) => {
         if (cancelled) return;
         const season = data ? normalizeTeamSeasonRow(data) : null;
@@ -612,7 +612,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   status,
   display_name,
   age_group,
-  teams:teams ( id, name, age_group, clubs ( logo_url ) ),
+  teams:teams ( id, name, club_id, age_group, clubs ( name, logo_url ) ),
   seasons:seasons ( id, name )
 `)
           .in('id', teamSeasonIds)
