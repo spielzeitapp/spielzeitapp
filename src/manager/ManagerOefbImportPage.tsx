@@ -1,3 +1,4 @@
+import {parseOefbSeasonTarget,resolveEventSeason} from '../lib/seasonLifecycleAssistant';
 import { ManagerOefbScheduleSync } from './ManagerOefbScheduleSync';
 import { ManagerOefbDurationSettings } from './ManagerOefbDurationSettings';
 /**
@@ -6,7 +7,7 @@ import { ManagerOefbDurationSettings } from './ManagerOefbDurationSettings';
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useParams, useNavigate } from 'react-router-dom';
 import { useSession } from '../auth/useSession';
 import {
   canPrepareNextSeason,
@@ -107,6 +108,7 @@ function previewStatusDetail(row: OefbImportPreviewRow): string | null {
 
 export function ManagerOefbImportPage(): React.ReactElement {
   const { seasonId } = useParams<{ seasonId: string }>();
+  const navigate=useNavigate();
   const { user, effectiveRole, backendRole, setViewTeamSeasonId } = useSession();
   const { workMode } = useManagerWorkMode();
   const allowed = canAccess(effectiveRole, backendRole, workMode);
@@ -254,6 +256,17 @@ export function ManagerOefbImportPage(): React.ReactElement {
       setPreviewFixtures([]);
       setConfirmed(false);
       return;
+    }
+    const targetSeason=parseOefbSeasonTarget(url);
+    if(targetSeason){
+      setPreviewBusy(true);
+      try{const routed=await resolveEventSeason(seasonId,{name:targetSeason.name,age:targetSeason.age});
+        if(routed.prepared && routed.team_season_id!==seasonId){
+          setInfo('Die Saison '+routed.season_name+' ist automatisch vorbereitet. Der Spielplan wird nicht in die alte Saison geschrieben.');
+          if(window.confirm('Spielplan gehört zur neuen Saison '+routed.season_name+'. Die Saison ist vorbereitet. Neuen Import öffnen?'))navigate('/manager/saisons/'+encodeURIComponent(routed.team_season_id)+'/oefb-import?oefbSchedule='+encodeURIComponent(url));
+          return;
+        }
+      }catch(e){setError(e instanceof Error?e.message:String(e));return;}finally{setPreviewBusy(false);}
     }
     const selectedTeamName = oefbTeamName.trim() || tableTeamName.trim() || meta?.teamName?.trim() || '';
     if (!selectedTeamName) {

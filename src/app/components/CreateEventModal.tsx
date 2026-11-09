@@ -1,3 +1,5 @@
+import {resolveEventSeason} from '../../lib/seasonLifecycleAssistant';
+import {SeasonLifecycleAssistant} from '../../components/season/SeasonLifecycleAssistant';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from './ui/Button';
 import { Modal } from '../ui/Modal';
@@ -142,6 +144,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
   const [clubId, setClubId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [seasonPrepared,setSeasonPrepared]=useState(false);
   const [eventTypeLocal, setEventTypeLocal] = useState<
     'game' | 'training' | 'event' | 'other' | 'tournament'
   >(
@@ -246,6 +249,12 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         setError('Ungültiges Datumsformat.');
         setCreating(false);
         return;
+      }
+      const routedSeason = await resolveEventSeason(teamSeasonId,{date:firstStartUtcIso});
+      if(routedSeason.prepared && routedSeason.team_season_id !== teamSeasonId) {
+        setSeasonPrepared(true);
+        setError('Die Saison '+routedSeason.season_name+' wurde automatisch vorbereitet. Bitte unten die Saisonzuordnung prüfen und vor dem Speichern in die neue Saison wechseln. Deine Eingaben bleiben hier erhalten.');
+        setCreating(false);return;
       }
       const startDate = new Date(firstStartUtcIso);
 
@@ -495,6 +504,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       }
     >
       <form id="create-event-form" onSubmit={handleSubmit} className="space-y-4">
+        {seasonPrepared && teamSeasonId && <SeasonLifecycleAssistant seasonId={teamSeasonId} alwaysShow/>}
         <div>
           <label htmlFor="create-event-type" className={labelClass}>
             Terminart *
