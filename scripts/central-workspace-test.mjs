@@ -1,0 +1,49 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {createRequire} from 'node:module';
+import {build} from 'esbuild';
+const require=createRequire(import.meta.url);
+async function compile(path,plugins=[]){const b=await build({entryPoints:[path],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,plugins});const m={exports:{}};new Function('require','module','exports',b.outputFiles[0].text)(require,m,m.exports);return m.exports;}
+const catalogue=await compile('src/manager/modern/centralWorkspace.ts');
+const routing=await compile('src/lib/managerComparison.ts');
+const portal=await compile('src/lib/managerPortal.ts');
+const source=fs.readFileSync('src/app/App.tsx','utf8');
+const manager=source.slice(source.indexOf('<Route index element={<ManagerHomeRoute'),source.indexOf('/** Nur öffentliche App'));
+const routes=[{path:'/manager',children:[{index:true},...Array.from(manager.matchAll(/<Route path="([^"]+)"/g),m=>({path:m[1]}))]}];
+const {matchRoutes,MemoryRouter}=require('react-router-dom');
+for(const tool of catalogue.CENTRAL_TOOLS)assert.ok(matchRoutes(routes,tool.to),'Existing route required: '+tool.to);
+const platform=catalogue.centralToolsForContext({mode:'platform_admin',support:false,staging:true,isModuleEnabled:()=>true,speaker:true,music:true});
+for(const name of ['Plattform-Dashboard','LIVE-Veröffentlichung','Vereine','Spieler & Fotos','Live-Spieltag','Benachrichtigungen','ÖFB-Import','Vorlagen','Chronik'])assert.ok(platform.some(t=>t.label===name),name+' remains accessible');
+const trainer=catalogue.centralToolsForContext({mode:'trainer',support:false,staging:true,isModuleEnabled:key=>key!=='venues',speaker:false,music:false});
+assert.ok(!trainer.some(t=>t.platformAdminOnly||t.id==='venues'||t.id==='speaker-studio'||t.id==='music-studio'));
+assert.ok(trainer.some(t=>t.id==='parents'));
+assert.equal(catalogue.centralPage('/manager/saisons/abc/kader').label,'Kader & Spielerfotos');
+assert.equal(catalogue.centralPage('/manager/team/trainer/abc').label,'Trainerprofil');
+assert.equal(catalogue.centralPage('/manager/platzbelegung','?tab=facilities').label,'Sportanlagen');
+assert.equal(catalogue.searchCentralTools(platform,'  SPIELER  ').some(t=>t.id==='players'),true);
+assert.equal(catalogue.searchCentralTools(platform,'nonsense-no-match').length,0);
+for(const path of ['/app/events/abc?tab=bericht#top','/app/team?player=abc','/app/termine']){
+ assert.equal(routing.managerToolPath(path,'/manager'),path,'old Manager retains behavior');
+ assert.equal(routing.managerToolPath(path,'/vereinszentrale/manager'),path.replace('/app/','/manager/'));
+}
+assert.equal(routing.managerToolPath('/app/role-choice','/vereinszentrale/manager'),'/app/role-choice');
+const previous=globalThis.document;const themed={id:'themed'},body={id:'body'};
+globalThis.document={body,querySelector:()=>themed};assert.equal(portal.managerPortalRoot(),themed);
+globalThis.document.querySelector=()=>null;assert.equal(portal.managerPortalRoot(),body);globalThis.document=previous;
+const React=require('react'),{create,act}=require('react-test-renderer');
+const fixtures={name:'workspace-fixtures',setup(api){
+ api.onResolve({filter:/ManagerWorkModeContext$/},()=>({path:'work',namespace:'fixture'}));
+ api.onResolve({filter:/ManagerClubModulesContext$/},()=>({path:'modules',namespace:'fixture'}));
+ api.onResolve({filter:/CommunicationAccessContext$/},()=>({path:'communication',namespace:'fixture'}));
+ api.onResolve({filter:/appEnvironment$/},()=>({path:'env',namespace:'fixture'}));
+ api.onLoad({filter:/.*/,namespace:'fixture'},({path})=>({loader:'js',contents:({work:"export const useManagerWorkMode=()=>({workMode:'trainer',supportSession:null});",modules:'export const useManagerClubModules=()=>({isModuleEnabled:()=>true});',communication:'export const useCommunicationAccess=()=>({access:{speaker:false,music:false}});',env:'export const isStagingApp=()=>true;'})[path]}));
+}};
+const {ManagerCentralWorkspace}=await compile('src/manager/modern/ManagerCentralWorkspace.tsx',[fixtures]);
+let tree;await act(async()=>{tree=create(React.createElement(MemoryRouter,{basename:'/vereinszentrale',initialEntries:['/vereinszentrale/manager/training/einheiten'],future:{v7_startTransition:true,v7_relativeSplatPath:true}},React.createElement(ManagerCentralWorkspace,null,React.createElement('form',{'data-existing-editor':true},'Original editor'))));});
+assert.equal(tree.root.findByProps({'data-existing-editor':true}).children[0],'Original editor','shared editor remains mounted');
+assert.ok(tree.root.findAllByType('a').every(a=>a.props.href.startsWith('/vereinszentrale/manager')),'search and related tabs retain basename');
+const input=tree.root.findByType('input');await act(async()=>input.props.onChange({target:{value:'Kader'}}));
+assert.ok(tree.root.findByProps({className:'central-tool-results'}).findAllByType('a').length>0);
+assert.ok(!tree.root.findAllByType('a').some(a=>a.props.href.includes('live-veroeffentlichung')),'trainer search never exposes platform release');
+await act(async()=>tree.unmount());
+console.log('PASS: all ready tools resolve to real routes, permission/module filters, shared editor preserved, central deep links/search and scoped portals.');

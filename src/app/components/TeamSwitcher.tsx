@@ -1,3 +1,4 @@
+import {managerPortalRoot} from '../../lib/managerPortal';
 import { ClubLogo } from "../../components/branding/ClubLogo";
 import React from 'react';
 import { PremiumButton } from '../../ui';
@@ -465,7 +466,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
 
         </div>
       </div>
-      </div>, document.body,
+      </div>, managerPortalRoot(),
     ) : null}
   </>;
 };

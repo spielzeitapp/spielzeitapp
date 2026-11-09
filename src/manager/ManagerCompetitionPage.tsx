@@ -1,3 +1,4 @@
+import {managerToolPath} from '../lib/managerComparison';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Table2 } from 'lucide-react';
@@ -54,7 +55,7 @@ export function ManagerCompetitionPage(): React.ReactElement {
     {!season || !eligible || (current && !current.error && !settings) ? <section className="rounded-2xl border border-slate-200 bg-white p-6">
       <h2 className="font-semibold text-slate-900">{!season ? 'Mannschaft auswählen' : 'Keine ÖFB-Tabelle hinterlegt'}</h2>
       <p className="mt-2 text-sm text-slate-600">{!season ? 'Bitte wähle oben zuerst eine Mannschaft und Saison.' : !eligible ? 'Die Tabellenansicht ist für Nachwuchsmannschaften ab U13 sowie Kampfmannschaft und Reserve vorgesehen. Spiele und Ergebnisse dieser Mannschaft findest du im Spielplan.' : 'Für diese Saison fehlt die Zuordnung zum ÖFB-Bewerb. Prüfe sie in der Saisonverwaltung.'}</p>
-      {season ? <Link to={eligible ? '/manager/saisons' : '/app/termine'} className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-red-700 px-4 text-sm font-semibold text-white">{eligible ? 'Saisonen öffnen' : 'Spielplan öffnen'}</Link> : null}
+      {season ? <Link to={eligible ? '/manager/saisons' : managerToolPath('/app/termine')} className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-red-700 px-4 text-sm font-semibold text-white">{eligible ? 'Saisonen öffnen' : 'Spielplan öffnen'}</Link> : null}
     </section> : null}
     {settings && season ? <section className="manager-desktop-light rounded-2xl border border-slate-200 bg-white p-4 text-slate-900 shadow-sm sm:p-6">
       <div role="group" aria-label="Liga-Ansicht" className="mb-6 flex flex-wrap gap-2">

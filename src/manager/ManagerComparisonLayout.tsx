@@ -1,3 +1,5 @@
+import {ManagerCentralWorkspace} from './modern/ManagerCentralWorkspace';
+import './modern/centralWorkspace.css';
 import { ManagerSeasonLifecycleAssistant } from './components/ManagerSeasonLifecycleAssistant';
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
@@ -72,11 +74,12 @@ export function ManagerComparisonLayout(): React.ReactElement {
               ].join(' ')}>
                 <ManagerRouteGuard>
                   <ManagerAccessDeniedBanner />
-                  <ManagerTeamScope><ManagerSeasonLifecycleAssistant seasonId={context?.id} /><Outlet key={context?.id ?? 'platform'} /></ManagerTeamScope>
+                  <ManagerTeamScope><ManagerCentralWorkspace><ManagerSeasonLifecycleAssistant seasonId={context?.id} /><Outlet key={context?.id ?? 'platform'} /></ManagerCentralWorkspace></ManagerTeamScope>
                 </ManagerRouteGuard>
               </div>
             </main>
             <ManagerMobileNav />
+            <div data-central-portals className="central-modal-scope" />
           </div>
         </ManagerAppearance>
         </ManagerClubModulesProvider></CommunicationAccessProvider>

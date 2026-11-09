@@ -1,3 +1,4 @@
+import {managerToolPath} from '../lib/managerComparison';
 import {ManagerPhotoRemoteController} from './ManagerPhotoRemoteController';
 import {ManagerPlayerPhotoBooth} from './ManagerPlayerPhotoBooth';
 import {ManagerRosterPhotos} from './ManagerRosterPhotos';
@@ -291,7 +292,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
         ) : null}
       </header>
 
-      {seasonId ? <Link to={`/app/team?teamSeason=${encodeURIComponent(seasonId)}`} className="inline-flex min-h-11 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800">In App ansehen →</Link> : null}
+      {seasonId ? <Link to={managerToolPath(`/app/team?teamSeason=${encodeURIComponent(seasonId)}`)} className="inline-flex min-h-11 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800">In App ansehen →</Link> : null}
       {archived ? (
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[13px] text-slate-700">
           Du siehst eine abgeschlossene Saison. Der Kader bleibt historisch lesbar und wird nicht
@@ -383,7 +384,7 @@ export function ManagerSeasonRosterPage(): React.ReactElement {
                     {canEdit&&p.status!=='archived'?<button type="button" onClick={()=>{openBooth(p.id);}} className="min-h-11 text-[12px] font-semibold text-red-700">Foto aufnehmen</button>:null}
                     {canEdit ? <button type="button" onClick={() => {if(!canSwitchPhoto())return;setPhotoEditingId(p.id);setGlobalPhoto(true);requestAnimationFrame(()=>document.getElementById('roster-photo-editor')?.scrollIntoView({behavior:'smooth',block:'start'}));}} className="text-[12px] font-semibold text-red-700">Foto gestalten</button> : null}
                     {canEdit ? <button type="button" onClick={() => editPlayer(p)} className="text-[12px] font-semibold text-red-700">Bearbeiten</button> : null}
-                    <Link to={`/app/team?teamSeason=${encodeURIComponent(seasonId??'')}&player=${encodeURIComponent(p.id)}`} className="text-[12px] font-semibold text-red-700">Profil</Link>
+                    <Link to={managerToolPath(`/app/team?teamSeason=${encodeURIComponent(seasonId??'')}&player=${encodeURIComponent(p.id)}`)} className="text-[12px] font-semibold text-red-700">Profil</Link>
                   </div>
 
                   {canEdit ? <div className="w-full border-t border-slate-100 pt-1"><ManagerRosterPlayerActions

@@ -1,3 +1,4 @@
+import {managerPortalRoot} from '../../lib/managerPortal';
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, FileDown, ShieldCheck } from 'lucide-react';
@@ -197,7 +198,6 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
           </div>
         </div>
       </div>
-    </div>,
-    document.body,
+    </div>, managerPortalRoot(),
   );
 };

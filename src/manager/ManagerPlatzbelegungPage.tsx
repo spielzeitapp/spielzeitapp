@@ -1,3 +1,4 @@
+import {managerToolPath} from '../lib/managerComparison';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, MapPin, Plus } from 'lucide-react';
@@ -670,7 +671,7 @@ export function ManagerPlatzbelegungPage(): React.ReactElement {
         <div className="flex flex-wrap items-center gap-2">
           {requestedEventId ? (
             <Link
-              to={`/app/events/${encodeURIComponent(requestedEventId)}`}
+              to={managerToolPath(`/app/events/${encodeURIComponent(requestedEventId)}`)}
               className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-800"
             >
               Zum Trainingscenter

@@ -1,3 +1,4 @@
+import {managerToolPath} from '../lib/managerComparison';
 import {SeasonLifecycleAssistant} from '../components/season/SeasonLifecycleAssistant';
 /**
  * STEP 4: Manager-Saisonübersicht (aktive, Entwürfe, Archiv).
@@ -396,7 +397,7 @@ export function ManagerSeasonsPage(): React.ReactElement {
                       Chronik
                     </Link>
                     <Link
-                      to="/app/home"
+                      to={managerToolPath('/app/home')}
                       onClick={() => setViewTeamSeasonId(a.id)}
                       className="inline-flex min-h-[40px] items-center rounded-full border border-slate-200 px-3 text-[12px] font-semibold text-slate-800"
                     >

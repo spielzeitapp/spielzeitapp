@@ -1,3 +1,4 @@
+import {managerToolPath} from '../lib/managerComparison';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
@@ -29,6 +30,6 @@ export function ManagerOefbScheduleSync({ seasonId, disabled }: { seasonId: stri
   {settings?.last_success?<p>Letzter erfolgreicher Abruf: {new Date(settings.last_success).toLocaleString('de-AT',{timeZone:'Europe/Vienna'})}</p>:null}
   {settings?.last_error?<p role="status">Abruf fehlgeschlagen, wird erneut versucht: {settings.last_error}</p>:null}
   {message?<p role="status">{message}</p>:null}
-  {conflicts.length?<div><h3 className="font-bold">Abweichende Trainerangaben – bleiben erhalten</h3>{conflicts.map(c=><div key={c.id} className="mt-2 rounded-xl border p-3"><strong>{c.opponent}</strong><p>{c.detail.field==='score'?'Ergebnis':'Anpfiff'}: Trainer {c.detail.trainer} · ÖFB {c.detail.oefb}</p><Link className="underline" to={`/app/events/${c.id}`}>Spiel prüfen und bei Bedarf korrigieren</Link></div>)}</div>:null}
+  {conflicts.length?<div><h3 className="font-bold">Abweichende Trainerangaben – bleiben erhalten</h3>{conflicts.map(c=><div key={c.id} className="mt-2 rounded-xl border p-3"><strong>{c.opponent}</strong><p>{c.detail.field==='score'?'Ergebnis':'Anpfiff'}: Trainer {c.detail.trainer} · ÖFB {c.detail.oefb}</p><Link className="underline" to={managerToolPath(`/app/events/${c.id}`)}>Spiel prüfen und bei Bedarf korrigieren</Link></div>)}</div>:null}
  </section>;
 }

@@ -1,3 +1,4 @@
+import {managerPortalRoot} from '../../lib/managerPortal';
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { PlayerItem } from '../../hooks/usePlayers';
@@ -103,7 +104,6 @@ export function TournamentScorersSheet({ isOpen, scorers, players, onClose }: Pr
           )}
         </div>
       </div>
-    </div>,
-    document.body,
+    </div>, managerPortalRoot(),
   );
 }

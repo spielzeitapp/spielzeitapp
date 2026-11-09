@@ -1,3 +1,4 @@
+import {managerPortalRoot} from '../../lib/managerPortal';
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { lockAppMainScroll } from "../../lib/bodyScrollLock";
@@ -1327,5 +1328,5 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     </div>
   );
 
-  return createPortal(modal, document.body);
+  return createPortal(modal, managerPortalRoot());
 };

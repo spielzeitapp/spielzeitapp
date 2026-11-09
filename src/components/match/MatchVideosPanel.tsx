@@ -1,3 +1,4 @@
+import {managerPortalRoot} from '../../lib/managerPortal';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, List, LockKeyhole, Maximize2, Minimize2, MoreVertical, Pause, Pencil, Play, Plus, Send, Trash2, UploadCloud, Volume2, VolumeX } from 'lucide-react';
@@ -724,7 +725,7 @@ export const MatchVideosPanel: React.FC<Props> = ({ matchId, teamSeasonId, canMa
       </div>
       {!theaterMode && activeScene.analysis_note && <p className="max-h-40 overflow-y-auto whitespace-pre-wrap px-4 py-3 text-sm text-white/70">{activeScene.analysis_note}</p>}
       {!theaterMode && <div className="pb-[env(safe-area-inset-bottom,0px)]" />}
-    </div>,document.body)}
+    </div>, managerPortalRoot())}
   </section>;
 };
 

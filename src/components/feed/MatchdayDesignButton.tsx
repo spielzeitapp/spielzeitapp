@@ -1,3 +1,4 @@
+import {managerPortalRoot} from '../../lib/managerPortal';
 import {listPlayerPhotoMotifs,PHOTO_LABELS} from '../../lib/playerPhotoMotifs';
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -112,6 +113,6 @@ export function MatchdayDesignButton({ design, save, poster, teamSeasonId, demo 
           }} className="min-h-[48px] rounded-xl bg-red-700 font-bold disabled:opacity-50">{busy ? 'Bitte warten…' : demo ? 'Demo übernehmen' : 'Für Spiel speichern'}</button>
         </div>
       </div>
-    </div>, document.body) : null}
+    </div>, managerPortalRoot()) : null}
   </>;
 }

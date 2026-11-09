@@ -1,3 +1,4 @@
+import {managerPortalRoot} from '../../lib/managerPortal';
 import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ImagePlus, Pencil, RotateCcw, X } from 'lucide-react';
@@ -134,8 +135,7 @@ export const AutoFeedPostMediaEditButton: React.FC<Props> = ({ post, onUpdated, 
               </button>
             </div>
           </div>
-        </div>,
-        document.body,
+        </div>, managerPortalRoot(),
       ) : null}
     </>
   );

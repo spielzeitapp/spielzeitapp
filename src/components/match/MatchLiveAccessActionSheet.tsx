@@ -1,3 +1,4 @@
+import {managerPortalRoot} from '../../lib/managerPortal';
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronRight, ClipboardList, Radio } from 'lucide-react';
@@ -117,5 +118,5 @@ export function MatchLiveAccessActionSheet({
     </div>
   );
 
-  return createPortal(sheet, document.body);
+  return createPortal(sheet, managerPortalRoot());
 }

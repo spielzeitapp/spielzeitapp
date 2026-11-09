@@ -1,3 +1,4 @@
+import {isManagerComparison} from '../../lib/managerComparison';
 import React from 'react';
 import {AutoFitName} from './profile/AutoFitName';
 import {playerPhotoDisplayUrl,preparedPlayerPortrait} from '../../lib/playerPhotoDisplay';
@@ -8,7 +9,7 @@ export function PlayerPortraitCanvas({layout,photoUrl,cutoutUrl,firstName,lastNa
  const [loadedSrc,setLoadedSrc]=React.useState<string|null>(null);
  const loaded=loadedSrc===displaySrc;
  const [failed,setFailed]=React.useState(false);React.useEffect(()=>{setFailed(false);},[src]);
- return <div className="absolute inset-0 overflow-hidden" style={{background:photoBackground(layout.background,layout.backgroundImageUrl),containerType:"inline-size"}}>
+ return <div data-manager-artwork={isManagerComparison()||undefined} className="absolute inset-0 overflow-hidden" style={{background:photoBackground(layout.background,layout.backgroundImageUrl),containerType:"inline-size"}}>
  {src&&!failed?<img src={displaySrc} alt="" loading={eager?'eager':'lazy'} fetchPriority={eager?'high':'low'} decoding="async" onLoad={()=>setLoadedSrc(displaySrc)} onError={()=>setFailed(true)} className="absolute h-full w-full object-contain" style={{filter:`brightness(${portraitBrightness(layout.brightness)}%)`,opacity:loaded?1:0,objectFit:'contain',left:0,top:0,objectPosition:`${layout.x}% ${layout.y}%`,transform:`translate(${layout.x-50}%, ${layout.y-50}%) scale(${layout.zoom/100}) rotate(${layout.rotation??0}deg)`,transformOrigin:'center'}}/>:<p className="absolute inset-0 flex items-center justify-center text-white/60">Kein Foto</p>}
  {src&&!failed&&!loaded?<span role="status" className="absolute inset-0 flex items-center justify-center text-sm text-white/60">Foto wird geladen…</span>:null}
  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[24%] bg-gradient-to-t from-black/75 to-transparent"/>

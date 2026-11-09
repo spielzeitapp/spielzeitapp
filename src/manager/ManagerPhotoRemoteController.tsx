@@ -1,3 +1,4 @@
+import {managerComparisonHref} from '../lib/managerComparison';
 import React,{useEffect,useRef,useState} from 'react';
 import type {RosterPlayer} from '../lib/rosterService';
 import {PHOTO_STEPS,PHOTO_LABELS,type PhotoStep} from '../lib/playerPhotoMotifs';
@@ -10,7 +11,7 @@ export function ManagerPhotoRemoteController({seasonId,players,onClose}:{seasonI
  const state=session?.state,player=players.find(p=>p.id===state?.playerId);
  const online=session?remoteCameraOnline(session):false;
  const available=online&&Boolean(state)&&!state?.busy&&!state?.finished&&!busy&&!pending;
- const connectUrl=session?`${window.location.origin}/manager/saisons/${encodeURIComponent(seasonId)}/kader?fotoboxCamera=${session.id}`:'';
+ const connectUrl=session?`${window.location.origin}${managerComparisonHref(`/manager/saisons/${encodeURIComponent(seasonId)}/kader?fotoboxCamera=${session.id}`)}`:'';
  useEffect(()=>{if(!connectUrl){setQr('');return;}let active=true;void import('qrcode').then(q=>q.toDataURL(connectUrl,{width:280,margin:2})).then(url=>{if(active)setQr(url);}).catch(()=>{if(active)setError('QR-Code nicht verfügbar. Den Kopplungslink am Stativgerät öffnen.');});return()=>{active=false;};},[connectUrl]);
  useEffect(()=>{
   if(!session?.id)return;let active=true,timer:ReturnType<typeof setTimeout>;
