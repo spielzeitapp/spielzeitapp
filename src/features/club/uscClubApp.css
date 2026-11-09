@@ -619,3 +619,17 @@
 .usc-nav-icon-ball { width: 28px; height: 28px; }
 .usc-bottom-nav button[aria-current="page"] .usc-nav-icon { opacity: 1; filter: drop-shadow(0 0 8px #ffffff35); }
 .usc-team-chips { touch-action: pan-x pan-y; }
+
+.usc-news-tools { display: flex; align-items: center; gap: 12px; }
+.usc-news-filter-button { position: relative; }
+.usc-news-filter-button > span { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; border-radius: 999px; background: #e2e6ec; color: #101214; font-size: 10px; display: grid; place-items: center; }
+.usc-news-filter-active { border-color: #d4dae2; background: #ffffff14; }
+.usc-filter-shortcuts { display: flex; justify-content: space-between; gap: 12px; padding: 14px 0 8px; }
+.usc-filter-shortcuts button { min-height: 44px; font-size: 12px; color: #d8dce2; text-decoration: underline; }
+.usc-news-filter fieldset { border: 0; padding: 0; margin: 0; }
+.usc-filter-team { display: flex; gap: 14px; align-items: center; padding: 14px 0; border-bottom: 1px solid #ffffff18; cursor: pointer; }
+.usc-filter-team input { width: 22px; height: 22px; accent-color: #d4dae2; flex-shrink: 0; }
+.usc-filter-team strong { display: block; font-size: 15px; }
+.usc-filter-team small { display: block; margin-top: 4px; font-size: 11px; color: #aeb7c5; }
+.usc-news-filter .usc-filter-hint { margin-top: 14px; font-size: 11px; }
+@media (max-width: 380px) { .usc-news-tools { gap: 8px; } .usc-news-tools > button:not(.usc-icon-button) { font-size: 10px; } }
