@@ -1,3 +1,4 @@
+import {savePhotoOnDevice} from '../lib/savePhotoOnDevice';
 import {photoCountdown} from '../lib/photoCountdown';
 import {managerPortalRoot} from '../lib/managerPortal';
 import {usePhotoRemoteCamera} from './usePhotoRemoteCamera';
@@ -24,6 +25,7 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
  const [draft,setDraft]=useState<Draft|null>(null),[processing,setProcessing]=useState(false),[saving,setSaving]=useState(false);
  const [cameraReady,setCameraReady]=useState(false),[cameraError,setCameraError]=useState(''),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [live,setLive]=useState(false),[liveFrame,setLiveFrame]=useState(''),[liveError,setLiveError]=useState('');
+ const [deviceCopy,setDeviceCopy]=useState(false),[localPhoto,setLocalPhoto]=useState<File|null>(null),[exporting,setExporting]=useState(false),[exportStatus,setExportStatus]=useState('');
  const [timerSeconds,setTimerSeconds]=useState(3),[countdown,setCountdown]=useState<number|null>(null);
  const countdownController=useRef<AbortController|null>(null);
  const [autoNext,setAutoNext]=useState(true),[restart,setRestart]=useState(0),[remove,setRemove]=useState(false);
@@ -46,7 +48,7 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
   return()=>{document.body.style.overflow=overflow;previous?.focus();};
  },[]);
  useEffect(()=>{
-  setCameraReady(false);setCameraError('');if(draft||finished)return;
+  setCameraReady(false);setCameraError('');if(draft||finished||localPhoto)return;
   let active=true;
   const stop=()=>{stream.current?.getTracks().forEach(track=>track.stop());stream.current=null;if(video.current)video.current.srcObject=null;};
   if(!navigator.mediaDevices?.getUserMedia){setCameraError('Livekamera nicht verfügbar. Nutze „Kamera / Bild auswählen“.');return;}
@@ -57,13 +59,13 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
   const visibility=()=>{if(document.hidden){countdownController.current?.abort();stop();setCameraReady(false);setCameraError('Kamera pausiert. Zum Fortsetzen „Kamera neu starten“ wählen.');}};
   document.addEventListener('visibilitychange',visibility);
   return()=>{active=false;stop();document.removeEventListener('visibilitychange',visibility);};
- },[draft,facing,restart,finished]);
+ },[draft,facing,restart,finished,localPhoto]);
  useEffect(()=>{
   setLiveFrame('');setLiveError('');
   if(!live||!remove||!cameraReady||draft||busy||!video.current)return;
   return startLivePlayerPortrait(video.current,aspect,facing==='user',setLiveFrame,()=>{setLiveFrame('');setLiveError('Live-Hintergrund hier nicht verfügbar. Das Foto wird nach der Aufnahme freigestellt.');});
  },[live,remove,cameraReady,draft,busy,aspect,facing,selected]);
- const close=()=>{if(saving)return;if((draft||(processing&&countdown===null))&&!window.confirm('Aufgenommenes Foto verwerfen?'))return;countdownController.current?.abort();onClose();};
+ const close=()=>{if(saving||exporting)return;if(localPhoto&&!window.confirm('Das Foto ist in der App gespeichert. Ohne zusätzliche Gerätekopie schließen?'))return;if((draft||(processing&&countdown===null))&&!window.confirm('Aufgenommenes Foto verwerfen?'))return;countdownController.current?.abort();onClose();};
  const discard=()=>{version.current++;setDraft(null);setError('');setNotice('');};
  async function prepare(file:File){
   const token=++version.current;setError('');setNotice('');let cutout:Blob|null=null,cutoutUrl:string|null=null;
@@ -124,10 +126,15 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
    }
    await onSaved();setDraft(null);window.dispatchEvent(new Event('manager-setup-changed'));
    setNotice(`${PHOTO_LABELS[mode]} für ${player.display_name} gespeichert. Später unter Foto gestalten bearbeiten.`);
-   advance('saved');
+   if(deviceCopy){
+    const suffix=draft.file.type==='image/png'?'png':draft.file.type==='image/webp'?'webp':'jpg';
+    const name=player.display_name.replace(/[^\p{L}\p{N}_-]+/gu,'-').slice(0,70)||'Spieler';
+    setLocalPhoto(new File([draft.file],`${name}-${PHOTO_LABELS[mode]}.${suffix}`,{type:draft.file.type}));
+    setExportStatus('');
+   }else advance('saved');
   }catch(e){setError((e as {message?:string}).message||'Speichern fehlgeschlagen. Bitte erneut versuchen.');}finally{locked.current=false;setSaving(false);}
  }
- const remote=usePhotoRemoteCamera(remoteSessionId,seasonId,{playerId:selected,step:mode,ready:cameraReady,busy:busy||locked.current,draftId:draft?.id??null,finished,error,notice:countdown!==null?'Countdown läuft am Stativgerät · Pose halten':notice,layout},draft?.file??null,draft?.cutout??null,async command=>{
+ const remote=usePhotoRemoteCamera(remoteSessionId,seasonId,{playerId:selected,step:mode,ready:cameraReady,busy:busy||locked.current||Boolean(localPhoto),draftId:draft?.id??null,finished,error,notice:localPhoto?'In App gespeichert · am Stativgerät Bild sichern oder Weiter wählen':countdown!==null?'Countdown läuft am Stativgerät · Pose halten':notice,layout},draft?.file??null,draft?.cutout??null,async command=>{
   if(locked.current)throw Error('Die Kamera arbeitet noch. Bitte kurz warten.');
   if(command.action==='capture')await capture();
   else if(command.action==='accept')await save();
@@ -143,10 +150,16 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
   if(e.key==='Escape'){e.stopPropagation();close();}
   if(e.key==='Tab'){const nodes=dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),select:not(:disabled),input:not(:disabled),[tabindex="0"]');if(!nodes?.length)return;const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&(document.activeElement===first||document.activeElement===dialog.current)){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}
  }}><div ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="fotobox-title" aria-busy={busy} className="manager-player-fotobox mx-auto min-h-full w-full max-w-lg bg-white text-slate-900 sm:min-h-0 sm:overflow-hidden sm:rounded-2xl" style={{paddingBottom:'max(16px, env(safe-area-inset-bottom))'}}>
-  <header className="sticky top-0 z-20 flex items-center justify-between gap-3 bg-[#292c31] p-4 text-white" style={{paddingTop:'calc(16px + env(safe-area-inset-top, 0px))',paddingLeft:'max(16px, env(safe-area-inset-left, 0px))',paddingRight:'max(16px, env(safe-area-inset-right, 0px))'}}><div><h2 id="fotobox-title" className="text-xl font-bold">{draft?'Foto prüfen':'Spieler-Fotobox'}</h2><p className="text-xs text-slate-300">{draft?'Vorschau im Vereinslook':'Aufnehmen · prüfen · übernehmen'}</p></div><button type="button" aria-label="Fotobox schließen" disabled={saving} onClick={close} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/25"><X/></button></header>
+  <header className="sticky top-0 z-20 flex items-center justify-between gap-3 bg-[#292c31] p-4 text-white" style={{paddingTop:'calc(16px + env(safe-area-inset-top, 0px))',paddingLeft:'max(16px, env(safe-area-inset-left, 0px))',paddingRight:'max(16px, env(safe-area-inset-right, 0px))'}}><div><h2 id="fotobox-title" className="text-xl font-bold">{draft?'Foto prüfen':'Spieler-Fotobox'}</h2><p className="text-xs text-slate-300">{draft?'Vorschau im Vereinslook':'Aufnehmen · prüfen · übernehmen'}</p></div><button type="button" aria-label="Fotobox schließen" disabled={saving||exporting} onClick={close} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/25"><X/></button></header>
   {remoteSessionId&&<p role="status" className={`p-3 text-sm font-semibold ${remote.connected?'bg-emerald-50 text-emerald-900':'bg-amber-50 text-amber-900'}`}>{remote.connected?'Mit Fernsteuerung verbunden · Kamera geöffnet lassen':remote.error||'Verbindung zur Fernsteuerung wird hergestellt…'}</p>}
-  <div className="space-y-4 p-4"><label className="block text-sm font-semibold">Spieler · {index+1} von {players.length}<select aria-label="Spieler auswählen" value={selected} disabled={busy||Boolean(draft)} onChange={e=>{setSelected(e.target.value);setMode('portrait');setNotice('');setFinished(false);}} className="mt-1 min-h-12 w-full rounded-xl border border-slate-300 bg-white p-3 text-base font-semibold text-slate-900">{players.map(p=><option key={p.id} value={p.id}>{p.display_name} · {p.jersey_number??'–'}</option>)}</select></label>
-  {finished?<section className="space-y-3 rounded-xl bg-emerald-50 p-4" role="status"><h3 className="text-lg font-bold">Fotoserie abgeschlossen</h3><p>{Object.values(results).filter(v=>v==='saved').length} Fotos gespeichert · {Object.values(results).filter(v=>v==='skipped').length} Schritte übersprungen.</p><p className="text-sm">Profil-, Spieltag- und Jubelfotos sind getrennt gespeichert. Freistellen, Helligkeit und Ausschnitt kannst du unter „Foto gestalten“ bearbeiten.</p><button type="button" onClick={onClose} className="min-h-11 rounded-xl bg-red-700 px-4 font-semibold text-white">Fertig</button></section>:!draft?<>
+  <div className="space-y-4 p-4"><label className="block text-sm font-semibold">Spieler · {index+1} von {players.length}<select aria-label="Spieler auswählen" value={selected} disabled={busy||Boolean(draft)||Boolean(localPhoto)} onChange={e=>{setSelected(e.target.value);setMode('portrait');setNotice('');setFinished(false);}} className="mt-1 min-h-12 w-full rounded-xl border border-slate-300 bg-white p-3 text-base font-semibold text-slate-900">{players.map(p=><option key={p.id} value={p.id}>{p.display_name} · {p.jersey_number??'–'}</option>)}</select></label>
+  {finished?<section className="space-y-3 rounded-xl bg-emerald-50 p-4" role="status"><h3 className="text-lg font-bold">Fotoserie abgeschlossen</h3><p>{Object.values(results).filter(v=>v==='saved').length} Fotos gespeichert · {Object.values(results).filter(v=>v==='skipped').length} Schritte übersprungen.</p><p className="text-sm">Profil-, Spieltag- und Jubelfotos sind getrennt gespeichert. Freistellen, Helligkeit und Ausschnitt kannst du unter „Foto gestalten“ bearbeiten.</p><button type="button" onClick={onClose} className="min-h-11 rounded-xl bg-red-700 px-4 font-semibold text-white">Fertig</button></section>:localPhoto?<section className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+   <h3 className="text-lg font-bold">In der App gespeichert</h3>
+   <p className="text-sm">Jetzt das Originalfoto zusätzlich auf diesem Gerät sichern. Am iPhone/iPad im Teilen-Menü „Bild sichern“ wählen.</p>
+   <button type="button" disabled={exporting} onClick={()=>{setExporting(true);setExportStatus('');void savePhotoOnDevice(localPhoto).then(result=>setExportStatus(result==='shared'?'Teilen-Menü geschlossen. Mit „Weiter“ fortsetzen.':result==='aborted'?'Export abgebrochen. Das Foto bleibt in der App gespeichert.':'Download gestartet. Das Foto bleibt in der App gespeichert.')).catch(()=>setExportStatus('Export nicht möglich. Bitte erneut versuchen. Das Foto ist in der App gespeichert.')).finally(()=>setExporting(false));}} className="min-h-12 w-full rounded-xl bg-red-700 px-4 font-bold text-white">{exporting?'Export geöffnet…':'Bild sichern'}</button>
+   {exportStatus&&<p role="status" className="text-sm">{exportStatus}</p>}
+   <button type="button" disabled={exporting} onClick={()=>{setLocalPhoto(null);setExportStatus('');advance('saved');}} className="min-h-11 w-full rounded-xl border border-slate-300 bg-white font-semibold">Weiter</button>
+  </section>:!draft?<>
    <div className="flex rounded-xl bg-slate-100 p-1">{PHOTO_STEPS.map(value=><button type="button" key={value} aria-pressed={mode===value} disabled={busy} onClick={()=>setMode(value)} className={`min-h-11 flex-1 rounded-lg font-semibold ${mode===value?'bg-red-700 text-white':''}`}>{PHOTO_LABELS[value]}</button>)}</div>
    <p className="text-sm font-semibold">Schritt {PHOTO_STEPS.indexOf(mode)+1} von 3 · {PHOTO_LABELS[mode]}</p>
    <p className="rounded-xl bg-slate-100 p-3 text-base font-semibold text-slate-900">{mode==='portrait'?'Kamera auf Augenhöhe · Kopf in die Schablone':mode==='matchday'?'Arme verschränken · Oberkörper vollständig im Bild':'Etwas weiter zurück · beide Hände im Rahmen'}</p>
@@ -178,6 +191,8 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
    <p className="text-sm">{mode==='portrait'?'Übernehmen ersetzt das Profilfoto von':'Wird als zusätzliches '+PHOTO_LABELS[mode]+' gespeichert für'} <strong>{player.display_name}</strong>. {mode!=='portrait'?'Das Profilfoto bleibt erhalten.':''}</p>
    <button type="button" disabled={busy} onClick={()=>void save()} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-700 px-4 py-3 font-bold text-white disabled:opacity-50"><Check/>{saving?'Wird gespeichert…':'Übernehmen'}</button>
    <button type="button" disabled={busy} onClick={discard} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 font-semibold"><RefreshCw/>Noch einmal</button>
+   <label className="flex min-h-11 items-center gap-2 text-sm"><input aria-label="Zusätzlich auf Gerät speichern" type="checkbox" checked={deviceCopy} disabled={busy} onChange={e=>setDeviceCopy(e.target.checked)}/>Zusätzlich auf Gerät speichern</label>
+   <p className="text-sm text-slate-600">Originalfoto · nach „Übernehmen“ am fotografierenden Gerät „Bild sichern“ wählen.</p>
    <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={autoNext} disabled={busy} onChange={e=>setAutoNext(e.target.checked)}/>Aufnahmeserie · Profil → Spieltag → Jubel → nächster Spieler</label>
   </>:null}
   {processing&&countdown===null&&<p role="status" className="rounded-xl bg-slate-100 p-3 text-sm">Foto wird vorbereitet{remove?' und freigestellt':''}… Beim ersten Mal werden Bildwerkzeuge geladen.</p>}
