@@ -1,3 +1,5 @@
+import {isManagerComparison} from '../lib/managerComparison';
+import {ManagerReferenceDashboard} from './modern/ManagerReferenceDashboard';
 import { ManagerMobileShortcuts } from './mobile/ManagerMobileShortcuts';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -159,7 +161,7 @@ type NextTrainingPlan = {
 /**
  * STEP-1-Dashboard + STEP-2 Platzbelegung + STEP-3A Trainingsplan-Karte.
  */
-export function ManagerDashboardPage(): React.ReactElement {
+function LegacyManagerDashboardPage(): React.ReactElement {
   const { user: authUser } = useAuth();
   const { profile } = useProfile(authUser?.id);
   const { selectedTeamSeason, selectedTeamSeasonId, viewTeamSeason, teamSeasons } = useSession();
@@ -876,3 +878,5 @@ export function ManagerDashboardPage(): React.ReactElement {
     </>
   );
 }
+
+export function ManagerDashboardPage(): React.ReactElement { return isManagerComparison()?<ManagerReferenceDashboard/>:<LegacyManagerDashboardPage/>; }

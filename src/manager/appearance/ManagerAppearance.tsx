@@ -33,11 +33,12 @@ export function ManagerAppearance({children,modern=false}:{children:React.ReactN
   useEffect(()=>{const sync=(e:StorageEvent)=>{if(e.key===APPEARANCE_KEY)setMode(parseAppearance(e.newValue));};window.addEventListener('storage',sync);return()=>window.removeEventListener('storage',sync);},[]);
   const palette=clubAppearance(branding?.primary_color??null,branding?.secondary_color??null,branding?.accent_color??null,mode);
   const context=viewTeamSeason??selectedTeamSeason;
-  const clubName=supportSession?.clubName ?? (!platform ? context?.team?.name??null : null);
+  const clubRecord=Array.isArray(context?.team?.clubs)?context?.team?.clubs[0]:context?.team?.clubs;
+  const clubName=supportSession?.clubName ?? (!platform ? (modern?clubRecord?.name:null)??context?.team?.name??null : null);
   const value=useMemo(()=>({mode,toggle:()=>setMode(v=>v==='day'?'night':'day'),branding,clubName}),[mode,branding,clubName]);
   const style={'--manager-club-primary':palette.primary,'--manager-club-secondary':palette.secondary,'--manager-action':palette.accent,'--manager-on-action':palette.onAccent,'--manager-link':palette.link,
-    '--club-primary-rgb':palette.primaryRgb,'--club-secondary-rgb':palette.secondaryRgb,'--club-accent-rgb':palette.accentRgb,'--club-border-rgb':palette.accentRgb,'--club-accent-text-rgb':palette.darkAccent.slice(1).match(/../g)!.map(x=>parseInt(x,16)).join(' '),'--club-on-accent':palette.onAccent} as React.CSSProperties;
-  return <AppearanceContext.Provider value={value}><div data-manager-modern={modern ? "true" : undefined} data-manager-appearance={mode} data-manager-club={scope??'platform'} style={style} className="manager-shell manager-club-workspace flex min-h-[100dvh] w-full min-w-0 flex-1 max-md:h-[100dvh] max-md:overflow-hidden">{children}</div></AppearanceContext.Provider>;
+    '--club-primary-rgb':palette.primaryRgb,'--club-secondary-rgb':palette.secondaryRgb,'--club-accent-rgb':palette.accentRgb,'--club-border-rgb':palette.accentRgb,'--club-accent-text-rgb':palette.darkAccent.slice(1).match(/../g)!.map(x=>parseInt(x,16)).join(' '),'--club-on-accent':palette.onAccent,...(modern?{'--accent':palette.accent,'--secondary':palette.primary,'--accent-ink':palette.onAccent}:{})} as React.CSSProperties;
+  return <AppearanceContext.Provider value={value}><div data-manager-modern={modern ? "true" : undefined} data-manager-appearance={mode} data-manager-club={scope??'platform'} style={style} className={"manager-shell manager-club-workspace flex min-h-[100dvh] w-full min-w-0 flex-1 max-md:h-[100dvh] max-md:overflow-hidden"+(modern?" szc-app":"")}>{children}</div></AppearanceContext.Provider>;
 }
 export function ManagerAppearanceToggle(){
   const {mode,toggle}=useManagerAppearance();

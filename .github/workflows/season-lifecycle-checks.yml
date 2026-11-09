@@ -6,6 +6,7 @@ on:
       - 'src/**'
       - 'scripts/season-lifecycle-assistant-test.mjs'
       - 'scripts/central-workspace-test.mjs'
+      - 'scripts/central-reference-test.mjs'
       - '.github/workflows/season-lifecycle-checks.yml'
 permissions:
   contents: read
@@ -23,6 +24,7 @@ jobs:
       - run: npm run typecheck
       - run: node scripts/season-lifecycle-assistant-test.mjs
       - run: node scripts/central-workspace-test.mjs
+      - run: node scripts/central-reference-test.mjs
       - run: node scripts/team-view-selection-test.mjs
       - run: node scripts/manager-player-fotobox-test.mjs
       - run: node scripts/club-photo-template-test.mjs

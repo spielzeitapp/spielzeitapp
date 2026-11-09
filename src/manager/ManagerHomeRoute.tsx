@@ -1,3 +1,4 @@
+import {isManagerComparison} from '../lib/managerComparison';
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { ManagerDashboardPage } from './ManagerDashboardPage';
@@ -16,6 +17,7 @@ export function ManagerHomeRoute(): React.ReactElement {
   }, []);
 
   if (workMode === 'platform_admin' && !supportSession) return <Navigate to="/manager/plattform" replace />;
+  if (isManagerComparison()) return <ManagerDashboardPage />;
   if (workMode === 'club_admin') return <Navigate to="/manager/saisons" replace />;
   if (workMode === 'trainer' && mobile) return <Navigate to="/manager/training/einheiten" replace />;
   return <ManagerDashboardPage />;
