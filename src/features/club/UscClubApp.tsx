@@ -1,3 +1,4 @@
+import { UscClubNewsHome } from "./UscClubNewsHome";
 import { MatchCardGameCore } from "../../components/match/MatchCardGameCore";
 import { TeamHeroFrame } from "../../components/team/TeamHeroFrame";
 import { TeamSquadShowcase } from "../../components/team/TeamSquadShowcase";
@@ -26,7 +27,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../auth/AuthProvider";
 import { useEvents, type EventRow } from "../../hooks/useEvents";
-import { useTeamFeedPosts } from "../../hooks/useTeamFeedPosts";
 import { usePlayers, type PlayerItem } from "../../hooks/usePlayers";
 import {
   useTeamStaff,
@@ -36,7 +36,6 @@ import {
 } from "../../hooks/useTeamStaff";
 import { supabase } from "../../lib/supabaseClient";
 import { ClubLogo } from "../../components/branding/ClubLogo";
-import { HomeFeedPostRenderer } from "../../components/feed/HomeFeedPostRenderer";
 import { PlayerProfileModal } from "../../components/team/PlayerProfileModal";
 import { ProfileHeroCard } from "../../components/team/profile/ProfileHeroCard";
 import {
@@ -179,9 +178,6 @@ function ClubSeasonContent({
     error: eventError,
     refetch: reloadEvents,
   } = useEvents(season.id);
-  const feed = useTeamFeedPosts(season.id, season.team_id, {
-    skipEnsures: true,
-  });
   const roster = usePlayers(tab === "teams" ? season.id : null);
   const staff = useTeamStaff(tab === "teams" ? season.id : null);
   const [player, setPlayer] = useState<PlayerItem | null>(null);
@@ -321,18 +317,6 @@ function ClubSeasonContent({
         .sort((a, b) => Date.parse(b.starts_at) - Date.parse(a.starts_at)),
     [events],
   );
-  const next = useMemo(
-    () =>
-      matches
-        .filter(
-          (e) =>
-            Date.parse(e.starts_at) > Date.now() &&
-            e.status !== "canceled" &&
-            scores.get(e.match_id || "")?.status !== "finished",
-        )
-        .sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at))[0],
-    [matches, scores],
-  );
   const visibleMatches = matches.filter(
     (e) =>
       filter === "alle" ||
@@ -344,110 +328,12 @@ function ClubSeasonContent({
     visibleMatches.sort(
       (a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at),
     );
-  const eventById = useMemo(
-    () => new Map(events.map((e) => [e.id, e])),
-    [events],
-  );
-  const finished = useMemo(
-    () =>
-      new Set(
-        events
-          .filter(
-            (e) =>
-              e.status === "finished" ||
-              scores.get(e.match_id || "")?.status === "finished",
-          )
-          .map((e) => e.id),
-      ),
-    [events, scores],
-  );
   const activePlayers = useMemo(() => roster.players
     .filter((p) => (p.status ?? "active") === "active")
     .sort((a, b) => (a.jersey_number ?? 9999) - (b.jersey_number ?? 9999) || a.display_name.localeCompare(b.display_name, "de")), [roster.players]);
   const players = activePlayers;
   return (
     <div className="usc-season-content" onClickCapture={keepClubNavigation}>
-      {tab === "home" ? (
-        <>
-          <section className="usc-hero">
-            <div className="usc-hero-image">
-              {photo ? (
-                <img
-                  className="usc-hero-photo"
-                  src={photo.photo_url}
-                  style={teamPhotoImageStyle(photo)}
-                  alt="Mannschaft des USC Rohrbach"
-                />
-              ) : (
-                <div className="usc-hero-fallback" />
-              )}
-            </div>
-            <div className="usc-hero-copy">
-              <span className="usc-eyebrow">
-                Unser Verein. Unser Team.
-              </span>
-              <h1>USC Rohrbach</h1>
-              <p>
-                {season.age_group} · Saison {season.season?.name}
-              </p>
-            </div>
-          </section>
-          <div className="usc-section-head">
-            <h2>Nächstes Spiel</h2>
-            <button onClick={() => setTab("spiele")}>
-              Alle Spiele <ChevronRight size={16} />
-            </button>
-          </div>
-          {eventsLoading ? (
-            <p className="usc-note" role="status">
-              Spiele werden geladen…
-            </p>
-          ) : next ? (
-            <ClubMatch
-              event={next}
-              score={scores.get(next.match_id || "")}
-              onOpen={() => openDetail(next)}
-              hero
-            />
-          ) : (
-            <p className="usc-note">
-              Aktuell ist kein kommendes Spiel eingetragen.
-            </p>
-          )}
-          <div className="usc-section-head">
-            <h2>Aktuelles</h2>
-            <span className="usc-eyebrow">{season.age_group}</span>
-          </div>
-          {feed.loading ? (
-            <p className="usc-note" role="status">
-              Beiträge werden geladen…
-            </p>
-          ) : feed.error ? (
-            <div className="usc-note" role="alert">
-              {feed.error}
-              <button onClick={() => void feed.refetch()}>Erneut laden</button>
-            </div>
-          ) : feed.activePosts.length ? (
-            <div className="usc-club-feed">
-              {feed.activePosts.map((item) => (
-                <HomeFeedPostRenderer
-                  key={item.post.id}
-                  item={item}
-                  eventById={eventById}
-                  finishedEventIds={finished}
-                  teamLabel="USC Rohrbach"
-                  seasonLabel={season.season?.name}
-                  staffCanDelete={false}
-                />
-              ))}
-            </div>
-          ) : (
-            <p className="usc-note">
-              Noch keine Beiträge für diese Mannschaft vorhanden.
-            </p>
-          )}
-        </>
-      ) : null}
       {tab === "spiele" ? (
         <>
           <div className="usc-page-title">
@@ -491,7 +377,7 @@ function ClubSeasonContent({
           )}
         </>
       ) : null}
-      {scoreError && (tab === "home" || tab === "spiele") ? (
+      {scoreError && tab === "spiele" ? (
         <p className="usc-note" role="alert">
           Ergebnisse konnten nicht geladen werden.
           <button onClick={() => setScoreRetry((n) => n + 1)}>
@@ -810,7 +696,7 @@ export function UscClubApp() {
           </section>
         ) : (
           <>
-            {tab !== "verein" ? <div className="usc-team-picker" role="group" aria-label="Mannschaft wählen">
+            {tab !== "verein" && tab !== "home" ? <div className="usc-team-picker" role="group" aria-label="Mannschaft wählen">
               <div className="usc-team-picker-heading"><span>Mannschaften</span><span>{season.season?.name}</span></div>
               <div className="usc-team-chips">
                 {club.seasons.map((s) => <button key={s.id} type="button" aria-label={`${s.age_group === "KM" ? "Kampfmannschaft" : s.age_group === "RES" ? "Reserve" : s.age_group} · ${s.season?.name}`} aria-pressed={season.id === s.id} onClick={() => setParams((previous) => {
@@ -818,7 +704,8 @@ export function UscClubApp() {
                 })}>{s.age_group === "KM" ? "Kampfmannschaft" : s.age_group === "RES" ? "Reserve" : s.age_group}{s.season?.name !== season.season?.name ? ` · ${s.season?.name}` : ""}</button>)}
               </div>
             </div> : null}
-            {tab !== "verein" ? (
+            {tab === "home" ? <UscClubNewsHome key={`${user.id}:${club.seasons.map((item) => item.id).join(",")}`} seasons={club.seasons} /> : null}
+            {tab !== "verein" && tab !== "home" ? (
               <ClubSeasonContent
                 key={season.id}
                 season={season}

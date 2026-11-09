@@ -605,3 +605,12 @@
     padding-inline: 28px;
   }
 }
+
+.usc-news-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 22px 16px; }
+.usc-news-heading h1 { font-size: 30px; font-weight: 900; letter-spacing: -0.045em; line-height: 1.1; }
+.usc-news-heading p { margin-top: 6px; color: #aeb5bf; font-size: 12px; }
+.usc-news-heading button { min-height: 44px; font-size: 12px; font-weight: 700; color: #d4dae2; }
+.usc-news-heading button:disabled { opacity: 0.5; }
+.usc-news-empty { margin: 0 16px 24px; padding: 24px 18px; border: 1px solid #ffffff20; border-radius: 16px; text-align: center; }
+.usc-news-empty h2 { font-size: 18px; font-weight: 800; }
+.usc-news-empty p { margin-top: 10px; font-size: 13px; line-height: 1.6; color: #bfc6d0; }

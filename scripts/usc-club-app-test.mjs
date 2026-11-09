@@ -60,7 +60,8 @@ const mocks = {
   useEvents:
     "export const useEvents=()=>({events:globalThis.__uscFixture.events,loading:false,error:null,refetch(){}});",
   useTeamFeedPosts:
-    'export const useTeamFeedPosts=(id,team,opts)=>{if(!opts.skipEnsures)throw Error("Club app must not generate posts");return {activePosts:[{post:{id:"real-post",team_season_id:id}}],loading:false,error:null,refetch(){}}};',
+    'export const useTeamFeedPosts=(id,team,opts)=>{if(!opts.skipEnsures)throw Error("Club app must not generate posts");globalThis.__uscFeedScope=opts.teamSeasonIds;globalThis.__uscChronicle=opts.chronicleView;return {activePosts:globalThis.__uscFixture.posts??(opts.teamSeasonIds??[id]).map((sid,i)=>({kind:"image",post:{id:i?"reserve-post":"real-post",team_season_id:sid,created_at:i?"2026-11-08T12:00:00Z":"2026-11-06T12:00:00Z"}})),loading:false,error:null,refetch(){}}};',
+
   usePlayers:
     "export const usePlayers=(id)=>({players:globalThis.__uscFixture.players?.[id]??[],loading:false,error:null});",
   useTeamStaff:
@@ -165,8 +166,11 @@ const click = async (label) => {
 globalThis.document = { querySelector: () => null };
 await mount("/app/usc-rohrbach");
 assert.match(html(), /Vorhandener USC-Beitrag real-post/);
-assert.match(html(), /Wilhelmsburg/);
-assert.match(html(), /Kampfmannschaft/);
+assert.match(html(), /reserve-post/);
+assert.deepEqual(globalThis.__uscFeedScope, ["km", "res"]);
+assert.equal(globalThis.__uscChronicle,true);
+assert.ok(html().indexOf("reserve-post") < html().indexOf("real-post"), "club feed orders newest first across teams");
+assert.doesNotMatch(html(), /Mannschaft wählen|Mannschaftsfoto|Unser Verein. Unser Team.|Nächstes Spiel|Kampfmannschaft/);
 await click("Spiele");
 assert.match(html(), /Ober-Grafendorf/);
 assert.match(html(), /4:0/);
@@ -181,6 +185,30 @@ await act(async () =>
 );
 assert.match(html(), /Reserve/);
 await act(async () => tree.unmount());
+fixtures.posts=[
+  {kind:"image",post:{id:"foreign",team_season_id:"other-club",created_at:"2099-01-01T00:00:00Z"}},
+  {kind:"image",post:{id:"reserve-new",team_season_id:"res",created_at:"2026-11-09T10:00:00Z"}},
+  {kind:"image",post:{id:"km-old",team_season_id:"km",created_at:"2026-11-08T10:00:00Z"}},
+  {kind:"image",post:{id:"km-old",team_season_id:"km",created_at:"2026-11-08T10:00:00Z"}},
+];
+await mount("/app/usc-rohrbach?teamSeason=res");
+assert.deepEqual(globalThis.__uscFeedScope,["km","res"]);
+assert.match(html(), /reserve-new/);assert.match(html(), /km-old/);assert.doesNotMatch(html(), /foreign/);
+assert.equal(tree.root.findAllByType("article").length,2, "same post occurs only once");
+fixtures.events.push({id:"party",team_season_id:"res",type:"event",kind:"event",opponent:"4 Seasons",starts_at:"2026-11-15T18:00:00Z",location:"Sportplatz",status:"upcoming",notes:"Vereinsveranstaltung"});
+let followed = false;
+await act(async()=>tree.root.findByProps({"aria-label":"Vereinsnews"}).props.onClickCapture({button:0,preventDefault(){followed=true;},target:{closest:()=>({getAttribute:name=>name==="href"?"/app/events/party":null,hasAttribute:()=>false})}}));
+assert.equal(followed,true);
+assert.match(html(), /4 Seasons/);
+assert.match(html(), /Vereinsveranstaltung/);
+assert.doesNotMatch(html(), /Gegner noch offen/);
+assert.ok(tree.root.findByProps({"aria-label":"Termindetails"}));
+assert.ok(tree.root.findByProps({"aria-label":"Vereinsnews"}), "event opens in Home instead of changing to match schedule");
+fixtures.events.pop();
+
+assert.doesNotMatch(html(), /Mannschaft wählen|Mannschaftsfoto|Nächstes Spiel/);
+await act(async()=>tree.unmount());
+delete fixtures.posts;
 await mount("/app/usc-rohrbach?tab=tabelle");
 assert.match(html(), /Tabelle km/);
 await act(async () => tree.unmount());
@@ -232,7 +260,7 @@ for (const icon of manifest.icons) {
   );
 }
 console.log(
-  "PASS USC club app: club/active-season isolation, real feed reuse without ensures, score home/away order, future/past filters, team switching, table scope, signed-out data gate, login return link and installable original-crest PNG icons.",
+  "PASS USC club news: combined authorized seasons, newest first, no team picker/hero, foreign posts excluded and duplicates removed. USC club app: club/active-season isolation, real feed reuse without ensures, score home/away order, future/past filters, team switching, table scope, signed-out data gate, login return link and installable original-crest PNG icons.",
 );
 const metaBuild = await build({
   entryPoints: ["src/app/ManifestSync.tsx"],
