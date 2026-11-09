@@ -5,6 +5,15 @@ import {Maximize2, Minimize2, RefreshCw} from 'lucide-react';
 export function ManagerPhonePreview({clubId, seasonId}: {clubId: string; seasonId: string}) {
   const [expanded, setExpanded] = useState(false);
   const [revision, setRevision] = useState(0);
+  useEffect(() => {
+    const refresh = () => setRevision(value => value + 1);
+    window.addEventListener('manager-setup-changed', refresh);
+    window.addEventListener('spielzeit:club-branding-changed', refresh);
+    return () => {
+      window.removeEventListener('manager-setup-changed', refresh);
+      window.removeEventListener('spielzeit:club-branding-changed', refresh);
+    };
+  }, []);
   const dialog = useRef<HTMLDialogElement>(null);
   const expandButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
