@@ -202,7 +202,7 @@ export function useTeamFeedPosts(
   const fetchScopePosts = useCallback(async () => {
     if (!multiScope) return fetchActiveSeasonPosts({ teamSeasonId: teamSeasonId!, teamId, chronicleView: opts?.chronicleView });
     const scopes = scopeKey.split(',').filter(Boolean);
-    const results = await Promise.all(scopes.map((id) => fetchActiveSeasonPosts({ teamSeasonId: id, teamId: null })));
+    const results = await Promise.all(scopes.map((id) => fetchActiveSeasonPosts({ teamSeasonId: id, teamId: null, chronicleView: opts?.chronicleView })));
     return {
       posts: sortFeedPostsChronologically(results.flatMap((result) => result.posts)),
       dbRowCount: results.reduce((sum, result) => sum + result.dbRowCount, 0),
