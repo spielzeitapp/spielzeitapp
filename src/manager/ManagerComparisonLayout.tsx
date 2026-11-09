@@ -1,3 +1,4 @@
+import { ManagerSeasonLifecycleAssistant } from './components/ManagerSeasonLifecycleAssistant';
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { ManagerComparisonHeader } from './components/ManagerComparisonHeader';
@@ -71,7 +72,7 @@ export function ManagerComparisonLayout(): React.ReactElement {
               ].join(' ')}>
                 <ManagerRouteGuard>
                   <ManagerAccessDeniedBanner />
-                  <ManagerTeamScope><Outlet key={context?.id ?? 'platform'} /></ManagerTeamScope>
+                  <ManagerTeamScope><ManagerSeasonLifecycleAssistant seasonId={context?.id} /><Outlet key={context?.id ?? 'platform'} /></ManagerTeamScope>
                 </ManagerRouteGuard>
               </div>
             </main>

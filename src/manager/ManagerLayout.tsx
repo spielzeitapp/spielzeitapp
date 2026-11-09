@@ -1,3 +1,4 @@
+import { ManagerSeasonLifecycleAssistant } from './components/ManagerSeasonLifecycleAssistant';
 import { isManagerComparison } from '../lib/managerComparison';
 import { ManagerComparisonLayout } from './ManagerComparisonLayout';
 import React, { useState } from 'react';
@@ -72,7 +73,7 @@ function LegacyManagerLayout(): React.ReactElement {
               ].join(' ')}>
                 <ManagerRouteGuard>
                   <ManagerAccessDeniedBanner />
-                  <ManagerTeamScope><Outlet key={context?.id ?? 'platform'} /></ManagerTeamScope>
+                  <ManagerTeamScope><ManagerSeasonLifecycleAssistant seasonId={context?.id} /><Outlet key={context?.id ?? 'platform'} /></ManagerTeamScope>
                 </ManagerRouteGuard>
               </div>
             </main>

@@ -1,3 +1,4 @@
+import {SeasonLifecycleAssistant} from '../components/season/SeasonLifecycleAssistant';
 /**
  * STEP 4: Manager-Saisonübersicht (aktive, Entwürfe, Archiv).
  * Nutzt bestehende Lifecycle-/Transition-Libs — keine parallele Kaderlogik.
@@ -218,6 +219,7 @@ export function ManagerSeasonsPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
+      <SeasonLifecycleAssistant seasonId={active?.id ?? selectedTeamSeasonId ?? undefined} alwaysShow/>
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
