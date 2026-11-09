@@ -1,6 +1,7 @@
 name: Season lifecycle checks
 on:
   pull_request:
+    branches: [develop]
     paths:
       - 'src/**'
       - 'scripts/season-lifecycle-assistant-test.mjs'
