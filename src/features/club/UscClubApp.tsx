@@ -1,3 +1,4 @@
+import { UscMainTeamFilter, useUscTeamSelection } from "./UscMainTeamFilter";
 import { UscTeamPicker } from "./UscTeamPicker";
 import { useMatchClubBranding } from "../../hooks/useMatchClubBranding";
 import { UscClubNewsHome } from "./UscClubNewsHome";
@@ -21,6 +22,7 @@ import {
   ArrowUpRight,
   ChevronRight,
   Menu,
+  SlidersHorizontal,
   X,
 } from "lucide-react";
 import { useAuth } from "../../auth/AuthProvider";
@@ -600,12 +602,15 @@ export function UscClubApp() {
     }
   };
   const club = useUscClub(user?.id ?? null);
+  const myTeams = useUscTeamSelection(user?.id ?? null, club.seasons);
+  const [teamFilterOpen, setTeamFilterOpen] = useState(false);
+  useEffect(() => { setTeamFilterOpen(false); }, [user?.id]);
   const [params, setParams] = useSearchParams();
   const clubReturnPath = `${USC_APP_PATH}${params.toString() ? `?${params.toString()}` : ""}`;
   const tab = clubTab(params.get("tab"));
   const season =
-    club.seasons.find((s) => s.id === params.get("teamSeason")) ??
-    club.seasons[0];
+    myTeams.seasons.find((s) => s.id === params.get("teamSeason")) ??
+    myTeams.seasons[0];
   const [menu, setMenu] = useState(false);
   const [install, setInstall] = useState(false);
   const [clubSection, setClubSection] = useState("ueber");
@@ -645,6 +650,7 @@ export function UscClubApp() {
         <Link to={USC_APP_PATH} aria-label="USC Rohrbach Startseite">
           <ClubLogo src={USC_LOGO} removeDarkBackground alt="USC Rohrbach" />
         </Link>
+        {user && club.seasons.length > 0 ? <button type="button" className={`usc-icon-button usc-news-filter-button ${myTeams.allSelected ? "" : "usc-news-filter-active"}`} aria-label="Meine Mannschaften" aria-haspopup="dialog" aria-expanded={teamFilterOpen} onClick={() => setTeamFilterOpen(true)}><SlidersHorizontal size={21} />{!myTeams.allSelected ? <span>{myTeams.visibleIds.length}</span> : null}</button> : null}
         <button
           className="usc-icon-button"
           type="button"
@@ -692,7 +698,7 @@ export function UscClubApp() {
             {club.error}
             <button onClick={club.retry}>Erneut laden</button>
           </p>
-        ) : !season ? (
+        ) : !club.seasons.length ? (
           <section className="usc-note">
             <h1>Willkommen beim USC.</h1>
             <p>
@@ -706,12 +712,13 @@ export function UscClubApp() {
           </section>
         ) : (
           <>
-            {tab !== "verein" && tab !== "home" ? <UscTeamPicker seasons={club.seasons} selectedId={season.id} onSelect={(id) => {
-              if (!club.seasons.some((item) => item.id === id)) return;
+            {tab !== "verein" && tab !== "home" && season ? <UscTeamPicker seasons={myTeams.seasons} selectedId={season.id} onSelect={(id) => {
+              if (!myTeams.seasons.some((item) => item.id === id)) return;
               setParams((previous) => { const next = new URLSearchParams(previous); next.set("teamSeason", id); next.delete("event"); return next; });
             }} /> : null}
-            {tab === "home" ? <UscClubNewsHome key={`${user.id}:${club.seasons.map((item) => item.id).join(",")}`} seasons={club.seasons} /> : null}
-            {tab !== "verein" && tab !== "home" ? (
+            {tab === "home" ? <UscClubNewsHome key={`${user.id}:${myTeams.visibleIds.join(",")}`} seasons={myTeams.seasons} allSelected={myTeams.allSelected} onOpenTeamFilter={() => setTeamFilterOpen(true)} /> : null}
+            {tab !== "verein" && tab !== "home" && !season ? <section className="usc-news-empty"><h2>Keine Mannschaft ausgewählt</h2><p>Wähle unter „Meine Mannschaften“, welche Teams du hier sehen möchtest.</p><button className="usc-action" onClick={() => setTeamFilterOpen(true)}>Mannschaften auswählen</button></section> : null}
+            {tab !== "verein" && tab !== "home" && season ? (
               <ClubSeasonContent
                 key={season.id}
                 season={season}
@@ -800,6 +807,16 @@ export function UscClubApp() {
           </Link>
         </footer>
       </main>
+      {user && club.seasons.length > 0 ? <UscMainTeamFilter key={user.id} open={teamFilterOpen} scopes={myTeams.scopes} visibleIds={myTeams.visibleIds} onClose={() => setTeamFilterOpen(false)} onApply={(ids) => {
+        myTeams.save(ids);
+        if (!ids.includes(params.get("teamSeason") ?? "")) setParams((previous) => {
+          const next = new URLSearchParams(previous);
+          const first = myTeams.scopes.find((item) => ids.includes(item.id));
+          if (first) next.set("teamSeason", first.id); else next.delete("teamSeason");
+          next.delete("event");
+          return next;
+        });
+      }} /> : null}
       <nav className="usc-bottom-nav" aria-label="Vereinsnavigation">
         {tabs.map(({ id, label, iconFile }) => (
           <button
