@@ -1,0 +1,103 @@
+/* Complete tool surfaces, scoped to the Vereinszentrale. Original manager stays unchanged. */
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-workspace { min-width:0; padding:0 2px 28px; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-workspace-toolbar { position:relative; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:0 0 18px; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-workspace-toolbar:after { content:''; position:absolute; left:0; bottom:5px; width:64px; height:3px; border-radius:3px; background:linear-gradient(90deg,var(--manager-club-primary) 60%,var(--manager-club-secondary) 60%); }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-breadcrumb { display:flex; gap:9px; align-items:center; min-width:0; font-size:12px; color:var(--manager-muted); }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-breadcrumb span { font-weight:650; color:var(--manager-text); }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-tool-search { position:relative; z-index:35; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-tool-search summary { display:flex; align-items:center; gap:8px; cursor:pointer; list-style:none; border:1px solid var(--manager-border); background:var(--manager-surface); border-radius:999px; min-height:42px; padding:8px 16px; font-size:12px; font-weight:600; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-tool-search summary::-webkit-details-marker { display:none; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-tool-search summary:focus-visible { outline:2px solid var(--manager-link); outline-offset:3px; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-tool-search-panel { position:absolute; right:0; top:50px; width:380px; max-width:calc(100vw - 40px); padding:18px; border:1px solid var(--manager-border); border-radius:20px; background:var(--manager-surface); box-shadow:0 20px 60px #0004; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-tool-search-panel>label { display:block; font-size:12px; font-weight:700; margin-bottom:12px; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-search-input { display:flex; align-items:center; gap:8px; border:1px solid var(--manager-border); border-radius:12px; padding:0 10px; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-search-input input { border:0!important; width:100%; min-width:0; min-height:44px; box-shadow:none!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-search-input input::-webkit-search-cancel-button { display:none; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-search-input button { min-height:44px; min-width:30px; display:grid; place-items:center; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-tool-results { max-height:min(50vh,400px); overflow:auto; margin-top:10px; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-tool-results a { display:grid; grid-template-columns:1fr auto; gap:3px 8px; min-height:56px; padding:10px; border-radius:10px; font-size:13px; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-tool-results a:hover { background:var(--manager-surface-alt); }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-tool-results small { grid-row:2; font-size:10px; color:var(--manager-muted); }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-tool-results svg { grid-column:2; grid-row:1/3; align-self:center; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-section-tabs { display:flex; gap:6px; overflow-x:auto; padding:0 0 12px; scrollbar-width:thin; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-section-tabs a { display:inline-flex; align-items:center; min-height:40px; flex-shrink:0; padding:8px 14px; border:1px solid var(--manager-border); border-radius:999px; font-size:11px; font-weight:650; background:var(--manager-surface); color:var(--manager-muted); }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-section-tabs a[aria-current=page] { background:var(--manager-action); color:var(--manager-on-action); border-color:transparent; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-data-note { display:flex; align-items:center; gap:7px; font-size:10px; line-height:1.5; color:var(--manager-muted); margin:0 0 22px; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-page-content { min-width:0; color:var(--manager-text); }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) {
+ --surface:var(--manager-surface); --surface2:var(--manager-surface-alt); --text:var(--manager-text); --muted:var(--manager-muted);
+ --text-main:var(--manager-text); --text-sub:var(--manager-muted); --bg-top:var(--manager-bg); --bg-mid:var(--manager-bg); --bg-bottom:var(--manager-bg);
+}
+/* Existing business screens keep their components and data hooks. Normalize neutral panels,
+   never images, poster artwork, camera frames, pitch diagrams or status colors. */
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) :is(
+ .bg-white,[class~='bg-white/95'],[class~='bg-white/90'],.bg-slate-50,.bg-slate-100,.bg-gray-50,.bg-gray-100,
+ [class~='bg-[#050506]'],[class~='bg-[#111114]'],[class~='bg-[#0b0c10]'],[class~='bg-[#111318]'],[class~='bg-[#08080b]'],
+ [class~='bg-[#050505]'],[class~='bg-[#060606]'],[class~='bg-[#060608]'],[class~='bg-[#080808]'],[class~='bg-[#08080a]'],[class~='bg-[#080a10]'],[class~='bg-[#09070a]'],[class~='bg-[#090909]'],[class~='bg-[#0A0A0A]'],[class~='bg-[#0A0A0C]'],[class~='bg-[#0a0a0a]'],[class~='bg-[#0b0d12]'],[class~='bg-[#0d0b0d]'],[class~='bg-[#0f0f0f]'],[class~='bg-[#100d11]'],[class~='bg-[#101013]'],[class~='bg-[#101014]'],[class~='bg-[#111216]'],[class~='bg-[#141414]'],[class~='bg-[#171717]'],[class~='bg-[#1b1d22]'],[class~='bg-[#292c31]'],[class~='bg-[#2a2a2e]'],[class~='bg-[#F4F5F7]'],
+ .bg-zinc-900,.bg-zinc-950,.bg-neutral-900,.bg-slate-900,.bg-slate-950,
+ [data-ui-page-shell],[data-ui-card],.sz-club-surface,.sz-club-list-card,.sz-club-feed-shell,.manager-app-workspace,
+ [role=dialog],.manager-player-fotobox
+):not([data-manager-artwork],[data-manager-artwork] *,[data-profile-artwork],[data-profile-artwork] *,[data-central-preserve],[data-central-preserve] *) {
+ background:var(--manager-surface)!important; color:var(--manager-text)!important; border-color:var(--manager-border)!important;
+}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) :is(.bg-white\/5,.bg-white\/\[0\.03\],.bg-white\/\[0\.04\],.bg-white\/\[0\.06\],.bg-slate-200,.bg-zinc-800):not([data-manager-artwork],[data-manager-artwork] *,[data-profile-artwork],[data-profile-artwork] *,[data-central-preserve],[data-central-preserve] *) { background-color:var(--manager-surface-alt)!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) :is(
+ .text-slate-900,.text-slate-800,.text-slate-700,.text-gray-900,.text-gray-800,.text-gray-700,.text-zinc-900,.text-black,.text-white,
+ [class~='text-[#F2F2F2]'],[class~='text-[#E8E4E6]']
+):not([data-manager-artwork],[data-manager-artwork] *,[data-profile-artwork],[data-profile-artwork] *,[data-central-preserve],[data-central-preserve] *,button,a[role=button]) { color:var(--manager-text)!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) :is([class*='text-white/'],.text-slate-400,.text-slate-500,.text-slate-600,.text-gray-400,.text-gray-500,.text-gray-600,.text-zinc-400,.text-zinc-500,.text-zinc-600):not([data-manager-artwork],[data-manager-artwork] *,[data-profile-artwork],[data-profile-artwork] *,[data-central-preserve],[data-central-preserve] *) { color:var(--manager-muted)!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) :is([class*='border-white'],[class*='border-slate-'],[class*='border-gray-'],[class*='border-zinc-']):not([data-manager-artwork],[data-manager-artwork] *,[data-profile-artwork],[data-profile-artwork] *,[data-central-preserve],[data-central-preserve] *) { border-color:var(--manager-border)!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) :is(button,a):is(.bg-red-600,.bg-red-700,.bg-red-800,.bg-red-950):not(.manager-danger-action,[aria-label*='löschen' i],[title*='löschen' i]) { background:var(--manager-action)!important; color:var(--manager-on-action)!important; border-color:transparent!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) :is(button,a)[aria-pressed=true]:not([data-central-preserve] *,[data-manager-artwork] *,[data-profile-artwork] *) { background:var(--manager-action)!important; color:var(--manager-on-action)!important; border-color:var(--manager-action)!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) :is(a.text-red-700,a.text-red-600,button.text-red-700):not(.manager-danger-action,[aria-label*='löschen' i]) { color:var(--manager-link)!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) :is(input,select,textarea):not([type=checkbox],[type=radio],[type=range],[type=file]) { border-radius:12px; min-height:44px; font-size:14px; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-modal-scope { display:contents; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-modal-scope :is(.modalHeader,.modalFooter,.modalBody) { background:var(--manager-surface)!important; color:var(--manager-text)!important; border-color:var(--manager-border)!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-modal-scope .modalTitle { color:var(--manager-text)!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-modal-scope .modalClose { color:var(--manager-muted)!important; }
+/* Bespoke media, social and speaker screens also follow the one workspace theme. */
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.media-studio,.speaker-studio) { background:var(--manager-bg)!important; color:var(--manager-text)!important; color-scheme:inherit; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.media-studio-panel,.media-studio-templates button,.media-studio-secondary,.communication-draft-toolbar,.speaker-preparation,.speaker-run,.speaker-reading,.speaker-dj,.speaker-quick,.speaker-tabs,.speaker-dj>.speaker-audio-actions,.speaker-playlist-card,.speaker-track-details>div,.speaker-pads>.speaker-pad) { background:var(--manager-surface)!important; color:var(--manager-text)!important; border-color:var(--manager-border)!important; box-shadow:none; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.media-studio-header p,.media-studio-eyebrow,.media-studio-hint,.media-studio-templates span,.media-studio-next p,.speaker-eyebrow,.speaker-hint,.speaker-run span,.speaker-run small,.speaker-library-heading>span,.speaker-playlist-card small,.speaker-library-track small,.speaker-pad-file,.speaker-pad-settings summary,.speaker-music-entry,.speaker-pad-progress,.communication-draft-toolbar small,.communication-draft-toolbar p) { color:var(--manager-muted)!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.communication-draft-toolbar label,.speaker-track,.media-studio-field) { color:var(--manager-text)!important; border-color:var(--manager-border); }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.speaker-studio button,.speaker-studio a,.communication-draft-toolbar button) { background:var(--manager-surface-alt); color:var(--manager-text); border-color:var(--manager-border); min-height:44px; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.media-studio-primary,.speaker-tabs button[aria-pressed=true],.speaker-studio button.active,.speaker-playlist-card.selected,.speaker-run button[aria-current=step]) { background:var(--manager-action)!important; color:var(--manager-on-action)!important; border-color:var(--manager-action)!important; box-shadow:none!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .speaker-playlist-card.selected small { color:inherit!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.media-studio-text-button,.media-studio-next a,.media-studio-header h1 svg,.speaker-studio h1 svg) { color:var(--manager-link)!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .speaker-studio .speaker-stop,.manager-club-workspace[data-manager-modern][data-manager-appearance] .speaker-pad-stop:not(:disabled) { background:#b91c1c!important; color:#fff!important; border-color:#b91c1c!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .speaker-pads>.speaker-pad--playing { background:color-mix(in srgb,var(--manager-success) 12%,var(--manager-surface))!important; border-color:var(--manager-success)!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .speaker-pad--playing .speaker-pad-progress { color:var(--manager-success)!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-modal-scope :is(select,input,textarea),.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-modal-scope select option { background:var(--manager-surface)!important; color:var(--manager-text)!important; -webkit-text-fill-color:var(--manager-text)!important; color-scheme:inherit; border-color:var(--manager-border)!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .manager-player-fotobox { color-scheme:inherit; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-modal-scope input[type=checkbox] { accent-color:var(--manager-action); }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-modal-scope :is(button,a,input,select,textarea):focus-visible { outline:2px solid var(--manager-link); outline-offset:3px; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-page-content :is(h1,h2,h3):not([data-manager-artwork] *,[data-profile-artwork] *) { letter-spacing:-.025em; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-page-content h1:not([data-manager-artwork] *,[data-profile-artwork] *) { font-weight:750; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-page-content :is(section,article)[class*='rounded-2xl']:not([data-manager-artwork],[data-manager-artwork] *,[data-profile-artwork],[data-profile-artwork] *,[data-central-preserve],[data-central-preserve] *) { border-radius:20px; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-page-content :is(table) { width:100%; font-size:13px; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-page-content :is(th) { font-size:10px; letter-spacing:.07em; text-transform:uppercase; font-weight:650; color:var(--manager-muted); }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-page-content :is(td,th) { padding:13px 14px; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-page-content .manager-release-panel { border-radius:20px; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-page-content [role=alert] { line-height:1.6; }
+/* Neutralize legacy profile/menu decoration, while keeping semantic red/green/orange states. */
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-page-content .bg-gradient-to-br.from-red-950\/50 { background:linear-gradient(135deg,var(--manager-accent-soft),var(--manager-surface))!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-page-content :is(.bg-red-950\/35,.bg-red-950\/30) { background:var(--manager-accent-soft)!important; color:var(--manager-link)!important; }
+/* The checklist, validation and import reports use semantic colors in either theme. */
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) :is([class*='bg-emerald-50'],[class*='bg-green-50']) { background:color-mix(in srgb,var(--manager-success) 10%,var(--manager-surface))!important; color:var(--manager-success)!important; border-color:color-mix(in srgb,var(--manager-success) 35%,var(--manager-border))!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) :is([class*='bg-amber-50'],[class*='bg-orange-50']) { background:color-mix(in srgb,var(--manager-warning) 10%,var(--manager-surface))!important; color:var(--manager-warning)!important; border-color:color-mix(in srgb,var(--manager-warning) 35%,var(--manager-border))!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) :is(.bg-red-50,.bg-rose-50) { background:color-mix(in srgb,var(--manager-danger) 10%,var(--manager-surface))!important; color:var(--manager-danger)!important; border-color:color-mix(in srgb,var(--manager-danger) 35%,var(--manager-border))!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) :is(.text-green-700,.text-green-800,.text-emerald-700,.text-emerald-800,.text-emerald-900) { color:var(--manager-success)!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) :is(.text-amber-700,.text-amber-800,.text-amber-900,.text-amber-950,.text-orange-700,.text-orange-800,.text-orange-900) { color:var(--manager-warning)!important; }
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) :is(.text-rose-700,.text-rose-800,.text-rose-900,[role=alert].text-red-700,[role=alert].text-red-800) { color:var(--manager-danger)!important; }
+@media(max-width:767px) {
+ .manager-club-workspace[data-manager-modern][data-manager-appearance] .central-workspace { padding:16px 14px 28px; }
+ .manager-club-workspace[data-manager-modern][data-manager-appearance] .central-data-note { font-size:9px; align-items:flex-start; margin-bottom:18px; }
+ .manager-club-workspace[data-manager-modern][data-manager-appearance] .central-data-note svg { flex-shrink:0; margin-top:1px; }
+ .manager-club-workspace[data-manager-modern][data-manager-appearance] .central-tool-search summary { width:42px; padding:0; justify-content:center; }
+ .manager-club-workspace[data-manager-modern][data-manager-appearance] .central-tool-search summary span { display:none; }
+ .manager-club-workspace[data-manager-modern][data-manager-appearance] .central-tool-search-panel { max-width:calc(100vw - 72px); }
+ .manager-club-workspace[data-manager-modern][data-manager-appearance] .central-page-content :is(input,select,textarea):not([type=checkbox],[type=radio],[type=range],[type=file]),.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-modal-scope :is(input,select,textarea) { font-size:16px; }
+ .manager-club-workspace[data-manager-modern][data-manager-appearance] .central-page-content :is(button,a)[class*='rounded-full'] { min-height:40px; }
+ .manager-club-workspace[data-manager-modern][data-manager-appearance] .central-page-content :is(th,td) { padding:11px 9px; }
+ .manager-club-workspace[data-manager-modern][data-manager-appearance] .central-page-content .manager-modern-platform { padding:12px 0; }
+}

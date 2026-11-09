@@ -1,3 +1,4 @@
+import {managerPortalRoot} from '../lib/managerPortal';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
@@ -396,5 +397,5 @@ export const TrainerProfilePage: React.FC = () => {
       )}
     </div>
   );
-  return typeof document === "undefined" ? profileContent : createPortal(profileContent, document.body);
+  return typeof document === "undefined" ? profileContent : createPortal(profileContent, managerPortalRoot());
 };

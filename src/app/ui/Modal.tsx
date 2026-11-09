@@ -1,3 +1,4 @@
+import {managerPortalRoot} from '../../lib/managerPortal';
 import React, { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { lockBodyScroll } from '../../lib/bodyScrollLock';
@@ -95,5 +96,5 @@ export const Modal: React.FC<ModalProps> = ({
     </div>
   );
 
-  return createPortal(modal, document.body);
+  return createPortal(modal, managerPortalRoot());
 };

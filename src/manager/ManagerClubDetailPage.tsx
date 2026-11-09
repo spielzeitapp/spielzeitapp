@@ -1,3 +1,4 @@
+import {managerToolPath} from '../lib/managerComparison';
 import { isManagerComparison } from '../lib/managerComparison';
 import { ManagerComparisonWelcome } from './components/ManagerComparisonWelcome';
 import { isStagingApp } from '../lib/appEnvironment';
@@ -405,7 +406,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
     if (anchor) { openSetupSection(anchor); return; }
     const paths: Partial<Record<SetupKey, string>> = {
       roster: `/manager/saisons/${id}/kader`, access: `/manager/saisons/${id}/zugaenge`,
-      matches: `/manager/saisons/${id}/oefb-import`, training: '/manager/termine', review: '/app/home',
+      matches: `/manager/saisons/${id}/oefb-import`, training: '/manager/termine', review: managerToolPath('/app/home'),
     };
     if (paths[key]) startClubSupport(id, paths[key]);
   }
@@ -776,7 +777,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
                     <li key={s.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1">
                       <span>{seasonContextLabel(s)}</span>
                       <ManagerTeamDetailsEditor clubId={clubId} season={s} onSaved={async () => { await reloadSessionTeamSeasons(); await reload(); setSuccess('Mannschaft gespeichert. Kader, Spiele und Zuordnungen bleiben erhalten.'); }} />
-                      <Link to={`/app/team?teamSeason=${encodeURIComponent(s.id)}`} className="font-semibold text-red-700 hover:underline">In App ansehen</Link>
+                      <Link to={managerToolPath(`/app/team?teamSeason=${encodeURIComponent(s.id)}`)} className="font-semibold text-red-700 hover:underline">In App ansehen</Link>
                       <button type="button" onClick={() => startClubSupport(s.id, `/manager/saisons/${encodeURIComponent(s.id)}/kader`)} className="font-semibold text-red-700 hover:underline">Kader</button>
                       <button type="button" onClick={() => startClubSupport(s.id, `/manager/saisons/${encodeURIComponent(s.id)}/oefb-import`)} className="font-semibold text-red-700 hover:underline">ÖFB-Spiele</button>
                     </li>

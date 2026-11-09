@@ -1,3 +1,4 @@
+import {managerPortalRoot} from '../lib/managerPortal';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
@@ -334,7 +335,6 @@ export const PushOnboardingPrompt: React.FC = () => {
       onActivate={handleActivate}
       onRemindLater={handleRemindLater}
       entered={entered}
-    />,
-    document.body,
+    />, managerPortalRoot(),
   );
 };

@@ -1,3 +1,4 @@
+import {managerPortalRoot} from '../lib/managerPortal';
 import {usePhotoRemoteCamera} from './usePhotoRemoteCamera';
 import React,{useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
@@ -138,7 +139,7 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
    <p className="text-sm font-semibold">Schritt {PHOTO_STEPS.indexOf(mode)+1} von 3 · {PHOTO_LABELS[mode]}</p>
    <p className="rounded-xl bg-slate-100 p-3 text-base font-semibold text-slate-900">{mode==='portrait'?'Kamera auf Augenhöhe · Kopf in die Schablone':mode==='matchday'?'Arme verschränken · Oberkörper vollständig im Bild':'Etwas weiter zurück · beide Hände im Rahmen'}</p>
    <p className="text-sm text-slate-600">Ein normales Handyfoto genügt. Freistellen und Helligkeit kannst du später bearbeiten.</p>
-   <div className="relative overflow-hidden rounded-2xl bg-slate-900" style={{aspectRatio:aspect}}>
+   <div data-central-preserve className="relative overflow-hidden rounded-2xl bg-slate-900" style={{aspectRatio:aspect}}>
     <video ref={video} autoPlay playsInline muted onLoadedData={()=>setCameraReady(true)} aria-label="Livekamera" className="absolute inset-0 h-full w-full object-cover" style={{transform:facing==='user'?'scaleX(-1)':undefined}}/>
     {live&&remove&&liveFrame&&player&&<div className="fotobox-live-preview absolute inset-0"><ManagerProfilePhotoPreview seasonId={seasonId} layout={{...layout,source:'cutout'}} photoUrl={liveFrame} cutoutUrl={liveFrame} firstName={player.first_name??''} lastName={player.last_name??''} number={player.jersey_number} trainer={false} clubTemplate={template} clubDesign={player.club_profile_design}/></div>}
     {!liveFrame&&<svg aria-hidden="true" viewBox={`0 0 400 ${guideHeight}`} className="pointer-events-none absolute inset-0 h-full w-full" style={{filter:'drop-shadow(0 1px 2px #000)'}}><rect x="20" y="16" width="360" height={guideHeight-32} rx="12" fill="none" stroke="white" strokeWidth="2" strokeDasharray="8 6"/><path d={guidePath} fill="none" stroke="white" strokeWidth="2"/></svg>}
@@ -169,5 +170,5 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
   {remote.connected&&remote.error&&<p role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{remote.error}</p>}
   {error&&<p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</p>}
   </div>
- </div></div>,document.body);
+ </div></div>, managerPortalRoot());
 }

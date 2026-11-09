@@ -1,3 +1,4 @@
+import {managerPortalRoot} from '../../lib/managerPortal';
 import React from 'react';
 import { createPortal } from 'react-dom';
 import type { TournamentGroupStandings } from '../../lib/tournamentGroupStandings';
@@ -69,7 +70,6 @@ export const TournamentGroupStandingsSheet: React.FC<Props> = ({ isOpen, standin
           </ul>
         </div>
       </div>
-    </div>,
-    document.body,
+    </div>, managerPortalRoot(),
   );
 };

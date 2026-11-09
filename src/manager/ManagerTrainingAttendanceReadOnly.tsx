@@ -1,3 +1,4 @@
+import {managerToolPath} from '../lib/managerComparison';
 /**
  * STEP 3C: Nur-Lese-Anzeige der bestehenden Event-Anwesenheit.
  * Keine Writes auf event_attendance.
@@ -85,7 +86,7 @@ export function ManagerTrainingAttendanceReadOnly({
           </p>
         </div>
         <Link
-          to={`/app/events/${encodeURIComponent(eventId)}`}
+          to={managerToolPath(`/app/events/${encodeURIComponent(eventId)}`)}
           className="text-[12px] font-semibold text-red-700"
         >
           Beteiligung öffnen

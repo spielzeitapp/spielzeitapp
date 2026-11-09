@@ -1,3 +1,4 @@
+import {isManagerComparison} from '../../../lib/managerComparison';
 import React from 'react';
 import type {ClubProfileDesign} from '../../../lib/clubProfileDesign';
 import {ClubProfileOverlay} from './ClubProfileOverlay';
@@ -41,12 +42,12 @@ export const ProfileHeroCard: React.FC<Props> = (props) => {
  const clubDesign=props.photoLayout?.profileDesign??baseDesign;
  // Player artwork must use exactly the same canvas as the roster and Manager.
  // Imported portraits already contain their club background and crest.
- const decorate=(card:React.ReactNode)=>clubDesign&&variant==='player'?<div className="relative">{card}<ClubProfileOverlay onChange={onDesignChange} design={clubDesign} first={props.firstNameLine} last={props.lastNameLine} number={props.watermark} team={props.teamName} season={props.teamSeasonLabel} logo={props.teamLogoUrl}/></div>:card;
+ const decorate=(card:React.ReactNode)=>clubDesign&&variant==='player'?<div data-manager-artwork={isManagerComparison()||undefined} className="relative">{card}<ClubProfileOverlay onChange={onDesignChange} design={clubDesign} first={props.firstNameLine} last={props.lastNameLine} number={props.watermark} team={props.teamName} season={props.teamSeasonLabel} logo={props.teamLogoUrl}/></div>:card;
  const originalSource = props.photoLayout ? props.photoLayout.source === 'original' : !props.cutoutUrl;
  const imported = originalSource && ((props.photoLayout && isImportedPlayerPortrait(props.photoUrl)) || preparedPlayerPortrait(props.photoUrl));
  if (variant === 'player' && (clubTemplate === 'square' || (!clubTemplate && imported))) {
    const layout = props.photoLayout ?? DEFAULT_PHOTO_LAYOUT;
-   return decorate(<div className="sz-club-profile-hero sz-club-imported-portrait relative mb-3 aspect-square w-full overflow-hidden rounded-[22px] border" data-profile-artwork="player-canvas">
+   return decorate(<div className="sz-club-profile-hero sz-club-imported-portrait relative mb-3 aspect-square w-full overflow-hidden rounded-[22px] border" data-manager-artwork={isManagerComparison()||undefined} data-profile-artwork="player-canvas">
      <PlayerPortraitCanvas hideDecorations={Boolean(clubDesign)} layout={layout} photoUrl={props.photoUrl} cutoutUrl={props.cutoutUrl} firstName={props.firstNameLine} lastName={props.lastNameLine} number={props.watermark} />
      {props.statusSlot}
    </div>);
