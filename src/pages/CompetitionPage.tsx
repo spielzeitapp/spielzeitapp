@@ -1,4 +1,3 @@
-import {SeasonLifecycleAssistant} from '../components/season/SeasonLifecycleAssistant';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCompetition } from '../app/components/CompetitionContext';
@@ -23,7 +22,6 @@ export const CompetitionPage: React.FC = () => {
       <p className="text-sm text-white/65">Für die ausgewählte Mannschaft ist keine ÖFB-Tabelle hinterlegt. Wähle eine Mannschaft mit Tabelle.</p>
       <Link to="/app/termine" className="inline-flex min-h-[44px] items-center text-sm font-semibold text-red-300">Zum Spielplan</Link>
     </div> : null}
-    {selectedSeasonId && <SeasonLifecycleAssistant seasonId={selectedSeasonId}/>}
     {settings ? <>
       <div role="tablist" aria-label="Ligaansicht" className="mb-4 flex gap-2">
         {([{ id: 'table', label: 'Tabelle' }, { id: 'results', label: 'Liga-Ergebnisse' }] as const).filter(tab => tab.id !== 'results' || Boolean(settings.competitionId)).map((tab) => <button type="button" role="tab" key={tab.id} aria-selected={view === tab.id} onClick={() => setView(tab.id)} className={`min-h-[44px] rounded-xl border px-4 text-sm font-semibold ${view === tab.id ? 'border-red-400/45 bg-red-950/55 text-white' : 'border-white/10 bg-white/[0.04] text-white/70'}`}>{tab.label}</button>)}

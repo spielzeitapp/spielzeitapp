@@ -1,3 +1,4 @@
+import {SeasonLifecycleAssistant} from '../../components/season/SeasonLifecycleAssistant';
 import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import './tabletLayout.css';
@@ -73,7 +74,7 @@ export const InternalLayout: React.FC = () => {
   const demo = useDemoMode();
   const isDemo = Boolean(demo) || location.pathname.startsWith('/demo');
   const { user } = useAuth();
-  const { memberships, loading: sessionLoading, membershipError, backendRole, previewRole } = useSession();
+  const { memberships, loading: sessionLoading, membershipError, backendRole, previewRole, selectedTeamSeasonId } = useSession();
   const [gateChecking, setGateChecking] = useState(true);
   /** user.id whose invite/onboarding gate already allowed the app shell (render). */
   const [gatePassedUserId, setGatePassedUserId] = useState<string | null>(null);
@@ -358,7 +359,10 @@ export const InternalLayout: React.FC = () => {
                 {blockContent ? (
                   <p className="px-4 py-8 text-sm text-white/55">Lade…</p>
                 ) : (
-                  <Outlet />
+                  <>
+                    {!isDemo && !onExemptPath && selectedTeamSeasonId && <SeasonLifecycleAssistant seasonId={selectedTeamSeasonId}/>}
+                    <Outlet />
+                  </>
                 )}
               </div>
             </div>
