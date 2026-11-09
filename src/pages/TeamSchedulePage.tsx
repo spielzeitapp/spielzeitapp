@@ -430,7 +430,7 @@ export const TeamSchedulePage: React.FC = () => {
       ) : null}
 
       {competitionView === 'results' && tableSettings?.competitionId ? (
-        <OefbCompetitionResults competitionId={tableSettings.competitionId} ourTeam={tableSettings.teamName} />
+        <OefbCompetitionResults competitionId={tableSettings.competitionId} sourceUrl={tableSettings.sourceUrl} ourTeam={tableSettings.teamName} />
       ) : competitionView === 'table' && tableSettings ? (
         <OefbCompetitionTable competitionId={tableSettings.competitionId} sourceUrl={tableSettings.sourceUrl} ourTeam={tableSettings.teamName} />
       ) : <>

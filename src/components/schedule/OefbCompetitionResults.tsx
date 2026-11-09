@@ -1,3 +1,4 @@
+import { isOefbClubTableUrl } from '../../lib/oefbTableSettings';
 import { useSession } from '../../auth/useSession';
 import { supabase } from '../../lib/supabaseClient';
 import { canManageMatches, normalizeRole } from '../../lib/roles';
@@ -11,7 +12,7 @@ type Results = { name: string; rounds: { id: number; label: string }[]; games: G
 const timeFormat = new Intl.DateTimeFormat('de-AT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Vienna' });
 const teamKey = (name: string) => name.toLocaleLowerCase('de-AT').replace(/\bu\d+\b/g, '').replace(/\s+/g, ' ').trim();
 
-export const OefbCompetitionResults: React.FC<{ competitionId: string; ourTeam: string; teamSeasonId?: string | null }> = ({ competitionId, ourTeam, teamSeasonId }) => {
+export const OefbCompetitionResults: React.FC<{ competitionId: string; sourceUrl?: string; ourTeam: string; teamSeasonId?: string | null }> = ({ competitionId, sourceUrl, ourTeam, teamSeasonId }) => {
   const session = useSession();
   const [syncError, setSyncError] = useState<string | null>(null);
   const [round, setRound] = useState(0);
@@ -46,7 +47,7 @@ export const OefbCompetitionResults: React.FC<{ competitionId: string; ourTeam: 
       if (!response.ok) throw new Error(result.error || 'Ergebnisse konnten nicht geladen werden.');
       if (!controller.signal.aborted) {
         setData(result); setRounds(result.rounds);
-        if (maySync && syncSeasonId && Array.isArray(result.games)) {
+        if (maySync && syncSeasonId && !isOefbClubTableUrl(sourceUrl ?? '') && Array.isArray(result.games)) {
           const games = result.games.flatMap((g: Game) => {
             const id = /^https:\/\/(?:www\.)?oefb\.at\/bewerbe\/Spiel\/Spielbericht\/(\d{1,10})\//i.exec(g.sourceUrl ?? '')?.[1];
             return id ? [{ id, kickoff: g.kickoff, score: g.score, status: g.status }] : [];
@@ -66,7 +67,7 @@ export const OefbCompetitionResults: React.FC<{ competitionId: string; ourTeam: 
     } catch (cause) {
       if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Ergebnisse konnten nicht geladen werden.');
     } finally { if (!controller.signal.aborted) setLoading(false); }
-  }, [competitionId, round, syncSeasonId, maySync]);
+  }, [competitionId, round, syncSeasonId, maySync, sourceUrl]);
 
   useEffect(() => {
     if (previousCompetition.current !== competitionId) {

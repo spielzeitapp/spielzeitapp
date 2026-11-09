@@ -1,3 +1,4 @@
+import { isOefbClubTableUrl } from '../../lib/oefbTableSettings';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { preferredClubLogo, useClubOpponentLogos } from '../../hooks/useClubOpponentLogos';
 import { useCompetition } from '../../app/components/CompetitionContext';
@@ -26,7 +27,7 @@ export const OefbCompetitionTable: React.FC<{ competitionId: string; sourceUrl: 
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(competitionId ? `/api/oefb/table?id=${encodeURIComponent(competitionId)}&refresh=${Date.now()}` : `/api/oefb/table?view=clubTable&url=${encodeURIComponent(sourceUrl)}&refresh=${Date.now()}`, {
+      const response = await fetch(competitionId && !isOefbClubTableUrl(sourceUrl) ? `/api/oefb/table?id=${encodeURIComponent(competitionId)}&refresh=${Date.now()}` : `/api/oefb/table?view=clubTable&url=${encodeURIComponent(sourceUrl)}&refresh=${Date.now()}`, {
         cache: 'no-store', signal,
       });
       const data = await response.json();
