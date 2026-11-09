@@ -26,7 +26,7 @@ export function ManagerReferenceSidebar({open,onClose}:{open:boolean;onClose:()=
  const setupId=/^\/manager\/vereine\/([^/]+)/.exec(pathname)?.[1]??supportSession?.clubId??clubId;
  const groups:Array<{label:string;items:Array<Item|null>}>= [
   {label:'ÜBERSICHT',items:[{id:'central',label:'Zentrale',to:workMode==='platform_admin'&&!supportSession?'/manager/plattform':'/manager',icon:LayoutDashboard},backendRole==='admin'?{id:'club-setup',label:'Vereinssetup',to:setupId?`/manager/vereine/${setupId}${source?'?setupSeason='+source:''}`:'/manager/vereine',icon:Shield}:null,item('teams',Users)]},
-  {label:'MANNSCHAFT',items:[item('players',Users,'Kader'),{id:'trainers',label:'Trainer',to:'/manager/team?tab=trainers',icon:Shield},item('events',CalendarDays),item('matches',Trophy),item('competition',Activity,'Tabellen'),item('media-studio',Image,'Medien')]},
+  {label:'MANNSCHAFT',items:[item('players',Users,'Kader'),{id:'trainers',label:'Trainer',to:'/manager/team?tab=trainers',icon:Shield},item('events',CalendarDays),item('calendar',CalendarDays,'Wochenkalender'),item('matches',Trophy),item('competition',Activity,'Tabellen'),item('media-studio',Image,'Medien')]},
   {label:'ORGANISATION',items:[item('live',Radio),item('training',Dumbbell),item('venues',MapPin),item('oefb-import',Download),item('team-push',Bell,'Push-Mitteilungen')]},
   {label:'VERWALTUNG',items:[item('archive',Archive,'Archiv & Saisonwechsel'),{id:'checklist',label:'Checklisten',to:backendRole==='admin'&&setupId&&source?`/manager/vereine/${setupId}?setupSeason=${source}#manager-setup-checklist`:'/manager/saisons',icon:CheckCheck},item('parents',Users,'Eltern & Zugänge'),item('live-release',Activity,'Veröffentlichung'),item('clubs',Shield),item('notifications',Bell)]},
  ];
