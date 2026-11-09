@@ -1,4 +1,3 @@
-import {SeasonLifecycleAssistant} from '../components/season/SeasonLifecycleAssistant';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCompetition } from '../app/components/CompetitionContext';

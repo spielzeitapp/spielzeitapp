@@ -13,7 +13,7 @@ export function SeasonLifecycleAssistant({seasonId,alwaysShow=false}:{seasonId?:
  const refresh=useCallback(async()=>{if(!authorized)return;const current=++version.current;const r=await supabase.rpc('get_season_lifecycle',{p_source:seasonId??null});if(current!==version.current)return;
   if(r.error){if(r.error.code!=='42501')setMessage(r.error.message);return;}setRows(r.data??[]);
  },[authorized,seasonId]);
- useEffect(()=>{scope.current++;setBusy(false);setRows([]);setEdit(null);setMessage('');if(!authorized)return;void refresh();const f=()=>void refresh();window.addEventListener('focus',f);window.addEventListener('season-lifecycle-changed',f);const timer=window.setInterval(f,60000);return()=>{scope.current++;version.current++;window.clearInterval(timer);window.removeEventListener('focus',f);window.removeEventListener('season-lifecycle-changed',f);};},[refresh,authorized]);
+ useEffect(()=>{scope.current++;setBusy(false);setRows([]);setEdit(null);setMessage('');if(!authorized)return;void refresh();const f=()=>void refresh();window.addEventListener('focus',f);window.addEventListener('spielzeit:live-match-state-changed',f);window.addEventListener('season-lifecycle-changed',f);const timer=window.setInterval(f,60000);return()=>{scope.current++;version.current++;window.clearInterval(timer);window.removeEventListener('focus',f);window.removeEventListener('spielzeit:live-match-state-changed',f);window.removeEventListener('season-lifecycle-changed',f);};},[refresh,authorized]);
  if(!authorized)return null;
  const visible=alwaysShow?rows:rows.filter(s=>shouldShowLifecycle(s));
  if(!visible.length&&!message)return null;
