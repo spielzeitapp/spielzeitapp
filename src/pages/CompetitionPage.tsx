@@ -26,7 +26,7 @@ export const CompetitionPage: React.FC = () => {
       <div role="tablist" aria-label="Ligaansicht" className="mb-4 flex gap-2">
         {([{ id: 'table', label: 'Tabelle' }, { id: 'results', label: 'Liga-Ergebnisse' }] as const).filter(tab => tab.id !== 'results' || Boolean(settings.competitionId)).map((tab) => <button type="button" role="tab" key={tab.id} aria-selected={view === tab.id} onClick={() => setView(tab.id)} className={`min-h-[44px] rounded-xl border px-4 text-sm font-semibold ${view === tab.id ? 'border-red-400/45 bg-red-950/55 text-white' : 'border-white/10 bg-white/[0.04] text-white/70'}`}>{tab.label}</button>)}
       </div>
-      {view === 'table' || !settings.competitionId ? <OefbCompetitionTable key={selectedSeasonId} {...settings} ourTeam={settings.teamName} /> : <OefbCompetitionResults key={selectedSeasonId} competitionId={settings.competitionId} ourTeam={settings.teamName} />}
+      {view === 'table' || !settings.competitionId ? <OefbCompetitionTable key={selectedSeasonId} {...settings} ourTeam={settings.teamName} /> : <OefbCompetitionResults key={selectedSeasonId} competitionId={settings.competitionId} sourceUrl={settings.sourceUrl} ourTeam={settings.teamName} />}
     </> : null}
   </PageShell>;
 };

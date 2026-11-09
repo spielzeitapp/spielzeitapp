@@ -1,0 +1,13 @@
+const assert = require('node:assert/strict');
+const {fixtureId,competitionId}=require('../server/lib/oefbClubCompetition');
+const source=new URL('https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2026-27/KM/Tabellen/');
+const preload=b=>`SG.container.appPreloads['test']=${JSON.stringify([b])};`;
+const game={art:'Liga',bewerbBezeichnung:'Gebietsliga West',spielUrl:'/USCRohrbach/Spielbericht/?teams&:s=4078092'};
+const schedule={detailUrl:source.href.replace('/Tabellen/','/Spiele/'),spiele:[{...game,art:'Testspiel',spielUrl:'/USCRohrbach/Spielbericht/?teams&:s=1'},game]};
+assert.equal(fixtureId(preload(schedule),source,'Gebietsliga West'),'4078092');
+for(const variant of [{...schedule,detailUrl:schedule.detailUrl.replace('2026-27','2025-26')},{...schedule,spiele:[{...game,bewerbBezeichnung:'Other'}]},{...schedule,spiele:[{...game,spielUrl:'https://evil.example/USCRohrbach/Spielbericht/?teams&:s=1'}]}])assert.throws(()=>fixtureId(preload(variant),source,'Gebietsliga West'));
+const report={spielUid:'4078092',bewerb:'Gebietsliga West',heimMannschaft:'Rohrbach',gastMannschaft:'Seitenstetten',bewerbLink:'https://www.noefv.at/noefv/Bewerb/231771?Gebietsliga-West'};
+assert.equal(competitionId(preload(report),'4078092','Gebietsliga West'),'231771');
+for(const variant of [{...report,spielUid:'1'},{...report,bewerb:'Wrong league'},{...report,bewerbLink:'https://evil.example/noefv/Bewerb/231771'}])assert.throws(()=>competitionId(preload(variant),'4078092','Gebietsliga West'));
+assert.throws(()=>competitionId("SG.container.appPreloads['test']=[process.exit()];",'4078092','Gebietsliga West'));
+console.log('PASS: club league resolution, exact season and competition, friendlies excluded, numeric report identity, untrusted links rejected');
