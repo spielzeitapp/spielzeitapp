@@ -1,0 +1,48 @@
+/* The shared route outlet and portal root cover every existing Manager tool.
+   Scope everything to the new appearance; photos, posters, camera and pitch
+   artwork retain their own rendering through the established preserve markers. */
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) {font-size:14px;line-height:1.55;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) :is(label,legend,small):not([data-manager-artwork] *,[data-profile-artwork] *,[data-central-preserve] *) {font-size:13px;line-height:1.5;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) :is(form,fieldset) {min-width:0;max-width:100%;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) :is(input,select,textarea):not([type=checkbox],[type=radio],[type=range],[type=file]) {font-size:16px;min-height:44px;max-width:100%;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) button[type=submit] {min-height:44px;font-size:14px;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) :is(button,a,[role=button]):focus-visible {outline:2px solid var(--manager-link);outline-offset:3px;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-page-content table {font-size:14px;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-page-content th {font-size:12px;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-section-tabs {margin:0 0 16px;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-section-tabs a {font-size:13px;min-height:44px;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) button[data-manager-intent=danger] {background:var(--manager-danger)!important;color:var(--manager-surface)!important;border-color:var(--manager-danger)!important;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] button[data-manager-intent=danger] :is(span,svg) {color:inherit!important;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .manager-account-card>span:first-child {background:var(--manager-action);color:var(--manager-on-action);}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .manager-account-card>span:last-child>span:last-child {color:var(--manager-muted);}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-tool-directory {margin-top:24px;color:var(--manager-text);}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-directory-heading {display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-directory-heading h2 {font-size:20px;font-weight:750;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-directory-heading>span {font-size:12px;color:var(--manager-muted);}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-directory-search {display:flex;align-items:center;gap:10px;background:var(--manager-surface);border:1px solid var(--manager-border);border-radius:14px;margin-top:14px;padding:0 14px;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-directory-search input {min-width:0;width:100%;min-height:48px;background:transparent!important;border:0;box-shadow:none!important;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-directory-section {margin-top:24px;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-directory-section h3 {font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--manager-muted);margin-bottom:10px;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-directory-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-directory-grid a {display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:58px;padding:14px 16px;border:1px solid var(--manager-border);border-radius:14px;background:var(--manager-surface);color:var(--manager-text);font-size:14px;font-weight:600;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-directory-grid a:hover {border-color:var(--manager-link);background:var(--manager-accent-soft);}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-directory-grid svg {color:var(--manager-link);flex-shrink:0;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-directory-footer {display:flex;flex-wrap:wrap;gap:12px;margin-top:28px;padding-top:16px;border-top:1px solid var(--manager-border);}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-directory-footer a {display:inline-flex;align-items:center;gap:7px;min-height:44px;font-size:13px;color:var(--manager-link);}
+@media(max-width:767px) {
+ .manager-club-workspace[data-manager-modern][data-manager-appearance] .central-directory-grid {grid-template-columns:1fr;}
+ .manager-club-workspace[data-manager-modern][data-manager-appearance] .central-page-content {padding-bottom:16px;}
+}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-page-content :is(button[aria-current=page],[role=tab][aria-selected=true]):not([data-manager-artwork] *,[data-profile-artwork] *,[data-central-preserve] *) {background:var(--manager-action)!important;color:var(--manager-on-action)!important;border-color:var(--manager-action)!important;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.manager-event-card,.manager-team-summary) {background:var(--manager-surface)!important;color:var(--manager-text);border-color:var(--manager-border)!important;box-shadow:none;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] .manager-event-date {background:var(--manager-accent-soft);border-color:var(--manager-border);}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.manager-event-date>span:first-child,.manager-event-eyebrow,.manager-page-heading>p,.manager-team-summary svg) {color:var(--manager-link)!important;}
+/* The existing shared button primitive already identifies its intent. Apply
+   the same palette in every editor and portal, rather than matching red CSS. */
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) [data-ui-app-button] {min-height:44px;border-radius:14px;font-size:14px;box-shadow:none;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) [data-ui-app-button=primary] {background:var(--manager-action)!important;color:var(--manager-on-action)!important;border-color:var(--manager-action)!important;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) [data-ui-app-button=secondary] {background:var(--manager-surface-alt)!important;color:var(--manager-text)!important;border:1px solid var(--manager-border)!important;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) [data-ui-app-button=success] {background:var(--manager-success)!important;color:var(--manager-surface)!important;border-color:var(--manager-success)!important;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) [data-ui-app-button=danger] {background:var(--manager-danger)!important;color:var(--manager-surface)!important;border-color:var(--manager-danger)!important;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) [data-ui-app-button=pending] {background:var(--manager-surface-alt)!important;color:var(--manager-muted)!important;border-color:var(--manager-border)!important;}
+.manager-club-workspace[data-manager-modern][data-manager-appearance] :is(.central-page-content,.central-modal-scope) [data-ui-app-button] :is(span,svg) {color:inherit!important;}

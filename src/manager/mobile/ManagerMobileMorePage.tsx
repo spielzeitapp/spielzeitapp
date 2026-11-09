@@ -1,3 +1,5 @@
+import { isManagerComparison } from '../../lib/managerComparison';
+import { ManagerToolDirectory } from '../modern/ManagerToolDirectory';
 import { useManagerClubModules } from '../ManagerClubModulesContext';
 import { managerModuleKeyForLocation } from '../managerWorkMode';
 import React from 'react';
@@ -33,7 +35,7 @@ export function ManagerMobileMorePage(): React.ReactElement {
   return (
     <div className="min-h-full bg-[#050506] px-4 pb-6 pt-5 text-white">
       <ManagerMobilePageTitle eyebrow="Spielzeit Manager" title="Mehr" />
-      <section className="flex items-center gap-3 rounded-2xl border border-red-500/20 bg-gradient-to-br from-red-950/50 to-[#111114] p-4">
+      <section className="manager-account-card flex items-center gap-3 rounded-2xl border border-red-500/20 bg-gradient-to-br from-red-950/50 to-[#111114] p-4">
         <span className="grid h-14 w-14 place-items-center rounded-full border border-white/15 bg-red-600 text-xl font-black">{name.charAt(0).toUpperCase()}</span>
         <span><span className="block text-[17px] font-black">{name}</span><span className="mt-0.5 block text-[11px] uppercase tracking-[0.16em] text-red-200/70">{workMode === 'platform_admin' ? 'Plattformadmin' : isTrainerMode ? 'Trainer' : 'Vereinsadmin'}</span></span>
       </section>
@@ -53,6 +55,7 @@ export function ManagerMobileMorePage(): React.ReactElement {
         </section>
       ) : null}
 
+      {isManagerComparison() ? <ManagerToolDirectory fotoboxTo={importSeason&&!isSeasonArchived(importSeason.status)?`/manager/saisons/${encodeURIComponent(importSeason.id)}/kader?fotobox=1`:undefined} /> : (
       <section className="mt-5 overflow-hidden rounded-2xl border border-white/[0.09] bg-[#111114]">
         {workMode==='platform_admin'&&<MoreLink to={importSeason&&!isSeasonArchived(importSeason.status)?`/manager/saisons/${encodeURIComponent(importSeason.id)}/kader?fotobox=1`:'/manager/saisons'} icon={Camera} title="Fotobox" detail="Spielerfotos aufnehmen · Fernsteuerung verbinden"/>}
         <MoreLink to="/manager" icon={Users} title="Startübersicht" detail="Schnellzugriff und aktuelle Termine" />
@@ -106,6 +109,8 @@ export function ManagerMobileMorePage(): React.ReactElement {
           <ChevronRight className="h-5 w-5 text-white/25" />
         </a>
       </section>
+      )}
+
 
       <button type="button" onClick={async () => { await signOut(); navigate('/manager/login?next=%2Fmanager%3Fentry%3Dplatform', { replace: true }); }} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-[13px] font-semibold text-white/45"><LogOut className="h-4 w-4" />Abmelden</button>
     </div>

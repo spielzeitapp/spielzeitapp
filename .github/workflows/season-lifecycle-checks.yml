@@ -8,6 +8,11 @@ on:
       - 'scripts/central-workspace-test.mjs'
       - 'scripts/central-reference-test.mjs'
       - 'scripts/manager-shared-layout-test.mjs'
+      - 'scripts/manager-phone-preview-test.mjs'
+      - 'scripts/manager-tool-directory-test.mjs'
+      - 'scripts/manager-preview-context-test.mjs'
+      - 'scripts/manager-preview-navigation-test.mjs'
+      - 'scripts/manager-app-preview-test.mjs'
       - 'scripts/manager-comparison-routing-test.mjs'
       - '.github/workflows/season-lifecycle-checks.yml'
 permissions:
@@ -28,6 +33,11 @@ jobs:
       - run: node scripts/central-workspace-test.mjs
       - run: node scripts/central-reference-test.mjs
       - run: node scripts/manager-shared-layout-test.mjs
+      - run: node scripts/manager-phone-preview-test.mjs
+      - run: node scripts/manager-tool-directory-test.mjs
+      - run: node scripts/manager-preview-context-test.mjs
+      - run: node scripts/manager-preview-navigation-test.mjs
+      - run: node scripts/manager-app-preview-test.mjs
       - run: node scripts/team-view-selection-test.mjs
       - run: node scripts/manager-player-fotobox-test.mjs
       - run: node scripts/club-photo-template-test.mjs

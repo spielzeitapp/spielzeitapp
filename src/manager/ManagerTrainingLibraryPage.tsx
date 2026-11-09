@@ -976,7 +976,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                       <button
                         type="button"
                         disabled={deletingExerciseId === row.id}
-                        onClick={() => void removeExercise(row)}
+                        data-manager-intent="danger" onClick={() => void removeExercise(row)}
                         className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
                       >
                         <Trash2 className="h-3.5 w-3.5" aria-hidden />
@@ -1061,7 +1061,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                 <button
                   type="button"
                   disabled={deletingExerciseId === detail.id}
-                  onClick={() => void removeExercise(detail)}
+                  data-manager-intent="danger" onClick={() => void removeExercise(detail)}
                   className="inline-flex min-h-[40px] items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
                 >
                   <Trash2 className="h-4 w-4" aria-hidden />
@@ -1163,7 +1163,7 @@ export function ManagerTrainingLibraryPage(): React.ReactElement {
                       <button
                         type="button"
                         disabled={sketchProcessing || saving}
-                        onClick={removeSketchWithConfirm}
+                        data-manager-intent="danger" onClick={removeSketchWithConfirm}
                         className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
                       >
                         <Trash2 className="h-4 w-4" aria-hidden />

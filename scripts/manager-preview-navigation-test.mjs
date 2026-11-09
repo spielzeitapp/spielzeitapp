@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {build} from 'esbuild';
 const require=createRequire(import.meta.url),React=require('react'),{create,act}=require('react-test-renderer'),{MemoryRouter}=require('react-router-dom');
-const names=['LivePage','CompetitionPage','Header','BottomNav','WelcomeScreen','SplashScreen','AppHomePage','TeamPage','SchedulePage','ProfilePage','MorePage'];
+const names=['LivePage','CompetitionPage','Header','BottomNav','WelcomeScreen','SplashScreen','AppHomePage','TeamPage','SchedulePage','ProfilePage','MorePage','EventDetailPage','MatchDetailPage','TrainerProfilePage','CalendarPage','TeamSchedulePage'];
 const r=await build({entryPoints:['src/manager/preview/PreviewPages.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,plugins:[{name:'fixtures',setup(api){
  api.onResolve({filter:/^react$|^react-router-dom$/},args=>({path:args.path,external:true}));
  api.onResolve({filter:/.*/},args=>{const name=args.path.split('/').at(-1);if(names.includes(name))return {path:name,namespace:'fixture'};});
@@ -17,5 +17,10 @@ try {
  let blocked=false;viewport.props.onClickCapture({target:{closest:()=>null},preventDefault:()=>blocked=true,stopPropagation:()=>{}});assert.equal(blocked,false,'buttons are no longer blanket-blocked');
  await act(async()=>root.root.find(x=>x.props['data-page']==='WelcomeScreen').props.onClick());assert.ok(root.root.find(x=>x.props['data-page']==='TeamPage'));
  const buttons=root.root.findByType('nav').findAllByType('button');await act(async()=>buttons.find(x=>x.children.includes('Termine')).props.onClick());assert.ok(root.root.find(x=>x.props['data-page']==='SchedulePage'));
+ for(const [path,page] of [['/app/events/event-id','EventDetailPage'],['/app/match/match-id','MatchDetailPage'],['/app/team/trainer/staff-id','TrainerProfilePage'],['/app/termine/calendar','CalendarPage'],['/app/spielplan','TeamSchedulePage']]) {
+  await act(async()=>root.unmount());
+  await act(async()=>{root=create(React.createElement(MemoryRouter,{initialEntries:[path]},React.createElement(mod.exports.PreviewPages)));});
+  assert.ok(root.root.find(x=>x.props['data-page']===page),path+' uses the original app detail page');
+ }
  console.log('PASS: actual preview router supports Welcome→Team and page navigation, preview-only intro and no blanket click blocker.');
 } finally {await act(async()=>root.unmount());globalThis.document=oldDocument;}

@@ -406,7 +406,7 @@ function PlanSection({ title, description, rows, empty, deletingSessionId, onDel
                 </Link>
                 <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto">
                   <Link to={href} className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-lg border border-slate-200 px-3 py-2 text-[12px] font-semibold text-slate-800 hover:bg-slate-50 sm:flex-none">Öffnen</Link>
-                  <button type="button" disabled={deletingSessionId === session.id} onClick={() => onDelete(session)} className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-[12px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50">
+                  <button type="button" disabled={deletingSessionId === session.id} data-manager-intent="danger" onClick={() => onDelete(session)} className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-[12px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50">
                     <Trash2 className="h-3.5 w-3.5" aria-hidden />{deletingSessionId === session.id ? 'Löschen…' : 'Löschen'}
                   </button>
                 </div>

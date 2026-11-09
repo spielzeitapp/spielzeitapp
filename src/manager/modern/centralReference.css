@@ -583,3 +583,51 @@
  .szc-app .szc-environment>svg {width:10px;}
  .szc-app .szc-environment .szc-badge {font-size:7px;padding:3px 4px;}
 }
+
+/* Readable workspace controls at normal desktop and phone sizes. Artwork keeps
+   its original proportions and typography inside the actual app iframe. */
+.szc-app .szc-sidebar nav a {font-size:14px;min-height:44px;}
+.szc-app .szc-sidebar nav label,.szc-app .szc-selector>span,.szc-app .szc-eyebrow {font-size:11px;}
+.szc-app .szc-selector select,.szc-app .szc-contextEnd select {font-size:16px;min-height:40px;}
+.szc-app .szc-breadcrumb,.szc-app .szc-connection,.szc-app .szc-workspace,.szc-app .szc-sideFoot {font-size:13px;}
+.szc-app .szc-workspace small,.szc-app .szc-sideFoot small {font-size:11px;}
+.szc-app .szc-miniBadge:has(img) {clip-path:none;background:transparent;border-radius:0;}
+.szc-app .szc-pageTitle p,.szc-app .szc-previewNote,.szc-app .szc-helpCard p {font-size:14px;line-height:1.5;}
+.szc-app .szc-tinyLabel,.szc-app .szc-data-chip,.szc-app .szc-environment .szc-badge {font-size:11px;}
+.szc-app .szc-environment .szc-badge {padding:6px 8px;}
+.szc-app .szc-environment .szc-envNote,.szc-app .szc-link {font-size:13px;min-height:40px;}
+.szc-app.manager-club-workspace[data-manager-modern][data-manager-appearance] .central-tool-search summary {font-size:13px;min-height:44px;}
+.szc-app .szc-compactChecklist>a:not(.szc-link) {font-size:14px;min-height:48px;padding:10px 0;align-items:flex-start;}
+.szc-app .szc-compactChecklist>a>span:nth-child(2) {min-width:0;}
+.szc-app .szc-compactChecklist strong {display:block;font-weight:600;}
+.szc-app .szc-compactChecklist small {display:block;font-size:12px;line-height:1.4;color:var(--manager-muted);margin-top:3px;}
+.szc-app .szc-smallCheck {margin-top:2px;}
+.szc-app .szc-smallCheck.done {background:#08775b;color:#fff;border-color:#08775b;}
+.szc-app[data-manager-appearance=day] .szc-smallCheck[data-state=missing] {background:#ffebee;border-color:#b22d43;color:#9b1831;}
+.szc-app[data-manager-appearance=day] .szc-smallCheck:is([data-state=started],[data-state=review]) {background:#fff1d8;border-color:#92520d;color:#794400;}
+.szc-app .szc-preview-actions {display:flex;gap:8px;justify-content:center;margin:0 0 14px;}
+.szc-app .szc-preview-actions .szc-outline {font-size:13px;min-height:44px;}
+.szc-app .szc-preview-dialog {color:var(--manager-text);}
+.szc-app .szc-preview-dialog:not(:modal) {position:static;padding:0;margin:0;border:0;background:transparent;width:100%;max-width:none;overflow:visible;}
+.szc-app .szc-preview-dialog:modal {padding:16px;border:1px solid var(--manager-border);border-radius:22px;background:var(--manager-surface);width:min(100% - 24px,490px);max-width:none;max-height:calc(100dvh - 24px);margin:auto;overflow:auto;}
+.szc-app .szc-preview-dialog::backdrop {background:rgb(0 0 0 / .75);backdrop-filter:blur(5px);}
+.szc-app .szc-preview-dialog-header {display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;}
+.szc-app .szc-preview-dialog-header strong {font-size:16px;}
+.szc-app .szc-preview-dialog-header p {font-size:12px;color:var(--manager-muted);margin-top:4px;}
+.szc-app .szc-preview-dialog-header button {min-height:44px;font-size:12px;}
+.szc-app .szc-preview-dialog:modal .szc-real-phone {width:min(100%,430px);height: min(78dvh,860px);border-radius:24px;}
+.szc-app .szc-preview-dialog:modal iframe {width:100%;height:100%;transform:none;}
+@media(max-width:767px) {
+ .szc-app .szc-topRight {gap:6px;}
+ .szc-app .szc-breadcrumb {gap:7px;}
+ .szc-app .szc-breadcrumb>span {display:none;}
+ .szc-app .szc-selector select {font-size:16px;}
+ .szc-app .szc-environment {gap:8px;font-size:12px;}
+ .szc-app .szc-environment .szc-badge {font-size:10px;}
+ .szc-app .szc-preview-dialog:modal {padding:10px;width:calc(100% - 12px);max-height:calc(100dvh - 12px);}
+}
+.szc-app .szc-stat b,.szc-app .szc-quick b {font-size:14px;}
+.szc-app .szc-stat small,.szc-app .szc-quick small,.szc-app .szc-teamCard footer,.szc-app .szc-mainFooter {font-size:12px;line-height:1.5;}
+.szc-app .szc-teamCard p,.szc-app .szc-agenda strong,.szc-app .szc-badge {font-size:13px;}
+.szc-app .szc-agenda small {font-size:12px;}
+.szc-app .szc-preview-dialog:not(:modal) {max-height:none;}

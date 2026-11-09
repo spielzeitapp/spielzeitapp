@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);
+const club='11111111-1111-4111-8111-111111111111',seasonId='22222222-2222-4222-8222-222222222222';
+const state={role:'admin',members:[],clubAdmins:[],reads:0,row:{id:seasonId,team_id:'team',season_id:'actual-year',status:'active',display_name:'Melk FR',age_group:'U16',teams:{id:'team',name:'SC Melk',club_id:club,clubs:{name:'SC Melk',logo_url:'/real-logo.png'}},seasons:{id:'actual-year',name:'2026/27'}}};
+globalThis.__previewContext=state;
+const result=await build({entryPoints:['src/manager/preview/previewContext.ts'],bundle:true,format:'cjs',platform:'node',packages:'external',write:false,plugins:[{name:'context-fixtures',setup(api){
+ api.onResolve({filter:/auth\/useSession$/},()=>({path:'auth',namespace:'fixture'}));
+ api.onResolve({filter:/lib\/supabaseClient$/},()=>({path:'db',namespace:'fixture'}));
+ api.onLoad({filter:/.*/,namespace:'fixture'},({path})=>({loader:'js',contents:path==='auth'?"export const fetchUserRole=async()=>globalThis.__previewContext.role;":`export const supabase={rpc:async()=>({data:globalThis.__previewContext.clubAdmins}),from:table=>{const s=globalThis.__previewContext;const query={select(){return query;},eq(){return query;},maybeSingle:async()=>{s.reads++;return {data:s.row};},then:resolve=>Promise.resolve({data:s.members}).then(resolve)};return query;}};`}));
+}}]});
+const module={exports:{}};new Function('require','module','exports',result.outputFiles[0].text)(require,module,module.exports);
+const {loadPreviewTeamSeason:load}=module.exports;
+const admin=await load('user',club,seasonId);
+assert.equal(admin.season_id,'actual-year');assert.equal(admin.season.id,'actual-year');assert.equal(admin.team.club_id,club);assert.equal(admin.team.logo_url,'/real-logo.png');assert.equal(admin.age_group,'U16');assert.equal(admin.display_name,'Melk FR');
+state.role='trainer';state.members=[{role:'trainer'}];assert.equal((await load('user',club,seasonId)).id,seasonId);
+state.members=[{role:'co_trainer'}];assert.equal((await load('user',club,seasonId)).id,seasonId);
+state.members=[{role:'parent'}];let before=state.reads;await assert.rejects(()=>load('user',club,seasonId),/kein Manager-Zugang/);assert.equal(state.reads,before,'unauthorized roles do not read team metadata');
+state.members=[];state.clubAdmins=[{club_id:club,team_season_id:seasonId}];assert.equal((await load('user',club,seasonId)).id,seasonId);
+state.clubAdmins=[{club_id:'other',team_season_id:seasonId}];await assert.rejects(()=>load('user',club,seasonId),/kein Manager-Zugang/);
+state.role='admin';state.row.teams.club_id='other';await assert.rejects(()=>load('user',club,seasonId),/passen nicht zusammen/);
+await assert.rejects(()=>load('',club,seasonId),/gültige/);await assert.rejects(()=>load('user','bad',seasonId),/gültige/);
+delete globalThis.__previewContext;
+console.log('PASS: original season IDs, club/logo metadata, matching staff and club-admin scope, denied roles and cross-club mismatch.');

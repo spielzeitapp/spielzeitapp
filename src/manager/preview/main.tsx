@@ -5,8 +5,8 @@ import { MemoryRouter } from 'react-router-dom';
 import '../../index.css';
 import './previewLayout.css';
 import { AuthProvider, useAuth } from '../../auth/AuthProvider';
-import { fetchUserRole, SessionViewProvider, type SessionTeamSeasonItem } from '../../auth/useSession';
-import { getPlatformClub } from '../../lib/platformClubAdmin';
+import { SessionViewProvider, type SessionTeamSeasonItem } from '../../auth/useSession';
+import { loadPreviewTeamSeason } from './previewContext';
 import { ClubThemeProvider } from '../../theme/ClubThemeProvider';
 import { RoleProvider } from '../../app/role/RoleContext';
 import { CompetitionProvider } from '../../app/components/CompetitionContext';
@@ -34,13 +34,12 @@ function Preview() {
   React.useEffect(() => {
     if (loading) return;
     let cancelled = false;
+    setError('');
+    setSeason(null);
     void (async () => {
-      if (!user || await fetchUserRole(user.id) !== 'admin') throw Error('Nur für angemeldete Plattformadmins verfügbar.');
-      const result = await getPlatformClub(query.get('clubId') ?? '');
-      if (result.error || !result.data) throw Error(result.error || 'Verein nicht verfügbar.');
-      const row = result.data.team_seasons.find(s => s.id === query.get('teamSeasonId'));
-      if (!row) throw Error('Bitte zuerst eine Mannschaft und Saison im Manager anlegen.');
-      if (!cancelled) setSeason({id:row.id,team_id:row.team_id,season_id:row.id,status:row.status,age_group:row.age_group,display_name:row.team_name,team:{id:row.team_id,name:row.team_name},season:{id:row.id,name:row.season_name ?? ''}} as SessionTeamSeasonItem);
+      if (!user) throw Error('Bitte zuerst im Manager anmelden.');
+      const row = await loadPreviewTeamSeason(user.id, query.get('clubId') ?? '', query.get('teamSeasonId') ?? '');
+      if (!cancelled) setSeason(row);
     })().catch(e => {if (!cancelled) setError(String(e.message));});
     return () => {cancelled = true;};
   }, [user?.id, loading]);
@@ -48,4 +47,4 @@ function Preview() {
   if (!season || !user) return <p className="p-6 text-white">App-Vorschau wird geladen…</p>;
   return <SessionViewProvider value={previewSession(user.id, season)}><RoleProvider><ClubThemeProvider brandingOverride={branding}><CompetitionProvider><PreviewPages /></CompetitionProvider></ClubThemeProvider></RoleProvider></SessionViewProvider>;
 }
-createRoot(document.getElementById('root')!).render(<MemoryRouter initialEntries={['/app/intro/welcome']}><AuthProvider><Preview /></AuthProvider></MemoryRouter>);
+createRoot(document.getElementById('root')!).render(<MemoryRouter initialEntries={[query.get('start') === 'team' ? '/app/team' : query.get('start') === 'home' ? '/app/home' : '/app/intro/welcome']}><AuthProvider><Preview /></AuthProvider></MemoryRouter>);
