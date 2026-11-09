@@ -1,3 +1,4 @@
+import {photoCountdown} from '../lib/photoCountdown';
 import {managerPortalRoot} from '../lib/managerPortal';
 import {usePhotoRemoteCamera} from './usePhotoRemoteCamera';
 import React,{useEffect,useRef,useState} from 'react';
@@ -23,6 +24,8 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
  const [draft,setDraft]=useState<Draft|null>(null),[processing,setProcessing]=useState(false),[saving,setSaving]=useState(false);
  const [cameraReady,setCameraReady]=useState(false),[cameraError,setCameraError]=useState(''),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [live,setLive]=useState(false),[liveFrame,setLiveFrame]=useState(''),[liveError,setLiveError]=useState('');
+ const [timerSeconds,setTimerSeconds]=useState(3),[countdown,setCountdown]=useState<number|null>(null);
+ const countdownController=useRef<AbortController|null>(null);
  const [autoNext,setAutoNext]=useState(true),[restart,setRestart]=useState(0),[remove,setRemove]=useState(false);
  const [motifs,setMotifs]=useState<PlayerPhotoMotif[]>([]),[motifsReady,setMotifsReady]=useState(false),[finished,setFinished]=useState(false);
  const [results,setResults]=useState<Record<string,'saved'|'skipped'>>({});
@@ -35,7 +38,7 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
  const guidePath=mode!=='celebration'?`M160 ${headY} a40 50 0 1 0 80 0 a40 50 0 1 0 -80 0 M160 ${headY+45} L150 ${headY+65} Q80 ${headY+80} 75 ${guideHeight*.9} M240 ${headY+45} L250 ${headY+65} Q320 ${headY+80} 325 ${guideHeight*.9}`:`M170 ${headY+20} a30 38 0 1 0 60 0 a30 38 0 1 0 -60 0 M170 ${headY+55} L145 ${headY+75} L85 ${guideHeight*.3} L65 ${guideHeight*.1} M230 ${headY+55} L255 ${headY+75} L315 ${guideHeight*.3} L335 ${guideHeight*.1} M145 ${headY+75} L140 ${guideHeight*.94} L260 ${guideHeight*.94} L255 ${headY+75}`;
  const layout={...DEFAULT_PHOTO_LAYOUT,...(player?.photo_layout??player?.photo_layout_default),rotation:0 as const,zoom:100,x:50,y:50,source:draft?.cutout?'cutout' as const:'original' as const};
  useUnsavedProfileGuard(Boolean(draft)||busy,'Das aufgenommene Foto ist noch nicht gespeichert. Fotobox verlassen?',false);
- useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;version.current++;};},[]);
+ useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;countdownController.current?.abort();version.current++;};},[]);
  useEffect(()=>()=>{if(draft){URL.revokeObjectURL(draft.url);if(draft.cutoutUrl)URL.revokeObjectURL(draft.cutoutUrl);}},[draft]);
  useEffect(()=>{
   const previous=document.activeElement as HTMLElement|null,overflow=document.body.style.overflow;
@@ -51,7 +54,7 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
    if(!active||document.hidden){media.getTracks().forEach(track=>track.stop());return;}
    stream.current=media;if(video.current){video.current.srcObject=media;await video.current.play();}
   }).catch(()=>{if(active)setCameraError('Kamera konnte nicht geöffnet werden. Bitte Kamerazugriff erlauben oder „Kamera / Bild auswählen“ nutzen.');});
-  const visibility=()=>{if(document.hidden){stop();setCameraReady(false);setCameraError('Kamera pausiert. Zum Fortsetzen „Kamera neu starten“ wählen.');}};
+  const visibility=()=>{if(document.hidden){countdownController.current?.abort();stop();setCameraReady(false);setCameraError('Kamera pausiert. Zum Fortsetzen „Kamera neu starten“ wählen.');}};
   document.addEventListener('visibilitychange',visibility);
   return()=>{active=false;stop();document.removeEventListener('visibilitychange',visibility);};
  },[draft,facing,restart,finished]);
@@ -60,7 +63,7 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
   if(!live||!remove||!cameraReady||draft||busy||!video.current)return;
   return startLivePlayerPortrait(video.current,aspect,facing==='user',setLiveFrame,()=>{setLiveFrame('');setLiveError('Live-Hintergrund hier nicht verfügbar. Das Foto wird nach der Aufnahme freigestellt.');});
  },[live,remove,cameraReady,draft,busy,aspect,facing,selected]);
- const close=()=>{if(saving)return;if((draft||processing)&&!window.confirm('Aufgenommenes Foto verwerfen?'))return;onClose();};
+ const close=()=>{if(saving)return;if((draft||(processing&&countdown===null))&&!window.confirm('Aufgenommenes Foto verwerfen?'))return;countdownController.current?.abort();onClose();};
  const discard=()=>{version.current++;setDraft(null);setError('');setNotice('');};
  async function prepare(file:File){
   const token=++version.current;setError('');setNotice('');let cutout:Blob|null=null,cutoutUrl:string|null=null;
@@ -71,9 +74,18 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
   }catch(e){URL.revokeObjectURL(url);throw e;}
  }
  async function capture(){
-  if(locked.current||!video.current||!cameraReady)return;locked.current=true;setProcessing(true);setError('');
-  try{const v=video.current;const file=await photoBoothFile(v,v.videoWidth,v.videoHeight,aspect,facing==='user');if(mounted.current)await prepare(file);}
-  catch(e){setError(e instanceof Error?e.message:'Aufnahme fehlgeschlagen.');}finally{locked.current=false;setProcessing(false);}
+  if(locked.current||!video.current||!cameraReady||draft||finished||document.hidden)return;
+  locked.current=true;setProcessing(true);setError('');
+  const controller=new AbortController();countdownController.current=controller;
+  try{
+   await photoCountdown(timerSeconds,controller.signal,setCountdown);
+   setCountdown(null);
+   const v=video.current;
+   if(!mounted.current||document.hidden||!v||v.readyState<2||!stream.current?.active)return;
+   const file=await photoBoothFile(v,v.videoWidth,v.videoHeight,aspect,facing==='user');
+   if(mounted.current&&!controller.signal.aborted)await prepare(file);
+  }catch(e){if(!controller.signal.aborted&&mounted.current)setError(e instanceof Error?e.message:'Aufnahme fehlgeschlagen.');}
+  finally{countdownController.current=null;locked.current=false;if(mounted.current){setCountdown(null);setProcessing(false);}}
  }
  async function choose(file?:File){
   if(!file||locked.current)return;locked.current=true;setProcessing(true);setError('');
@@ -115,7 +127,7 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
    advance('saved');
   }catch(e){setError((e as {message?:string}).message||'Speichern fehlgeschlagen. Bitte erneut versuchen.');}finally{locked.current=false;setSaving(false);}
  }
- const remote=usePhotoRemoteCamera(remoteSessionId,seasonId,{playerId:selected,step:mode,ready:cameraReady,busy:busy||locked.current,draftId:draft?.id??null,finished,error,notice,layout},draft?.file??null,draft?.cutout??null,async command=>{
+ const remote=usePhotoRemoteCamera(remoteSessionId,seasonId,{playerId:selected,step:mode,ready:cameraReady,busy:busy||locked.current,draftId:draft?.id??null,finished,error,notice:countdown!==null?'Countdown läuft am Stativgerät · Pose halten':notice,layout},draft?.file??null,draft?.cutout??null,async command=>{
   if(locked.current)throw Error('Die Kamera arbeitet noch. Bitte kurz warten.');
   if(command.action==='capture')await capture();
   else if(command.action==='accept')await save();
@@ -126,7 +138,7 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
    setSelected(command.playerId);setMode(command.step);setNotice('');setError('');
   }
  });
- useEffect(()=>{if(!remote.ended)return;stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;setCameraReady(false);setCameraError(remote.error||'Fernsteuerung beendet. Fotobox schließen und neu verbinden.');},[remote.ended]);
+ useEffect(()=>{if(!remote.ended)return;countdownController.current?.abort();stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;setCameraReady(false);setCameraError(remote.error||'Fernsteuerung beendet. Fotobox schließen und neu verbinden.');},[remote.ended]);
  return createPortal(<div className="fixed inset-0 z-[300] overflow-y-auto bg-slate-950/80 p-0 sm:p-4" onKeyDown={e=>{
   if(e.key==='Escape'){e.stopPropagation();close();}
   if(e.key==='Tab'){const nodes=dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),select:not(:disabled),input:not(:disabled),[tabindex="0"]');if(!nodes?.length)return;const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&(document.activeElement===first||document.activeElement===dialog.current)){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}
@@ -143,6 +155,7 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
     <video ref={video} autoPlay playsInline muted onLoadedData={()=>setCameraReady(true)} aria-label="Livekamera" className="absolute inset-0 h-full w-full object-cover" style={{transform:facing==='user'?'scaleX(-1)':undefined}}/>
     {live&&remove&&liveFrame&&player&&<div className="fotobox-live-preview absolute inset-0"><ManagerProfilePhotoPreview seasonId={seasonId} layout={{...layout,source:'cutout'}} photoUrl={liveFrame} cutoutUrl={liveFrame} firstName={player.first_name??''} lastName={player.last_name??''} number={player.jersey_number} trainer={false} clubTemplate={template} clubDesign={player.club_profile_design}/></div>}
     {!liveFrame&&<svg aria-hidden="true" viewBox={`0 0 400 ${guideHeight}`} className="pointer-events-none absolute inset-0 h-full w-full" style={{filter:'drop-shadow(0 1px 2px #000)'}}><rect x="20" y="16" width="360" height={guideHeight-32} rx="12" fill="none" stroke="white" strokeWidth="2" strokeDasharray="8 6"/><path d={guidePath} fill="none" stroke="white" strokeWidth="2"/></svg>}
+    {countdown!==null&&<div className="absolute inset-0 flex flex-col items-center justify-center bg-black/25 text-white"><span role="status" aria-live="assertive" aria-atomic="true" className="text-[112px] font-black leading-none drop-shadow-lg">{countdown}</span><span className="mt-3 rounded-full bg-black/70 px-4 py-2 text-base font-bold">Pose halten</span><button type="button" onClick={()=>countdownController.current?.abort()} className="mt-4 min-h-11 rounded-xl bg-white px-5 font-bold text-slate-900">Countdown abbrechen</button></div>}
     {cameraError&&<p role="status" className="absolute inset-x-4 bottom-4 rounded-xl bg-white p-3 text-sm">{cameraError}</p>}
    </div>
    <label className="flex min-h-11 items-center gap-3 rounded-xl border border-slate-300 bg-slate-50 p-3 text-base font-semibold"><input aria-label="Vereinslook live anzeigen" type="checkbox" checked={live} disabled={busy||!remove} onChange={e=>setLive(e.target.checked)}/>Vereinslook live anzeigen · optional</label>
@@ -151,6 +164,8 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
    {liveError&&<p role="status" className="text-sm text-slate-700">{liveError}</p>}
    <details className="rounded-xl border border-slate-200 p-3 text-sm text-slate-700"><summary className="min-h-8 cursor-pointer font-semibold">So werden alle Spielerbilder einheitlich</summary><p className="mt-2">Kamera auf Augenhöhe halten und ihre Position beibehalten. Den Platz für die Spieler am Boden markieren. Bei jedem Spieler den Kopf an derselben Schablone ausrichten; große und kleine Spieler brauchen etwas mehr oder weniger Abstand. Gleichmäßiges Licht und einen ruhigen Hintergrund wählen.</p></details>
    <p className="text-sm text-slate-700">{template==='square'?'Quadratisches Spielerbild':'Spielerbild im Querformat'} · gleicher Zuschnitt beim Auslösen. {liveFrame?'Größe und Position im Vereinslook prüfen.':'Etwas Abstand halten, damit Kopf und Arme Platz haben.'}</p>
+   <label className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-slate-300 p-3 text-sm font-semibold">Selbstauslöser<select aria-label="Selbstauslöser" value={timerSeconds} disabled={busy} onChange={e=>setTimerSeconds(Number(e.target.value))} className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-slate-900">{[0,3,5,10].map(seconds=><option key={seconds} value={seconds}>{seconds?`${seconds} Sekunden`:'Aus · sofort'}</option>)}</select></label>
+   <p className="text-sm text-slate-600">Gilt auch beim Auslösen über die Fernsteuerung. Countdown am Stativgerät einstellen.</p>
    <div className="flex items-center justify-between gap-3"><button type="button" aria-label="Kamera / Bild auswählen" disabled={busy} onClick={()=>fileInput.current?.click()} className="flex min-h-11 flex-col items-center gap-1 p-2 text-xs"><ImagePlus/>Kamera / Bild</button><button type="button" aria-label="Foto aufnehmen" disabled={busy||!cameraReady} onClick={()=>void capture()} className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-slate-200 bg-red-700 text-white disabled:opacity-40"><Camera size={30}/></button><button type="button" aria-label="Kamera wechseln" disabled={busy} onClick={()=>setFacing(f=>f==='user'?'environment':'user')} className="flex min-h-11 flex-col items-center gap-1 p-2 text-xs"><SwitchCamera/>Wechseln</button></div>
    <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden" onChange={e=>{const file=e.target.files?.[0];e.target.value='';void choose(file);}}/>
    {cameraError&&<button type="button" disabled={busy} onClick={()=>setRestart(n=>n+1)} className="min-h-11 w-full rounded-xl border font-semibold">Kamera neu starten</button>}
@@ -165,7 +180,7 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
    <button type="button" disabled={busy} onClick={discard} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 font-semibold"><RefreshCw/>Noch einmal</button>
    <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={autoNext} disabled={busy} onChange={e=>setAutoNext(e.target.checked)}/>Aufnahmeserie · Profil → Spieltag → Jubel → nächster Spieler</label>
   </>:null}
-  {processing&&<p role="status" className="rounded-xl bg-slate-100 p-3 text-sm">Foto wird vorbereitet{remove?' und freigestellt':''}… Beim ersten Mal werden Bildwerkzeuge geladen.</p>}
+  {processing&&countdown===null&&<p role="status" className="rounded-xl bg-slate-100 p-3 text-sm">Foto wird vorbereitet{remove?' und freigestellt':''}… Beim ersten Mal werden Bildwerkzeuge geladen.</p>}
   {notice&&<p role="status" className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">{notice}</p>}
   {remote.connected&&remote.error&&<p role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{remote.error}</p>}
   {error&&<p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</p>}
