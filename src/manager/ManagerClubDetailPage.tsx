@@ -974,7 +974,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={() => setShowDelete(true)}
+                  data-manager-intent="danger" onClick={() => setShowDelete(true)}
                   className="inline-flex min-h-[44px] items-center rounded-full border border-red-300 bg-red-50 px-4 text-[13px] font-semibold text-red-800 hover:bg-red-100"
                 >
                   Endgültig löschen
@@ -1028,7 +1028,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
                   <button
                     type="button"
                     disabled={busy || confirmDeleteName !== detail.name}
-                    onClick={() => void onDelete()}
+                    data-manager-intent="danger" onClick={() => void onDelete()}
                     className="inline-flex min-h-[40px] items-center rounded-full bg-red-700 px-4 text-[12px] font-semibold text-white disabled:opacity-50"
                   >
                     Endgültig löschen

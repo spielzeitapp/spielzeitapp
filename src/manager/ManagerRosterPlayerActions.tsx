@@ -39,12 +39,12 @@ export function ManagerRosterPlayerActions({ seasonId, playerId, name, removed, 
       ? 'Nur unbenutzte Profile ohne weitere Mannschaftszuordnung, ÖFB-Verknüpfung, Zugänge oder Spieldaten können gelöscht werden. Das kann nicht rückgängig gemacht werden.'
       : 'Das Spielerprofil und alle bisherigen Spieldaten bleiben erhalten. Der Eintrag steht anschließend unter „Ausgeschieden / archiviert“.'}</p>
     <div className="mt-2 flex flex-wrap gap-3">
-      <button type="button" disabled={busy} onClick={() => void apply()} className="min-h-11 rounded-lg bg-red-700 px-3 font-semibold text-white disabled:opacity-50">{busy ? 'Wird gespeichert…' : action === 'delete' ? 'Endgültig löschen' : 'Entfernen bestätigen'}</button>
+      <button type="button" disabled={busy} data-manager-intent="danger" onClick={() => void apply()} className="min-h-11 rounded-lg bg-red-700 px-3 font-semibold text-white disabled:opacity-50">{busy ? 'Wird gespeichert…' : action === 'delete' ? 'Endgültig löschen' : 'Entfernen bestätigen'}</button>
       <button type="button" disabled={busy} onClick={() => setAction(null)} className="min-h-11 px-3 font-semibold">Abbrechen</button>
     </div>
   </div>;
   return <div className="flex flex-wrap gap-x-4 gap-y-1">
     {!removed ? <button type="button" onClick={() => setAction('remove')} className="min-h-11 text-xs font-semibold text-slate-700">Aus Kader entfernen</button> : null}
-    <button type="button" onClick={() => setAction('delete')} className="min-h-11 text-xs font-semibold text-red-700">Spieler löschen</button>
+    <button type="button" data-manager-intent="danger" onClick={() => setAction('delete')} className="min-h-11 text-xs font-semibold text-red-700">Spieler löschen</button>
   </div>;
 }

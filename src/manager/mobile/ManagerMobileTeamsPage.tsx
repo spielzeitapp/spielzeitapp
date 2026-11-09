@@ -45,7 +45,7 @@ export function ManagerMobileTeamsPage(): React.ReactElement {
           const label = formatTeamSeasonContextLabel({ teamName: team.team?.name, ageGroup: team.age_group, displayName: team.display_name, seasonName: team.season?.name, status: team.status }, { includeSeason: false, markArchived: true });
           const date = next ? formatManagerEventDate(next.starts_at) : null;
           return (
-            <section key={team.id} className="rounded-2xl border border-white/[0.09] bg-gradient-to-br from-[#171719] to-[#0b0b0d] p-4">
+            <section key={team.id} className="manager-team-summary rounded-2xl border border-white/[0.09] bg-gradient-to-br from-[#171719] to-[#0b0b0d] p-4">
               <button type="button" onClick={() => openTeam(team.id)} className="flex w-full items-center gap-3 text-left">
                 <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-red-500/20 bg-red-950/35 text-red-300"><Users className="h-5 w-5" /></span>
                 <span className="min-w-0 flex-1">

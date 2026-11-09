@@ -25,14 +25,14 @@ export function ManagerEventCard({ event }: { event: ManagerMobileEvent }): Reac
   const date = formatManagerEventDate(event.starts_at);
   const training = event.kind === 'training' || event.type === 'training';
   return (
-    <article className="flex min-h-[92px] overflow-hidden rounded-2xl border border-white/[0.09] bg-gradient-to-br from-[#171719] to-[#0b0b0d] shadow-[0_14px_30px_rgba(0,0,0,0.28)]">
-      <div className="flex w-[70px] shrink-0 flex-col items-center justify-center border-r border-red-500/15 bg-red-950/25">
+    <article className="manager-event-card flex min-h-[92px] overflow-hidden rounded-2xl border border-white/[0.09] bg-gradient-to-br from-[#171719] to-[#0b0b0d] shadow-[0_14px_30px_rgba(0,0,0,0.28)]">
+      <div className="manager-event-date flex w-[70px] shrink-0 flex-col items-center justify-center border-r border-red-500/15 bg-red-950/25">
         <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-red-300">{date.day}</span>
         <span className="mt-0.5 text-[19px] font-black text-white">{date.date}</span>
         <span className="text-[11px] text-white/50">{date.time}</span>
       </div>
       <div className="min-w-0 flex-1 px-3 py-3">
-        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-red-300">
+        <div className="manager-event-eyebrow flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-red-300">
           {training ? <Dumbbell className="h-3.5 w-3.5" /> : <Trophy className="h-3.5 w-3.5" />}
           <span className="truncate">{event.teamLabel}</span>
         </div>
@@ -47,7 +47,7 @@ export function ManagerEventCard({ event }: { event: ManagerMobileEvent }): Reac
 
 export function ManagerMobilePageTitle({ eyebrow, title, children }: { eyebrow: string; title: string; children?: React.ReactNode }): React.ReactElement {
   return (
-    <header className="mb-5">
+    <header className="manager-page-heading mb-5">
       <p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-300/75">{eyebrow}</p>
       <div className="mt-1 flex items-center justify-between gap-3">
         <h1 className="text-[27px] font-black tracking-tight text-white">{title}</h1>

@@ -2242,7 +2242,7 @@ function AssignModal(props: {
               <button
                 type="button"
                 disabled={saving}
-                onClick={() => void remove()}
+                data-manager-intent="danger" onClick={() => void remove()}
                 className="w-full text-center text-[12px] font-semibold text-red-700 hover:underline"
               >
                 Platzzuordnung entfernen

@@ -25,6 +25,7 @@ import './managerSeasonWorkspace.css';
 import './managerMobile.css';
 import { ManagerAppearance } from './appearance/ManagerAppearance';
 import './appearance/managerAppearance.css';
+import './modern/managerUnifiedUi.css';
 
 /**
  * One runtime for both Manager appearances: identical access gates, context,
