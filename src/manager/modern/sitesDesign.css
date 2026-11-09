@@ -1,0 +1,80 @@
+/* Design reference: spielzeit-vereinszentrale.jbharmonikas.chatgpt.site, version 9.
+   This is the presentation layer of the existing Manager, not a second app.
+   Preserve original editors, permissions, artwork and all saved club branding. */
+.szc-app.manager-club-workspace[data-manager-modern] .szc-sidebar {flex-basis:248px;width:248px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-brand {padding:28px 18px 25px;font-size:24px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-workspace {margin:0 16px 16px;padding:12px 10px;min-height:66px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-workspace strong {font-size:13px;font-weight:600;line-height:1.35;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-workspace small {font-size:11px;line-height:1.4;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-sideFoot {padding:18px 17px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-topbar {padding:0 22px;min-height:69px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-context {padding:14px 22px;min-height:81px;gap:22px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-context-selectors {gap:24px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-selector {gap:5px;}
+.szc-app.manager-club-workspace[data-manager-modern][data-manager-appearance] .manager-header .szc-context .szc-selector select {background:transparent!important;border:0!important;border-radius:6px;box-shadow:none!important;font-size:14px;padding:5px 20px 5px 4px;min-height:36px;}
+.szc-app.manager-club-workspace[data-manager-modern][data-manager-appearance] .szc-selector select:focus-visible {outline:2px solid var(--manager-link);outline-offset:2px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-selector:first-child select {min-width:0;max-width:270px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-contextEnd {flex-shrink:0;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-selector strong {font-size:14px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-contextEnd {font-size:12px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-topRight .manager-appearance-toggle {min-height:42px;min-width:44px;padding:8px 12px;border-radius:11px;}
+.szc-app.manager-club-workspace[data-manager-modern] .manager-shell__content {padding:24px 22px 0!important;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-pageTitle {gap:16px;margin-bottom:24px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-pageTitle h1 {font-size:28px;line-height:1.3;letter-spacing:-.9px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-pageTitle p {font-size:14px;line-height:1.5;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-eyebrow {font-size:11px;letter-spacing:1.7px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-environment {min-height:54px;padding:12px 16px;border-radius:12px;margin-bottom:26px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-bodyGrid {grid-template-columns:minmax(0,1fr) 320px;gap:18px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-without-rail {grid-template-columns:minmax(0,1fr);}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-mainColumn {gap:20px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-hero {min-height:278px;padding:24px;border-radius:14px;gap:10px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-hero>div:first-child {position:relative;flex:1;min-width:0;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-hero h2 {font-size:36px!important;line-height:1.2;letter-spacing:-1.4px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-hero p {font-size:14px;line-height:1.55;margin:14px 0 18px;max-width:380px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-hero .szc-eyebrow {font-size:11px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-hero .szc-eyebrow span {font-size:9px;margin-left:10px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-hero :is(button,.szc-hero-button) {min-height:44px;font-size:13px;padding:11px 16px;border-radius:9px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-pitchArt {width:170px;height:210px;flex:0 0 170px;margin:0 -5px 0 0;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-stat {min-height:126px;padding:17px 15px;border-radius:12px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-stat strong {font-size:30px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-stat small {font-size:12px;line-height:1.5;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-sectionHeading h2 {font-size:16px;font-weight:650;}
+.szc-app.manager-club-workspace[data-manager-modern] :is(.szc-panel,.szc-teamCard) {border-radius:14px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-previewPanel {padding:16px 14px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-segmented :is(span,a) {font-size:11px;min-height:34px;display:flex;align-items:center;justify-content:center;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-preview-dialog:not(:modal) .szc-real-phone {width:288px;height:568px;}
+.szc-app.manager-club-workspace[data-manager-modern] .szc-preview-dialog:not(:modal) iframe {width:430px;height:860px;transform:scale(.65116);transform-origin:top left;}
+@media(min-width:768px) and (max-width:1199px) {
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-bodyGrid {grid-template-columns:minmax(0,1fr);}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-rightColumn {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));align-items:start;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-stats {grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media(max-width:767px) {
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-sidebar {flex-basis:248px;width:248px;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-topbar {padding:0 16px;min-height:58px;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-context {padding:12px 16px;gap:12px;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-context-selectors {gap:12px;}
+ .szc-app.manager-club-workspace[data-manager-modern][data-manager-appearance] .manager-header .szc-context .szc-selector select {font-size:16px;min-height:40px;}
+ .szc-app.manager-club-workspace[data-manager-modern] .manager-shell__content {padding:22px 16px 0!important;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-pageTitle h1 {font-size:25px;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-bodyGrid {grid-template-columns:minmax(0,1fr);gap:20px;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-rightColumn {display:flex;flex-direction:column;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-rightColumn>article {width:100%;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-hero {min-height:260px;padding:22px 20px;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-hero h2 {font-size:31px!important;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-pitchArt {position:absolute;right:-30px;top:32px;opacity:.35;width:150px;flex-basis:150px;pointer-events:none;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-hero>div:first-child {z-index:2;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-hero p {max-width:245px;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-stats {grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-teamsGrid {grid-template-columns:minmax(0,1fr);}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-teamCard:nth-child(3):last-child {grid-column:auto;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-environment {display:grid;grid-template-columns:1fr 12px 1fr 12px 1fr;padding:12px 10px;gap:6px;font-size:11px;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-environment>:is(span,a) {flex-direction:column;gap:5px;min-width:0;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-environment>span:first-child {flex-direction:row;font-size:11px;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-environment .szc-badge {padding:5px 4px;font-size:10px;text-align:center;white-space:normal;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-environment .szc-envNote {grid-column:1/-1;justify-content:flex-end;font-size:12px;min-height:40px;}
+}
+@media(max-width:359px) {
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-preview-dialog:not(:modal) .szc-real-phone {width:216px;height:430px;}
+ .szc-app.manager-club-workspace[data-manager-modern] .szc-preview-dialog:not(:modal) iframe {transform:scale(.484);}
+}
