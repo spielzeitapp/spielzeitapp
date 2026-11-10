@@ -1,3 +1,4 @@
+import {clubNameForTeam} from '../../lib/teamDisplayName';
 import { managerSurfaceHref } from '../../lib/managerComparison';
 import { ManagerAppearanceToggle, useManagerAppearance } from '../appearance/ManagerAppearance';
 import { ClubLogo } from '../../components/branding/ClubLogo';
@@ -32,7 +33,7 @@ function labelForTeamSeason(ts: SessionTeamSeasonItem): string {
     {
       displayName: ts.display_name,
       ageGroup: ts.age_group,
-      teamName: ts.team?.name,
+      teamName: ts.team?.name, clubName: clubNameForTeam(ts.team),
       seasonName: ts.season?.name,
       status: ts.status,
     },
@@ -119,7 +120,7 @@ export function ManagerHeader({ onOpenSidebar }: Props): React.ReactElement {
       {
         displayName: contextSeason.display_name,
         ageGroup: contextSeason.age_group,
-        teamName: contextSeason.team?.name,
+        teamName: contextSeason.team?.name, clubName: clubNameForTeam(contextSeason.team),
         seasonName: contextSeason.season?.name,
         status: contextSeason.status,
       },

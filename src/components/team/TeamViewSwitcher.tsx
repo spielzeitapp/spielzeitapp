@@ -1,3 +1,4 @@
+import {clubNameForTeam,formatClubTeamHeading} from '../../lib/teamDisplayName';
 import { ClubLogo } from "../branding/ClubLogo";
 import React, { useState } from 'react';
 import { Check, Users } from 'lucide-react';
@@ -18,7 +19,7 @@ export function TeamViewSwitcher() {
   const favorites = useSavedTeamFavorites();
   const hiddenIds = useHiddenTeamFavoriteIds();
   const teams = [
-    ...teamSeasons.filter(ts => ts.status !== 'archived' && !hiddenIds.includes(ts.id)).map(ts => ({ id: ts.id, name: ts.team?.name || ts.display_name || 'Team', ageGroup: ts.age_group, season: ts.season?.name, logo: getClubLogo(ts.team?.name || '', { teamId: ts.team?.id, logoUrl: ts.team?.logo_url }), own: true })),
+    ...teamSeasons.filter(ts => ts.status !== 'archived' && !hiddenIds.includes(ts.id)).map(ts => ({ id: ts.id, name: formatClubTeamHeading(clubNameForTeam(ts.team), ts.team?.name || ts.display_name), ageGroup: ts.age_group, season: ts.season?.name, logo: getClubLogo(ts.team?.name || '', { teamId: ts.team?.id, logoUrl: ts.team?.logo_url }), own: true })),
     ...favorites.filter(team => !teamSeasons.some(own => own.id === team.id)).map(team => ({ ...team, own: false })),
   ];
   return <>

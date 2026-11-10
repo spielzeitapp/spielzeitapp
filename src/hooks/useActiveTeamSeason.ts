@@ -1,3 +1,4 @@
+import {clubNameForTeam} from '../lib/teamDisplayName';
 import { useMemo } from 'react';
 import { useSession } from '../auth/useSession';
 import {
@@ -41,7 +42,7 @@ export function useActiveTeamSeason() {
     return resolveTeamSeasonLabelParts({
       displayName: readTeamSeason.display_name,
       ageGroup: readTeamSeason.age_group,
-      teamName: readTeamSeason.team?.name,
+      teamName: readTeamSeason.team?.name, clubName: clubNameForTeam(readTeamSeason.team),
       seasonName: readTeamSeason.season?.name,
       status: readTeamSeason.status,
     });
@@ -51,7 +52,7 @@ export function useActiveTeamSeason() {
     ? formatTeamSeasonContextLabel({
         displayName: readTeamSeason.display_name,
         ageGroup: readTeamSeason.age_group,
-        teamName: readTeamSeason.team?.name,
+        teamName: readTeamSeason.team?.name, clubName: clubNameForTeam(readTeamSeason.team),
         seasonName: readTeamSeason.season?.name,
         status: readTeamSeason.status,
       })
@@ -95,7 +96,7 @@ export function useActiveTeamSeason() {
           {
             displayName: readTeamSeason.display_name,
             ageGroup: readTeamSeason.age_group,
-            teamName: readTeamSeason.team?.name,
+            teamName: readTeamSeason.team?.name, clubName: clubNameForTeam(readTeamSeason.team),
             seasonName: readTeamSeason.season?.name,
             status: readTeamSeason.status,
           },

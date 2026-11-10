@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+import {createRequire} from 'node:module';
+const require = createRequire(import.meta.url);
+async function load(path) {
+  const result = await build({entryPoints:[path],bundle:true,platform:'node',format:'cjs',write:false});
+  const module = {exports:{}};
+  new Function('require','module','exports',result.outputFiles[0].text)(require,module,module.exports);
+  return module.exports;
+}
+const {clubNameForTeam,formatClubTeamHeading:heading,formatTeamSelectionLabel:option} = await load('src/lib/teamDisplayName.ts');
+assert.equal(clubNameForTeam({clubs:[{name:'SC Melk'}]}),'SC Melk');
+assert.equal(clubNameForTeam({clubs:{name:'SC Melk'}}),'SC Melk');
+for (const name of ['FR','SC Melk FR','SC Melk FR U16','U16-FR']) assert.equal(heading('SC Melk',name),'SC Melk FR',name);
+assert.equal(heading('SC Melk','KM-FR'),'SC Melk KM-FR');
+assert.equal(heading('SC Melk','KM II-FR'),'SC Melk KM II-FR');
+assert.equal(heading('USC Rohrbach','KM'),'USC Rohrbach KM');
+assert.equal(heading('NSG Gölsental','SPG Rohrbach'),'SPG Rohrbach','independent SPG name stays intact');
+assert.equal(heading(null,'SC Melk FR'),'SC Melk FR');
+assert.equal(heading(null,'FR'),'FR','never invent a club');
+assert.equal(option('SC Melk','FR','U16'),'FR · U16');
+assert.equal(option('SC Melk','SC Melk FR','U16'),'FR · U16');
+assert.equal(option('USC Rohrbach','KM','KM'),'KM','no duplicated senior class');
+assert.equal(option('NSG Gölsental','SPG Rohrbach','U12'),'SPG Rohrbach · U12');
+const {formatTeamSeasonContextLabel:label} = await load('src/lib/seasonLifecycle.ts');
+assert.equal(label({clubName:'SC Melk',teamName:'FR',ageGroup:'U16',seasonName:'2026/27'}),'SC Melk FR · U16 · 2026/27');
+assert.equal(label({clubName:'SC Melk',teamName:'SC Melk FR',ageGroup:'U16',seasonName:'2026/27'}),'SC Melk FR · U16 · 2026/27');
+assert.equal(label({clubName:'USC Rohrbach',teamName:'KM',ageGroup:'KM',seasonName:'2026/27'}),'USC Rohrbach · KM · 2026/27');
+assert.equal(label({clubName:'NSG Gölsental',teamName:'SPG Rohrbach',ageGroup:'U11',seasonName:'2025/26',status:'archived'},{markArchived:true}),'SPG Rohrbach · U11 · 2025/26 · Archiv');
+console.log('PASS: short/full club names, ÖFB FR labels, senior labels, SPG names, joined club shapes and archived season context.');

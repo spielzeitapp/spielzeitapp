@@ -23,6 +23,15 @@ await act(async()=>tree.root.findByProps({'aria-label':'Mannschaft'}).props.onCh
 await act(async()=>tree.root.findByProps({'aria-label':'Verein'}).props.onChange({target:{value:'b'}}));assert.equal(selected,'r4');
 await act(async()=>tree.unmount());
 
+// A short or legacy full team name must retain FR when age and club are separate.
+for (const name of ['FR','SC Melk FR']) {
+ const melk=[{id:'melk-u16',status:'active',age_group:'U16',team:{id:'fr',club_id:'melk',name,clubs:{name:'SC Melk'}},season:{id:'2026',name:'2026/27'}}];
+ await act(async()=>{tree=create(React.createElement(ManagerReferenceContextSelect,{seasons:melk,value:'melk-u16',clubName:'SC Melk',onSelect:()=>{}}));});
+ const option=tree.root.findByProps({'aria-label':'Mannschaft'}).findAllByType('option').find(o=>o.props.value==='fr');
+ assert.equal(option.children.join(''),'FR · U16');
+ await act(async()=>tree.unmount());
+}
+
 // The data provider never calls the platform-only setup RPC for trainer accounts,
 // and discards a late result when the selected team changes.
 const state={role:'trainer',season:'one',pending:[],calls:[]};globalThis.__centralReference=state;

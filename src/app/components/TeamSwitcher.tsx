@@ -1,3 +1,4 @@
+import {clubNameForTeam,formatClubTeamHeading} from '../../lib/teamDisplayName';
 import {managerPortalRoot} from '../../lib/managerPortal';
 import { ClubLogo } from "../../components/branding/ClubLogo";
 import React from 'react';
@@ -24,7 +25,7 @@ function seasonLabel(ts: SessionTeamSeasonItem): string {
 }
 
 function compactLabel(ts: SessionTeamSeasonItem | undefined): string {
-  return ts ? formatTeamSeasonContextLabel({ displayName: ts.display_name, ageGroup: ts.age_group, teamName: ts.team?.name, seasonName: ts.season?.name, status: ts.status }, { markArchived: true }) : 'Mannschaft wählen';
+  return ts ? formatTeamSeasonContextLabel({ displayName: ts.display_name, ageGroup: ts.age_group, teamName: ts.team?.name, clubName: clubNameForTeam(ts.team), seasonName: ts.season?.name, status: ts.status }, { markArchived: true }) : 'Mannschaft wählen';
 }
 
 export type TeamSwitcherProps = {
@@ -253,7 +254,7 @@ export const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ compact = false, cla
         const club = team && (Array.isArray(team.clubs) ? team.clubs[0] : team.clubs);
         const season = Array.isArray(item.seasons) ? item.seasons[0] : item.seasons;
         if (!team || !club || club.status !== 'active') continue;
-        rows.push({ id: item.id, teamName: team.name, clubName: club.name, ageGroup: item.age_group || '', seasonName: season?.name || '', clubLogo: club.logo_url || null });
+        rows.push({ id: item.id, teamName: formatClubTeamHeading(club.name,team.name), clubName: club.name, ageGroup: item.age_group || '', seasonName: season?.name || '', clubLogo: club.logo_url || null });
       }
       setDiscoveredTeams(rows);
     };

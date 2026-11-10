@@ -1,4 +1,5 @@
 import { parseClubDisplayName, tokenLooksLikeAgeGroup } from './feedClubNaming';
+import {formatClubTeamName} from './teamDisplayName';
 import { normalizeRole, type RoleKey } from './roles';
 
 /**
@@ -189,6 +190,7 @@ export function buildNextSeasonDraftName(source: CurrentSeasonLabelSource): stri
 
 /** Eingabe für saisonbezogene UI-Labels (nicht teams.name allein). */
 export type TeamSeasonLabelInput = {
+  clubName?: string | null;
   displayName?: string | null;
   /** team_seasons.age_group (Saison-Snapshot). */
   ageGroup?: string | null;
@@ -252,6 +254,10 @@ export function resolveTeamSeasonLabelParts(input: TeamSeasonLabelInput): TeamSe
   // Senior labels such as KM may also occur at the end of the team name.
   if (age && club.toLowerCase().endsWith(` ${age.toLowerCase()}`)) {
     club = club.slice(0, -(age.length + 1)).trim();
+  }
+  if (input.clubName?.trim()) {
+    const name = club || (input.teamName ?? '').trim();
+    club = formatClubTeamName(input.clubName, age && name.toLowerCase() === age.toLowerCase() ? '' : name);
   }
   const rawTeam = (input.teamName ?? '').trim();
   const teamLine = age

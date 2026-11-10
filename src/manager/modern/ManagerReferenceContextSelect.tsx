@@ -1,3 +1,4 @@
+import {clubNameForTeam,formatTeamSelectionLabel} from '../../lib/teamDisplayName';
 import React from 'react';
 import type {SessionTeamSeasonItem} from '../../auth/useSession';
 import {isSeasonActive,getSeasonStatusLabel} from '../../lib/seasonLifecycle';
@@ -14,7 +15,7 @@ export function ManagerReferenceContextSelect({seasons,value,onSelect,clubName}:
  function choose(rows:SessionTeamSeasonItem[]){const same=rows.find(s=>s.season?.id===selected?.season?.id)??rows.find(s=>isSeasonActive(s.status))??rows[0];if(same)onSelect(same.id);}
  return <div className="szc-context-selectors">
   <label className="szc-selector"><span>VEREIN</span>{clubs.length>1?<select aria-label="Verein" value={club} onChange={e=>choose(seasons.filter(s=>clubKey(s)===e.target.value))}>{clubs.map(s=><option key={clubKey(s)} value={clubKey(s)}>{clubLabel(s)}</option>)}</select>:<strong>{clubName??(selected?clubLabel(selected):'Verein auswählen')}</strong>}</label>
-  <label className="szc-selector"><span>MANNSCHAFT</span><select aria-label="Mannschaft" value={selected?.team?.id??''} disabled={!teams.length} onChange={e=>choose(inClub.filter(s=>s.team?.id===e.target.value))}><option value="" disabled>Mannschaft wählen…</option>{teams.map(t=><option key={t.team?.id} value={t.team?.id}>{t.age_group??t.team?.age_group??t.team?.name}</option>)}</select></label>
+  <label className="szc-selector"><span>MANNSCHAFT</span><select aria-label="Mannschaft" value={selected?.team?.id??''} disabled={!teams.length} onChange={e=>choose(inClub.filter(s=>s.team?.id===e.target.value))}><option value="" disabled>Mannschaft wählen…</option>{teams.map(t=><option key={t.team?.id} value={t.team?.id}>{formatTeamSelectionLabel(clubNameForTeam(t.team)??clubName,t.team?.name,t.age_group??t.team?.age_group)}</option>)}</select></label>
   <label className="szc-selector"><span>SAISON</span><select aria-label="Saison" value={selected?.id??''} disabled={!selected} onChange={e=>onSelect(e.target.value)}><option value="" disabled>Saison wählen…</option>{inTeam.map(s=><option key={s.id} value={s.id}>{s.season?.name}{isSeasonActive(s.status)?'':' · '+getSeasonStatusLabel(s.status)}</option>)}</select></label>
  </div>;
 }
