@@ -38,7 +38,7 @@ export const TournamentHeroCard: React.FC<Props> = ({
   const nextGroup = safeOptionalText(summary.nextMatch?.group_label) ?? '';
 
   return (
-    <div className="relative -mx-1 min-w-0 overflow-hidden rounded-[18px] border border-purple-500/30 bg-[linear-gradient(165deg,#221830_0%,#0c0a12_46%,#1a1024_100%)] px-4 py-4 shadow-[0_16px_48px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.07),0_0_40px_rgba(168,85,247,0.08)] sm:mx-0">
+    <div className="relative -mx-1 min-w-0 overflow-hidden rounded-2xl border sz-club-surface px-4 py-4 sm:mx-0">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(251,191,36,0.12)_0%,transparent_55%)]" aria-hidden />
       <div className="relative">
         <div className="mb-3 flex items-center gap-2">
@@ -69,7 +69,7 @@ export const TournamentHeroCard: React.FC<Props> = ({
                 </p>
               ) : summary.nextMatch ? (
                 <>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-purple-300/80">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] sz-club-accent-text">
                     Nächstes Spiel
                   </p>
                   <div className="mt-1.5 flex flex-col gap-0.5 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-2">
@@ -80,7 +80,7 @@ export const TournamentHeroCard: React.FC<Props> = ({
                     </span>
                   </div>
                   {nextGroup ? (
-                    <p className="mt-1 text-[13px] font-medium text-purple-300/75">Gruppe {nextGroup}</p>
+                    <p className="mt-1 text-[13px] font-medium sz-club-accent-text">Gruppe {nextGroup}</p>
                   ) : null}
                 </>
               ) : (

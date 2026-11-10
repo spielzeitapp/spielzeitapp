@@ -48,7 +48,7 @@ export function TournamentCompactCard({
       badgeLabel="Turnier"
       badgeIcon={
         <Trophy
-          className="h-2.5 w-2.5 shrink-0 text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.45)]"
+          className="sz-club-accent-text h-2.5 w-2.5 shrink-0"
           strokeWidth={2.25}
           aria-hidden
         />
@@ -57,7 +57,7 @@ export function TournamentCompactCard({
       imageObjectPosition="50% 36%"
       participantCount={participantCount}
       tall
-      vividImage
+      compactCountdown
     />
   );
 }

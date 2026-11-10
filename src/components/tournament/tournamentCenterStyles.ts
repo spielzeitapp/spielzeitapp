@@ -1,11 +1,9 @@
-/** @deprecated Use eventCenterStyles — kept for tournament imports. */
-export {
-  EC_CARD as TC_CARD,
-  EC_CARD_INNER as TC_CARD_INNER,
-  EC_STACK_GAP as TC_STACK_GAP,
-  EC_SECTION_LABEL as TC_SECTION_LABEL,
-  EC_META_ICON as TC_META_ICON,
-} from '../center/eventCenterStyles';
+/** Tournament surfaces share the team/profile design and inherit the event club theme. */
+export const TC_CARD = 'relative overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--quiet';
+export const TC_CARD_INNER = 'px-3 py-3 sm:px-3.5';
+export const TC_STACK_GAP = 'gap-2 sm:gap-2.5';
+export const TC_SECTION_LABEL = 'sz-club-accent-text text-[10px] font-bold uppercase tracking-[0.12em]';
+export const TC_META_ICON = 'sz-club-accent-text h-3.5 w-3.5 shrink-0';
 
 export type TournamentCenterTabId = 'overview' | 'games' | 'table' | 'teams' | 'admin';
 

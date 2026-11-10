@@ -46,7 +46,7 @@ export function TournamentQuickActionBar({
           to={publicPath}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex min-h-[34px] items-center rounded-full border border-[rgba(255,71,71,0.28)] bg-[rgba(255,71,71,0.08)] px-3 py-1.5 text-[11px] font-semibold text-red-100 touch-manipulation"
+          className="inline-flex min-h-[34px] items-center rounded-full border sz-club-accent-chip px-3 py-1.5 text-[11px] font-semibold  touch-manipulation"
         >
           Turnierseite ansehen
         </Link>

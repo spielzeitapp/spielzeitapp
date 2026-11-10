@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Check, ChevronRight, ClipboardList, Loader2 } from 'lucide-react';
+import { ChevronRight, ClipboardList, Loader2 } from 'lucide-react';
 import { fetchLineupForLiveMatch } from '../../lib/liveMatchService';
 import {
   liveMatchPath,
@@ -56,12 +56,14 @@ type Props = {
 
 function StepProgress({ step }: { step: TournamentAssistantStep }) {
   return (
-    <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-purple-200/80">
-      <span className="inline-flex items-center gap-1">
-        <Check className="h-3 w-3 text-emerald-300" strokeWidth={3} aria-hidden />
-        Schritt {step.stepNumber} von {step.totalSteps}
-      </span>
-    </p>
+    <div className="mt-2">
+      <p className="text-[10px] font-semibold text-white/65">Schritt {step.stepNumber} von {step.totalSteps}</p>
+      <div className="mt-1.5 flex gap-1" role="progressbar" aria-label="Turnier-Vorbereitung" aria-valuemin={0} aria-valuemax={step.totalSteps} aria-valuenow={step.stepNumber}>
+        {Array.from({ length: step.totalSteps }, (_, index) => (
+          <span key={index} className={`h-1 flex-1 rounded-full ${index < step.stepNumber ? 'sz-club-progress-fill' : 'bg-white/15'}`} />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -385,7 +387,7 @@ export function TournamentAssistantCard({
       const targetMatchId = action.matchId ?? copyContext?.targetSlot.match_id?.trim() ?? '';
       return (
         <div className="flex flex-col gap-1.5">
-          <p className="rounded-lg border border-purple-500/25 bg-purple-950/25 px-2.5 py-2 text-[12px] font-semibold leading-snug text-purple-50">
+          <p className="rounded-lg border sz-club-accent-chip px-2.5 py-2 text-[12px] font-semibold leading-snug sz-club-accent-text">
             Letzte Aufstellung übernehmen
           </p>
           {copyContext?.sourceOpponentName ? (
@@ -453,9 +455,9 @@ export function TournamentAssistantCard({
 
   if (loading || lineupLoading || squadLoading) {
     return (
-      <section className={`${TC_CARD} border-[rgba(147,112,219,0.28)]`}>
+      <section className={TC_CARD}>
         <div className={TC_CARD_INNER}>
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-purple-200/75">Turnier-Assistent</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] sz-club-accent-text">Turnier-Assistent</p>
           <p className="mt-2 flex items-center gap-2 text-[13px] text-white/55">
             <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
             Lade nächsten Schritt…
@@ -466,11 +468,11 @@ export function TournamentAssistantCard({
   }
 
   return (
-    <section className={`${TC_CARD} border-[rgba(147,112,219,0.32)] shadow-[0_8px_32px_rgba(88,28,135,0.12)]`}>
+    <section className={TC_CARD}>
       <div className={`${TC_CARD_INNER} flex flex-col gap-3`}>
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-purple-200/85">
+            <p className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] sz-club-accent-text">
               <ClipboardList className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />
               Turnier-Assistent
             </p>

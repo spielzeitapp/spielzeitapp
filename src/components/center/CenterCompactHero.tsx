@@ -18,6 +18,7 @@ type Props = {
   participantCount?: number | null;
   tall?: boolean;
   vividImage?: boolean;
+  compactCountdown?: boolean;
 };
 
 export function CenterCompactHero({
@@ -32,6 +33,7 @@ export function CenterCompactHero({
   participantCount = null,
   tall = false,
   vividImage = false,
+  compactCountdown = false,
 }: Props) {
   const [now, setNow] = useState(() => new Date());
 
@@ -80,13 +82,17 @@ export function CenterCompactHero({
               </span>
               {participantCount != null && participantCount > 0 ? (
                 <span className="inline-flex items-center gap-0.5 rounded-full border border-white/[0.08] bg-black/40 px-1.5 py-px text-[7px] font-semibold text-white/72 backdrop-blur-[2px]">
-                  <Users className="h-2 w-2 shrink-0 text-red-300/80" strokeWidth={2.5} aria-hidden />
+                  <Users className="h-2 w-2 shrink-0 sz-club-accent-text" strokeWidth={2.5} aria-hidden />
                   {participantCount} Teams
                 </span>
               ) : null}
             </div>
             {showCountdown && countdown ? (
-              <div className="w-[min(46%,9.5rem)] shrink-0 scale-[0.9] origin-top-right sm:scale-95">
+              compactCountdown ? (
+                <span className="sz-club-accent-chip shrink-0 rounded-full border bg-black/60 px-2.5 py-1 text-[11px] font-semibold">
+                  {countdown.days > 0 ? `In ${countdown.days} ${countdown.days === 1 ? 'Tag' : 'Tagen'}` : countdown.hours > 0 ? `In ${countdown.hours} Std. ${countdown.minutes} Min.` : `In ${countdown.minutes} Min.`}
+                </span>
+              ) : <div className="w-[min(46%,9.5rem)] shrink-0 scale-[0.9] origin-top-right sm:scale-95">
                 <MatchCenterCountdown
                   parts={countdown}
                   variant="heroCompact"

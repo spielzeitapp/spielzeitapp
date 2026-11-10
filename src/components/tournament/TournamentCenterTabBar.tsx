@@ -9,14 +9,13 @@ type Props = {
 
 export function TournamentCenterTabBar({ activeTab, onTabChange, canManage = false }: Props) {
   const tabs = getTournamentCenterTabs(canManage);
-  const gridCols = tabs.length >= 5 ? 'grid-cols-5' : 'grid-cols-4';
 
   return (
     <nav
-      className="sticky top-0 z-[5] -mx-0.5 rounded-2xl border border-[rgba(255,71,71,0.12)] bg-[rgba(6,4,8,0.94)] p-1 backdrop-blur-sm"
+      className="sticky top-0 z-[5] -mx-0.5 rounded-2xl border sz-club-tab-track bg-[#0c0c0f] p-1 backdrop-blur-sm"
       aria-label="Turniercenter — Nachsehen"
     >
-      <div className={`grid ${gridCols} gap-0.5`}>
+      <div className="flex gap-1 overflow-x-auto">
         {tabs.map((tab) => {
           const active = tab.id === activeTab;
           return (
@@ -24,9 +23,9 @@ export function TournamentCenterTabBar({ activeTab, onTabChange, canManage = fal
               key={tab.id}
               type="button"
               onClick={() => onTabChange(tab.id)}
-              className={`min-h-[36px] rounded-xl px-0.5 py-1.5 text-[10px] font-semibold leading-tight touch-manipulation transition sm:px-1 sm:text-[11px] ${
+              className={`min-h-[40px] shrink-0 flex-1 whitespace-nowrap rounded-xl border border-transparent px-3 py-2 text-[12px] font-semibold leading-tight touch-manipulation transition sm:text-[12px] ${
                 active
-                  ? 'bg-[rgba(255,71,71,0.16)] text-white shadow-[inset_0_0_0_1px_rgba(255,71,71,0.28)]'
+                  ? 'sz-club-tab-active text-white'
                   : 'text-white/50 hover:text-white/75'
               }`}
               aria-current={active ? 'page' : undefined}
