@@ -4050,8 +4050,8 @@ export const EventDetailPage: React.FC = () => {
         ) : null}
 
         {isTournament ? (
-          <>
-            <TournamentCenterHeader />
+          <div className="contents" style={matchClub.style}>
+            <TournamentCenterHeader logoUrl={matchClub.brand?.logo_url} />
             {event.team_season_id ? (
               <TournamentDetailSections
                 tournamentEventId={event.id}
@@ -4129,7 +4129,7 @@ export const EventDetailPage: React.FC = () => {
                 }
               />
             ) : null}
-          </>
+          </div>
         ) : isTraining ? (
           <>
             <CenterHeader title="Trainingscenter" />
