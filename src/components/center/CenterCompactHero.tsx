@@ -59,7 +59,6 @@ export function CenterCompactHero({
         {clubBackground ? (
           <div className="pointer-events-none absolute inset-0" aria-hidden>
             <div className="sz-club-diagonal-lines absolute inset-0" />
-            <Trophy className="absolute right-4 top-1/2 h-24 w-24 -translate-y-1/2 text-[rgb(var(--club-accent-rgb)/0.12)] sm:h-28 sm:w-28" strokeWidth={1} />
           </div>
         ) : (
           <>
@@ -118,14 +117,21 @@ export function CenterCompactHero({
             ) : null}
           </div>
 
-          <div className={`mt-auto flex flex-col justify-center pt-3 ${clubBackground ? 'max-w-[85%]' : 'max-w-[92%]'}`}>
+          <div className={`mt-auto flex flex-col justify-center pt-3 ${clubBackground ? 'max-w-full' : 'max-w-[92%]'}`}>
+            <div className="flex items-center gap-2">
+              {clubBackground ? (
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-purple-400/30 bg-[radial-gradient(ellipse_70%_65%_at_30%_10%,rgba(168,85,247,0.28)_0%,rgba(48,18,68,0.5)_55%,rgba(14,14,18,0.92)_100%)] shadow-[0_0_18px_rgba(168,85,247,0.18),inset_0_1px_0_rgba(255,255,255,0.06)]" aria-hidden>
+                  <Trophy className="h-5 w-5 text-amber-300/95" strokeWidth={2.1} />
+                </span>
+              ) : null}
             <h2
-              className={`line-clamp-2 text-left font-extrabold leading-[1.06] tracking-tight text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.95)] ${
+              className={`min-w-0 line-clamp-3 text-left font-extrabold leading-[1.06] tracking-tight text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.95)] ${
                 tall ? 'text-[20px] sm:text-[22px]' : 'text-[18px] sm:text-[19px]'
               }`}
             >
               {title}
             </h2>
+            </div>
             <p
               className={
                 metaDetails
