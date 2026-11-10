@@ -1,10 +1,10 @@
 import {supabase} from './supabaseClient';
 import {uploadStorageObject} from './storageUpload';
 import type {PlayerPhotoLayout} from './playerPhotoLayout';
-export const PHOTO_STEPS=['portrait','matchday','celebration'] as const;
+export const PHOTO_STEPS=['portrait','matchday','celebration','matchday_away','celebration_away'] as const;
 export type PhotoStep=typeof PHOTO_STEPS[number];
 export type MotifPurpose=Exclude<PhotoStep,'portrait'>;
-export const PHOTO_LABELS:Record<PhotoStep,string>={portrait:'Profilfoto',matchday:'Spieltagfoto',celebration:'Jubelfoto'};
+export const PHOTO_LABELS:Record<PhotoStep,string>={portrait:'Profilfoto',matchday:'Spieltag · Heim',celebration:'Jubel · Heim',matchday_away:'Spieltag · Auswärts',celebration_away:'Jubel · Auswärts'};
 export type PlayerPhotoMotif={team_season_id:string;player_id:string;purpose:MotifPurpose;original_url:string;cutout_url:string|null;layout:PlayerPhotoLayout|null;revision:string};
 export async function listPlayerPhotoMotifs(seasonId:string):Promise<PlayerPhotoMotif[]> {
  const {data,error}=await supabase.from('player_photo_motifs').select('*').eq('team_season_id',seasonId);

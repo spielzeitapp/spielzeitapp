@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+const result=await build({stdin:{contents:"export {remoteCommandMatches} from './src/lib/playerPhotoRemote';export {PHOTO_STEPS,PHOTO_LABELS} from './src/lib/playerPhotoMotifs';",resolveDir:process.cwd()},bundle:true,write:false,platform:'node',format:'cjs',plugins:[{name:'no-network',setup(b){b.onResolve({filter:/supabaseClient|storageUpload/},a=>({path:a.path,namespace:'stub'}));b.onLoad({filter:/.*/,namespace:'stub'},()=>({contents:'export const supabase={};export const uploadStorageObject=()=>{};'}));}}]});
+const m={exports:{}};new Function('module','exports',result.outputFiles[0].text)(m,m.exports);
+const {remoteCommandMatches,PHOTO_STEPS,PHOTO_LABELS}=m.exports;
+assert.equal(PHOTO_STEPS.length,5);assert.equal(new Set(PHOTO_STEPS).size,5);
+const state={playerId:'player',step:'matchday_away',ready:true,busy:false,draftId:null,finished:false};const c={id:'11111111-1111-4111-8111-111111111111',action:'capture',playerId:'player',step:'matchday_away',draftId:null};
+assert.ok(remoteCommandMatches(c,state));assert.equal(remoteCommandMatches({...c,step:'matchday'},state),false);
+assert.ok(remoteCommandMatches({...c,action:'accept',draftId:'away-draft'},{...state,draftId:'away-draft'}));
+assert.equal(remoteCommandMatches({...c,action:'accept',draftId:'home-draft'},{...state,draftId:'away-draft'}),false);
+assert.ok(PHOTO_LABELS.matchday_away.includes('Auswärts'));assert.ok(PHOTO_LABELS.matchday.includes('Heim'));
+console.log('PASS: five kit motifs, remote away capture, cross-kit and stale draft rejection, clear selection labels');
