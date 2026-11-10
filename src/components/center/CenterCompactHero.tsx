@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Users } from 'lucide-react';
+import { Trophy, Users } from 'lucide-react';
 import { computeMatchCenterCountdown } from '../../lib/matchCenterUtils';
 import { formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
 import { MatchCenterCountdown } from '../live/MatchCenterCountdown';
@@ -19,6 +19,7 @@ type Props = {
   tall?: boolean;
   vividImage?: boolean;
   compactCountdown?: boolean;
+  clubBackground?: boolean;
 };
 
 export function CenterCompactHero({
@@ -34,6 +35,7 @@ export function CenterCompactHero({
   tall = false,
   vividImage = false,
   compactCountdown = false,
+  clubBackground = false,
 }: Props) {
   const [now, setNow] = useState(() => new Date());
 
@@ -48,8 +50,15 @@ export function CenterCompactHero({
   const heightClass = tall ? EC_HERO_HEIGHT_TALL : EC_HERO_HEIGHT;
 
   return (
-    <article className={EC_HERO_SHELL}>
+    <article className={clubBackground ? "relative overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--hero" : EC_HERO_SHELL}>
       <div className={`relative ${heightClass} w-full overflow-hidden`}>
+        {clubBackground ? (
+          <div className="pointer-events-none absolute inset-0" aria-hidden>
+            <div className="sz-club-diagonal-lines absolute inset-0" />
+            <Trophy className="absolute right-4 top-1/2 h-24 w-24 -translate-y-1/2 text-[rgb(var(--club-accent-rgb)/0.12)] sm:h-28 sm:w-28" strokeWidth={1} />
+          </div>
+        ) : (
+          <>
         <img
           src={coverUrl}
           alt=""
@@ -73,6 +82,8 @@ export function CenterCompactHero({
           aria-hidden
         />
 
+          </>
+        )}
         <div className="relative flex h-full min-h-[inherit] flex-col px-3 pb-2.5 pt-1.5 sm:px-3.5">
           <div className="flex items-start justify-between gap-2">
             <div className="flex min-w-0 flex-wrap items-center gap-1">
@@ -103,7 +114,7 @@ export function CenterCompactHero({
             ) : null}
           </div>
 
-          <div className="mt-auto flex max-w-[92%] flex-col justify-center pt-1">
+          <div className={`mt-auto flex flex-col justify-center pt-3 ${clubBackground ? 'max-w-[85%]' : 'max-w-[92%]'}`}>
             <h2
               className={`line-clamp-2 text-left font-extrabold leading-[1.06] tracking-tight text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.95)] ${
                 tall ? 'text-[20px] sm:text-[22px]' : 'text-[18px] sm:text-[19px]'

@@ -57,6 +57,7 @@ export function TournamentCompactCard({
       imageObjectPosition="50% 36%"
       participantCount={participantCount}
       tall
+      clubBackground
       compactCountdown
     />
   );
