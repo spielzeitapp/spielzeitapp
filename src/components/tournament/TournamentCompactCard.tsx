@@ -16,6 +16,8 @@ type Props = {
   meetingAt?: string | null;
   coverUrl?: unknown;
   participantCount?: number | null;
+  hideCountdown?: boolean;
+  badgeLabel?: string;
 };
 
 export function TournamentCompactCard({
@@ -25,6 +27,8 @@ export function TournamentCompactCard({
   meetingAt = null,
   coverUrl,
   participantCount = null,
+  hideCountdown = false,
+  badgeLabel = 'Turnier',
 }: Props) {
   const heroUrl = resolveTournamentHeroBackgroundUrl(safeOptionalText(coverUrl));
   const dateLabel = formatTournamentDayDate(startsAt) || '—';
@@ -66,7 +70,7 @@ export function TournamentCompactCard({
           </div>
         </dl>
       }
-      badgeLabel="Turnier"
+      badgeLabel={badgeLabel}
       badgeIcon={
         <Trophy
           className="sz-club-accent-text h-2.5 w-2.5 shrink-0"
@@ -79,6 +83,7 @@ export function TournamentCompactCard({
       participantCount={participantCount}
       tall
       clubBackground
+      hideCountdown={hideCountdown}
       compactCountdown
     />
   );
