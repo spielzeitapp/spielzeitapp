@@ -10,7 +10,7 @@ globalThis.window={confirm:()=>true,dispatchEvent(){}};
 globalThis.Image=class {naturalWidth=1600;naturalHeight=1200;async decode(){}};
 globalThis.__boothWrite=async(kind,args)=>{writes.push({kind,args});if(fail&&kind==='avatar')return{error:'Upload nicht erlaubt'};if(kind==='avatar')return{avatarUrl:'/new.jpg',error:null};if(kind==='cutout')return{cutoutUrl:'/new.png',error:null};return{data:{id:'p1'},error:null};};
 const fixtures={
- playerPhotoMotifs:`export const PHOTO_STEPS=['portrait','matchday','celebration'];export const PHOTO_LABELS={portrait:'Profilfoto',matchday:'Spieltagfoto',celebration:'Jubelfoto'};export const listPlayerPhotoMotifs=async()=>[];export const uploadPlayerMotif=async(s,p,k,f,c)=>'/'+k+(c?'.png':'.jpg');export const savePlayerPhotoMotif=async(v,e)=>{await globalThis.__boothWrite('motif',v);return {...v,revision:'new'};};`,
+ playerPhotoMotifs:`export const PHOTO_STEPS=['portrait','matchday','celebration','matchday_away','celebration_away'];export const PHOTO_LABELS={portrait:'Profilfoto',matchday:'Spieltag · Heim',celebration:'Jubel · Heim',matchday_away:'Spieltag · Auswärts',celebration_away:'Jubel · Auswärts'};export const listPlayerPhotoMotifs=async()=>[];export const uploadPlayerMotif=async(s,p,k,f,c)=>'/'+k+(c?'.png':'.jpg');export const savePlayerPhotoMotif=async(v,e)=>{await globalThis.__boothWrite('motif',v);return {...v,revision:'new'};};`,
  'managerPlayerPhotoBooth.css':'export default {};',
  livePlayerPortrait:'export const startLivePlayerPortrait=()=>()=>{};',
  'react-dom':'export const createPortal=x=>x;',
@@ -70,15 +70,15 @@ assert.equal(writes.find(w=>w.kind==='players').args.cutout_url,'/new.png');
 const rpc=writes.find(w=>w.kind==='admin_save_player_photo_layout');assert.equal(rpc.args.p_player_id,'p1');assert.equal(rpc.args.p_team_season_id,'season');assert.equal(rpc.args.p_layout.source,'cutout');assert.deepEqual(rpc.args.p_expected,players[0].photo_layout);
 assert.equal(root.root.findByProps({'aria-label':'Spieler auswählen'}).props.value,'p1','Profile save stays on current player for the next motif');
 const profileWrites=writes.length;
-for(const purpose of ['matchday','celebration']){
+for(const purpose of ['matchday','celebration','matchday_away','celebration_away']){
  await act(async()=>root.root.findByType('video').props.onLoadedData());
  await act(async()=>button('Foto aufnehmen').props.onClick());
  await act(async()=>textButton('Übernehmen').props.onClick());
  assert.equal(writes.at(-1).kind,'motif');assert.equal(writes.at(-1).args.purpose,purpose);
 }
 assert.equal(writes.slice(profileWrites).filter(w=>w.kind==='players'||w.kind==='player_avatars'||w.kind==='avatar').length,0,'Additional motifs never overwrite the profile photo');
-assert.equal(root.root.findByProps({'aria-label':'Spieler auswählen'}).props.value,'p2','Third accepted motif advances to the next player');
-for(let i=0;i<3;i++)await act(async()=>textButton('Diesen Schritt überspringen').props.onClick());
+assert.equal(root.root.findByProps({'aria-label':'Spieler auswählen'}).props.value,'p2','Fourth additional motif advances to the next player');
+for(let i=0;i<5;i++)await act(async()=>textButton('Diesen Schritt überspringen').props.onClick());
 assert.ok(root.root.findAllByProps({role:'status'}).some(n=>n.findAllByType('h3').some(h=>h.children.includes('Fotoserie abgeschlossen'))),'Series has a clear finish after last player');
 await act(async()=>button('Fotobox schließen').props.onClick());assert.equal(closed,1);
 await act(async()=>root.unmount());assert.equal(document.body.style.overflow,undefined);
