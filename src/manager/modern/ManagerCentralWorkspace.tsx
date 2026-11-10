@@ -13,6 +13,7 @@ import {isStagingApp} from '../../lib/appEnvironment';
 import {centralPage,centralToolsForContext,searchCentralTools,relatedCentralTools} from './centralWorkspace';
 import {ManagerReferenceData,useReferenceData} from './ManagerReferenceData';
 import {ManagerReferenceRail} from './ManagerReferenceRail';
+import {ManagerCentralBrand} from './ManagerCentralBrand';
 
 function Workspace({children}:{children:React.ReactNode}){
  const {pathname,search}=useLocation(),{workMode,supportSession}=useManagerWorkMode();
@@ -38,7 +39,7 @@ function Workspace({children}:{children:React.ReactNode}){
   <div className="szc-environment" aria-label="Manager, TEST und LIVE"><span><Activity size={16}/><b>Manager</b><small>Zentrale Datenpflege</small></span><ArrowRight size={16}/><span><b>TEST</b><span className="szc-badge szc-gray">{isStagingApp()?'Diese Umgebung':'Separate Umgebung'}</span></span><ArrowRight size={16}/>{backendRole==='admin'?<Link to="/manager/live-veroeffentlichung"><b>LIVE</b><span className="szc-badge szc-gray">Stand prüfen</span></Link>:<span><b>LIVE</b><span className="szc-badge szc-gray">Separate Freigabe</span></span>}<button type="button" className="szc-envNote" aria-expanded={rail} onClick={()=>setRail(v=>!v)}><Eye size={12}/>{rail?'Vorschau ausblenden':'Vorschau & Checkliste'}</button></div>
   {!home&&related.length>1&&<nav className="central-section-tabs" aria-label="Zugehörige Managerbereiche">{related.map(tool=><Link key={tool.id} to={tool.to!} aria-current={tool.to===pathname+search||(!search&&tool.to===pathname)?'page':undefined}>{tool.label}</Link>)}</nav>}
   <div className={'szc-bodyGrid '+(!rail?'szc-without-rail':'')}><section className={'central-page-content szc-native-page '+(page.id==='detail'?'szc-detail-page':'')}>{children}</section>{rail&&<ManagerReferenceRail/>}</div>
-  <footer className="szc-mainFooter"><span>spielzeitapp <span>VEREINSZENTRALE</span></span><small>{isStagingApp()?'Gemeinsame TEST-Daten':'Gemeinsame Arbeitsdaten'} · {name}</small></footer>
+  <footer className="szc-mainFooter"><ManagerCentralBrand/><small>{isStagingApp()?'Gemeinsame TEST-Daten':'Gemeinsame Arbeitsdaten'} · {name}</small></footer>
  </div>;
 }
 export function ManagerCentralWorkspace({children}:{children:React.ReactNode}){return <ManagerReferenceData><Workspace>{children}</Workspace></ManagerReferenceData>;}

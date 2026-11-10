@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import {build} from 'esbuild';
 const require=createRequire(import.meta.url);
-async function compile(path,plugins=[]){const b=await build({entryPoints:[path],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,plugins});const m={exports:{}};new Function('require','module','exports',b.outputFiles[0].text)(require,m,m.exports);return m.exports;}
+async function compile(path,plugins=[]){const b=await build({entryPoints:[path],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,loader:{'.png':'dataurl'},define:{'import.meta.env.BASE_URL':'"/"'},plugins});const m={exports:{}};new Function('require','module','exports',b.outputFiles[0].text)(require,m,m.exports);return m.exports;}
 const catalogue=await compile('src/manager/modern/centralWorkspace.ts');
 const routing=await compile('src/lib/managerComparison.ts');
 const portal=await compile('src/lib/managerPortal.ts');

@@ -4,6 +4,7 @@ import { TeamSwitcher } from '../../app/components/TeamSwitcher';
 import { ManagerComparisonPlatformContextSelect } from './ManagerComparisonPlatformContextSelect';
 import {ManagerReferenceContextSelect} from '../modern/ManagerReferenceContextSelect';
 import {centralPage} from '../modern/centralWorkspace';
+import {ManagerCentralBrand} from '../modern/ManagerCentralBrand';
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Headphones, X, Menu, Bell, ChevronRight } from 'lucide-react';
@@ -122,7 +123,7 @@ export function ManagerComparisonHeader({ onOpenSidebar }: Props): React.ReactEl
   return <>
     <div aria-hidden className="shrink-0 md:hidden" style={{height:headerHeight||148}} />
     <header ref={headerRef} className="manager-header szc-reference-header fixed inset-x-0 top-0 z-30 shrink-0 pt-[env(safe-area-inset-top)] md:sticky md:inset-x-auto">
-      <div className="szc-topbar"><div className="szc-breadcrumb"><button type="button" className="szc-mobileMenu szc-icon" aria-label="Navigation öffnen" onClick={onOpenSidebar}><Menu size={20}/></button><span>Workspace</span><ChevronRight size={13}/><strong>{centralPage(location.pathname,location.search).label}</strong></div>
+      <div className="szc-topbar"><div className="szc-breadcrumb"><button type="button" className="szc-mobileMenu szc-icon" aria-label="Navigation öffnen" onClick={onOpenSidebar}><Menu size={20}/></button><Link className="szc-mobile-brand" to={workMode==='platform_admin'&&!supportSession?'/manager/plattform':'/manager'} aria-label="SpielzeitApp Vereinszentrale öffnen"><ManagerCentralBrand compact/></Link><span>Workspace</span><ChevronRight size={13}/><strong>{centralPage(location.pathname,location.search).label}</strong></div>
        <div className="szc-topRight"><span className="szc-connection"><i/>TEST · Gemeinsame Daten</span><ManagerAppearanceToggle/><Link className="szc-icon" to="/manager/nachrichten" aria-label="Benachrichtigungen"><Bell size={18}/></Link><details className="manager-tools-menu"><summary className="szc-avatar" aria-label="Profil und Manager-Aktionen">{initials}</summary><div className="manager-tools-popover"><p>{displayName} · {mobileRoleLabel}</p><Link to="/manager/mehr">Profil & Einstellungen</Link><div className="manager-tools-favorites"><span>Favoriten</span><TeamSwitcher iconOnly openInApp/></div><a href={managerSurfaceHref(`${location.pathname}${location.search}${location.hash}`, false)} target="_blank" rel="noopener noreferrer">Bisherige Ansicht · gleiche Daten ↗</a><Link to={MANAGER_TO_APP_HOME_PATH}>Zur SpielzeitApp ↗</Link><button type="button" onClick={()=>void onLogout()}>Abmelden</button></div></details></div>
       </div>
       <div className="szc-context">{workMode==='platform_admin'&&!supportSession?<ManagerComparisonPlatformContextSelect/>:<ManagerReferenceContextSelect seasons={headerTeamSeasons} value={selectValue} onSelect={onContextChange} clubName={clubName}/>}
