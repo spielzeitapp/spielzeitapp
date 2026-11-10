@@ -15,7 +15,7 @@ const [widget, register, login, adminLogin, forgotPassword, authProvider] = awai
 assert.ok(widget.includes('VITE_TURNSTILE_SITE_KEY'));
 assert.ok(widget.includes('expired-callback'));
 assert.ok(widget.includes("'error-callback'"));
-assert.ok(widget.includes('window.turnstile.reset'));
+assert.ok(widget.includes('window.turnstile.remove'));
 
 assert.ok(register.includes('<TurnstileWidget'));
 assert.ok(register.includes('captchaToken'));
