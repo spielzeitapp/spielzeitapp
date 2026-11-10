@@ -10,6 +10,7 @@ import {useAuth} from '../../auth/AuthProvider';
 import {useProfile,getDisplayFirstName,profileDisplayName} from '../../auth/useProfile';
 import {centralToolsForContext} from './centralWorkspace';
 import {isStagingApp} from '../../lib/appEnvironment';
+import {ManagerCentralBrand} from './ManagerCentralBrand';
 
 export function ManagerReferenceSidebar({open,onClose}:{open:boolean;onClose:()=>void}){
  const {pathname,search}=useLocation(),{branding,clubName}=useManagerAppearance();
@@ -37,7 +38,7 @@ export function ManagerReferenceSidebar({open,onClose}:{open:boolean;onClose:()=
  function active(to:string){const [path,query]=to.split('?');if(query)return pathname===path&&search===`?${query}`;if(to==='/manager')return pathname==='/manager'||pathname==='/manager/dashboard';return pathname===path&&!search||pathname.startsWith(path+'/');}
  return <><button type="button" className={'szc-sidebar-backdrop '+(open?'open':'')} tabIndex={open?0:-1} onClick={onClose} aria-label="Navigation schließen"/>
  <aside className={'szc-sidebar '+(open?'open':'')} aria-label="Vereinszentrale-Navigation">
-  <Link className="szc-brand" to={workMode==='platform_admin'&&!supportSession?'/manager/plattform':'/manager'} onClick={onClose}><Activity size={24}/><span>spielzeit<span className="szc-brandLight">app</span><small>VEREINSZENTRALE</small></span></Link>
+  <Link className="szc-brand" to={workMode==='platform_admin'&&!supportSession?'/manager/plattform':'/manager'} onClick={onClose}><ManagerCentralBrand/></Link>
   <button type="button" className="szc-sidebar-close" onClick={onClose} aria-label="Navigation schließen"><X size={18}/></button>
   <div className="szc-workspace"><span className="szc-miniBadge">{branding?.logo_url?<img src={branding.logo_url} alt=""/>:<Shield size={20}/>}</span><div><strong>{clubName??'SpielzeitApp'}</strong><small>{clubName?'Dein Verein. Deine Zentrale.':'Deine Vereine. Eine Zentrale.'}</small></div></div>
   <nav>{groups.map(group=><div key={group.label}><label>{group.label}</label>{group.items.filter((i):i is Item=>Boolean(i)).map(({id,label,to,icon:Icon})=><Link key={id} to={to} onClick={onClose} className={active(to)?'active':''} aria-current={active(to)?'page':undefined}><Icon size={17}/><span>{label}</span></Link>)}</div>)}</nav>
