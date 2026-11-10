@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, Clock, MapPin, Trophy, Users } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
 import {
@@ -11,18 +10,16 @@ import {
 import {
   type MatchCenterParticipant,
   pickTournamentFirstMatch,
-  resolveTournamentCoverUrl,
   tournamentPhaseDisplayLabel,
 } from '../../lib/matchCenterTournamentVisuals';
 import { tournamentPrepareCtaLabel } from '../../lib/tournamentDayOrchestrator';
-import { formatFeedVenueShort } from '../../lib/eventLocation';
-import { VIENNA_TZ } from '../../lib/viennaTime';
 import { eventNotesTitle, formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
-import { formatMeetupTimeOnlyDe } from '../match/matchCardLabels';
 import { safeOptionalText, safeText } from '../../lib/safeText';
 import { dsPrimaryCtaClass, dsSecondaryCtaClass } from '../../lib/premiumDesignSystem';
 import { MatchCenterCountdown } from './MatchCenterCountdown';
 import { ParticipantLogoChip } from './ParticipantLogoChip';
+import { useMatchClubBranding } from '../../hooks/useMatchClubBranding';
+import { TournamentCompactCard } from '../tournament/TournamentCompactCard';
 import { TournamentFirstMatchPreview } from './TournamentMatchCenterPoster';
 
 type LiveDayMode = 'upcoming' | 'active' | 'next_own_match' | 'awaiting_next_round' | 'completed';
@@ -44,35 +41,6 @@ type Props = {
   onRefreshPlan?: () => void;
 };
 
-function formatTournamentInfoDate(iso: unknown): string {
-  if (!safeText(iso)) return '—';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
-  return new Intl.DateTimeFormat('de-AT', {
-    timeZone: VIENNA_TZ,
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(d);
-}
-
-const HERO_META_ICON = 'h-3 w-3 shrink-0 text-red-400/90';
-
-function HeroMetaLine({
-  icon: Icon,
-  children,
-}: {
-  icon: typeof CalendarDays;
-  children: React.ReactNode;
-}) {
-  return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium leading-snug text-white/92 drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]">
-      <Icon className={HERO_META_ICON} strokeWidth={2.25} aria-hidden />
-      {children}
-    </span>
-  );
-}
-
 export function MatchCenterTournamentCard({
   event,
   ourTeamName,
@@ -92,7 +60,7 @@ export function MatchCenterTournamentCard({
       eventNotesTitle(event.notes) ?? safeOptionalText(event.opponent) ?? 'Turnier',
     ) || 'Turnier';
   const premium = isRudolfSteurerGedenkturnier(title);
-  const coverUrl = resolveTournamentCoverUrl(event);
+  const club = useMatchClubBranding(event.team_season_id);
   const isTournamentDay =
     liveDayMode === 'active' ||
     liveDayMode === 'next_own_match' ||
@@ -102,11 +70,6 @@ export function MatchCenterTournamentCard({
     () => computeMatchCenterCountdown(event.starts_at, now),
     [event.starts_at, now],
   );
-  const infoDate = formatTournamentInfoDate(event.starts_at);
-  const kickoff = formatTimeHHmmDe(event.starts_at);
-  const meetupRaw = event.meeting_at ? formatMeetupTimeOnlyDe(event.meeting_at) : '';
-  const meetupCore = meetupRaw.replace(/\s*Uhr$/i, '').trim();
-  const place = formatFeedVenueShort(event.location ?? event.address);
 
   const carouselTeams = useMemo((): MatchCenterParticipant[] => {
     if (participants.length > 0) return participants;
@@ -161,50 +124,15 @@ export function MatchCenterTournamentCard({
   const primaryCtaTo = showPreparePrimary ? prepareHref : tournamentHref;
 
   return (
-    <article className="relative overflow-hidden rounded-[18px] bg-[#060608] shadow-[0_16px_48px_rgba(0,0,0,0.68)] ring-1 ring-white/[0.04]">
-      <div className="relative min-h-[9.25rem] w-full overflow-hidden sm:min-h-[10.625rem]">
-        <img
-          src={coverUrl}
-          alt=""
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[84%_48%]"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.12)_0%,rgba(0,0,0,0)_24%,rgba(0,0,0,0.04)_50%,rgba(6,4,6,0.35)_100%)]"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute inset-y-0 left-0 w-[62%] bg-[linear-gradient(to_right,rgba(0,0,0,0.62)_0%,rgba(0,0,0,0.28)_55%,transparent_100%)]"
-          aria-hidden
-        />
-
-        <div className="relative flex h-full min-h-[inherit] flex-col px-3 pb-2 pt-1.5 sm:px-4">
-          <span className="inline-flex w-fit items-center gap-0.5 rounded-full border border-white/[0.08] bg-black/35 px-1.5 py-px text-[7px] font-semibold uppercase tracking-[0.08em] text-white/80 backdrop-blur-[2px]">
-            <Trophy
-              className="h-3 w-3 shrink-0 text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]"
-              strokeWidth={2.25}
-              aria-hidden
-            />
-            {badgeLabel}
-          </span>
-
-          <div className="mt-auto max-w-[58%] pb-1 pt-2">
-            <div className="space-y-1.5 rounded-lg bg-black/30 px-2 py-1.5 backdrop-blur-[2px]">
-              <h2 className="line-clamp-2 text-left text-[16px] font-bold leading-[1.14] tracking-tight text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.95)] sm:text-[17px]">
-                {title}
-              </h2>
-              <div className="flex flex-col gap-0.5">
-                <HeroMetaLine icon={CalendarDays}>{infoDate}</HeroMetaLine>
-                <HeroMetaLine icon={Users}>
-                  Treffpunkt {meetupCore ? `${meetupCore} Uhr` : '–'}
-                </HeroMetaLine>
-                <HeroMetaLine icon={Clock}>{kickoff ? `Beginn ${kickoff} Uhr` : 'Beginn –'}</HeroMetaLine>
-                {place ? <HeroMetaLine icon={MapPin}>{place}</HeroMetaLine> : null}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <article style={club.style} className="relative overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--quiet">
+      <TournamentCompactCard
+        title={title}
+        startsAt={event.starts_at}
+        meetingAt={event.meeting_at}
+        location={event.location ?? event.address}
+        badgeLabel={badgeLabel}
+        hideCountdown
+      />
 
       <div className="relative bg-[#060608] px-3 pb-2 pt-0.5 sm:px-4 sm:pb-2">
         {liveDayMode === 'awaiting_next_round' ? (
@@ -221,7 +149,7 @@ export function MatchCenterTournamentCard({
 
         {liveDayMode === 'next_own_match' && nextOwnSlot ? (
           <div className="mt-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3">
-            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-red-300/90">
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] sz-club-accent-text">
               {isPlacementNext ? placementLabel : 'Nächstes Spiel'}
             </p>
             <p className="mt-1 text-sm font-semibold leading-snug text-white">
@@ -237,7 +165,7 @@ export function MatchCenterTournamentCard({
 
         {liveDayMode === 'active' && !nextOwnSlot ? (
           <div className="mt-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3">
-            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-red-300/90">
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] sz-club-accent-text">
               Turnier läuft
             </p>
             <p className="mt-1 text-[12px] leading-snug text-white/65">

@@ -20,6 +20,7 @@ type Props = {
   tall?: boolean;
   vividImage?: boolean;
   compactCountdown?: boolean;
+  hideCountdown?: boolean;
   clubBackground?: boolean;
 };
 
@@ -37,6 +38,7 @@ export function CenterCompactHero({
   tall = false,
   vividImage = false,
   compactCountdown = false,
+  hideCountdown = false,
   clubBackground = false,
 }: Props) {
   const [now, setNow] = useState(() => new Date());
@@ -100,7 +102,7 @@ export function CenterCompactHero({
                 </span>
               ) : null}
             </div>
-            {showCountdown && countdown ? (
+            {!hideCountdown && showCountdown && countdown ? (
               compactCountdown ? (
                 <span className="sz-club-accent-chip shrink-0 rounded-full border bg-black/60 px-2.5 py-1 text-[11px] font-semibold">
                   {countdown.days > 0 ? `In ${countdown.days} ${countdown.days === 1 ? 'Tag' : 'Tagen'}` : countdown.hours > 0 ? `In ${countdown.hours} Std. ${countdown.minutes} Min.` : `In ${countdown.minutes} Min.`}
