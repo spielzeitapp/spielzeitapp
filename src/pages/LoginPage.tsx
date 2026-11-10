@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { authErrorMessage } from '../lib/authErrorMessage';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Eye, EyeOff, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
@@ -97,6 +98,7 @@ export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showPlayerLogin, setShowPlayerLogin] = useState(false);
   const [parentInviteDismissed, setParentInviteDismissed] = useState(false);
+  const submittingRef = useRef(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
@@ -217,6 +219,7 @@ export const LoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
     setError('');
     setLoading(true);
     setRememberMePreference(rememberMe);
@@ -235,6 +238,8 @@ export const LoginPage: React.FC = () => {
       return;
     }
 
+    submittingRef.current = true;
+    setCaptchaToken(null);
     try {
       const { data: signInData, error: signInError } = await signInWithTimeout({
         email: trimmedEmail,
@@ -242,7 +247,7 @@ export const LoginPage: React.FC = () => {
         options: captchaToken ? { captchaToken } : undefined,
       });
       if (signInError) {
-        setError(signInError.message);
+        setError(authErrorMessage(signInError));
         return;
       }
 
@@ -278,6 +283,7 @@ export const LoginPage: React.FC = () => {
           : 'Die Anmeldung konnte nicht abgeschlossen werden. Bitte erneut versuchen.',
       );
     } finally {
+      submittingRef.current = false;
       setCaptchaToken(null);
       setCaptchaResetKey((value) => value + 1);
       setLoading(false);

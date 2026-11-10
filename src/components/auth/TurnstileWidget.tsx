@@ -12,6 +12,7 @@ interface TurnstileApi {
       callback: (token: string) => void;
       'expired-callback': () => void;
       'error-callback': () => void;
+      'timeout-callback': () => void;
     },
   ) => TurnstileWidgetId;
   reset: (widgetId: TurnstileWidgetId) => void;
@@ -67,6 +68,11 @@ function loadTurnstile(): Promise<TurnstileApi> {
     document.head.appendChild(script);
   });
 
+  turnstileScriptPromise = turnstileScriptPromise.catch((error) => {
+    turnstileScriptPromise = null;
+    document.getElementById(TURNSTILE_SCRIPT_ID)?.remove();
+    throw error;
+  });
   return turnstileScriptPromise;
 }
 
@@ -83,12 +89,26 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
   const widgetIdRef = useRef<TurnstileWidgetId | null>(null);
   const callbackRef = useRef(onTokenChange);
   const [loadError, setLoadError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
 
   callbackRef.current = onTokenChange;
 
   useEffect(() => {
     if (!isTurnstileConfigured || !containerRef.current) return;
     let cancelled = false;
+    let refreshTimer: number | undefined;
+    let expiresAt = 0;
+    callbackRef.current(null);
+    setLoadError(false);
+    const refresh = () => {
+      if (cancelled) return;
+      callbackRef.current(null);
+      setRetryKey((value) => value + 1);
+    };
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && expiresAt && Date.now() >= expiresAt) refresh();
+    };
+    document.addEventListener('visibilitychange', onVisible);
 
     void loadTurnstile()
       .then((turnstile) => {
@@ -97,9 +117,20 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
           sitekey: TURNSTILE_SITE_KEY,
           theme: 'dark',
           size: 'flexible',
-          callback: (token) => callbackRef.current(token),
-          'expired-callback': () => callbackRef.current(null),
+          callback: (token) => {
+            if (cancelled) return;
+            window.clearTimeout(refreshTimer);
+            // Refresh before Cloudflare's five-minute single-use token expires.
+            expiresAt = Date.now() + 240_000;
+            refreshTimer = window.setTimeout(refresh, 240_000);
+            setLoadError(false);
+            callbackRef.current(token);
+          },
+          'expired-callback': refresh,
+          'timeout-callback': refresh,
           'error-callback': () => {
+            if (cancelled) return;
+            window.clearTimeout(refreshTimer);
             callbackRef.current(null);
             setLoadError(true);
           },
@@ -111,20 +142,15 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
 
     return () => {
       cancelled = true;
+      window.clearTimeout(refreshTimer);
+      document.removeEventListener('visibilitychange', onVisible);
       callbackRef.current(null);
       const widgetId = widgetIdRef.current;
       if (widgetId && window.turnstile) window.turnstile.remove(widgetId);
       widgetIdRef.current = null;
     };
-  }, []);
-
-  useEffect(() => {
-    const widgetId = widgetIdRef.current;
-    if (!widgetId || !window.turnstile) return;
-    callbackRef.current(null);
-    setLoadError(false);
-    window.turnstile.reset(widgetId);
-  }, [resetKey]);
+  // Recreate after every attempt: never leave a previously accepted token visible.
+  }, [resetKey, retryKey]);
 
   if (!isTurnstileConfigured) return null;
 
@@ -132,9 +158,12 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
     <div className="space-y-2">
       <div ref={containerRef} className="min-h-[65px] w-full" />
       {loadError ? (
-        <p className="text-sm text-red-300" role="alert">
-          Sicherheitsprüfung konnte nicht geladen werden. Bitte Seite neu laden.
-        </p>
+        <div className="space-y-2 text-sm text-red-300" role="alert">
+          <p>Sicherheitsprüfung konnte nicht abgeschlossen werden.</p>
+          <button type="button" className="underline" onClick={() => setRetryKey((value) => value + 1)}>
+            Sicherheitsprüfung erneut starten
+          </button>
+        </div>
       ) : null}
     </div>
   );

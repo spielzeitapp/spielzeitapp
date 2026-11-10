@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { authErrorMessage } from '../lib/authErrorMessage';
+import React, { useState, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { Button } from '../app/components/ui/Button';
@@ -19,6 +20,7 @@ export const AdminLoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const submittingRef = useRef(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
@@ -26,6 +28,7 @@ export const AdminLoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
     setError('');
     if (isTurnstileConfigured && !captchaToken) {
       setError('Bitte Sicherheitsprüfung abschließen.');
@@ -33,18 +36,19 @@ export const AdminLoginPage: React.FC = () => {
     }
     setLoading(true);
 
-    console.log('[ADMIN AUTH LOGIN START]', { email: email.trim() });
-    const { error: signInError } = await signIn(email, password, captchaToken ?? undefined);
+    submittingRef.current = true;
     setCaptchaToken(null);
-    setCaptchaResetKey((value) => value + 1);
-    setLoading(false);
-
-    if (signInError) {
-      console.log('[ADMIN AUTH LOGIN ERROR]', signInError);
-      setError(signInError.message);
-    } else {
-      console.log('[ADMIN AUTH LOGIN SUCCESS]');
-      navigate(from, { replace: true });
+    try {
+      const { error: signInError } = await signIn(email, password, captchaToken ?? undefined);
+      if (signInError) setError(authErrorMessage(signInError));
+      else navigate(from, { replace: true });
+    } catch {
+      setError('Die Anmeldung konnte nicht abgeschlossen werden. Bitte erneut versuchen.');
+    } finally {
+      submittingRef.current = false;
+      setCaptchaToken(null);
+      setCaptchaResetKey((value) => value + 1);
+      setLoading(false);
     }
   };
 
