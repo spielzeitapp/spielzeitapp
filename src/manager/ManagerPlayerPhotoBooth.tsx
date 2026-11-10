@@ -8,7 +8,6 @@ import {Camera,RefreshCw,ImagePlus,X,Check,SwitchCamera} from 'lucide-react';
 import type {RosterPlayer} from '../lib/rosterService';
 import {PHOTO_STEPS,PHOTO_LABELS,listPlayerPhotoMotifs,uploadPlayerMotif,savePlayerPhotoMotif,type PhotoStep,type PlayerPhotoMotif} from '../lib/playerPhotoMotifs';
 import {DEFAULT_PHOTO_LAYOUT} from '../lib/playerPhotoLayout';
-import {startLivePlayerPortrait} from '../lib/livePlayerPortrait';
 import './managerPlayerPhotoBooth.css';
 import {photoBoothFile,photoBoothImportFile} from '../lib/playerPhotoBooth';
 import {removePortraitBackground} from '../lib/removePortraitBackground';
@@ -24,11 +23,10 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
  const [mode,setMode]=useState<PhotoStep>(initialStep),[facing,setFacing]=useState<'environment'|'user'>('environment');
  const [draft,setDraft]=useState<Draft|null>(null),[processing,setProcessing]=useState(false),[saving,setSaving]=useState(false);
  const [cameraReady,setCameraReady]=useState(false),[cameraError,setCameraError]=useState(''),[error,setError]=useState(''),[notice,setNotice]=useState('');
- const [live,setLive]=useState(false),[liveFrame,setLiveFrame]=useState(''),[liveError,setLiveError]=useState('');
  const [deviceCopy,setDeviceCopy]=useState(false),[localPhoto,setLocalPhoto]=useState<File|null>(null),[exporting,setExporting]=useState(false),[exportStatus,setExportStatus]=useState('');
  const [timerSeconds,setTimerSeconds]=useState(3),[countdown,setCountdown]=useState<number|null>(null);
  const countdownController=useRef<AbortController|null>(null);
- const [autoNext,setAutoNext]=useState(true),[restart,setRestart]=useState(0),[remove,setRemove]=useState(false);
+ const [autoNext,setAutoNext]=useState(true),[restart,setRestart]=useState(0),[remove,setRemove]=useState(true);
  const [motifs,setMotifs]=useState<PlayerPhotoMotif[]>([]),[motifsReady,setMotifsReady]=useState(false),[finished,setFinished]=useState(false);
  const [results,setResults]=useState<Record<string,'saved'|'skipped'>>({});
  useEffect(()=>{let active=true;void listPlayerPhotoMotifs(seasonId).then(data=>{if(active){setMotifs(data);setMotifsReady(true);}}).catch(e=>{if(active)setError(e.message);});return()=>{active=false;};},[seasonId]);
@@ -61,11 +59,6 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
   document.addEventListener('visibilitychange',visibility);
   return()=>{active=false;stop();document.removeEventListener('visibilitychange',visibility);};
  },[draft,facing,restart,finished,localPhoto]);
- useEffect(()=>{
-  setLiveFrame('');setLiveError('');
-  if(!live||!remove||!cameraReady||draft||busy||!video.current)return;
-  return startLivePlayerPortrait(video.current,aspect,facing==='user',setLiveFrame,()=>{setLiveFrame('');setLiveError('Live-Hintergrund hier nicht verfügbar. Das Foto wird nach der Aufnahme freigestellt.');});
- },[live,remove,cameraReady,draft,busy,aspect,facing,selected]);
  const close=()=>{if(saving||exporting)return;if(localPhoto&&!window.confirm('Das Foto ist in der App gespeichert. Ohne zusätzliche Gerätekopie schließen?'))return;if((draft||(processing&&countdown===null))&&!window.confirm('Aufgenommenes Foto verwerfen?'))return;countdownController.current?.abort();onClose();};
  const discard=()=>{version.current++;setDraft(null);setError('');setNotice('');};
  async function prepare(file:File){
@@ -156,7 +149,7 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
   <div className={!draft&&!finished&&!localPhoto?'space-y-2 p-3':'space-y-4 p-4'}><label className="block text-sm font-semibold">Spieler · {index+1} von {players.length}<select aria-label="Spieler auswählen" value={selected} disabled={busy||Boolean(draft)||Boolean(localPhoto)} onChange={e=>{setSelected(e.target.value);setMode('portrait');setNotice('');setFinished(false);}} className="mt-1 min-h-12 w-full rounded-xl border border-slate-300 bg-white p-3 text-base font-semibold text-slate-900">{players.map(p=><option key={p.id} value={p.id}>{p.display_name} · {p.jersey_number??'–'}</option>)}</select></label>
   {finished?<section className="space-y-3 rounded-xl bg-emerald-50 p-4" role="status"><h3 className="text-lg font-bold">Fotoserie abgeschlossen</h3><p>{Object.values(results).filter(v=>v==='saved').length} Fotos gespeichert · {Object.values(results).filter(v=>v==='skipped').length} Schritte übersprungen.</p><p className="text-sm">Profilfoto sowie Spieltag- und Jubelfotos in Heim- und Auswärtsdress sind getrennt gespeichert. Freistellen, Helligkeit und Ausschnitt kannst du unter „Foto gestalten“ bearbeiten.</p><button type="button" onClick={onClose} className="min-h-11 rounded-xl bg-red-700 px-4 font-semibold text-white">Fertig</button></section>:localPhoto?<section className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
    <h3 className="text-lg font-bold">In der App gespeichert</h3>
-   <p className="text-sm">Jetzt das Originalfoto zusätzlich auf diesem Gerät sichern. Am iPhone/iPad im Teilen-Menü „Bild sichern“ wählen.</p>
+   <p className="text-sm">Jetzt das Originalfoto zusätzlich auf diesem Kameragerät sichern. Am iPhone/iPad im Teilen-Menü „Bild sichern“ wählen. Eine verbundene Fernsteuerung speichert keine Gerätekopie.</p>
    <button type="button" disabled={exporting} onClick={()=>{setExporting(true);setExportStatus('');void savePhotoOnDevice(localPhoto).then(result=>setExportStatus(result==='shared'?'Teilen-Menü geschlossen. Mit „Weiter“ fortsetzen.':result==='aborted'?'Export abgebrochen. Das Foto bleibt in der App gespeichert.':'Download gestartet. Das Foto bleibt in der App gespeichert.')).catch(()=>setExportStatus('Export nicht möglich. Bitte erneut versuchen. Das Foto ist in der App gespeichert.')).finally(()=>setExporting(false));}} className="min-h-12 w-full rounded-xl bg-red-700 px-4 font-bold text-white">{exporting?'Export geöffnet…':'Bild sichern'}</button>
    {exportStatus&&<p role="status" className="text-sm">{exportStatus}</p>}
    <button type="button" disabled={exporting} onClick={()=>{setLocalPhoto(null);setExportStatus('');advance('saved');}} className="min-h-11 w-full rounded-xl border border-slate-300 bg-white font-semibold">Weiter</button>
@@ -164,8 +157,7 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
    <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">{PHOTO_STEPS.map(value=><button type="button" key={value} aria-pressed={mode===value} disabled={busy} onClick={()=>setMode(value)} className={`min-h-11 flex-1 rounded-lg font-semibold ${mode===value?'bg-red-700 text-white':''}`}>{PHOTO_LABELS[value]}</button>)}</div>
    <div data-central-preserve className="relative mx-auto overflow-hidden rounded-2xl bg-slate-900" style={{aspectRatio:aspect,width:'100%'}}>
     <video ref={video} autoPlay playsInline muted onLoadedData={()=>setCameraReady(true)} aria-label="Livekamera" className="absolute inset-0 h-full w-full object-cover" style={{transform:facing==='user'?'scaleX(-1)':undefined}}/>
-    {live&&remove&&liveFrame&&player&&<div className="fotobox-live-preview absolute inset-0"><ManagerProfilePhotoPreview seasonId={seasonId} layout={{...layout,source:'cutout'}} photoUrl={liveFrame} cutoutUrl={liveFrame} firstName={player.first_name??''} lastName={player.last_name??''} number={player.jersey_number} trainer={false} clubTemplate={template} clubDesign={player.club_profile_design}/></div>}
-    {!liveFrame&&<svg aria-hidden="true" viewBox={`0 0 400 ${guideHeight}`} className="pointer-events-none absolute inset-0 h-full w-full" style={{filter:'drop-shadow(0 1px 2px #000)'}}><rect x="20" y="16" width="360" height={guideHeight-32} rx="12" fill="none" stroke="white" strokeWidth="2" strokeDasharray="8 6"/><path d={guidePath} fill="none" stroke="white" strokeWidth="2"/></svg>}
+    <svg aria-hidden="true" viewBox={`0 0 400 ${guideHeight}`} className="pointer-events-none absolute inset-0 h-full w-full" style={{filter:'drop-shadow(0 1px 2px #000)'}}><rect x="20" y="16" width="360" height={guideHeight-32} rx="12" fill="none" stroke="white" strokeWidth="2" strokeDasharray="8 6"/><path d={guidePath} fill="none" stroke="white" strokeWidth="2"/></svg>
     {countdown!==null&&<div className="absolute inset-0 flex flex-col items-center justify-center bg-black/25 text-white"><span role="status" aria-live="assertive" aria-atomic="true" className="text-[56px] font-black leading-none drop-shadow-lg">{countdown}</span><span className="mt-1 rounded-full bg-black/70 px-2 py-1 text-xs font-bold">Pose halten</span><button type="button" onClick={()=>countdownController.current?.abort()} className="mt-1 min-h-11 rounded-xl bg-white px-5 font-bold text-slate-900">Countdown abbrechen</button></div>}
     <p className="pointer-events-none absolute inset-x-2 top-2 rounded-lg bg-black/65 px-3 py-1.5 text-center text-xs font-semibold text-white">{mode==='portrait'?'Kopf in die Schablone':mode.startsWith('matchday')?'Oberkörper und Arme im Rahmen':'Beide Hände im Rahmen'}</p>
     {cameraError&&<div className="absolute inset-x-3 bottom-3 rounded-xl bg-white p-3 text-sm"><p role="status">{cameraError}</p><button type="button" disabled={busy} onClick={()=>setRestart(n=>n+1)} className="mt-2 min-h-11 w-full rounded-lg bg-red-700 px-3 font-bold text-white">Kamera neu starten</button></div>}
@@ -178,12 +170,9 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
     <button type="button" aria-label="Kamera wechseln" disabled={busy} onClick={()=>setFacing(f=>f==='user'?'environment':'user')} className="flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 text-xs"><SwitchCamera aria-hidden="true"/>Drehen</button>
    </div>
    <details className="rounded-xl border border-slate-200 p-3"><summary className="min-h-8 cursor-pointer text-sm font-semibold">Weitere Einstellungen</summary><div className="mt-3 space-y-3">
-   <label className="flex min-h-11 items-center gap-3 rounded-xl border border-slate-300 bg-slate-50 p-3 text-base font-semibold"><input aria-label="Vereinslook live anzeigen" type="checkbox" checked={live} disabled={busy||!remove} onChange={e=>setLive(e.target.checked)}/>Vereinslook live anzeigen · optional</label>
-   {live&&remove&&!liveFrame&&cameraReady&&!liveError&&<p role="status" className="text-sm text-slate-700">Live-Vorschau wird geladen… Du kannst bereits fotografieren.</p>}
-   {liveFrame&&<p className="text-sm font-semibold text-emerald-800">Live · Vereinslook aktiv</p>}
-   {liveError&&<p role="status" className="text-sm text-slate-700">{liveError}</p>}
+   <p className="text-sm text-slate-700">Erst fotografieren, dann freistellen und im Vereinslook prüfen. Gespeichert wird erst mit „Übernehmen“.</p>
    <details className="rounded-xl border border-slate-200 p-3 text-sm text-slate-700"><summary className="min-h-8 cursor-pointer font-semibold">So werden alle Spielerbilder einheitlich</summary><p className="mt-2">Kamera auf Augenhöhe halten und ihre Position beibehalten. Den Platz für die Spieler am Boden markieren. Bei jedem Spieler den Kopf an derselben Schablone ausrichten; große und kleine Spieler brauchen etwas mehr oder weniger Abstand. Gleichmäßiges Licht und einen ruhigen Hintergrund wählen.</p></details>
-   <p className="text-sm text-slate-700">{captureFormat==='portrait'?'Aufnahme im Hochformat':'Aufnahme im Querformat'} · gleicher Zuschnitt beim Auslösen. {liveFrame?'Größe und Position im Vereinslook prüfen.':'Etwas Abstand halten, damit Kopf und Arme Platz haben.'}</p>
+   <p className="text-sm text-slate-700">{captureFormat==='portrait'?'Aufnahme im Hochformat':'Aufnahme im Querformat'} · gleicher Zuschnitt beim Auslösen. Etwas Abstand halten, damit Kopf und Arme Platz haben.</p>
    <p className="text-sm text-slate-600">Gilt auch beim Auslösen über die Fernsteuerung. Countdown am Stativgerät einstellen.</p>
    <label className="flex min-h-11 items-center gap-2 text-sm"><input aria-label="Hintergrund automatisch entfernen" type="checkbox" checked={remove} disabled={busy} onChange={e=>setRemove(e.target.checked)}/>Hintergrund automatisch entfernen</label>
    </div></details>
@@ -199,7 +188,7 @@ export function ManagerPlayerPhotoBooth({seasonId,players,initialPlayerId,initia
    <button type="button" disabled={busy} onClick={()=>void save()} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-700 px-4 py-3 font-bold text-white disabled:opacity-50"><Check/>{saving?'Wird gespeichert…':'Übernehmen'}</button>
    <button type="button" disabled={busy} onClick={discard} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 font-semibold"><RefreshCw/>Noch einmal</button>
    <label className="flex min-h-11 items-center gap-2 text-sm"><input aria-label="Zusätzlich auf Gerät speichern" type="checkbox" checked={deviceCopy} disabled={busy} onChange={e=>setDeviceCopy(e.target.checked)}/>Zusätzlich auf Gerät speichern</label>
-   <p className="text-sm text-slate-600">Originalfoto · nach „Übernehmen“ am fotografierenden Gerät „Bild sichern“ wählen.</p>
+   <p className="text-sm text-slate-600">Originalfoto auf diesem Kameragerät · nach „Übernehmen“ „Bild sichern“ wählen. Bei Fernsteuerung erfolgt das Sichern ebenfalls am Kameragerät.</p>
    <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={autoNext} disabled={busy} onChange={e=>setAutoNext(e.target.checked)}/>Aufnahmeserie · Profil → Heim: Spieltag & Jubel → Auswärts: Spieltag & Jubel → nächster Spieler</label>
   </>:null}
   {processing&&countdown===null&&<p role="status" className="rounded-xl bg-slate-100 p-3 text-sm">Foto wird vorbereitet{remove?' und freigestellt':''}… Beim ersten Mal werden Bildwerkzeuge geladen.</p>}

@@ -12,12 +12,11 @@ globalThis.__boothWrite=async(kind,args)=>{writes.push({kind,args});if(fail&&kin
 const fixtures={
  playerPhotoMotifs:`export const PHOTO_STEPS=['portrait','matchday','celebration','matchday_away','celebration_away'];export const PHOTO_LABELS={portrait:'Profilfoto',matchday:'Spieltag · Heim',celebration:'Jubel · Heim',matchday_away:'Spieltag · Auswärts',celebration_away:'Jubel · Auswärts'};export const listPlayerPhotoMotifs=async()=>[];export const uploadPlayerMotif=async(s,p,k,f,c)=>'/'+k+(c?'.png':'.jpg');export const savePlayerPhotoMotif=async(v,e)=>{await globalThis.__boothWrite('motif',v);return {...v,revision:'new'};};`,
  'managerPlayerPhotoBooth.css':'export default {};',
- livePlayerPortrait:'export const startLivePlayerPortrait=()=>()=>{};',
  'react-dom':'export const createPortal=x=>x;',
  supabaseClient:'export const supabase={from:table=>({upsert:args=>globalThis.__boothWrite(table,args),update:args=>({eq:()=>({select:()=>({single:()=>globalThis.__boothWrite(table,args)})})})}),rpc:(name,args)=>globalThis.__boothWrite(name,args)};',
  profileCutoutUpload:'export const uploadPlayerProfilePhoto=(...a)=>globalThis.__boothWrite("avatar",a),uploadPlayerProfileCutout=(...a)=>globalThis.__boothWrite("cutout",a);',
  seasonTransition:'export const getTeamSeasonWritableState=async()=>({writable:true});',
- removePortraitBackground:'export const removePortraitBackground=async()=>new Blob(["cutout"],{type:"image/png"});',
+ removePortraitBackground:'export const removePortraitBackground=async()=>{if(globalThis.__segmentationFails)throw Error("model unavailable");return new Blob(["cutout"],{type:"image/png"});};',
  ManagerProfilePhotoPreview:'import React from "react";export const ManagerProfilePhotoPreview=props=>React.createElement("preview",props);',
  useUnsavedProfileGuard:'export const useUnsavedProfileGuard=()=>{};',
 };
@@ -43,7 +42,7 @@ await mount();
 assert.equal(button('Selbstauslöser').props.value,3);
 await act(async()=>button('Selbstauslöser').props.onChange({target:{value:'0'}}));
 assert.equal(writes.length,0);assert.equal(button('Foto aufnehmen').props.disabled,true);
-assert.equal(root.root.findByProps({'aria-label':'Vereinslook live anzeigen'}).props.checked,false,'Live inference is optional, camera starts without model loading');
+assert.equal(button('Hintergrund automatisch entfernen').props.checked,true,'Background removal defaults on after capture');
 assert.equal(button('Aufnahmeformat').props.value,'portrait');
 assert.ok(root.root.findAllByType('svg').some(n=>n.props.viewBox==='0 0 400 500'),'Portrait guide uses full camera height');
 await act(async()=>button('Aufnahmeformat').props.onChange({target:{value:'wide'}}));
@@ -51,13 +50,22 @@ assert.ok(root.root.findAllByType('svg').some(n=>n.props.viewBox==='0 0 400 300'
 await act(async()=>root.root.findByType('video').props.onLoadedData());
 await act(async()=>button('Foto aufnehmen').props.onClick());
 assert.equal(writes.length,0,'Capture and segmentation never persist before acceptance');
-assert.equal(root.root.findByType('preview').props.cutoutUrl,null,'A normal phone photo works without automatic segmentation');
+assert.ok(root.root.findByType('preview').props.cutoutUrl,'Capture is automatically cut out before club preview');
+assert.equal(root.root.findByType('preview').props.layout.source,'cutout');
 assert.ok(stopped>0,'Camera tracks stopped once preview opens');
 assert.equal(root.root.findByProps({'aria-label':'Spieler auswählen'}).props.disabled,true);
 assert.equal(root.root.findByType('preview').props.layout.rotation,0,'New photo does not inherit old camera rotation');
 await act(async()=>textButton('Noch einmal').props.onClick());
 assert.equal(writes.length,0,'Retake never persists the discarded photo');
 assert.ok(mediaCalls>=2,'Retake reopens camera');
+globalThis.__segmentationFails=true;
+await act(async()=>root.root.findByType('video').props.onLoadedData());
+await act(async()=>button('Foto aufnehmen').props.onClick());
+assert.equal(root.root.findByType('preview').props.cutoutUrl,null,'Failed segmentation keeps original preview available');
+assert.ok(root.root.findAllByProps({role:'status'}).some(n=>n.children.join('').includes('Freistellung nicht möglich')));
+assert.equal(writes.length,0,'Segmentation failure does not save or overwrite anything');
+await act(async()=>textButton('Noch einmal').props.onClick());
+globalThis.__segmentationFails=false;
 await act(async()=>root.root.findByProps({'aria-label':'Hintergrund automatisch entfernen'}).props.onChange({target:{checked:true}}));
 await act(async()=>root.root.findByType('video').props.onLoadedData());
 await act(async()=>button('Foto aufnehmen').props.onClick());
