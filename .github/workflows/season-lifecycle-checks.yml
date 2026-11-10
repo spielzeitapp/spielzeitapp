@@ -7,6 +7,7 @@ on:
       - 'scripts/season-lifecycle-assistant-test.mjs'
       - 'scripts/central-workspace-test.mjs'
       - 'scripts/central-reference-test.mjs'
+      - 'scripts/team-display-name-test.mjs'
       - 'scripts/manager-shared-layout-test.mjs'
       - 'scripts/manager-phone-preview-test.mjs'
       - 'scripts/manager-tool-directory-test.mjs'
@@ -39,6 +40,7 @@ jobs:
       - run: node scripts/manager-preview-navigation-test.mjs
       - run: node scripts/manager-app-preview-test.mjs
       - run: node scripts/team-view-selection-test.mjs
+      - run: node scripts/team-display-name-test.mjs
       - run: node scripts/manager-player-fotobox-test.mjs
       - run: node scripts/club-photo-template-test.mjs
       - run: node scripts/manager-comparison-routing-test.mjs

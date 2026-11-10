@@ -1,4 +1,5 @@
 import {TeamHeroFrame} from '../components/team/TeamHeroFrame';
+import {clubNameForTeam, formatClubTeamHeading} from '../lib/teamDisplayName';
 import { DEFAULT_TEAM_PHOTO_LAYOUT, teamPhotoImageStyle, type TeamPhotoLayout } from '../lib/teamPhotoLayout';
 import { ClubBrandingOverrideContext } from '../theme/ClubThemeProvider';
 import { ClubLogo } from "../components/branding/ClubLogo";
@@ -363,8 +364,9 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
     return parsed?.replace(/\s+/g, "").toUpperCase() ?? "TEAM";
   }, [isDemo, teamSeasons, readTeamSeasonId, selectedTeamSeason, heroTeamName, teamLabel]);
 
-  const heroDisplayName = (isDemo ? getOurTeamDisplayName() : selectedTeamSeason?.team?.name ?? "Team")
-    .replace(/\s*[·-]?\s+U\d{1,2}\s*$/i, "").trim();
+  const heroDisplayName = isDemo ? getOurTeamDisplayName() : formatClubTeamHeading(
+    clubNameForTeam(selectedTeamSeason?.team), selectedTeamSeason?.team?.name,
+  );
 
   const teamPhotoUrl = teamPhoto?.team_season_id === readTeamSeasonId ? readTeamPhotoUrl(teamPhoto) : null;
   const heroPhotoSrc = useMemo(

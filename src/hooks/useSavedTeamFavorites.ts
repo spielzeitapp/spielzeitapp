@@ -1,3 +1,4 @@
+import {formatClubTeamHeading} from '../lib/teamDisplayName';
 import { useEffect, useState } from 'react';
 import { useSession } from '../auth/useSession';
 import { supabase } from '../lib/supabaseClient';
@@ -16,13 +17,13 @@ export function useSavedTeamFavorites() {
       let ids: string[] = [];
       try { const raw = JSON.parse(localStorage.getItem(`spz_discovered_team_favorites_${user.id}`) || '[]'); if (Array.isArray(raw)) ids = raw.filter(id => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id)).slice(0, 30); } catch { return; }
       if (!ids.length) return;
-      const { data, error } = await supabase.from('team_seasons').select('id,age_group,teams!inner(name,clubs!inner(status,logo_url)),seasons(name)').in('id', ids).eq('status','active');
+      const { data, error } = await supabase.from('team_seasons').select('id,age_group,teams!inner(name,clubs!inner(name,status,logo_url)),seasons(name)').in('id', ids).eq('status','active');
       if (disposed || current !== revision || error) return;
       setTeams((data ?? []).flatMap(row => {
         const team = Array.isArray(row.teams) ? row.teams[0] : row.teams;
         const club = team && (Array.isArray(team.clubs) ? team.clubs[0] : team.clubs);
         const season = Array.isArray(row.seasons) ? row.seasons[0] : row.seasons;
-        return team && club?.status === 'active' ? [{ id: row.id, name: team.name, ageGroup: row.age_group || '', season: season?.name || '', logo: club.logo_url }] : [];
+        return team && club?.status === 'active' ? [{ id: row.id, name: formatClubTeamHeading(club.name,team.name), ageGroup: row.age_group || '', season: season?.name || '', logo: club.logo_url }] : [];
       }));
     };
     void load(); window.addEventListener(FAVORITES_CHANGED_EVENT, load); window.addEventListener('storage', load);
