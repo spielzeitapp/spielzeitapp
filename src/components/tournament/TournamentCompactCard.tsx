@@ -44,7 +44,7 @@ export function TournamentCompactCard({
       startsAt={startsAt}
       metaLine={dateLabel}
       metaDetails={
-        <dl className="mt-3 grid grid-cols-3 divide-x divide-white/10 border-t border-white/10 pt-3 pb-1 text-center">
+        <dl className="mt-3 grid grid-cols-[1fr_1fr_1.3fr] divide-x divide-white/10 border-t border-white/10 pt-3 pb-1 text-center">
           <div className="min-w-0 px-1">
             <dt className="flex flex-col items-center gap-1 text-[10px] font-bold uppercase tracking-[0.08em] text-white/80">
               <Users className="sz-club-accent-text h-5 w-5" strokeWidth={2} aria-hidden />
@@ -66,14 +66,14 @@ export function TournamentCompactCard({
               <MapPin className="sz-club-accent-text h-5 w-5" strokeWidth={2} aria-hidden />
               Ort
             </dt>
-            <dd className="mt-1 break-words text-[12px] font-bold leading-snug text-white [overflow-wrap:anywhere] sm:text-[13px]">{placeLine || 'Noch offen'}</dd>
+            <dd className="mt-1 text-[12px] font-bold leading-snug text-white sm:text-[13px]">{placeLine || 'Noch offen'}</dd>
           </div>
         </dl>
       }
       badgeLabel={badgeLabel}
       badgeIcon={
         <Trophy
-          className="sz-club-accent-text h-2.5 w-2.5 shrink-0"
+          className="h-2.5 w-2.5 shrink-0 text-amber-300/95"
           strokeWidth={2.25}
           aria-hidden
         />
