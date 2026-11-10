@@ -51,7 +51,7 @@ function AttendancePlayerRow({
 }) {
   return (
     <li className="flex flex-col gap-1.5">
-      <MatchPlayerRow player={player} status={status} rightLabel={badge} selected={bucket === 'yes'} />
+      <MatchPlayerRow player={player} status={status} rightLabel={badge} selected={bucket === 'yes'} layout="team-roster" hideSubline />
       {readOnly ? null : (
         <div className="grid grid-cols-2 gap-1.5 px-0.5">
           <button
