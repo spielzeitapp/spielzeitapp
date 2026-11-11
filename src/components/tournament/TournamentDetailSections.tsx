@@ -1,3 +1,4 @@
+import { tournamentDisplayNotes } from '../../lib/tournamentDisplayNotes';
 import { Link, useNavigate } from 'react-router-dom';
 import { useInternalBasePath } from '../../demo/demoPaths';
 import { publicTeamTournamentPath } from '../../lib/publicTeamTournament';
@@ -158,6 +159,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   onOfficialTournamentUrlUpdated,
   onTournamentCompleted,
 }) => {
+  const additionalHints = tournamentDisplayNotes(tournamentNotes, tournamentTitle);
   const basePath = useInternalBasePath();
   const navigate = useNavigate();
   const [connectedPlan, setConnectedPlan] = useState<ConnectedTournament | null>(null);
@@ -1161,6 +1163,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
       />
 
       {quickActions}
+      {additionalHints ? <section className={TC_CARD}><div className={TC_CARD_INNER}><h2 className="mb-2 text-[15px] font-bold text-white">Hinweise zum Turnier</h2><p className="whitespace-pre-line text-[15px] leading-relaxed text-white/75">{additionalHints}</p></div></section> : null}
       {carpoolSection}
 
       {canManage && (planSyncBusy || planSyncStatus) ? (
@@ -1268,9 +1271,6 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
       {activeTab === 'admin' && canManage ? renderAdminTab() : null}
 
-      <TournamentCollapsibleSection title="Weitere Turnierinfos" icon="ℹ️">
-        {renderOverviewSection('info')}
-      </TournamentCollapsibleSection>
 
       <Modal
         isOpen={participantModalOpen}

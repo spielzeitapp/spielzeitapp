@@ -98,7 +98,7 @@ export function PublicTeamTournamentPage(): React.ReactElement {
       '--t-surface': theme === 'day' ? '#ffffff' : '#0d0d10',
       '--t-text': theme === 'day' ? '#13151b' : '#ffffff',
       '--t-muted': theme === 'day' ? '#526071' : '#b5b5bc',
-      '--t-border': theme === 'day' ? '#dce1e7' : '#ffffff24',
+      '--t-border': theme === 'day' ? 'color-mix(in srgb, var(--t-accent) 18%, transparent)' : 'color-mix(in srgb, var(--t-accent) 28%, transparent)',
       '--t-fixture': theme === 'day' ? 'linear-gradient(135deg,#ffffff,#fff1f2)' : 'linear-gradient(135deg,#121114,#270e15)',
       '--t-player-badge': theme === 'day' ? '#f1f5f9' : 'rgba(0,0,0,.25)',
       '--t-warning': theme === 'day' ? '#854d0e' : '#fcd34d',
