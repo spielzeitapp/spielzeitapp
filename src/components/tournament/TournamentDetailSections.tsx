@@ -108,6 +108,7 @@ type Props = {
   teamSeasonId: string;
   tournamentDayIso: string;
   tournamentTitle: string;
+  tournamentCanceled?: boolean;
   ourTeamName: string;
   location: string | null;
   /** Source of Truth: `events.meeting_at` */
@@ -146,6 +147,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   teamSeasonId,
   tournamentDayIso,
   tournamentTitle,
+  tournamentCanceled = false,
   ourTeamName,
   location,
   meetingAt = null,
@@ -509,7 +511,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const runForcedPlanSync = useCallback(
     async (opts?: { reason?: 'post_match' | 'manual' | 'group_done' | 'broadcast' }) => {
       const planUrl = safeText(officialTournamentUrl);
-      if (!planUrl || completion.completedAt) return;
+      if (!planUrl || tournamentCanceled || completion.completedAt) return;
       const reason = opts?.reason ?? 'manual';
       setPlanSyncBusy(true);
       setPlanSyncStatus(
@@ -551,6 +553,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
     },
     [
       officialTournamentUrl,
+      tournamentCanceled,
       completion.completedAt,
       tournamentEventId,
       teamSeasonId,
@@ -561,7 +564,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   );
 
   useEffect(() => {
-    if (!canManage || loading) return;
+    if (!canManage || tournamentCanceled || loading) return;
     const planUrl = safeText(officialTournamentUrl);
     if (!planUrl) return;
     const hasUnfinishedOwnMatch = ownSlots.some(
@@ -612,6 +615,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
     };
   }, [
     canManage,
+    tournamentCanceled,
     loading,
     officialTournamentUrl,
     tournamentDayIso,
@@ -792,7 +796,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   );
 
   useEffect(() => {
-    if (tournamentPhase !== 'day' || completion.completedAt) return undefined;
+    if (tournamentCanceled || tournamentPhase !== 'day' || completion.completedAt) return undefined;
 
     const hasLive = slots.some((s) => (s.match_status ?? '').toLowerCase() === 'live');
     const intervalMs = hasLive ? 8_000 : 20_000;
@@ -815,7 +819,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
       document.removeEventListener('visibilitychange', refreshOnVisible);
       window.removeEventListener('spielzeit:live-match-state-changed', onLiveBroadcast);
     };
-  }, [tournamentPhase, completion.completedAt, slots, reload]);
+  }, [tournamentCanceled, tournamentPhase, completion.completedAt, slots, reload]);
 
   const orchestratorReportText = useMemo(() => {
     const placementLine = completion.completedAt
@@ -869,7 +873,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
     return ['info'];
   }, [tournamentPhase, completion.completedAt]);
 
-  const showAssistant = canManage && !completion.completedAt;
+  const showAssistant = canManage && !tournamentCanceled && !completion.completedAt;
   const showFeatured =
     !completion.completedAt &&
     (!canManage || tournamentPhase === 'day' || tournamentPhase === 'after');
@@ -1141,7 +1145,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
         titleActions={canManage && trainerActions ? (
           <button type="button" onClick={() => setTermActionsOpen(true)}
             className="sz-club-event-action inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-            aria-label="Turniertermin bearbeiten oder löschen" aria-haspopup="dialog" title="Turniertermin verwalten">
+            aria-label="Turniertermin verwalten" aria-haspopup="dialog" title="Turniertermin verwalten">
             <Settings2 className="h-5 w-5 sz-club-accent-text" aria-hidden />
           </button>
         ) : null}
@@ -1159,7 +1163,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
               <Car className="h-5 w-5 sz-club-accent-text" aria-hidden />
             </button> : null}
             {navigationAction}
-            <TournamentConnectedPlan compact eventId={tournamentEventId} url={officialTournamentUrl} userId={userId} canManage={canManage} onUpdated={reload} onState={setConnectedPlan} />
+            <TournamentConnectedPlan compact eventId={tournamentEventId} url={officialTournamentUrl} userId={tournamentCanceled ? null : userId} canManage={canManage && !tournamentCanceled} onUpdated={reload} onState={setConnectedPlan} />
 
           </div>
         }
@@ -1225,22 +1229,22 @@ export const TournamentDetailSections: React.FC<Props> = ({
         <h2 className="text-lg font-bold text-white">Alles zum Turnier</h2>
         <p className="text-[16px] leading-relaxed text-white/70">Spielstände, alle Tabellen, Finalrunde und unsere Torschützen auf einer Seite. Die Übersicht aktualisiert sich automatisch.</p>
         <Link className={addButtonClass} to={publicTeamTournamentPath(tournamentEventId)} state={{returnTo: `${basePath}/events/${tournamentEventId}`}}>Turnierseite ansehen</Link>
-        {ownSlots.filter(slot => slot.match_status === 'live' && slot.match_id).map(slot => <Link key={slot.id} className={addButtonClass} to={`${basePath}/live?matchId=${encodeURIComponent(slot.match_id!)}`}>Unser Spiel läuft · Zum Liveticker</Link>)}
+        {ownSlots.filter(slot => !tournamentCanceled && slot.match_status === 'live' && slot.match_id).map(slot => <Link key={slot.id} className={addButtonClass} to={`${basePath}/live?matchId=${encodeURIComponent(slot.match_id!)}`}>Unser Spiel läuft · Zum Liveticker</Link>)}
       </div></section> : null}
       {canManage ? <TournamentCenterTabBar activeTab={activeTab} onTabChange={setActiveTab} /> : null}
       {canManage && activeTab === 'games' ? <div className={`flex flex-col ${TC_STACK_GAP}`}>
         <h2 className="text-[16px] font-bold text-white">Unsere Turnierspiele vorbereiten</h2>
         <p className="text-[16px] leading-relaxed text-white/65">Aufstellung und Liveticker für unser Team. Den gesamten Turnierverlauf findest du unter „Turnierseite ansehen“.</p>
-        <button type="button" className={addButtonClass} onClick={openMatchModal}><Plus className="h-4 w-4"/>Turnierspiel hinzufügen</button>
-        {loading ? <p className="text-[16px] text-white/65">Lade unsere Spiele…</p> : !ownSlots.length ? <section className={TC_CARD}><div className={TC_CARD_INNER}><p className="text-[16px] text-white/65">Noch keine eigenen Turnierspiele hinterlegt.</p></div></section> : ownSlots.map(slot => <TournamentMatchSlotCard key={slot.id} slot={slot} canManage isNextUpcoming={slot.id === nextMatchId}
-          onOpen={() => { if (!slot.match_id) return; if (slot.match_status === 'live') navigate(`${basePath}/live?matchId=${encodeURIComponent(slot.match_id)}`); else onOpenMatchPreparation(slot.match_id); }}
-          onDelete={slot.match_id ? () => void handleRemoveSlot(slot.match_id!) : undefined}/>) }
+        {!tournamentCanceled ? <button type="button" className={addButtonClass} onClick={openMatchModal}><Plus className="h-4 w-4"/>Turnierspiel hinzufügen</button> : null}
+        {loading ? <p className="text-[16px] text-white/65">Lade unsere Spiele…</p> : !ownSlots.length ? <section className={TC_CARD}><div className={TC_CARD_INNER}><p className="text-[16px] text-white/65">Noch keine eigenen Turnierspiele hinterlegt.</p></div></section> : ownSlots.map(slot => <TournamentMatchSlotCard key={slot.id} slot={slot} canManage={!tournamentCanceled} isNextUpcoming={slot.id === nextMatchId}
+          onOpen={() => { if (!slot.match_id) return; if (!tournamentCanceled && slot.match_status === 'live') navigate(`${basePath}/live?matchId=${encodeURIComponent(slot.match_id)}`); else onOpenMatchPreparation(slot.match_id); }}
+          onDelete={!tournamentCanceled && slot.match_id ? () => void handleRemoveSlot(slot.match_id!) : undefined}/>) }
       </div> : null}
       {canManage && activeTab === 'table' ? <TournamentTableTab bundle={standingsBundle} loading={standingsLoading} /> : null}
 
       {canManage && activeTab === 'teams' ? (
         <div className={`flex flex-col ${TC_STACK_GAP}`}>
-          {canManage ? (
+          {canManage && !tournamentCanceled ? (
             <div className="grid grid-cols-2 gap-2">
               <button type="button" className={addButtonClass} onClick={openParticipantModal}>
                 <Plus className="h-3.5 w-3.5" aria-hidden />
@@ -1255,7 +1259,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
           <TournamentTeamsTab participants={participants} loading={loading} />
 
-          {canManage && participants.length > 0 ? (
+          {canManage && !tournamentCanceled && participants.length > 0 ? (
             <section className={TC_CARD}>
               <div className={TC_CARD_INNER}>
                 <p className={`${TC_SECTION_LABEL} mb-2`}>Teams verwalten</p>
