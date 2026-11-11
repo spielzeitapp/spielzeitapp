@@ -452,8 +452,8 @@ export function ScheduleHeroEventCard({
             {heroYear ? <span className="text-[12px] font-medium leading-tight text-white/45">{heroYear}</span> : null}
           </div>
 
-          <div className="relative mx-1.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-purple-400/30 bg-[radial-gradient(ellipse_70%_65%_at_30%_10%,rgba(168,85,247,0.28)_0%,rgba(48,18,68,0.5)_55%,rgba(14,14,18,0.92)_100%)] shadow-[0_0_18px_rgba(168,85,247,0.18),inset_0_1px_0_rgba(255,255,255,0.06)]">
-            <Trophy className="h-5 w-5 text-amber-300/95" strokeWidth={2.1} aria-hidden />
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center" aria-hidden>
+                  <Trophy className="h-9 w-9 text-amber-300/95" strokeWidth={1.8} />
           </div>
 
           <div className="min-w-0 flex-1 overflow-hidden text-left">
