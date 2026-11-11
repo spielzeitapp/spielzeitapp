@@ -152,7 +152,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   onOfficialTournamentUrlUpdated,
   onTournamentCompleted,
 }) => {
-  const [activeTab, setActiveTab] = useState<TournamentCenterTabId>('overview');
+  const [activeTab, setActiveTab] = useState<TournamentCenterTabId>('games');
   const [participants, setParticipants] = useState<TournamentParticipant[]>([]);
   const [slots, setSlots] = useState<TournamentMatchSlotView[]>([]);
   const [loading, setLoading] = useState(true);
@@ -821,7 +821,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const showPremiumAboveTabs = Boolean(completion.completedAt) && showPremiumFinalCard;
 
   const showOrchestratorOverview = useCallback(() => {
-    setActiveTab('overview');
+    setActiveTab('games');
     requestAnimationFrame(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
@@ -1240,14 +1240,9 @@ export const TournamentDetailSections: React.FC<Props> = ({
         </p>
       ) : null}
 
-      {activeTab === 'overview' ? (
-        <div className={`flex flex-col ${TC_STACK_GAP}`}>
-          {overviewSectionOrder.map((sectionKey) => renderOverviewSection(sectionKey))}
-        </div>
-      ) : null}
-
       {activeTab === 'games' ? (
         <div className={`flex flex-col ${TC_STACK_GAP}`}>
+          {overviewSectionOrder.filter((key) => key !== 'info' && key !== 'table').map(renderOverviewSection)}
           <div className="flex flex-wrap items-center gap-2">
             <div
               className="inline-flex rounded-full border border-white/12 bg-white/[0.04] p-0.5"
@@ -1393,6 +1388,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
       ) : null}
 
       {activeTab === 'admin' && canManage ? renderAdminTab() : null}
+
+      <TournamentCollapsibleSection title="Weitere Turnierinfos" icon="ℹ️">
+        {renderOverviewSection('info')}
+      </TournamentCollapsibleSection>
 
       <Modal
         isOpen={participantModalOpen}
