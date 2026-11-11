@@ -505,9 +505,6 @@ export function TournamentAssistantCard({
         <div>
           <h2 className="text-[21px] font-bold leading-snug text-white">{step.title}</h2>
           <p className="mt-1 text-[16px] leading-snug text-white/62">{step.description}</p>
-          <ul className="mt-3 space-y-2" aria-label="Vorbereitungsstatus">
-            {preparationChecks.map(check => <li key={check.label} className={`flex items-center gap-2 text-[16px] ${check.done ? 'text-emerald-300' : 'text-amber-200/85'}`}><span aria-hidden>{check.done ? '✓' : '○'}</span>{check.label}{check.done ? ' · erledigt' : ' · offen'}</li>)}
-          </ul>
           {prepared ? <p role="status" className="mt-3 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-[17px] font-bold text-emerald-300">✓ Turnier vorbereitet · Live und Abschluss folgen am Turniertag</p> : null}
           {step.detailLines.length > 0 ? (
             <ul className="mt-2 flex list-none flex-col gap-0.5 p-0">
