@@ -32,6 +32,7 @@ import {
   isMatchSquadEditable,
 } from '../../lib/matchPreparationAccess';
 import { supabase } from '../../lib/supabaseClient';
+import { fetchRemoteMatchBlocks, saveRemoteMatchBlocks } from '../../lib/tournamentLineupTemplates';
 import type { FieldSlotId } from '../../types/match';
 import { getPositionLabel } from '../../lib/positionLabels';
 import {
@@ -141,6 +142,7 @@ export const MatchLineupPage: React.FC = () => {
   const [matchLoading, setMatchLoading] = useState(true);
   const [matchError, setMatchError] = useState<string | null>(null);
   const [lineupLoading, setLineupLoading] = useState(true);
+  const [blocksLoading, setBlocksLoading] = useState(false);
   const [lineupError, setLineupError] = useState<string | null>(null);
   const [squadIds, setSquadIds] = useState<string[]>([]);
   const [slots, setSlots] = useState<Record<FieldSlotId, string | null>>(emptySlots);
@@ -433,8 +435,13 @@ export const MatchLineupPage: React.FC = () => {
   useEffect(() => {
     if (!matchId || lineupLoading || initializedVariantsForMatchRef.current === matchId) return;
     initializedVariantsForMatchRef.current = matchId;
+    let cancelled = false;
+    let initialized = false;
+    setBlocksLoading(true);
+    void (async () => {
     const canonical = captureVisibleVariant();
-    const stored = readMatchLineupVariants(matchId);
+    const stored = (canManage ? await fetchRemoteMatchBlocks(matchId) : null) ?? readMatchLineupVariants(matchId);
+    if (cancelled) return;
     if (stored) {
       const selected = stored.startVariant;
       const reconciledVariants = {
@@ -461,6 +468,8 @@ export const MatchLineupPage: React.FC = () => {
     };
     setVariantDrafts(initial);
     writeMatchLineupVariants(matchId, { version: 1, startVariant: 1, variants: initial });
+    })().finally(() => { if (!cancelled) { initialized = true; setBlocksLoading(false); } });
+    return () => { cancelled = true; if (!initialized && initializedVariantsForMatchRef.current === matchId) initializedVariantsForMatchRef.current = null; };
   // Der Effekt initialisiert genau einmal je Match nach dem kanonischen Lineup-Load.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matchId, lineupLoading]);
@@ -593,6 +602,8 @@ export const MatchLineupPage: React.FC = () => {
     persistVariantDrafts(nextDrafts);
 
     if (visibleVariant !== startVariant) {
+      try { await saveRemoteMatchBlocks(matchId, {version:1,startVariant,variants:nextDrafts}); }
+      catch (e) { setSavingLineup(false); setSaveError(e instanceof Error ? e.message : String(e)); return false; }
       setSavingLineup(false);
       setSaveMsg(`Variante ${visibleVariant} gespeichert.`);
       return true;
@@ -620,6 +631,8 @@ export const MatchLineupPage: React.FC = () => {
       console.warn('[MatchLineup] formation save failed', { matchId, error: formationErr });
       return false;
     }
+    try { await saveRemoteMatchBlocks(matchId, {version:1,startVariant,variants:nextDrafts}); }
+    catch (e) { setSaveError('Startaufstellung gespeichert; Blockplanung konnte nicht synchronisiert werden. Bitte erneut speichern.'); return false; }
     setSaveMsg('Aufstellung gespeichert.');
     return true;
   };
@@ -707,7 +720,7 @@ export const MatchLineupPage: React.FC = () => {
     navigate(`${basePath}/live?matchId=${encodeURIComponent(matchId)}`);
   };
 
-  if (matchLoading || lineupLoading || playersLoading) {
+  if (matchLoading || lineupLoading || playersLoading || blocksLoading) {
     return <div className="min-h-[100dvh] p-4 text-sm text-white/60">Lade Aufstellung…</div>;
   }
 

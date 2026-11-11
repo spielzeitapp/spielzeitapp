@@ -1,3 +1,4 @@
+import { TournamentLineupTemplatePanel } from './TournamentLineupTemplatePanel';
 import { tournamentDisplayNotes } from '../../lib/tournamentDisplayNotes';
 import { Link, useNavigate } from 'react-router-dom';
 import { useInternalBasePath } from '../../demo/demoPaths';
@@ -162,6 +163,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const basePath = useInternalBasePath();
   const navigate = useNavigate();
   const [connectedPlan, setConnectedPlan] = useState<ConnectedTournament | null>(null);
+  const [templateReady, setTemplateReady] = useState(false);
   const [assistantRefreshToken, setAssistantRefreshToken] = useState(0);
   const [activeTab, setActiveTab] = useState<TournamentCenterTabId>(() => canManage ? 'admin' : 'games');
   const [participants, setParticipants] = useState<TournamentParticipant[]>([]);
@@ -953,6 +955,12 @@ export const TournamentDetailSections: React.FC<Props> = ({
             loading={loading}
             canManage={canManage}
             onSaved={() => setAssistantRefreshToken(token => token + 1)}
+            onOpenTemplate={() => {
+              const section = document.getElementById('tournament-template-section');
+              const details = section?.querySelector('details');
+              if (details) details.open = true;
+              section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
           />
         </details></div>
         <div id="tournament-plan-section" className="scroll-mt-24">
@@ -978,6 +986,12 @@ export const TournamentDetailSections: React.FC<Props> = ({
               onScrollToAliases={scrollToTeamAliases}
               onManualAddMatch={openMatchModal}
             />
+          </TournamentCollapsibleSection>
+        </div>
+        <div id="tournament-template-section" className="scroll-mt-24">
+          <TournamentCollapsibleSection title="4. Grundaufstellung & Blöcke" icon={<ClipboardList />}>
+            <TournamentLineupTemplatePanel eventId={tournamentEventId} players={players} slots={ownSlots} refreshToken={assistantRefreshToken} onReady={setTemplateReady} canEdit={!completion.completedAt}
+              onSaved={() => { setAssistantRefreshToken(token => token + 1); void reload(); }} />
           </TournamentCollapsibleSection>
         </div>
         <TournamentTrainerAdminAccordion>
@@ -1179,6 +1193,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
         <TournamentAssistantCard
           tournamentEventId={tournamentEventId}
           refreshToken={assistantRefreshToken}
+          templateReady={templateReady}
           slots={ownSlots}
           attendance={attendanceSummary}
           hasOfficialPlanUrl={Boolean(safeText(officialTournamentUrl))}

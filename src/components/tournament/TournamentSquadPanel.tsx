@@ -23,6 +23,7 @@ type Props = {
   loading?: boolean;
   canManage?: boolean;
   onSaved?: () => void;
+  onOpenTemplate?: () => void;
 };
 
 function normalizeAttendanceStatus(value: unknown): 'yes' | 'no' | null {
@@ -93,6 +94,7 @@ export function TournamentSquadPanel({
   loading: slotsLoading = false,
   canManage = false,
   onSaved,
+  onOpenTemplate,
 }: Props) {
   const demo = useDemoMode();
   const isDemo = Boolean(demo);
@@ -306,7 +308,7 @@ export function TournamentSquadPanel({
           </Link>
         ) : null}
 
-        <LineupLink slots={slots} loading={slotsLoading} basePath={basePath} />
+        {!featuredMatchId && onOpenTemplate ? <div className="space-y-3 rounded-xl border sz-club-surface p-4"><p className="text-[16px] text-white/75">Block A und B schon vor dem Spielplan vorbereiten.</p><button type="button" className={`${dsScheduleGlassButtonClass()} min-h-12 w-full !text-[16px]`} onClick={onOpenTemplate}>Grundaufstellung & Blöcke planen</button></div> : <LineupLink slots={slots} loading={slotsLoading} basePath={basePath} />}
       </div>
     </section>
   );
