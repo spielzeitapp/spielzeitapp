@@ -519,6 +519,7 @@ export const MatchLineupPage: React.FC = () => {
     [squadIds, starterSet],
   );
 
+  const requiredStarters = U11_FORMATIONS[formationId].length;
   const hasSquad = squadIds.length > 0;
 
   const formationChoices = useMemo(
@@ -687,7 +688,7 @@ export const MatchLineupPage: React.FC = () => {
   };
 
   const onStartLive = async () => {
-    if (!matchId || starterCount < 7 || !canManage || !lineupEditable) return;
+    if (!matchId || starterCount < requiredStarters || !canManage || !lineupEditable) return;
     setSaveMsg(null);
     setSaveError(null);
     setStartingLive(true);
@@ -804,7 +805,7 @@ export const MatchLineupPage: React.FC = () => {
           <div
             className="mb-1 mt-0.5 grid h-11 w-full shrink-0 grid-cols-2 gap-1.5 sm:mt-1 sm:h-12"
             role="tablist"
-            aria-label="Aufstellungsvarianten"
+            aria-label="Blockaufstellungen"
           >
             {([1, 2] as const).map((variant) => {
               const active = visibleVariant === variant;
@@ -823,7 +824,7 @@ export const MatchLineupPage: React.FC = () => {
                       : 'border-white/10 bg-white/[0.035] text-white/55',
                   ].join(' ')}
                 >
-                  <span>Variante {variant}</span>
+                  <span>Block {variant}</span>
                   <span className={isStart ? 'text-[9px] font-bold uppercase tracking-wider text-emerald-400' : 'text-[9px] font-medium uppercase tracking-wider text-white/30'}>
                     {isStart ? 'Startaufstellung' : 'Alternative'}
                   </span>
@@ -872,6 +873,8 @@ export const MatchLineupPage: React.FC = () => {
                       onClick={() => {
                         if (!lineupEditable) return;
                         setFormationId(id);
+                        const allowed = new Set(U11_FORMATIONS[id].map(row=>row.slot));
+                        setSlots(prev=>Object.fromEntries(Object.entries(prev).map(([key,value])=>[key,allowed.has(key as FieldSlotId)?value:null])) as Record<FieldSlotId,string|null>);
                         if (matchId) {
                           if (isDemo && demo) demo.setDemoMatchFormation(matchId, id);
                           else writeStoredU11Formation(matchId, id);
@@ -901,9 +904,9 @@ export const MatchLineupPage: React.FC = () => {
               <div className={dsFormationZoneGlowClass()} aria-hidden />
               <span
                 className="pointer-events-none absolute right-2 top-2 z-[3] rounded-xl bg-black/65 px-2 py-0.5 text-xs font-bold tabular-nums text-white/90 backdrop-blur-sm"
-                aria-label={`Belegte Startplätze ${starterCount} von 7`}
+                aria-label={`Belegte Startplätze ${starterCount} von ${requiredStarters}`}
               >
-                {starterCount}/7
+                {starterCount}/{requiredStarters}
               </span>
               <div className="overflow-hidden rounded-[11px]">
                 <LineupFormationPitch
@@ -1118,7 +1121,7 @@ export const MatchLineupPage: React.FC = () => {
           </button>
           <button
             type="button"
-            disabled={!lineupEditable || starterCount < 7 || savingLineup || startingLive}
+            disabled={!lineupEditable || starterCount < requiredStarters || savingLineup || startingLive}
             onClick={() => void (visibleVariant === startVariant ? onStartLive() : onUseAsStartVariant())}
             className={`flex h-14 min-h-14 flex-1 items-center justify-center px-2 text-xs font-bold leading-tight ${dsPrimaryCtaClass()}`}
           >

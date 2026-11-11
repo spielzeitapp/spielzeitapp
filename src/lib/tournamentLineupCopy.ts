@@ -1,3 +1,4 @@
+import { readMatchLineupVariants, writeMatchLineupVariants, reconcileMatchLineupVariantSquad } from './matchLineupVariants';
 import {
   fetchKickoffLineupPlayerIds,
   fetchLineupForLiveMatch,
@@ -264,6 +265,8 @@ export async function copyTournamentLineupBetweenMatches(params: {
       if (formation.error) return { error: formation.error };
       const verifyErr = await verifyCopiedLineup(targetMatchId, 'full', starters, bench);
       if (verifyErr) return { error: verifyErr };
+      const blocks = readMatchLineupVariants(sourceMatchId);
+      if (blocks) writeMatchLineupVariants(targetMatchId, {...blocks, variants:{1:reconcileMatchLineupVariantSquad(blocks.variants[1],fullSquad),2:reconcileMatchLineupVariantSquad(blocks.variants[2],fullSquad)}});
       return { error: null, formationId: formation.formationId };
     }
     case 'starters': {

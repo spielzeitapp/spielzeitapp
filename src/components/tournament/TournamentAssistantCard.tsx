@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronRight, ClipboardList, Loader2 } from 'lucide-react';
-import { fetchLineupForLiveMatch } from '../../lib/liveMatchService';
+import { fetchMatchById, fetchLineupForLiveMatch } from '../../lib/liveMatchService';
 import {
   liveMatchPath,
   matchLineupPath,
@@ -185,9 +185,9 @@ export function TournamentAssistantCard({
 
     setLineupLoading(true);
     void (async () => {
-      const { data, error } = await fetchLineupForLiveMatch(focusMatchId);
+      const [{ data, error }, match] = await Promise.all([fetchLineupForLiveMatch(focusMatchId), fetchMatchById(focusMatchId)]);
       if (cancelled) return;
-      setLineupReady(!error && isStartelfCompleteFromStartingIds(data.startingPlayerIds));
+      setLineupReady(!error && isStartelfCompleteFromStartingIds(data.startingPlayerIds, match.data?.u11_formation_id));
       setLineupLoading(false);
     })();
 
