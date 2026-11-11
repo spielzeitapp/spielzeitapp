@@ -5,7 +5,7 @@ import { useInternalBasePath } from '../../demo/demoPaths';
 import { publicTeamTournamentPath } from '../../lib/publicTeamTournament';
 import { TournamentConnectedPlan, TournamentOpponentOutlook, officialTournamentStandings, type ConnectedTournament } from './TournamentConnectedPlan';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FileInput, Plus, Trash2, Users, ClipboardList, Megaphone, ChevronDown } from 'lucide-react';
+import { FileInput, Plus, Trash2, Users, ClipboardList, Megaphone, ChevronDown, Settings2, Tags } from 'lucide-react';
 import { AppButton } from '../ui/AppButton';
 import { Modal } from '../../app/ui/Modal';
 import { dsScheduleGlassButtonClass, DS_LIST_GAP } from '../../lib/premiumDesignSystem';
@@ -98,10 +98,6 @@ import { formatMeetupTimeOnlyDe } from '../match/matchCardLabels';
 import { safeText } from '../../lib/safeText';
 import { resolveTournamentCenterPhase, type TournamentCenterPhase } from '../../lib/tournamentCenterPhase';
 import type { TournamentAttendanceSummary } from '../../lib/tournamentPreparationFlow';
-import {
-  TournamentTrainerAdminAccordion,
-  TournamentTrainerAdminSection,
-} from './TournamentTrainerAdminAccordion';
 import { TC_CARD, TC_CARD_INNER, TC_SECTION_LABEL, TC_STACK_GAP, type TournamentCenterTabId } from './tournamentCenterStyles';
 
 type Props = {
@@ -986,6 +982,17 @@ export const TournamentDetailSections: React.FC<Props> = ({
               onScrollToAliases={scrollToTeamAliases}
               onManualAddMatch={openMatchModal}
             />
+            <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+              <h3 className="text-[18px] font-bold text-white">Spiele manuell anlegen</h3>
+              <p className="text-[16px] leading-relaxed text-white/65">Ohne Link oder wenn der Import nicht funktioniert: Gegner, Anstoß und Spielort selbst eintragen.</p>
+              <button type="button" className={`${addButtonClass} w-full`} disabled={Boolean(completion.completedAt)} onClick={openMatchModal}><Plus className="h-5 w-5" aria-hidden />Turnierspiel manuell hinzufügen</button>
+            </div>
+            <div className="mt-4">
+              <TournamentCollapsibleSection title="Unsere Mannschaft zuordnen · Aliase" icon={<Tags />}>
+                <p className="mb-3 text-[16px] leading-relaxed text-white/65">Trage abweichende Namen unserer Mannschaft aus dem Veranstalterplan ein. So erkennt der Import unsere Spiele. Bei manueller Eingabe brauchst du keine Aliase.</p>
+                <TournamentTeamAliasesCard teamSeasonId={teamSeasonId} canManage={canManage} reloadToken={aliasesReloadToken} embedded />
+              </TournamentCollapsibleSection>
+            </div>
           </TournamentCollapsibleSection>
         </div>
         <div id="tournament-template-section" className="scroll-mt-24">
@@ -994,21 +1001,12 @@ export const TournamentDetailSections: React.FC<Props> = ({
               onSaved={() => { setAssistantRefreshToken(token => token + 1); void reload(); }} />
           </TournamentCollapsibleSection>
         </div>
-        <TournamentTrainerAdminAccordion>
-          <TournamentTrainerAdminSection title="Turnier-Aliase">
-            <div id="tournament-team-aliases">
-              <TournamentTeamAliasesCard
-                teamSeasonId={teamSeasonId}
-                canManage={canManage}
-                reloadToken={aliasesReloadToken}
-                embedded
-              />
-            </div>
-          </TournamentTrainerAdminSection>
-          {trainerActions ? (
-            <TournamentTrainerAdminSection title="Bearbeiten / Löschen">{trainerActions}</TournamentTrainerAdminSection>
-          ) : null}
-        </TournamentTrainerAdminAccordion>
+        {trainerActions ? (
+          <TournamentCollapsibleSection title="Turniertermin bearbeiten oder löschen" icon={<Settings2 />}>
+            <p className="mb-4 text-[16px] leading-relaxed text-white/65">Hier änderst du Name, Datum, Treffpunkt und Spielort oder löschst den Turniertermin. Einzelne Spiele verwaltest du im Spielplan.</p>
+            {trainerActions}
+          </TournamentCollapsibleSection>
+        ) : null}
         {trainerFeedSection ? (
           <TournamentCollapsibleSection title="Feed & Kommunikation" icon={<Megaphone />} defaultExpanded={false}>
             {trainerFeedSection}
