@@ -1175,7 +1175,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
         <Modal open={termActionsOpen} onClose={() => setTermActionsOpen(false)} title="Turniertermin verwalten">
           <p className="mb-4 text-[16px] leading-relaxed text-white/65">Name, Datum, Treffpunkt und Spielort bearbeiten. Einzelne Spiele verwaltest du im Spielplan.</p>
           <div onClickCapture={(event) => {
-            if (event.target instanceof Element && event.target.closest('button:not(:disabled)')) setTermActionsOpen(false);
+            if (event.target instanceof Element && event.target.closest('button:not(:disabled)')) {
+              // Let the chosen action open its dialog before unmounting the menu.
+              window.setTimeout(() => setTermActionsOpen(false), 0);
+            }
           }}>{trainerActions}</div>
         </Modal>
       ) : null}
