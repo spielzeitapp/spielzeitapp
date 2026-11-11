@@ -29,6 +29,7 @@ export type PublicTeamTournamentMatchDto = {
 };
 
 export type PublicTeamTournamentPageDto = {
+  seasonLabel?: string | null;
   accentColor?: string;
   syncedAt?: string | null;
   groupTables?: Array<{groupLabel:string;rows:Array<{teamName:string;rank:number;played:number;goalsFor:number;goalsAgainst:number;points:number}>}>;
