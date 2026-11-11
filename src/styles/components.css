@@ -1411,3 +1411,21 @@ html[data-club-theme="black-white"] .sz-club-placeholder-player {
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.42), inset 0 0 0 1px rgb(var(--club-border-rgb) / 0.08);
 }
 .sz-club-imported-portrait > .sz-club-diagonal-lines { display: none; }
+
+/* Public tournament pages can be taller than the app's fixed-height root. */
+.public-tournament-page {
+  width: 100%;
+  flex: none;
+  align-self: flex-start;
+}
+.public-tournament-page[data-theme="day"] .sz-club-list-card {
+  background: var(--t-fixture);
+  border-color: var(--t-border);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .08);
+}
+.public-tournament-page[data-theme="day"] .sz-club-list-card [class*="text-white"] {
+  color: var(--t-text);
+}
+.public-tournament-page[data-theme="day"] .sz-club-list-card [class*="text-white/"] {
+  color: var(--t-muted);
+}

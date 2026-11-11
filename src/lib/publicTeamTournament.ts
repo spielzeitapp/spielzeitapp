@@ -36,7 +36,19 @@ export type PublicTournamentPlayer = {
   imageUrl: string | null;
 };
 
+export type PublicTournamentMatchDetails = {
+  id: string;
+  formation: string | null;
+  startingPlayers: Array<{name:string;position:string}>;
+  benchPlayers: string[];
+  events: Array<{id:string;type:'start'|'resume'|'pause'|'end'|'goal'|'goal_away'|'substitution'|'sub_in'|'sub_out'|'extra_player_on'|'extra_player_off';second:number;playerName:string|null;otherPlayerName:string|null;removedPlayerName:string|null}>;
+  elapsedSeconds: number;
+  timingAvailable: boolean;
+  unavailable: boolean;
+};
+
 export type PublicTeamTournamentPageDto = {
+  matchDetails?: PublicTournamentMatchDetails[];
   fanPlayers?: PublicTournamentPlayer[];
   fanRosterExample?: boolean;
   teamLogos?: Record<string,string>;

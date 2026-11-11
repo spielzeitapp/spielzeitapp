@@ -1,3 +1,4 @@
+import { buildPublicTournamentMatchDetails } from './publicTournamentMatchDetails.js';
 /**
  * Service-role loader for public team tournament page (TURNIER.1).
  * Does not open RLS — returns a sanitized DTO only.
@@ -142,7 +143,7 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
   if (matchIds.length) {
     const { data: matches } = await admin
       .from('matches')
-      .select('id, status, score_home, score_away, team_season_id, live_started_at, live_elapsed_seconds')
+      .select('id, status, score_home, score_away, team_season_id, live_started_at, live_elapsed_seconds, live_is_running, u11_formation_id')
       .in('id', matchIds);
     for (const m of matches ?? []) {
       if (String(m.team_season_id) !== String(teamSeasonId)) continue;
@@ -226,7 +227,21 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
       if (!dto.scorers.length) dto.scorers=(sample.scorers ?? []).map(s=>({name:String(s.name),goals:Number(s.goals),time:String(s.time),example:true}));
     } catch { /* no example data */ }
   }
-  const profileNames = [...dto.fanRoster, ...dto.scorers.map(s => s.name)];
+  const ownMatchIds = [...matchById.keys()];
+  let currentRows = [], kickoffRows = [], benchRows = [], publicEvents = [], detailsUnavailable = false;
+  if (ownMatchIds.length) {
+    const results = await Promise.all([
+      admin.from('match_lineup').select('match_id,player_id,slot').in('match_id',ownMatchIds),
+      admin.from('match_lineup_snapshots').select('match_id,player_id,slot').in('match_id',ownMatchIds).eq('snapshot_type','kickoff'),
+      admin.from('match_bench').select('match_id,player_id').in('match_id',ownMatchIds),
+      admin.from('match_events').select('match_id,type,minute,player_id,payload').in('match_id',ownMatchIds).order('minute').order('created_at'),
+    ]);
+    detailsUnavailable = results.some(result => result.error);
+    [currentRows,kickoffRows,benchRows,publicEvents] = results.map(result=>result.data ?? []);
+  }
+  dto.matchDetails = buildPublicTournamentMatchDetails({matches:[...matchById.values()],roster,events:publicEvents,currentRows,kickoffRows,benchRows,unavailable:detailsUnavailable});
+  const detailNames = dto.matchDetails.flatMap(detail=>[...detail.startingPlayers.map(p=>p.name),...detail.benchPlayers,...detail.events.flatMap(event=>[event.playerName,event.otherPlayerName,event.removedPlayerName].filter(Boolean))]);
+  const profileNames = [...dto.fanRoster, ...dto.scorers.map(s => s.name),...detailNames];
   const profileIds = roster.map(row => row.player_id).filter(Boolean);
   const {data: avatars} = profileIds.length ? await admin.from('player_avatars').select('player_id,avatar_url').in('player_id',profileIds) : {data:[]};
   dto.fanPlayers = buildPublicTournamentPlayers(profileNames, roster, avatars ?? []);
