@@ -3,18 +3,18 @@ import { canManageMatches, normalizeRole, type RoleKey } from './roles';
 /** Route zur Match-Vorbereitung (Kader, Aufstellung, Feed-Automatisierung). */
 export function matchPreparationPath(
   matchId: string,
-  base: '/app' | '/demo' = '/app',
+  base: '/app' | '/demo' | '/manager' = '/app',
 ): string {
   return `${base}/match-preparation?matchId=${encodeURIComponent(matchId.trim())}`;
 }
 
 /** Route zur Aufstellungsseite eines Spiels. */
-export function matchLineupPath(matchId: string, base: '/app' | '/demo' = '/app'): string {
+export function matchLineupPath(matchId: string, base: '/app' | '/demo' | '/manager' = '/app'): string {
   return `${base}/match-lineup?matchId=${encodeURIComponent(matchId.trim())}`;
 }
 
 /** Route zum Livespiel. */
-export function liveMatchPath(matchId: string, base: '/app' | '/demo' = '/app'): string {
+export function liveMatchPath(matchId: string, base: '/app' | '/demo' | '/manager' = '/app'): string {
   return `${base}/live?matchId=${encodeURIComponent(matchId.trim())}`;
 }
 

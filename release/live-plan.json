@@ -50,7 +50,9 @@
     "supabase/migrations/20261106105812_tighten_club_profile_design_validation.sql": "46d7c9534dee8a53d7f3cce0f5b1353c64f06527",
     "supabase/migrations/20261107152133_live_club_profile_admin_access.sql": "44986565fc634f1dae3c75858198b0b0356ef92d",
     "supabase/migrations/20261107153529_individual_profile_elements.sql": "967ec47b0c1bdab057fe4f4044da5686af9d9e4a",
-    "supabase/migrations/20261111113635_tournament_connected_live.sql": "0474688013ce8a5ac2252d270b700572dc4c3a65"
+    "supabase/migrations/20261111113635_tournament_connected_live.sql": "0474688013ce8a5ac2252d270b700572dc4c3a65",
+    "supabase/migrations/20261111212433_tournament_lineup_templates.sql": "11d9ad8103417cc0b84c624fdad0404eb13df3b2",
+    "supabase/migrations/20261111213257_tournament_template_roster_guards.sql": "1aa478fcf46a60d6c07a559e5c3f42333d11d7a8"
   },
   "functions": {
     "supabase/functions/generate-club-communications/index.ts": "8f84887c9197b0bcc6c050e436b211dca44a01e8"
