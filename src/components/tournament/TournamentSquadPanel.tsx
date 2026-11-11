@@ -299,7 +299,7 @@ export function TournamentSquadPanel({
 
         {featuredMatchId ? (
           <Link
-            to={matchPreparationPath(featuredMatchId)}
+            to={matchPreparationPath(featuredMatchId, basePath)}
             className={`inline-flex min-h-[32px] w-full items-center justify-center rounded-full px-3 text-[16px] font-semibold touch-manipulation ${dsScheduleGlassButtonClass()}`}
           >
             Match-Vorbereitung für nächstes Spiel
