@@ -740,6 +740,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const scrollToSquad = useCallback(() => {
     setActiveTab('admin');
     requestAnimationFrame(() => {
+      const picker = document.getElementById('tournament-squad-picker') as HTMLDetailsElement | null;
+      if (picker) picker.open = true;
       document.getElementById('tournament-squad-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }, []);
@@ -927,13 +929,19 @@ export const TournamentDetailSections: React.FC<Props> = ({
             </TournamentCollapsibleSection>
           </div>
         ) : null}
-        <TournamentSquadPanel
-          tournamentEventId={tournamentEventId}
-          teamSeasonId={teamSeasonId}
-          slots={ownSlots}
-          loading={loading}
-          canManage={canManage}
-        />
+        <details id="tournament-squad-picker" className={TC_CARD}>
+          <summary className={`${TC_CARD_INNER} cursor-pointer text-[13px] font-semibold text-white/85`}>
+            Turnierkader auswählen
+          </summary>
+          <p className="px-3 pb-2 text-[12px] text-white/55">Hier legst du fest, welche Spieler mitfahren. Die Rückmeldungen findest du oben unter Zu-/Absagen.</p>
+          <TournamentSquadPanel
+            tournamentEventId={tournamentEventId}
+            teamSeasonId={teamSeasonId}
+            slots={ownSlots}
+            loading={loading}
+            canManage={canManage}
+          />
+        </details>
         <TournamentTrainerAdminAccordion>
           <TournamentTrainerAdminSection title="Offizieller Turnierplan">
             <TournamentOfficialPlanCard
@@ -967,17 +975,16 @@ export const TournamentDetailSections: React.FC<Props> = ({
               />
             </div>
           </TournamentTrainerAdminSection>
+          {trainerActions ? (
+            <TournamentTrainerAdminSection title="Bearbeiten / Löschen">{trainerActions}</TournamentTrainerAdminSection>
+          ) : null}
         </TournamentTrainerAdminAccordion>
         {trainerFeedSection ? (
           <TournamentCollapsibleSection title="Feed & Kommunikation" icon="📢" defaultExpanded={false}>
             {trainerFeedSection}
           </TournamentCollapsibleSection>
         ) : null}
-        {trainerActions ? (
-          <TournamentTrainerAdminAccordion>
-            <TournamentTrainerAdminSection title="Bearbeiten / Löschen">{trainerActions}</TournamentTrainerAdminSection>
-          </TournamentTrainerAdminAccordion>
-        ) : null}
+
       </div>
     );
   };
