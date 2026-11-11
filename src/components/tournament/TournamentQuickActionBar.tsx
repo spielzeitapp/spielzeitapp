@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
 import { CenterQuickActionBar } from '../center/CenterQuickActionBar';
 import {
-  publicTeamTournamentPath,
   sharePublicTeamTournamentPage,
 } from '../../lib/publicTeamTournament';
 import { shareTournamentCenter } from './tournamentCenterUtils';
@@ -22,9 +20,7 @@ export function TournamentQuickActionBar({
   onNavigate,
   showNavigation = false,
 }: Props) {
-  const location = useLocation();
   const [hint, setHint] = useState<string | null>(null);
-  const publicPath = publicTeamTournamentPath(tournamentEventId);
 
   const handleSharePublic = async () => {
     const result = await sharePublicTeamTournamentPage(shareTitle, tournamentEventId);
@@ -43,13 +39,6 @@ export function TournamentQuickActionBar({
         onShare={() => shareTournamentCenter(shareTitle)}
       />
       <div className="flex flex-wrap gap-2">
-        <Link
-          to={publicPath}
-          state={{ returnTo: location.pathname + location.search }}
-          className="inline-flex min-h-[34px] items-center rounded-full border sz-club-accent-chip px-3 py-1.5 text-[11px] font-semibold  touch-manipulation"
-        >
-          Turnierseite ansehen
-        </Link>
         <button
           type="button"
           onClick={() => void handleSharePublic()}

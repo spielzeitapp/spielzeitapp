@@ -1,3 +1,4 @@
+import { PublicTeamTournamentPage } from '../../pages/public/PublicTeamTournamentPage';
 import { TournamentConnectedPlan, TournamentOpponentOutlook, officialTournamentStandings, type ConnectedTournament } from './TournamentConnectedPlan';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FileInput, Plus, Trash2 } from 'lucide-react';
@@ -1166,29 +1167,6 @@ export const TournamentDetailSections: React.FC<Props> = ({
         <p className="px-0.5 text-[10px] font-medium text-white/40">{syncAgeLabel}</p>
       ) : null}
 
-      {showFeatured ? (
-        <TournamentFeaturedMatchCard
-          slots={ownSlots}
-          ourTeamName={ourTeamName}
-          loading={loading}
-          canManage={canManage}
-          tournamentArchived={Boolean(completion.completedAt)}
-          canCreateReport={orchestratorCanCreateReport}
-          canCompleteTournament={orchestratorCanComplete}
-          completingTournament={completingTournament}
-          awaitingFurtherPhase={awaitingFurtherPhase}
-          refreshingPlan={planSyncBusy}
-          tournamentDayIso={tournamentDayIso}
-          onOpen={onOpenMatchPreparation}
-          onAddMatch={canManage ? openMatchModal : undefined}
-          onCreateReport={() => setOrchestratorReportOpen(true)}
-          onCompleteTournament={handleCompleteTournament}
-          onShowOverview={showOrchestratorOverview}
-          onRefreshPlan={() => void runForcedPlanSync({ reason: 'manual' })}
-          onSlotEdited={() => void reload()}
-        />
-      ) : null}
-
       {showAssistant ? (
         <TournamentAssistantCard
           tournamentEventId={tournamentEventId}
@@ -1216,143 +1194,20 @@ export const TournamentDetailSections: React.FC<Props> = ({
         />
       ) : null}
 
-      {showPremiumAboveTabs ? (
-        <TournamentPremiumFinalCard
-          tournamentTitle={tournamentTitle}
-          balance={teamBalance}
-          completion={completion}
-          summary={finalSummary}
-          goalScorers={goalScorers}
-          goalScorersLoading={goalScorersLoading}
-          slots={slots}
-          loading={loading}
-          canManage={canManage}
-        />
-      ) : null}
-
-      {showCompactAboveTabs ? (
-        <div className={`flex flex-col ${TC_STACK_GAP}`}>
-          <TournamentGroupPreviewCard
-            bundle={standingsBundle}
-            loading={standingsLoading}
-            onShowFullTable={showFullStandingsTable}
-          />
-        </div>
-      ) : null}
-
       <TournamentConnectedPlan eventId={tournamentEventId} url={officialTournamentUrl} userId={userId} canManage={canManage} onUpdated={reload} onState={setConnectedPlan} />
       {slots.some(s => s.is_own_team !== false && s.result_source !== 'official' && ['live','finished'].includes(s.match_status ?? '') && s.official_home_goals != null && s.official_away_goals != null && (s.score_home !== (s.away_team === s.opponent_name ? s.official_home_goals : s.official_away_goals) || s.score_away !== (s.away_team === s.opponent_name ? s.official_away_goals : s.official_home_goals))) ? <p role="status" className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-[15px] text-amber-200">Unser Liveticker und der Veranstalter melden unterschiedliche Spielstände. Die Tabelle zeigt den Veranstalterstand; unsere Tore und Torschützen bleiben erhalten.</p> : null}
       <TournamentOpponentOutlook state={connectedPlan} />
-      <TournamentCenterTabBar activeTab={activeTab} onTabChange={setActiveTab} canManage={canManage} />
-
-      {listError ? (
-        <p className="text-[13px] text-red-300/90" role="alert">
-          {listError}
-        </p>
-      ) : null}
-
-      {activeTab === 'games' ? (
-        <div className={`flex flex-col ${TC_STACK_GAP}`}>
-          {overviewSectionOrder.filter((key) => key !== 'info' && key !== 'table').map(renderOverviewSection)}
-          <div className="flex flex-wrap items-center gap-2">
-            <div
-              className="inline-flex rounded-full border border-white/12 bg-white/[0.04] p-0.5"
-              role="group"
-              aria-label="Spielplan-Filter"
-            >
-              <button
-                type="button"
-                className={`min-h-[36px] rounded-full px-3 text-[12px] font-semibold touch-manipulation ${
-                  gamesFilter === 'ours'
-                    ? 'bg-white/12 text-white'
-                    : 'text-white/55 hover:text-white/80'
-                }`}
-                onClick={() => setGamesFilter('ours')}
-              >
-                Unsere Spiele
-              </button>
-              <button
-                type="button"
-                className={`min-h-[36px] rounded-full px-3 text-[12px] font-semibold touch-manipulation ${
-                  gamesFilter === 'all'
-                    ? 'bg-white/12 text-white'
-                    : 'text-white/55 hover:text-white/80'
-                }`}
-                onClick={() => setGamesFilter('all')}
-              >
-                Alle Spiele
-              </button>
-            </div>
-            {canManage && ownMatchCounts.total > 0 ? (
-              <p className="text-[11px] text-white/45">
-                {ownMatchCounts.knockout > 0
-                  ? `${ownMatchCounts.total} eigene Spiele`
-                  : `${ownMatchCounts.group} Gruppenspiele`}
-              </p>
-            ) : null}
-          </div>
-
-          {canManage ? (
-            <button type="button" className={addButtonClass} onClick={openMatchModal}>
-              <Plus className="h-3.5 w-3.5" aria-hidden />
-              Turnierspiel hinzufügen
-            </button>
-          ) : null}
-
-          {loading ? (
-            <section className={TC_CARD}>
-              <div className={TC_CARD_INNER}>
-                <p className="text-[14px] text-white/55">Lade Turnierplan…</p>
-              </div>
-            </section>
-          ) : filteredGamesSlots.length === 0 ? (
-            <section className={TC_CARD}>
-              <div className={`${TC_CARD_INNER} text-center py-2`}>
-                <p className={TC_SECTION_LABEL}>Spiele</p>
-                <p className="mt-2 text-[14px] text-white/55">
-                  {gamesFilter === 'ours'
-                    ? 'Keine eigenen Turnierspiele gefunden.'
-                    : 'Keine Turnierspiele geplant.'}
-                </p>
-              </div>
-            </section>
-          ) : (
-            slotSections.map((section) => (
-              <section key={section.key} className={TC_CARD}>
-                <div className={TC_CARD_INNER}>
-                  <p className={`${TC_SECTION_LABEL} mb-2.5`}>{section.label}</p>
-                  <ul className={`flex flex-col ${DS_LIST_GAP}`}>
-                    {section.slots.map((slot) => (
-                      <li key={slot.id}>
-                        <TournamentMatchSlotCard
-                          slot={slot}
-                          canManage={canManage}
-                          isNextUpcoming={slot.id === nextMatchId && slot.is_own_team !== false}
-                          onOpen={() => {
-                            if (slot.match_id) onOpenMatchPreparation(slot.match_id);
-                          }}
-                          onDelete={
-                            canManage && slot.match_id && slot.is_own_team !== false
-                              ? () => void handleRemoveSlot(slot.match_id as string)
-                              : undefined
-                          }
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </section>
-            ))
-          )}
-        </div>
-      ) : null}
-
-      {activeTab === 'table' ? (
-        <div className="space-y-3"><TournamentTableTab bundle={standingsBundle} loading={standingsLoading} />
-          <TournamentScorersOverviewCard scorers={goalScorers} players={players} loading={goalScorersLoading} />
-          {connectedPlan?.analysis.finalStandings?.length ? <section className={TC_CARD}><div className={TC_CARD_INNER}><p className={TC_SECTION_LABEL}>Endplatzierung · Veranstalter</p><ol className="mt-3 space-y-2">{connectedPlan.analysis.finalStandings.map(r=><li key={r.rank} className="flex gap-3 text-[16px]"><span className="w-6 font-bold">{r.rank}.</span><span>{r.teamName}</span></li>)}</ol></div></section> : null}
-        </div>
-      ) : null}
+      {listError ? <p role="alert" className="text-sm text-red-300">{listError}</p> : null}
+      {canManage && (activeTab === 'admin' || activeTab === 'teams') ? <div className="flex flex-wrap gap-2"><button className={addButtonClass} onClick={()=>setActiveTab('games')}>← Turnierübersicht</button><button className={addButtonClass} onClick={()=>setActiveTab('teams')}>Mannschaften verwalten</button><button className={addButtonClass} onClick={()=>setActiveTab('admin')}>Trainer & Verwaltung</button></div> : null}
+      {activeTab !== 'admin' && activeTab !== 'teams' ? <>
+        <PublicTeamTournamentPage eventId={tournamentEventId} embedded onManage={canManage ? ()=>setActiveTab('admin') : undefined}
+          renderMatchActions={match=>{
+            const own = ownSlots.find(slot=>slot.match_id===match.id);
+            if (!own?.match_id) return null;
+            return <div className="flex flex-wrap gap-2"><button className={addButtonClass} onClick={()=>onOpenMatchPreparation(own.match_id!)}>{canManage ? 'Aufstellung & Liveticker öffnen' : 'Aufstellung ansehen'}</button>{canManage ? <button className={addButtonClass} onClick={()=>void handleRemoveSlot(own.match_id!)}>Spiel entfernen</button> : null}</div>;
+          }} />
+        {canManage ? <button type="button" className={addButtonClass} onClick={openMatchModal}><Plus className="h-4 w-4"/>Turnierspiel hinzufügen</button> : null}
+      </> : null}
 
       {activeTab === 'teams' ? (
         <div className={`flex flex-col ${TC_STACK_GAP}`}>
