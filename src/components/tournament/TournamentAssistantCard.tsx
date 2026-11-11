@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Check, ChevronRight, ClipboardList, Loader2, Megaphone } from 'lucide-react';
+import { Check, ChevronRight, ClipboardList, Loader2 } from 'lucide-react';
 import { fetchMatchById, fetchLineupForLiveMatch } from '../../lib/liveMatchService';
 import {
   liveMatchPath,
@@ -48,7 +48,6 @@ type Props = {
   onOpenAttendance: () => void;
   onOpenSquad: () => void;
   onOpenLineup: () => void;
-  onOpenCommunication?: () => void;
   onImportPlan: () => void;
   onAddMatch: () => void;
   onCreateReport: () => void;
@@ -143,7 +142,6 @@ export function TournamentAssistantCard({
   onOpenAttendance,
   onOpenSquad,
   onOpenLineup,
-  onOpenCommunication,
   onImportPlan,
   onAddMatch,
   onCreateReport,
@@ -511,7 +509,6 @@ export function TournamentAssistantCard({
           </li>)}
         </ol>
         {prepared ? <p role="status" className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-[18px] font-bold text-emerald-300">✓ Turnier vorbereitet</p> : null}
-        {onOpenCommunication ? <button type="button" onClick={onOpenCommunication} className={`${dsScheduleGlassButtonClass()} flex min-h-12 w-full items-center gap-3 rounded-full px-4 py-3 text-left text-[16px] font-semibold touch-manipulation`}><Megaphone className="h-5 w-5 shrink-0 sz-club-accent-text" aria-hidden /><span className="flex-1">Feed & Kommunikation · optional</span><ChevronRight className="h-5 w-5 shrink-0" aria-hidden /></button> : null}
         {prepared || gamePhaseStarted ? <div className="space-y-2 border-t border-white/10 pt-4">
           <p className="text-[15px] font-bold uppercase tracking-wide sz-club-accent-text">Am Turniertag</p>
           <h2 className="text-[21px] font-bold leading-snug text-white">{step.title}</h2>

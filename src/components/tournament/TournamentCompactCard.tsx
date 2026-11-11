@@ -20,6 +20,7 @@ type Props = {
   badgeLabel?: string;
   compact?: boolean;
   actions?: React.ReactNode;
+  titleActions?: React.ReactNode;
 };
 
 export function TournamentCompactCard({
@@ -33,6 +34,7 @@ export function TournamentCompactCard({
   badgeLabel = 'Turnier',
   compact = false,
   actions,
+  titleActions,
 }: Props) {
   const heroUrl = resolveTournamentHeroBackgroundUrl(safeOptionalText(coverUrl));
   const dateLabel = formatTournamentDayDate(startsAt) || '—';
@@ -50,6 +52,7 @@ export function TournamentCompactCard({
           <div className="flex items-start gap-3">
             <Trophy className="mt-0.5 h-7 w-7 shrink-0 text-amber-300/95" strokeWidth={1.8} aria-hidden />
             <h2 className="min-w-0 flex-1 break-words text-[22px] font-extrabold leading-tight text-white">{title}</h2>
+            {titleActions ? <div className="shrink-0">{titleActions}</div> : null}
           </div>
           <p className="text-[16px] font-medium text-white/70">{dateLabel}</p>
           <p className="flex flex-wrap gap-x-2 gap-y-1 text-[16px] font-semibold text-white/85">

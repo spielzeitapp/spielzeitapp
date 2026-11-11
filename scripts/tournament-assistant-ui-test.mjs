@@ -16,7 +16,7 @@ try {
     import {TournamentAssistantCard} from './src/components/tournament/TournamentAssistantCard';
     const calls=[];
     const props={tournamentEventId:'test',slots:[],attendance:{playerCount:2,yesCount:1,noCount:0,openCount:1},hasOfficialPlanUrl:false,ownMatchCount:1,templateReady:true,
-      onOpenAttendance:()=>calls.push('attendance'),onOpenSquad:()=>calls.push('squad'),onImportPlan:()=>calls.push('plan'),onOpenLineup:()=>calls.push('lineup'),onOpenCommunication:()=>calls.push('communication'),
+      onOpenAttendance:()=>calls.push('attendance'),onOpenSquad:()=>calls.push('squad'),onImportPlan:()=>calls.push('plan'),onOpenLineup:()=>calls.push('lineup'),
       onAddMatch:()=>{},onCreateReport:()=>{},onCompleteTournament:()=>{},onViewStatus:()=>{}};
     let view;
     const render=p=><MemoryRouter future={{v7_startTransition:true,v7_relativeSplatPath:true}}><TournamentAssistantCard {...p}/></MemoryRouter>;
@@ -29,9 +29,8 @@ try {
       assert(button, label+' must be a button');
       act(()=>button.props.onClick());
     }
-    const communication=view.root.findAllByType('button').find(b=>b.findAllByType('span').some(s=>s.children.includes('Feed & Kommunikation · optional')));
-    act(()=>communication.props.onClick());
-    assert.deepEqual(calls,['attendance','squad','plan','lineup','communication']);
+    assert.deepEqual(calls,['attendance','squad','plan','lineup']);
+    assert(!JSON.stringify(view.toJSON()).includes('Feed & Kommunikation'));
     assert(!JSON.stringify(view.toJSON()).includes('Alle 7 Schritte'));
     assert(!JSON.stringify(view.toJSON()).includes('✓ Turnier vorbereitet'));
     await act(async()=>view.update(render({...props,attendance:{playerCount:2,yesCount:2,noCount:0,openCount:0}})));
@@ -43,7 +42,7 @@ try {
     assert.equal(view.root.findByProps({role:'progressbar'}).props['aria-valuenow'],3);
     assert(!JSON.stringify(view.toJSON()).includes('✓ Turnier vorbereitet'));
     act(()=>view.unmount());
-    console.log('PASS: all preparation rows invoke their editor, optional communication opens, four progress bars turn green only with complete data, missing plan stays open.');
+    console.log('PASS: all preparation rows invoke their editor, communication is outside preparation, four progress bars turn green only with complete data, missing plan stays open.');
   `},bundle:true,platform:'node',format:'esm',outfile:file.replace('.cjs','.mjs'),logLevel:'silent',packages:'external',define:{'import.meta.env':JSON.stringify({DEV:false})},plugins:[{name:'controlled-data',setup(b){
     const stubs={
       'liveMatchService':`export const LIVE_FIELD_SLOT_ORDER=['GK','LB','RB','CM','LW','RW','ST','FP'];export const upsertMatchForSetup=async()=>({});export const updateMatchRow=async()=>({});export const fetchMatchById=async()=>({data:null});export const fetchLineupForLiveMatch=async()=>({data:{startingPlayerIds:[]}});`,
