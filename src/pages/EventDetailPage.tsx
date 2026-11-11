@@ -3852,6 +3852,7 @@ export const EventDetailPage: React.FC = () => {
   const carpoolingCard = showCarpooling && sessionUser?.id ? (
     <EventCarpoolCard
       eventId={event.id}
+      defaultExpanded={event.kind !== 'tournament'}
       eventStartsAt={event.starts_at}
       meetingAt={event.meeting_at}
       defaultLocation={null}
@@ -4076,6 +4077,7 @@ export const EventDetailPage: React.FC = () => {
                 canManage={canTrainerManageEvent}
                 userId={sessionUser?.id ?? null}
                 trainerAttendanceSection={tournamentTrainerAttendanceSection}
+                carpoolSection={carpoolingCard}
                 attendanceSummary={{
                   playerCount: players.length,
                   yesCount: eventRsvpCounts.yes,
@@ -4307,7 +4309,6 @@ export const EventDetailPage: React.FC = () => {
           </Card>
         ) : null}
 
-        {isTournament ? carpoolingCard : null}
 
         {isAudienceMatchDetail && event.status !== 'canceled' && canShowSelfRsvp ? (
           <Card className="flex flex-col gap-3 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]">

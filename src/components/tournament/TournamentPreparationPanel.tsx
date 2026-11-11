@@ -60,10 +60,10 @@ function ChecklistRow({ item }: { item: PreparationCheckItem }) {
         )}
       </span>
       <div className="min-w-0 flex-1">
-        <p className={`text-[12px] font-semibold leading-snug ${done ? 'text-white/88' : 'text-white/75'}`}>
+        <p className={`text-[14px] font-semibold leading-snug ${done ? 'text-white/88' : 'text-white/75'}`}>
           {item.label}
         </p>
-        <p className="mt-0.5 text-[10px] leading-snug text-white/45">{item.hint}</p>
+        <p className="mt-0.5 text-[12px] leading-snug text-white/65">{item.hint}</p>
       </div>
     </li>
   );
@@ -88,7 +88,7 @@ function PrimaryCta({
 }) {
   if (action.kind === 'ready') {
     return (
-      <p className="rounded-xl border border-emerald-500/20 bg-emerald-950/25 px-3 py-2.5 text-center text-[12px] font-medium text-emerald-200/90">
+      <p className="rounded-xl border border-emerald-500/20 bg-emerald-950/25 px-3 py-2.5 text-center text-[14px] font-medium text-emerald-200/90">
         Turnier ist vorbereitet — du kannst mit dem nächsten Spiel starten.
       </p>
     );
@@ -242,7 +242,7 @@ export function TournamentPreparationPanel({
       <section className={TC_CARD}>
         <div className={TC_CARD_INNER}>
           <p className={TC_SECTION_LABEL}>Turnier vorbereiten</p>
-          <p className="mt-1.5 text-[12px] text-white/55">Lade Vorbereitung…</p>
+          <p className="mt-1.5 text-[14px] text-white/55">Lade Vorbereitung…</p>
         </div>
       </section>
     );
@@ -256,12 +256,12 @@ export function TournamentPreparationPanel({
             <ClipboardCheck className="h-3.5 w-3.5 text-red-400/85" strokeWidth={2} aria-hidden />
             Turnier vorbereiten
           </p>
-          <span className="text-[10px] font-semibold tabular-nums text-white/45">
+          <span className="text-[12px] font-semibold tabular-nums text-white/65">
             {doneCount}/{checklist.length}
           </span>
         </div>
 
-        <p className="text-[11px] leading-snug text-white/55">
+        <p className="text-[13px] leading-snug text-white/55">
           Verfügbarkeit → Kader → Teilnehmer & Plan → Vorrunde → Finalrunde → Abschluss. Alle Bereiche bleiben jederzeit bearbeitbar.
         </p>
 
@@ -282,7 +282,7 @@ export function TournamentPreparationPanel({
             basePath={basePath}
           />
           {lineupLoading ? (
-            <p className="mt-1.5 text-center text-[10px] text-white/40">Prüfe Aufstellung…</p>
+            <p className="mt-1.5 text-center text-[12px] text-white/40">Prüfe Aufstellung…</p>
           ) : null}
         </div>
       </div>

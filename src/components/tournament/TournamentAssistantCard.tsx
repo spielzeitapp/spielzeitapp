@@ -57,7 +57,7 @@ type Props = {
 function StepProgress({ step }: { step: TournamentAssistantStep }) {
   return (
     <div className="mt-2">
-      <p className="text-[10px] font-semibold text-white/65">Schritt {step.stepNumber} von {step.totalSteps}</p>
+      <p className="text-[11px] font-semibold text-white/65">Schritt {step.stepNumber} von {step.totalSteps}</p>
       <div className="mt-1.5 flex gap-1" role="progressbar" aria-label="Turnier-Vorbereitung" aria-valuemin={0} aria-valuemax={step.totalSteps} aria-valuenow={step.stepNumber}>
         {Array.from({ length: step.totalSteps }, (_, index) => (
           <span key={index} className={`h-1 flex-1 rounded-full ${index < step.stepNumber ? 'sz-club-progress-fill' : 'bg-white/15'}`} />
@@ -391,7 +391,7 @@ export function TournamentAssistantCard({
             Letzte Aufstellung übernehmen
           </p>
           {copyContext?.sourceOpponentName ? (
-            <p className="text-[11px] leading-snug text-white/60">
+            <p className="text-[12px] leading-snug text-white/60">
               Spiel gegen {copyContext.sourceOpponentName}
               {copyContext.sourceStarterCount > 0
                 ? ` · ${copyContext.sourceStarterCount} Startelf`
@@ -399,15 +399,15 @@ export function TournamentAssistantCard({
             </p>
           ) : null}
           {showReplaceConfirm ? (
-            <p className="rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2 text-[11px] leading-snug text-amber-100/90">
+            <p className="rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2 text-[12px] leading-snug text-amber-100/90">
               Die bestehende Aufstellung dieses Spiels wird ersetzt. Bitte erneut tippen zum Bestätigen.
             </p>
           ) : copyContext?.targetHasExistingLineup ? (
-            <p className="rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2 text-[11px] leading-snug text-amber-100/90">
+            <p className="rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2 text-[12px] leading-snug text-amber-100/90">
               Für dieses Spiel gibt es bereits eine Aufstellung. Übernehmen ersetzt sie.
             </p>
           ) : (
-            <p className="text-[11px] leading-snug text-white/55">
+            <p className="text-[12px] leading-snug text-white/55">
               Formation, Startelf und Bank werden übernommen — ohne erneute Spielerauswahl.
             </p>
           )}
@@ -457,8 +457,8 @@ export function TournamentAssistantCard({
     return (
       <section className={TC_CARD}>
         <div className={TC_CARD_INNER}>
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] sz-club-accent-text">Turnier-Assistent</p>
-          <p className="mt-2 flex items-center gap-2 text-[13px] text-white/55">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] sz-club-accent-text">Turnier-Assistent</p>
+          <p className="mt-2 flex items-center gap-2 text-[14px] text-white/55">
             <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
             Lade nächsten Schritt…
           </p>
@@ -472,7 +472,7 @@ export function TournamentAssistantCard({
       <div className={`${TC_CARD_INNER} flex flex-col gap-3`}>
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] sz-club-accent-text">
+            <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] sz-club-accent-text">
               <ClipboardList className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />
               Turnier-Assistent
             </p>
@@ -482,21 +482,21 @@ export function TournamentAssistantCard({
 
         <div>
           <h2 className="text-[17px] font-bold leading-snug text-white">{step.title}</h2>
-          <p className="mt-1 text-[13px] leading-snug text-white/62">{step.description}</p>
+          <p className="mt-1 text-[14px] leading-snug text-white/62">{step.description}</p>
           {step.stepNumber > 1 ? (
             <ul className="mt-2 flex list-none flex-col gap-0.5 p-0">
               {step.stepNumber > 1 ? (
-                <li className="text-[11px] text-emerald-300/85">✓ Verfügbarkeit geklärt</li>
+                <li className="text-[12px] text-emerald-300/85">✓ Verfügbarkeit geklärt</li>
               ) : null}
               {step.stepNumber > 2 && squadCount > 0 ? (
-                <li className="text-[11px] text-emerald-300/85">
+                <li className="text-[12px] text-emerald-300/85">
                   ✓ {squadCount} Spieler im Turnierkader
                 </li>
               ) : null}
               {step.stepNumber > 3 && (hasOfficialPlanUrl || totalMatchCount > 0) ? (
                 <>
-                  <li className="text-[11px] text-emerald-300/85">✓ Turnierplan importiert</li>
-                  <li className="text-[11px] text-white/50">
+                  <li className="text-[12px] text-emerald-300/85">✓ Turnierplan importiert</li>
+                  <li className="text-[12px] text-white/50">
                     {ownMatchCount} eigene Spiele · {totalMatchCount} Turnierspiele
                   </li>
                 </>
@@ -506,7 +506,7 @@ export function TournamentAssistantCard({
           {step.detailLines.length > 0 ? (
             <ul className="mt-2 flex list-none flex-col gap-0.5 p-0">
               {step.detailLines.map((line) => (
-                <li key={line} className="text-[11px] text-white/45">
+                <li key={line} className="text-[12px] text-white/65">
                   {line}
                 </li>
               ))}
