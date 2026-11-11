@@ -100,7 +100,7 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
   let slotRes = await admin
     .from('tournament_matches')
     .select(
-      'id, tournament_event_id, match_id, opponent_name, kickoff_at, planned_minutes, pitch, group_label, phase, sort_order',
+      'id, tournament_event_id, match_id, opponent_name, kickoff_at, planned_minutes, pitch, group_label, phase, sort_order, home_team, away_team, official_status, home_goals, away_goals',
     )
     .eq('tournament_event_id', publicId)
     .order('kickoff_at', { ascending: true })
@@ -138,7 +138,7 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
   if (matchIds.length) {
     const { data: matches } = await admin
       .from('matches')
-      .select('id, status, score_home, score_away, team_season_id')
+      .select('id, status, score_home, score_away, team_season_id, live_started_at, live_elapsed_seconds')
       .in('id', matchIds);
     for (const m of matches ?? []) {
       if (String(m.team_season_id) !== String(teamSeasonId)) continue;
@@ -150,11 +150,13 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
   for (const slot of slots) {
     const m = matchById.get(slot.match_id);
     if (!m) continue;
+    const officialFallback = m.status === 'upcoming' && !m.live_started_at && !m.live_elapsed_seconds && !m.score_home && !m.score_away && slot.official_status === 'finished' && slot.home_goals != null && slot.away_goals != null;
+    const ownHome = slot.away_team === slot.opponent_name;
     enriched.push({
       ...slot,
-      match_status: m.status ?? 'upcoming',
-      score_home: Number(m.score_home ?? 0),
-      score_away: Number(m.score_away ?? 0),
+      match_status: officialFallback ? 'finished' : m.status ?? 'upcoming',
+      score_home: Number(officialFallback ? (ownHome ? slot.home_goals : slot.away_goals) : m.score_home ?? 0),
+      score_away: Number(officialFallback ? (ownHome ? slot.away_goals : slot.home_goals) : m.score_away ?? 0),
     });
   }
 

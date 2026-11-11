@@ -1,3 +1,4 @@
+import { TournamentConnectedPlan, TournamentOpponentOutlook, officialTournamentStandings, type ConnectedTournament } from './TournamentConnectedPlan';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FileInput, Plus, Trash2 } from 'lucide-react';
 import { AppButton } from '../ui/AppButton';
@@ -154,6 +155,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   onOfficialTournamentUrlUpdated,
   onTournamentCompleted,
 }) => {
+  const [connectedPlan, setConnectedPlan] = useState<ConnectedTournament | null>(null);
   const [activeTab, setActiveTab] = useState<TournamentCenterTabId>('games');
   const [participants, setParticipants] = useState<TournamentParticipant[]>([]);
   const [slots, setSlots] = useState<TournamentMatchSlotView[]>([]);
@@ -673,11 +675,12 @@ export const TournamentDetailSections: React.FC<Props> = ({
   }, [teamSeasonId]);
 
   const ourTeamNames = useMemo(() => {
+    if (connectedPlan?.own_team_name) return [connectedPlan.own_team_name];
     const fromPlan = planImportContext?.ourTeamNames ?? [];
     if (fromPlan.length > 0) return fromPlan;
     if (recognizedTeamNames.length > 0) return recognizedTeamNames;
     return ourTeamName ? [ourTeamName] : [];
-  }, [planImportContext, recognizedTeamNames, ourTeamName]);
+  }, [connectedPlan, planImportContext, recognizedTeamNames, ourTeamName]);
 
   const liveGroupStandings = useMemo(
     () =>
@@ -700,6 +703,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
   );
 
   const standingsBundle = useMemo((): TournamentStandingsBundle => {
+    const official = officialTournamentStandings(connectedPlan);
+    if (official) return official;
     if (combinedStandings.length > 0) {
       return {
         source: 'imported',
@@ -711,7 +716,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
       imported: groupStandings,
       liveGroups: liveGroupStandings,
     });
-  }, [combinedStandings, groupStandings, liveGroupStandings]);
+  }, [connectedPlan, combinedStandings, groupStandings, liveGroupStandings]);
 
   const standingsLoading = groupStandingsLoading && standingsBundle.source !== 'live';
 
@@ -1235,6 +1240,9 @@ export const TournamentDetailSections: React.FC<Props> = ({
         </div>
       ) : null}
 
+      <TournamentConnectedPlan eventId={tournamentEventId} url={officialTournamentUrl} userId={userId} canManage={canManage} onUpdated={reload} onState={setConnectedPlan} />
+      {slots.some(s => s.is_own_team !== false && s.result_source !== 'official' && ['live','finished'].includes(s.match_status ?? '') && s.official_home_goals != null && s.official_away_goals != null && (s.score_home !== (s.away_team === s.opponent_name ? s.official_home_goals : s.official_away_goals) || s.score_away !== (s.away_team === s.opponent_name ? s.official_away_goals : s.official_home_goals))) ? <p role="status" className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-[15px] text-amber-200">Unser Liveticker und der Veranstalter melden unterschiedliche Spielstände. Die Tabelle zeigt den Veranstalterstand; unsere Tore und Torschützen bleiben erhalten.</p> : null}
+      <TournamentOpponentOutlook state={connectedPlan} />
       <TournamentCenterTabBar activeTab={activeTab} onTabChange={setActiveTab} canManage={canManage} />
 
       {listError ? (
@@ -1340,7 +1348,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
       ) : null}
 
       {activeTab === 'table' ? (
-        <TournamentTableTab bundle={standingsBundle} loading={standingsLoading} />
+        <div className="space-y-3"><TournamentTableTab bundle={standingsBundle} loading={standingsLoading} />
+          <TournamentScorersOverviewCard scorers={goalScorers} players={players} loading={goalScorersLoading} />
+          {connectedPlan?.analysis.finalStandings?.length ? <section className={TC_CARD}><div className={TC_CARD_INNER}><p className={TC_SECTION_LABEL}>Endplatzierung · Veranstalter</p><ol className="mt-3 space-y-2">{connectedPlan.analysis.finalStandings.map(r=><li key={r.rank} className="flex gap-3 text-[16px]"><span className="w-6 font-bold">{r.rank}.</span><span>{r.teamName}</span></li>)}</ol></div></section> : null}
+        </div>
       ) : null}
 
       {activeTab === 'teams' ? (

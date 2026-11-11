@@ -86,6 +86,17 @@ export async function syncOfficialTournamentPlan(params: {
       };
     }
 
+    const { error: centralError } = await supabase.rpc('apply_tournament_plan', {
+      p_event: eventId, p_url: url, p_analysis: analyzed.analysis, p_own_team: null,
+    });
+    if (!centralError) {
+      lastSyncAtByEvent.set(eventId, Date.now());
+      return { ok: true, skipped: false, changed: true, error: null, syncedAt: Date.now() };
+    }
+    if (!/PGRST202|42883/.test(centralError.code ?? '')) {
+      return { ok: false, skipped: false, changed: false, error: centralError.message, syncedAt: last || null };
+    }
+
     const result = await importTournamentPlanFromAnalysis({
       tournamentEventId: eventId,
       teamSeasonId: params.teamSeasonId,

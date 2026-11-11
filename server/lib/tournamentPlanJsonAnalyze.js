@@ -1,3 +1,4 @@
+import { parseMeinTurnierplanModel } from './meinTurnierplanModel.js';
 /**
  * JSON-only MeinTurnierplan-Analyse — colocated with Vercel API (no src/lib imports).
  */
@@ -202,110 +203,7 @@ function inferKnockoutPhaseFromMeinTurnierplan(modeMapping, sourceTeam1, sourceT
 }
 
 export function parseMeinTurnierplanJson(data) {
-  const json = data;
-  if (
-    !json?.participants ||
-    typeof json.participants !== 'object' ||
-    !Array.isArray(json.groups) ||
-    json.groups.length === 0
-  ) {
-    return null;
-  }
-
-  const participants = json.participants;
-  const teams = [];
-  const groupSummaries = [];
-
-  for (let groupIndex = 0; groupIndex < json.groups.length; groupIndex += 1) {
-    const displayId = (json.groups[groupIndex]?.displayId ?? '').trim();
-    const label = displayId || String(groupIndex + 1);
-    const participantIds = json.groupParticipants?.[groupIndex] ?? [];
-    let teamCountInGroup = 0;
-
-    for (const participantId of participantIds) {
-      const teamName = participantName(participants, participantId);
-      if (!teamName) continue;
-      teams.push({ teamName, groupLabel: label });
-      teamCountInGroup += 1;
-    }
-
-    if (teamCountInGroup > 0) {
-      groupSummaries.push({ label, teamCount: teamCountInGroup });
-    }
-  }
-
-  if (teams.length === 0) return null;
-
-  const groupMinutes = Math.max(1, Math.min(120, Math.trunc(json.groupMatchDuration ?? 10) || 10));
-  const knockoutMinutes = Math.max(
-    1,
-    Math.min(120, Math.trunc(json.finalMatchDuration ?? json.groupMatchDuration ?? 10) || 10),
-  );
-  const courts = json.courts ?? [];
-  const rawMatches = [];
-
-  for (const match of json.groupMatches ?? []) {
-    const homeTeam = participantName(participants, match.homeParticipant);
-    const awayTeam = participantName(participants, match.awayParticipant);
-    if (!homeTeam || !awayTeam) continue;
-
-    const groupIdx = match.groupId ?? 0;
-    const groupLabel = (json.groups[groupIdx]?.displayId ?? '').trim() || null;
-    const court = courts[match.courtId ?? -1];
-    const pitch = court?.displayId?.trim() ? `Platz ${court.displayId.trim()}` : null;
-
-    pushRawMatch(rawMatches, {
-      source: match,
-      homeTeam,
-      awayTeam,
-      groupLabel,
-      phase: 'group',
-      kickoffTimeHHmm: kickoffHHmmFromDateTime(match.dateAndTime),
-      plannedMinutes: groupMinutes,
-      pitch,
-    });
-  }
-
-  const preliminaryMatchCount = rawMatches.length;
-
-  for (const match of json.finalMatches ?? []) {
-    const homeTeam = participantName(participants, match.homeParticipant);
-    const awayTeam = participantName(participants, match.awayParticipant);
-    if (!homeTeam || !awayTeam) continue;
-
-    const phase = inferKnockoutPhaseFromMeinTurnierplan(
-      match.modeMapping,
-      match.sourceTeam1,
-      match.sourceTeam2,
-    );
-    const court = courts[match.courtId ?? -1];
-    const pitch = court?.displayId?.trim() ? `Platz ${court.displayId.trim()}` : null;
-
-    pushRawMatch(rawMatches, {
-      source: match,
-      homeTeam,
-      awayTeam,
-      groupLabel: null,
-      phase,
-      kickoffTimeHHmm: kickoffHHmmFromDateTime(match.dateAndTime),
-      plannedMinutes: knockoutMinutes,
-      pitch,
-    });
-  }
-
-  const knockoutMatchCount = rawMatches.length - preliminaryMatchCount;
-
-  return {
-    provider: 'meinturnierplan',
-    teamCount: teams.length,
-    groupCount: groupSummaries.length,
-    matchCount: rawMatches.length,
-    preliminaryMatchCount,
-    knockoutMatchCount,
-    groupSummaries,
-    teams,
-    rawMatches,
-  };
+  return parseMeinTurnierplanModel(data);
 }
 
 async function fetchMeinTurnierplanJsonWithFallbacks(tournamentId, fetchImpl = fetch, options = {}) {

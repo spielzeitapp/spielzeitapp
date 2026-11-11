@@ -2,6 +2,7 @@ import { analyzeTournamentPlanJson } from '../server/lib/tournamentPlanJsonAnaly
 import { loadPublicTeamTournamentPage } from '../server/lib/publicTeamTournamentPage.js';
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
   if (req.query?.debugPing === '1') {
     return res.status(200).json({
       ok: true,
@@ -77,7 +78,7 @@ export default async function handler(req, res) {
         provider: result.provider,
         extractedId: result.extractedId,
         attemptedEndpoints: result.attemptedEndpoints,
-        analysis: result.analysis,
+        analysis: { ...result.analysis, fetchedAt: new Date().toISOString() },
         diagnostics: result.diagnostics,
         teamCount: result.analysis.teamCount,
         groupCount: result.analysis.groupCount,
