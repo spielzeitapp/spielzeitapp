@@ -20,7 +20,7 @@ type Props = {
 };
 
 const inputClass =
-  'min-w-0 flex-1 rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-[15px] text-white placeholder:text-white/40 focus:border-purple-500/45 focus:outline-none';
+  'min-w-0 flex-1 rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-[16px] text-white placeholder:text-white/40 focus:border-purple-500/45 focus:outline-none';
 
 export const TournamentTeamAliasesCard: React.FC<Props> = ({
   teamSeasonId,
@@ -89,34 +89,34 @@ export const TournamentTeamAliasesCard: React.FC<Props> = ({
             <Tags className="h-4 w-4 text-purple-300/90" strokeWidth={2} aria-hidden />
             Turnier-Aliase
           </CardTitle>
-          <p className="text-[13px] text-white/60">
+          <p className="text-[16px] text-white/60">
             Alternative Namen aus Turnierplänen (z. B. NSG Rohrbach, St. Veit), damit Importe unsere
             Mannschaft erkennen.
           </p>
         </>
       ) : (
-        <p className="text-[10px] leading-snug text-white/45">
+        <p className="text-[14px] leading-snug text-white/45">
           Alternative Teamnamen für den Import
         </p>
       )}
 
       {error ? (
-        <p className="text-[12px] text-red-300/90" role="alert">
+        <p className="text-[14px] text-red-300/90" role="alert">
           {error}
         </p>
       ) : null}
 
       {loading ? (
-        <p className="text-[12px] text-white/55">Lade…</p>
+        <p className="text-[14px] text-white/55">Lade…</p>
       ) : aliases.length === 0 ? (
-        <p className="text-[12px] text-white/50">Noch keine Aliase</p>
+        <p className="text-[14px] text-white/50">Noch keine Aliase</p>
       ) : (
         <div className="flex flex-wrap gap-1">
           {aliases.map((row) => (
             <span
               key={row.id}
               className={`inline-flex max-w-full items-center gap-0.5 rounded-full border border-purple-500/25 bg-purple-950/35 font-medium text-white/88 ${
-                embedded ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-[13px]'
+                embedded ? 'px-2 py-0.5 text-[14px]' : 'px-2.5 py-1 text-[16px]'
               }`}
             >
               <span className="truncate">{row.alias}</span>
@@ -135,7 +135,7 @@ export const TournamentTeamAliasesCard: React.FC<Props> = ({
 
       <div className={`flex gap-1.5 ${embedded ? 'flex-col sm:flex-row' : 'flex-col gap-2 sm:flex-row'}`}>
         <input
-          className={`${inputClass} ${embedded ? 'py-2 text-[13px]' : ''}`}
+          className={`${inputClass} ${embedded ? 'py-2 text-[16px]' : ''}`}
           value={draftAlias}
           onChange={(e) => setDraftAlias(e.target.value)}
           placeholder="z. B. NSG Rohrbach"
@@ -148,7 +148,7 @@ export const TournamentTeamAliasesCard: React.FC<Props> = ({
         <button
           type="button"
           className={`inline-flex shrink-0 items-center justify-center gap-1 touch-manipulation ${dsScheduleGlassButtonClass()} ${
-            embedded ? 'min-h-[34px] px-3 text-[11px] font-semibold' : 'min-h-[44px] gap-1.5 px-4'
+            embedded ? 'min-h-[34px] px-3 text-[14px] font-semibold' : 'min-h-[44px] gap-1.5 px-4'
           }`}
           disabled={saving || !draftAlias.trim()}
           onClick={() => void handleAdd()}

@@ -4,7 +4,7 @@ import { useInternalBasePath } from '../../demo/demoPaths';
 import { publicTeamTournamentPath } from '../../lib/publicTeamTournament';
 import { TournamentConnectedPlan, TournamentOpponentOutlook, officialTournamentStandings, type ConnectedTournament } from './TournamentConnectedPlan';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FileInput, Plus, Trash2 } from 'lucide-react';
+import { FileInput, Plus, Trash2, Users, ClipboardList, Megaphone, ChevronDown } from 'lucide-react';
 import { AppButton } from '../ui/AppButton';
 import { Modal } from '../../app/ui/Modal';
 import { dsScheduleGlassButtonClass, DS_LIST_GAP } from '../../lib/premiumDesignSystem';
@@ -80,7 +80,6 @@ import { TournamentAssistantCard } from './TournamentAssistantCard';
 import { TournamentInfoCard } from './TournamentInfoCard';
 import { TournamentLastResultsCard } from './TournamentLastResultsCard';
 import { TournamentCollapsibleSection } from './TournamentCollapsibleSection';
-import { TournamentPreparationPanel } from './TournamentPreparationPanel';
 import { TournamentSquadPanel } from './TournamentSquadPanel';
 import { TournamentMatchSlotCard } from './TournamentMatchSlotCard';
 import { TournamentOverviewBalanceCard } from './TournamentOverviewBalanceCard';
@@ -130,11 +129,11 @@ type Props = {
 };
 
 const inputClass =
-  'w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-[15px] text-white placeholder:text-white/40 focus:border-purple-500/45 focus:outline-none';
+  'w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-[16px] text-white placeholder:text-white/40 focus:border-purple-500/45 focus:outline-none';
 
 const textareaClass = `${inputClass} min-h-[180px] resize-y leading-snug`;
 
-const addButtonClass = `relative z-[2] inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-semibold touch-manipulation sm:w-auto sm:shrink-0 ${dsScheduleGlassButtonClass()}`;
+const addButtonClass = `relative z-[2] inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[16px] font-semibold touch-manipulation sm:w-auto sm:shrink-0 ${dsScheduleGlassButtonClass()}`;
 
 export const TournamentDetailSections: React.FC<Props> = ({
   tournamentEventId,
@@ -163,7 +162,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const basePath = useInternalBasePath();
   const navigate = useNavigate();
   const [connectedPlan, setConnectedPlan] = useState<ConnectedTournament | null>(null);
-  const [activeTab, setActiveTab] = useState<TournamentCenterTabId>('games');
+  const [assistantRefreshToken, setAssistantRefreshToken] = useState(0);
+  const [activeTab, setActiveTab] = useState<TournamentCenterTabId>(() => canManage ? 'admin' : 'games');
   const [participants, setParticipants] = useState<TournamentParticipant[]>([]);
   const [slots, setSlots] = useState<TournamentMatchSlotView[]>([]);
   const [loading, setLoading] = useState(true);
@@ -273,7 +273,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
     setActiveTab('admin');
     setAliasesReloadToken((t) => t + 1);
     requestAnimationFrame(() => {
-      document.getElementById('tournament-team-aliases')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const section = document.getElementById('tournament-team-aliases');
+      let parent = section?.parentElement;
+      while (parent) { if (parent instanceof HTMLDetailsElement) parent.open = true; parent = parent.parentElement; }
+      section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }, []);
 
@@ -737,6 +740,13 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const nextMatchId = heroSummary.nextMatch?.id ?? null;
 
   const handleImportPlanFromOverview = useCallback(() => {
+    setActiveTab('admin');
+    requestAnimationFrame(() => {
+      const section = document.getElementById('tournament-plan-section');
+      const details = section?.querySelector('details');
+      if (details) details.open = true;
+      section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
     const planUrl = safeText(officialTournamentUrl);
     setPlanWorkflowRequest({
       action: planUrl ? 'import' : 'qr',
@@ -747,7 +757,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const scrollToAttendance = useCallback(() => {
     setActiveTab('admin');
     requestAnimationFrame(() => {
-      document.getElementById('tournament-attendance-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const section = document.getElementById('tournament-attendance-section');
+      const details = section?.querySelector('details');
+      if (details) details.open = true;
+      section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }, []);
 
@@ -854,10 +867,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
     return ['info'];
   }, [tournamentPhase, completion.completedAt]);
 
-  const showAssistant =
-    canManage &&
-    !completion.completedAt &&
-    (tournamentPhase === 'before' || (tournamentPhase === 'day' && ownSlots.length === 0));
+  const showAssistant = canManage && !completion.completedAt;
   const showFeatured =
     !completion.completedAt &&
     (!canManage || tournamentPhase === 'day' || tournamentPhase === 'after');
@@ -923,29 +933,17 @@ export const TournamentDetailSections: React.FC<Props> = ({
     const planUrl = safeText(officialTournamentUrl);
     return (
       <div className={`flex flex-col ${TC_STACK_GAP}`}>
-        <TournamentPreparationPanel
-          tournamentEventId={tournamentEventId}
-          slots={ownSlots}
-          participantCount={participants.length}
-          hasOfficialPlanUrl={Boolean(planUrl)}
-          attendance={attendanceSummary}
-          loading={loading}
-          onImportPlan={handleImportPlanFromOverview}
-          onAddMatch={openMatchModal}
-          onAddParticipants={openTeamsForParticipants}
-          onScrollToAttendance={scrollToAttendance}
-          onScrollToSquad={scrollToSquad}
-        />
         {trainerAttendanceSection ? (
           <div id="tournament-attendance-section">
-            <TournamentCollapsibleSection title="Zu-/Absagen" icon="👥" defaultExpanded>
+            <TournamentCollapsibleSection title="1. Zu-/Absagen" icon={<Users />}>
               {trainerAttendanceSection}
             </TournamentCollapsibleSection>
           </div>
         ) : null}
-        <details id="tournament-squad-picker" className={TC_CARD}>
-          <summary className={`${TC_CARD_INNER} cursor-pointer text-[15px] font-semibold text-white/85`}>
-            Turnierkader auswählen
+        <div id="tournament-squad-section" className="scroll-mt-24"><details id="tournament-squad-picker" className={`${TC_CARD} group/squad`}>
+          <summary className={`${TC_CARD_INNER} flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 text-[17px] font-bold text-white [&::-webkit-details-marker]:hidden`}>
+            <span className="flex items-center gap-3"><Users className="h-5 w-5 shrink-0 sz-club-accent-text" aria-hidden />2. Turnierkader auswählen</span>
+            <ChevronDown className="h-5 w-5 shrink-0 text-white/55 transition-transform group-open/squad:rotate-180" aria-hidden />
           </summary>
           <p className="px-3 pb-2 text-[14px] text-white/55">Hier legst du fest, welche Spieler mitfahren. Die Rückmeldungen findest du oben unter Zu-/Absagen.</p>
           <TournamentSquadPanel
@@ -954,10 +952,11 @@ export const TournamentDetailSections: React.FC<Props> = ({
             slots={ownSlots}
             loading={loading}
             canManage={canManage}
+            onSaved={() => setAssistantRefreshToken(token => token + 1)}
           />
-        </details>
-        <TournamentTrainerAdminAccordion>
-          <TournamentTrainerAdminSection title="Offizieller Turnierplan">
+        </details></div>
+        <div id="tournament-plan-section" className="scroll-mt-24">
+          <TournamentCollapsibleSection title="3. Turnierplan" icon={<ClipboardList />}>
             <TournamentOfficialPlanCard
               tournamentEventId={tournamentEventId}
               teamSeasonId={teamSeasonId}
@@ -970,6 +969,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
               tournamentArchived={Boolean(completion.completedAt)}
               embedded
               workflowRequest={planWorkflowRequest}
+              onWorkflowHandled={() => setPlanWorkflowRequest(null)}
               onUrlUpdated={onOfficialTournamentUrlUpdated}
               onImportComplete={() => {
                 markOfficialTournamentSynced(tournamentEventId);
@@ -978,7 +978,9 @@ export const TournamentDetailSections: React.FC<Props> = ({
               onScrollToAliases={scrollToTeamAliases}
               onManualAddMatch={openMatchModal}
             />
-          </TournamentTrainerAdminSection>
+          </TournamentCollapsibleSection>
+        </div>
+        <TournamentTrainerAdminAccordion>
           <TournamentTrainerAdminSection title="Turnier-Aliase">
             <div id="tournament-team-aliases">
               <TournamentTeamAliasesCard
@@ -994,7 +996,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
           ) : null}
         </TournamentTrainerAdminAccordion>
         {trainerFeedSection ? (
-          <TournamentCollapsibleSection title="Feed & Kommunikation" icon="📢" defaultExpanded={false}>
+          <TournamentCollapsibleSection title="Feed & Kommunikation" icon={<Megaphone />} defaultExpanded={false}>
             {trainerFeedSection}
           </TournamentCollapsibleSection>
         ) : null}
@@ -1142,7 +1144,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   };
 
   return (
-    <div className={`flex min-w-0 flex-col overflow-x-hidden ${TC_STACK_GAP}`}>
+    <div className={`tournament-center-flow flex min-w-0 flex-col overflow-x-hidden ${TC_STACK_GAP}`}>
       {toastMessage ? (
         <div
           className="pointer-events-none fixed left-1/2 z-[1001] max-w-[min(92vw,24rem)] -translate-x-1/2 rounded-2xl border border-[rgba(255,71,71,0.28)] bg-[rgba(10,8,8,0.96)] px-4 py-2.5 text-center text-[14px] font-medium text-white shadow-[0_8px_32px_rgba(0,0,0,0.55)] backdrop-blur-sm bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:top-4 sm:bottom-auto"
@@ -1163,20 +1165,20 @@ export const TournamentDetailSections: React.FC<Props> = ({
       />
 
       {quickActions}
-      {additionalHints ? <section className={TC_CARD}><div className={TC_CARD_INNER}><h2 className="mb-2 text-[15px] font-bold text-white">Hinweise zum Turnier</h2><p className="whitespace-pre-line text-[15px] leading-relaxed text-white/75">{additionalHints}</p></div></section> : null}
-      {carpoolSection}
+      {additionalHints ? <section className={TC_CARD}><div className={TC_CARD_INNER}><h2 className="mb-2 text-[16px] font-bold text-white">Hinweise zum Turnier</h2><p className="whitespace-pre-line text-[16px] leading-relaxed text-white/75">{additionalHints}</p></div></section> : null}
 
       {canManage && (planSyncBusy || planSyncStatus) ? (
-        <p className="px-0.5 text-[10px] font-medium text-white/45" role="status" aria-live="polite">
+        <p className="px-0.5 text-[14px] font-medium text-white/45" role="status" aria-live="polite">
           {planSyncBusy ? planSyncStatus ?? 'Turnierplan wird aktualisiert …' : planSyncStatus}
         </p>
       ) : canManage && syncAgeLabel ? (
-        <p className="px-0.5 text-[10px] font-medium text-white/40">{syncAgeLabel}</p>
+        <p className="px-0.5 text-[14px] font-medium text-white/40">{syncAgeLabel}</p>
       ) : null}
 
       {showAssistant ? (
         <TournamentAssistantCard
           tournamentEventId={tournamentEventId}
+          refreshToken={assistantRefreshToken}
           slots={ownSlots}
           attendance={attendanceSummary}
           hasOfficialPlanUrl={Boolean(safeText(officialTournamentUrl))}
@@ -1201,22 +1203,23 @@ export const TournamentDetailSections: React.FC<Props> = ({
         />
       ) : null}
 
+      {carpoolSection}
       <TournamentConnectedPlan eventId={tournamentEventId} url={officialTournamentUrl} userId={userId} canManage={canManage} onUpdated={reload} onState={setConnectedPlan} />
-      {slots.some(s => s.is_own_team !== false && s.result_source !== 'official' && ['live','finished'].includes(s.match_status ?? '') && s.official_home_goals != null && s.official_away_goals != null && (s.score_home !== (s.away_team === s.opponent_name ? s.official_home_goals : s.official_away_goals) || s.score_away !== (s.away_team === s.opponent_name ? s.official_away_goals : s.official_home_goals))) ? <p role="status" className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-[15px] text-amber-200">Unser Liveticker und der Veranstalter melden unterschiedliche Spielstände. Die Tabelle zeigt den Veranstalterstand; unsere Tore und Torschützen bleiben erhalten.</p> : null}
+      {slots.some(s => s.is_own_team !== false && s.result_source !== 'official' && ['live','finished'].includes(s.match_status ?? '') && s.official_home_goals != null && s.official_away_goals != null && (s.score_home !== (s.away_team === s.opponent_name ? s.official_home_goals : s.official_away_goals) || s.score_away !== (s.away_team === s.opponent_name ? s.official_away_goals : s.official_home_goals))) ? <p role="status" className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-[16px] text-amber-200">Unser Liveticker und der Veranstalter melden unterschiedliche Spielstände. Die Tabelle zeigt den Veranstalterstand; unsere Tore und Torschützen bleiben erhalten.</p> : null}
       <TournamentOpponentOutlook state={connectedPlan} />
       {listError ? <p role="alert" className="text-sm text-red-300">{listError}</p> : null}
       {!canManage ? <section className={TC_CARD}><div className={`${TC_CARD_INNER} space-y-3`}>
         <h2 className="text-lg font-bold text-white">Alles zum Turnier</h2>
-        <p className="text-[15px] leading-relaxed text-white/70">Spielstände, alle Tabellen, Finalrunde und unsere Torschützen auf einer Seite. Die Übersicht aktualisiert sich automatisch.</p>
+        <p className="text-[16px] leading-relaxed text-white/70">Spielstände, alle Tabellen, Finalrunde und unsere Torschützen auf einer Seite. Die Übersicht aktualisiert sich automatisch.</p>
         <Link className={addButtonClass} to={publicTeamTournamentPath(tournamentEventId)} state={{returnTo: `${basePath}/events/${tournamentEventId}`}}>Turnierseite ansehen</Link>
         {ownSlots.filter(slot => slot.match_status === 'live' && slot.match_id).map(slot => <Link key={slot.id} className={addButtonClass} to={`${basePath}/live?matchId=${encodeURIComponent(slot.match_id!)}`}>Unser Spiel läuft · Zum Liveticker</Link>)}
       </div></section> : null}
       {canManage ? <TournamentCenterTabBar activeTab={activeTab} onTabChange={setActiveTab} canManage /> : null}
       {canManage && activeTab === 'games' ? <div className={`flex flex-col ${TC_STACK_GAP}`}>
         <h2 className="text-[16px] font-bold text-white">Unsere Turnierspiele vorbereiten</h2>
-        <p className="text-[15px] leading-relaxed text-white/65">Aufstellung und Liveticker für unser Team. Den gesamten Turnierverlauf findest du unter „Turnierseite ansehen“.</p>
+        <p className="text-[16px] leading-relaxed text-white/65">Aufstellung und Liveticker für unser Team. Den gesamten Turnierverlauf findest du unter „Turnierseite ansehen“.</p>
         <button type="button" className={addButtonClass} onClick={openMatchModal}><Plus className="h-4 w-4"/>Turnierspiel hinzufügen</button>
-        {loading ? <p className="text-[15px] text-white/65">Lade unsere Spiele…</p> : !ownSlots.length ? <section className={TC_CARD}><div className={TC_CARD_INNER}><p className="text-[15px] text-white/65">Noch keine eigenen Turnierspiele hinterlegt.</p></div></section> : ownSlots.map(slot => <TournamentMatchSlotCard key={slot.id} slot={slot} canManage isNextUpcoming={slot.id === nextMatchId}
+        {loading ? <p className="text-[16px] text-white/65">Lade unsere Spiele…</p> : !ownSlots.length ? <section className={TC_CARD}><div className={TC_CARD_INNER}><p className="text-[16px] text-white/65">Noch keine eigenen Turnierspiele hinterlegt.</p></div></section> : ownSlots.map(slot => <TournamentMatchSlotCard key={slot.id} slot={slot} canManage isNextUpcoming={slot.id === nextMatchId}
           onOpen={() => { if (!slot.match_id) return; if (slot.match_status === 'live') navigate(`${basePath}/live?matchId=${encodeURIComponent(slot.match_id)}`); else onOpenMatchPreparation(slot.match_id); }}
           onDelete={slot.match_id ? () => void handleRemoveSlot(slot.match_id!) : undefined}/>) }
       </div> : null}
@@ -1249,7 +1252,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
                       key={p.id}
                       className="inline-flex max-w-full items-center gap-1 rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1"
                     >
-                      <span className="max-w-[min(100%,12rem)] truncate text-[12px] font-medium text-white/88">
+                      <span className="max-w-[min(100%,12rem)] truncate text-[14px] font-medium text-white/88">
                         {p.team_name}
                       </span>
                       <button
@@ -1289,12 +1292,12 @@ export const TournamentDetailSections: React.FC<Props> = ({
       >
         <div className="flex flex-col gap-3">
           {participantModalError ? (
-            <p className="text-[13px] text-red-300/90" role="alert">
+            <p className="text-[16px] text-red-300/90" role="alert">
               {participantModalError}
             </p>
           ) : null}
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] text-white/65">Mannschaftsname *</span>
+            <span className="text-[16px] text-white/65">Mannschaftsname *</span>
             <input
               className={inputClass}
               value={participantName}
@@ -1304,7 +1307,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
             />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] text-white/65">Gruppe (optional)</span>
+            <span className="text-[16px] text-white/65">Gruppe (optional)</span>
             <input
               className={inputClass}
               value={participantGroup}
@@ -1337,12 +1340,12 @@ export const TournamentDetailSections: React.FC<Props> = ({
       >
         <div className="flex flex-col gap-3">
           {importModalError ? (
-            <p className="text-[13px] text-red-300/90" role="alert">
+            <p className="text-[16px] text-red-300/90" role="alert">
               {importModalError}
             </p>
           ) : null}
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] text-white/65">Gruppe (optional)</span>
+            <span className="text-[16px] text-white/65">Gruppe (optional)</span>
             <input
               className={inputClass}
               value={importGroup}
@@ -1352,7 +1355,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
             />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] text-white/65">Eine Mannschaft pro Zeile</span>
+            <span className="text-[16px] text-white/65">Eine Mannschaft pro Zeile</span>
             <textarea
               className={textareaClass}
               value={importText}
@@ -1363,14 +1366,14 @@ export const TournamentDetailSections: React.FC<Props> = ({
             />
           </label>
           {importPreviewCount > 0 ? (
-            <p className="text-[12px] text-purple-200/75">
+            <p className="text-[14px] text-purple-200/75">
               {importPreviewCount === 1
                 ? '1 Mannschaft wird importiert'
                 : `${importPreviewCount} Mannschaften werden importiert`}
               {importGroup.trim() ? ` · Gruppe ${importGroup.trim()}` : ''}
             </p>
           ) : importText.trim() ? (
-            <p className="text-[12px] text-white/50">Keine neuen Mannschaften (bereits vorhanden oder leer).</p>
+            <p className="text-[14px] text-white/50">Keine neuen Mannschaften (bereits vorhanden oder leer).</p>
           ) : null}
         </div>
       </Modal>
@@ -1392,12 +1395,12 @@ export const TournamentDetailSections: React.FC<Props> = ({
       >
         <div className="flex flex-col gap-3">
           {matchModalError ? (
-            <p className="text-[13px] text-red-300/90" role="alert">
+            <p className="text-[16px] text-red-300/90" role="alert">
               {matchModalError}
             </p>
           ) : null}
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] text-white/65">Gegner *</span>
+            <span className="text-[16px] text-white/65">Gegner *</span>
             <input
               className={inputClass}
               list="tournament-opponent-suggestions"
@@ -1413,7 +1416,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
             </datalist>
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] text-white/65">Anstoßzeit *</span>
+            <span className="text-[16px] text-white/65">Anstoßzeit *</span>
             <input
               type="time"
               className={inputClass}
@@ -1422,7 +1425,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
             />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] text-white/65">Spieldauer (Min., Standard {TOURNAMENT_DEFAULT_PLANNED_MINUTES})</span>
+            <span className="text-[16px] text-white/65">Spieldauer (Min., Standard {TOURNAMENT_DEFAULT_PLANNED_MINUTES})</span>
             <input
               type="number"
               min={1}
@@ -1433,7 +1436,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
             />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] text-white/65">Platz (optional)</span>
+            <span className="text-[16px] text-white/65">Platz (optional)</span>
             <input
               className={inputClass}
               value={matchPitch}
@@ -1443,7 +1446,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
             />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] text-white/65">Gruppe (optional)</span>
+            <span className="text-[16px] text-white/65">Gruppe (optional)</span>
             <input
               className={inputClass}
               value={matchGroup}

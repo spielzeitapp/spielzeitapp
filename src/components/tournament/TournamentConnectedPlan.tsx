@@ -162,14 +162,14 @@ export function TournamentConnectedPlan({
     <section className={TC_CARD}>
       <div className={`${TC_CARD_INNER} space-y-3`}>
         <p className={TC_SECTION_LABEL}>{url ? "Veranstalter verbunden" : "Spielerinnerung"}</p>
-        <p className="text-[15px] leading-relaxed text-white/70">
+        <p className="text-[16px] leading-relaxed text-white/70">
           {state?.synced_at
             ? `Stand ${new Date(state.synced_at).toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" })} · ${age === 0 ? "gerade aktualisiert" : `vor ${age} Min.`}`
             : url ? "Der Veranstalterplan wird geladen." : "Rechtzeitig zurück zum Spielfeld."}{" "}
           {url ? "Spielstände und Tabellen werden auf unserer Turnierseite aktualisiert." : "Erinnerung für unser nächstes Turnierspiel."}
         </p>
         {state?.last_error ? (
-          <p role="status" className="text-[15px] text-amber-300">
+          <p role="status" className="text-[16px] text-amber-300">
             {state?.last_error || "Der letzte Stand ist älter als 5 Minuten."}{" "}
             Der zuletzt geladene Stand bleibt sichtbar.
           </p>
@@ -179,13 +179,13 @@ export function TournamentConnectedPlan({
             <button
               disabled={busy}
               onClick={() => void refresh()}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/20 px-4 text-[15px] font-semibold"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/20 px-4 text-[16px] font-semibold"
             >
               <RefreshCw size={18} />
               Jetzt aktualisieren
             </button>
             {state?.analysis.teams?.length ? (
-              <label className="block space-y-1 text-[15px] text-white/80">
+              <label className="block space-y-1 text-[16px] text-white/80">
                 <span>Unsere Mannschaft im Veranstalterplan</span>
                 <select
                   aria-label="Unsere Mannschaft im Veranstalterplan"
@@ -210,12 +210,12 @@ export function TournamentConnectedPlan({
             disabled={busy}
             aria-pressed={enabled}
             onClick={() => void toggle()}
-            className={`flex min-h-12 w-full items-center justify-center gap-2 rounded-full border px-4 text-[15px] font-semibold ${enabled ? "sz-club-accent-chip" : "border-white/20"}`}
+            className={`flex min-h-12 w-full items-center justify-center gap-2 rounded-full border px-4 text-[16px] font-semibold ${enabled ? "sz-club-accent-chip" : "sz-club-event-action"}`}
           >
-            <Bell size={19} />
+            <Bell size={20} className="shrink-0 sz-club-accent-text" />
             {enabled
               ? "Erinnerung aktiv · 5 Min. vorher"
-              : "5 Minuten vor unserem Spiel erinnern"}
+              : "5 Min. vor unserem Spiel erinnern"}
           </button>
         ) : null}
         {enabled ? (
@@ -225,7 +225,7 @@ export function TournamentConnectedPlan({
           </p>
         ) : null}
         {error ? (
-          <p role="alert" className="text-[15px] text-red-300">
+          <p role="alert" className="text-[16px] text-red-300">
             {error}
           </p>
         ) : null}
@@ -289,7 +289,7 @@ export function TournamentOpponentOutlook({
                   (m.phase === "semifinal" ? "Halbfinale" : "Finalrunde")}{" "}
                 · {m.kickoffTimeHHmm}
               </p>
-              <p className="text-[15px] text-white/80">
+              <p className="text-[16px] text-white/80">
                 {confirmed
                   ? `Bestätigt: ${opponent}`
                   : `Aktuell möglich: ${projection ?? opponent}`}
