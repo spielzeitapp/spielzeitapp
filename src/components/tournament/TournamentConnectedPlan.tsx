@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Bell, RefreshCw } from "lucide-react";
+import { Bell, BellRing, RefreshCw } from "lucide-react";
+import { Modal } from "../../app/ui/Modal";
 import { supabase } from "../../lib/supabaseClient";
 import { usePushSubscription } from "../../hooks/usePushSubscription";
 import {
@@ -52,7 +53,9 @@ export function TournamentConnectedPlan({
   canManage,
   onUpdated,
   onState,
+  compact = false,
 }: {
+  compact?: boolean;
   eventId: string;
   url: string | null;
   userId: string | null;
@@ -60,6 +63,7 @@ export function TournamentConnectedPlan({
   onUpdated: () => Promise<void>;
   onState: (state: ConnectedTournament | null) => void;
 }) {
+  const [reminderOpen, setReminderOpen] = useState(false);
   const [state, setState] = useState<ConnectedTournament | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -158,7 +162,7 @@ export function TournamentConnectedPlan({
         Math.floor((Date.now() - Date.parse(state.synced_at)) / 60_000),
       )
     : null;
-  return (
+  const content = (
     <section className={TC_CARD}>
       <div className={`${TC_CARD_INNER} space-y-3`}>
         <p className={TC_SECTION_LABEL}>{url ? "Veranstalter verbunden" : "Spielerinnerung"}</p>
@@ -231,6 +235,24 @@ export function TournamentConnectedPlan({
         ) : null}
       </div>
     </section>
+  );
+  if (!compact) return content;
+  if (!userId) return null;
+  const reminderLabel = enabled
+    ? "Spielerinnerung aktiv · 5 Min. vorher"
+    : "Spielerinnerung einstellen";
+  return (
+    <>
+      <button type="button" onClick={() => setReminderOpen(true)}
+        className={`relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${enabled ? "sz-club-accent-chip" : "sz-club-event-action"}`}
+        aria-label={reminderLabel} aria-haspopup="dialog" title={reminderLabel}>
+        {enabled ? <BellRing className="h-5 w-5 sz-club-accent-text" aria-hidden /> : <Bell className="h-5 w-5 sz-club-accent-text" aria-hidden />}
+        {enabled ? <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-emerald-400" aria-hidden /> : null}
+      </button>
+      <Modal open={reminderOpen} onClose={() => setReminderOpen(false)} title="Spielerinnerung">
+        {content}
+      </Modal>
+    </>
   );
 }
 export function TournamentOpponentOutlook({
