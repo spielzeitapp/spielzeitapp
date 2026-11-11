@@ -86,7 +86,7 @@ import { MatchHeadToHead } from '../components/match/MatchHeadToHead';
 import { AudienceMatchdayDetailCard } from '../components/events/AudienceMatchdayDetailCard';
 import { TournamentDetailSections } from '../components/tournament/TournamentDetailSections';
 import { TournamentCenterHeader } from '../components/tournament/TournamentCenterHeader';
-import { TournamentQuickActionBar } from '../components/tournament/TournamentQuickActionBar';
+import { TournamentQuickActionBar, TournamentHeaderQuickActions } from '../components/tournament/TournamentQuickActionBar';
 import { TournamentCompactAttendancePanel } from '../components/tournament/TournamentCompactAttendancePanel';
 import { CenterHeader } from '../components/center/CenterHeader';
 import { CenterQuickActionBar } from '../components/center/CenterQuickActionBar';
@@ -4065,14 +4065,18 @@ export const EventDetailPage: React.FC = () => {
                 officialTournamentUrl={safeOptionalText(event.official_tournament_url)}
                 tournamentCoverUrl={safeOptionalText((event as { tournament_cover_url?: unknown }).tournament_cover_url)}
                 tournamentNotes={tournamentNotesText}
+                headerActions={
+                  <TournamentHeaderQuickActions
+                    onAddToCalendar={() => void handleAddSingleEventToCalendar()}
+                    onNavigate={handleStartNavigation}
+                    showNavigation={canStartNavigation}
+                  />
+                }
                 quickActions={
                   <TournamentQuickActionBar
                     location={safeOptionalText(event.location)}
                     shareTitle={tournamentTitle}
                     tournamentEventId={event.id}
-                    onAddToCalendar={() => void handleAddSingleEventToCalendar()}
-                    onNavigate={handleStartNavigation}
-                    showNavigation={canStartNavigation}
                   />
                 }
                 canManage={canTrainerManageEvent}
