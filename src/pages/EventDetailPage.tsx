@@ -4067,6 +4067,7 @@ export const EventDetailPage: React.FC = () => {
                 tournamentNotes={tournamentNotesText}
                 quickActions={
                   <TournamentQuickActionBar
+                    location={safeOptionalText(event.location)}
                     shareTitle={tournamentTitle}
                     tournamentEventId={event.id}
                     onAddToCalendar={() => void handleAddSingleEventToCalendar()}
