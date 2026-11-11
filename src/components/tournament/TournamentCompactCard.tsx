@@ -18,6 +18,7 @@ type Props = {
   participantCount?: number | null;
   hideCountdown?: boolean;
   badgeLabel?: string;
+  compact?: boolean;
 };
 
 export function TournamentCompactCard({
@@ -29,6 +30,7 @@ export function TournamentCompactCard({
   participantCount = null,
   hideCountdown = false,
   badgeLabel = 'Turnier',
+  compact = false,
 }: Props) {
   const heroUrl = resolveTournamentHeroBackgroundUrl(safeOptionalText(coverUrl));
   const dateLabel = formatTournamentDayDate(startsAt) || '—';
@@ -37,6 +39,26 @@ export function TournamentCompactCard({
   const meetupLabel = meetupRaw.replace(/\s*Uhr$/i, '').trim();
   const placeLine = formatFeedVenueShort(safeOptionalText(location));
 
+
+  if (compact) {
+    return (
+      <article className="relative overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--hero px-4 py-4">
+        <div className="sz-club-diagonal-lines pointer-events-none absolute inset-0" aria-hidden />
+        <div className="relative space-y-2">
+          <div className="flex items-start gap-3">
+            <Trophy className="mt-0.5 h-7 w-7 shrink-0 text-amber-300/95" strokeWidth={1.8} aria-hidden />
+            <h2 className="min-w-0 break-words text-[22px] font-extrabold leading-tight text-white">{title}</h2>
+          </div>
+          <p className="text-[16px] font-medium text-white/70">{dateLabel}</p>
+          <p className="flex flex-wrap gap-x-2 gap-y-1 text-[16px] font-semibold text-white/85">
+            <span>Treffpunkt {meetupLabel || 'offen'}</span>
+            <span aria-hidden>·</span>
+            <span>Beginn {timeLabel || 'offen'}</span>
+          </p>
+        </div>
+      </article>
+    );
+  }
 
   return (
     <CenterCompactHero

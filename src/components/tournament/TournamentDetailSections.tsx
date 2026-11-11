@@ -1170,6 +1170,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
       ) : null}
 
       <TournamentCompactCard
+        compact
         title={tournamentTitle}
         startsAt={tournamentDayIso}
         location={location}
@@ -1177,17 +1178,6 @@ export const TournamentDetailSections: React.FC<Props> = ({
         coverUrl={tournamentCoverUrl}
         participantCount={participants.length}
       />
-
-      {quickActions}
-      {additionalHints ? <section className={TC_CARD}><div className={TC_CARD_INNER}><h2 className="mb-2 text-[16px] font-bold text-white">Hinweise zum Turnier</h2><p className="whitespace-pre-line text-[16px] leading-relaxed text-white/75">{additionalHints}</p></div></section> : null}
-
-      {canManage && (planSyncBusy || planSyncStatus) ? (
-        <p className="px-0.5 text-[14px] font-medium text-white/45" role="status" aria-live="polite">
-          {planSyncBusy ? planSyncStatus ?? 'Turnierplan wird aktualisiert …' : planSyncStatus}
-        </p>
-      ) : canManage && syncAgeLabel ? (
-        <p className="px-0.5 text-[14px] font-medium text-white/40">{syncAgeLabel}</p>
-      ) : null}
 
       {showAssistant ? (
         <TournamentAssistantCard
@@ -1217,6 +1207,18 @@ export const TournamentDetailSections: React.FC<Props> = ({
           onLineupCopied={() => void reload()}
         />
       ) : null}
+
+      {quickActions}
+      {additionalHints ? <section className={TC_CARD}><div className={TC_CARD_INNER}><h2 className="mb-2 text-[16px] font-bold text-white">Hinweise zum Turnier</h2><p className="whitespace-pre-line text-[16px] leading-relaxed text-white/75">{additionalHints}</p></div></section> : null}
+
+      {canManage && (planSyncBusy || planSyncStatus) ? (
+        <p className="px-0.5 text-[14px] font-medium text-white/45" role="status" aria-live="polite">
+          {planSyncBusy ? planSyncStatus ?? 'Turnierplan wird aktualisiert …' : planSyncStatus}
+        </p>
+      ) : canManage && syncAgeLabel ? (
+        <p className="px-0.5 text-[14px] font-medium text-white/40">{syncAgeLabel}</p>
+      ) : null}
+
 
       {carpoolSection}
       <TournamentConnectedPlan eventId={tournamentEventId} url={officialTournamentUrl} userId={userId} canManage={canManage} onUpdated={reload} onState={setConnectedPlan} />
