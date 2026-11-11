@@ -232,7 +232,7 @@ export function parseMeinTurnierplanModel(json) {
     teams,
     rawMatches,
     groupStandings,
-    finalStandings: (json.finalRankTable ?? [])
+    finalStandings: ((json.finalMatches?.length ? json.finalMatches : json.groupMatches ?? []).every(scored) ? json.finalRankTable ?? [] : [])
       .map((r) => ({ rank: num(r.rank), teamName: name(r.participant) }))
       .filter((r) => r.teamName),
     rankingRuleCode: text(json.sortCrit),

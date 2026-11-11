@@ -64,8 +64,8 @@ export function TournamentConnectedPlan({
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const currentEvent = useRef(eventId);
-  currentEvent.current = eventId;
+  const currentEvent = useRef(`${eventId}|${url}`);
+  currentEvent.current = `${eventId}|${url}`;
   const push = usePushSubscription(userId ?? undefined);
   const load = useCallback(async () => {
     if (eventId === "ev-tournament") return;
@@ -74,7 +74,7 @@ export function TournamentConnectedPlan({
       .select("*")
       .eq("event_id", eventId)
       .maybeSingle();
-    if (!error && currentEvent.current === eventId) {
+    if (!error && currentEvent.current === `${eventId}|${url}`) {
       const current =
         data?.source_url === url ? (data as ConnectedTournament) : null;
       setState(current);
@@ -184,7 +184,7 @@ export function TournamentConnectedPlan({
               <RefreshCw size={18} />
               Jetzt aktualisieren
             </button>
-            {state?.analysis.teams.length ? (
+            {state?.analysis.teams?.length ? (
               <label className="block space-y-1 text-[15px] text-white/80">
                 <span>Unsere Mannschaft im Veranstalterplan</span>
                 <select
@@ -245,7 +245,7 @@ export function TournamentOpponentOutlook({
       .filter((r) => r.teamName === name)
       .map((r) => ({ group: g.groupLabel, rank: r.rank })),
   )[0];
-  const matches = state.analysis.rawMatches.filter(
+  const matches = (state.analysis.rawMatches ?? []).filter(
     (m) =>
       m.phase !== "group" &&
       !m.hasResult &&

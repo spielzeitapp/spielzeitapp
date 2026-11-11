@@ -42,7 +42,7 @@ begin
  if not found then raise exception 'Turnier nicht aktiv oder Quelllink geändert'; end if;
  select * into ts from public.team_seasons where id=e.team_season_id and status in ('active','draft') for share;
  if not found then raise exception 'Saison ist nicht bearbeitbar'; end if;
- if p_analysis->>'provider' not in ('meinturnierplan','tournament-live') or jsonb_typeof(p_analysis->'rawMatches') is distinct from 'array' or jsonb_array_length(p_analysis->'rawMatches') not between 1 and 500 or jsonb_typeof(p_analysis->'teams') is distinct from 'array' or jsonb_array_length(p_analysis->'teams')>100 then raise exception 'Ungültiger Turnierplan'; end if;
+ if coalesce(p_analysis->>'provider','') not in ('meinturnierplan','tournament-live') or jsonb_typeof(p_analysis->'rawMatches') is distinct from 'array' or jsonb_array_length(p_analysis->'rawMatches') not between 1 and 500 or jsonb_typeof(p_analysis->'teams') is distinct from 'array' or jsonb_array_length(p_analysis->'teams')>100 then raise exception 'Ungültiger Turnierplan'; end if;
  if p_analysis->>'fetchedAt' is not null then
   if (p_analysis->>'fetchedAt')::timestamptz>now()+interval '1 minute' then raise exception 'Ungültiger Abrufzeitpunkt'; end if;
   if exists(select 1 from public.tournament_sync_state st where st.event_id=p_event and st.source_url=p_url and (st.analysis->>'fetchedAt')::timestamptz>(p_analysis->>'fetchedAt')::timestamptz) then return; end if;
@@ -55,14 +55,14 @@ begin
  end if;
  if own_name is not null and not exists(select 1 from jsonb_array_elements(p_analysis->'teams') jt where jt->>'teamName'=own_name) then own_name:=null; end if;
  for t in select value from jsonb_array_elements(p_analysis->'teams') loop
-  if length(t->>'teamName') not between 1 and 150 then raise exception 'Ungültige Mannschaft'; end if;
+  if coalesce(length(t->>'teamName'),0) not between 1 and 150 then raise exception 'Ungültige Mannschaft'; end if;
   update public.tournament_participants set group_label=t->>'groupLabel' where tournament_event_id=p_event and team_name=t->>'teamName';
   if not found then insert into public.tournament_participants(tournament_event_id,team_name,group_label) values(p_event,t->>'teamName',t->>'groupLabel'); end if;
  end loop;
  for g in select value from jsonb_array_elements(p_analysis->'rawMatches') loop
   seq:=seq+1;
   if coalesce(g->>'externalMatchId','')='' then continue; end if;
-  if length(g->>'homeTeam') not between 1 and 150 or length(g->>'awayTeam') not between 1 and 150 or coalesce(g->>'kickoffTimeHHmm','')!~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' then raise exception 'Ungültiges Spiel'; end if;
+  if coalesce(length(g->>'homeTeam'),0) not between 1 and 150 or coalesce(length(g->>'awayTeam'),0) not between 1 and 150 or coalesce(g->>'kickoffTimeHHmm','')!~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' then raise exception 'Ungültiges Spiel'; end if;
   ext:=(p_analysis->>'provider')||':'||(g->>'externalMatchId');
   kick:=((e.starts_at at time zone 'Europe/Vienna')::date + (g->>'kickoffTimeHHmm')::time) at time zone 'Europe/Vienna';
   own_home:=own_name is not null and g->>'homeTeam'=own_name and coalesce((g->>'homeConfirmed')::boolean,true);
