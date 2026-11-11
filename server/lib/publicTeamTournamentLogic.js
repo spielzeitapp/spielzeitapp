@@ -146,7 +146,7 @@ export function formatViennaTimeLabel(iso) {
  */
 export function toPublicMatchDto(slot, ourTeamName) {
   const our = normalizeOefbImportedTeamName(ourTeamName) || 'Unser Team';
-  const opp = normalizeOefbImportedTeamName(slot.opponent_name ?? slot.opponentName) || 'Gegner';
+  const opp = String(slot.opponent_name ?? slot.opponentName ?? '').trim() || 'Gegner';
   const status = normalizeMatchStatus(slot.match_status ?? slot.status);
   const scoreOur =
     status === 'finished' || status === 'live'

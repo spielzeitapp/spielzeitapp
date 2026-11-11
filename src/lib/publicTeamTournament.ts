@@ -29,6 +29,11 @@ export type PublicTeamTournamentMatchDto = {
 };
 
 export type PublicTeamTournamentPageDto = {
+  accentColor?: string;
+  syncedAt?: string | null;
+  groupTables?: Array<{groupLabel:string;rows:Array<{teamName:string;rank:number;played:number;goalsFor:number;goalsAgainst:number;points:number}>}>;
+  finalRanking?: Array<{rank:number;teamName:string}>;
+  schedule?: Array<{id:string;homeTeam:string;awayTeam:string;time:string;phase:string;groupLabel:string|null;roundLabel:string|null;homeGoals:number|null;awayGoals:number|null}>;
   publicId: string;
   tournamentName: string;
   dateLabel: string;

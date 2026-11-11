@@ -225,143 +225,23 @@ export function PublicTeamTournamentPage(): React.ReactElement {
 
   const ourLogo = page?.teamLogoUrl || getOurTeamLogoUrl();
 
-  return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#fff5f5_42%,#ffffff_100%)] text-slate-900">
-      <div className="mx-auto flex w-full max-w-lg flex-col px-4 pb-16 pt-[max(1.25rem,env(safe-area-inset-top))] sm:max-w-xl sm:px-6">
-        <Link to={returnTo} className="mb-4 inline-flex min-h-11 items-center self-start rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800">← Zurück zum Turnier</Link>
-        <header className="mb-5 flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-red-600">SpielzeitApp</p>
-            <h1 className="mt-1 text-[22px] font-bold leading-tight tracking-tight text-slate-950 sm:text-[26px]">
-              Turnierseite
-            </h1>
-          </div>
-          {page ? (
-            <button
-              type="button"
-              onClick={() => void onShare()}
-              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-red-200 bg-white px-3.5 text-[13px] font-semibold text-red-700 shadow-sm touch-manipulation"
-            >
-              <Share2 className="h-4 w-4" aria-hidden />
-              Teilen
-            </button>
-          ) : null}
-        </header>
-
-        {shareHint ? (
-          <p className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-800" role="status">
-            {shareHint}
-          </p>
-        ) : null}
-
-        {error && page ? <p role="status" className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Aktualisierung gerade nicht möglich. Der letzte geladene Stand bleibt sichtbar.</p> : null}
-        {loading ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-            Turnierseite wird geladen…
-          </div>
-        ) : !page ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-            <p className="text-[16px] font-semibold text-slate-900">Seite nicht verfügbar</p>
-            <p className="mt-2 text-[14px] leading-relaxed text-slate-600">
-              {error || 'Dieser Link ist ungültig oder das Turnier wurde nicht freigegeben.'}
-            </p>
-            <button
-              type="button"
-              onClick={() => void load()}
-              className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 text-[13px] font-semibold text-slate-800"
-            >
-              <RefreshCw className="h-4 w-4" aria-hidden />
-              Erneut versuchen
-            </button>
-          </div>
-        ) : (
-          <>
-            <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-              <div className="flex items-start gap-3">
-                <TournamentClubLogo name={page.teamName} logoUrl={ourLogo} size="lg" tone="light" />
-                <div className="min-w-0 flex-1">
-                  <div className="mb-1 flex flex-wrap items-center gap-2">
-                    {page.ageGroupLabel ? (
-                      <span className="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600">
-                        {page.ageGroupLabel}
-                      </span>
-                    ) : null}
-                    <StatusPill
-                      status={page.tournamentStatus}
-                      label={page.tournamentStatusLabel}
-                    />
-                  </div>
-                  <p className="text-[15px] font-bold text-slate-950">{page.teamName}</p>
-                  <h2 className="mt-1 text-[20px] font-bold leading-snug text-slate-950">
-                    {page.tournamentName}
-                  </h2>
-                  <div className="mt-2 space-y-1 text-[13px] text-slate-600">
-                    {page.dateLabel ? <p>{page.dateLabel}</p> : null}
-                    {page.venue ? (
-                      <p className="inline-flex items-start gap-1.5">
-                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-500" aria-hidden />
-                        <span>{page.venue}</span>
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {page.allMatches.length === 0 ? (
-              <section className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white/80 p-6 text-center">
-                <p className="text-[15px] font-semibold text-slate-900">Noch kein Spielplan</p>
-                <p className="mt-1 text-[13px] text-slate-600">
-                  Für unser Team sind noch keine Turnierspiele hinterlegt.
-                </p>
-              </section>
-            ) : (
-              <>
-                {page.nextMatch ? (
-                  <section className="mt-5 space-y-3">
-                    <MatchCard match={page.nextMatch} featured ourLogoUrl={ourLogo} />
-                  </section>
-                ) : null}
-
-                {page.upcomingMatches.length > 0 ? (
-                  <section className="mt-6">
-                    <h3 className="mb-3 text-[12px] font-bold uppercase tracking-[0.12em] text-slate-500">
-                      Weitere Spiele
-                    </h3>
-                    <div className="space-y-3">
-                      {page.upcomingMatches.map((m) => (
-                        <MatchCard key={m.id} match={m} ourLogoUrl={ourLogo} />
-                      ))}
-                    </div>
-                  </section>
-                ) : null}
-
-                {page.results.length > 0 ? (
-                  <section className="mt-6">
-                    <h3 className="mb-3 text-[12px] font-bold uppercase tracking-[0.12em] text-slate-500">
-                      Ergebnisse
-                    </h3>
-                    <ul className="space-y-2">
-                      {page.results.map((m) => (
-                        <ResultRow key={m.id} match={m} ourLogoUrl={ourLogo} />
-                      ))}
-                    </ul>
-                  </section>
-                ) : null}
-              </>
-            )}
-
-            <p className="mt-8 text-center text-[11px] text-slate-400">
-              Nur Spiele von {page.teamName}
-            </p>
-            <p className="mt-3 text-center text-[12px]">
-              <Link to={returnTo} className="font-semibold text-red-600 hover:underline">
-                Zur App
-              </Link>
-            </p>
-          </>
-        )}
-      </div>
-    </div>
-  );
+  const card = 'rounded-2xl border border-white/10 bg-[linear-gradient(135deg,#151215,#09090d)] p-4';
+  const [tab, setTab] = useState('ours');
+  const heading = 'mb-3 text-[15px] font-extrabold uppercase tracking-[.14em] text-[var(--t-accent)]';
+  const fixtures = (page?.schedule ?? []).filter(m => tab !== 'final' || m.phase !== 'group');
+  return <div className="min-h-screen bg-[#070708] text-white" style={{'--t-accent':page?.accentColor ?? '#c82333'} as React.CSSProperties}>
+    <main className="mx-auto max-w-2xl space-y-4 px-4 pb-12 pt-[max(1.25rem,env(safe-area-inset-top))]">
+      <header className="flex flex-wrap items-center justify-between gap-3"><Link to={returnTo} className="rounded-full border border-white/15 bg-white/5 px-4 py-3 font-bold">← Zurück zum Turnier</Link><button onClick={()=>void onShare()} className="flex items-center gap-2 rounded-full border border-white/15 px-4 py-3 font-bold"><Share2 size={18}/>Teilen</button></header>
+      <p role="status" className="text-sm text-white/60">{shareHint}</p>
+      {loading ? <p>Turnier wird geladen…</p> : !page ? <section className={card}><p>{error || 'Turnier nicht verfügbar'}</p><button onClick={()=>void load()} className="mt-3 underline">Erneut laden</button></section> : <>
+        <section className={card}><p className={heading}>SpielzeitApp · Turnier</p><div className="flex items-start gap-4"><TournamentClubLogo name={page.teamName} logoUrl={page.teamLogoUrl} size="lg"/><div className="min-w-0"><p className="text-sm text-white/60">{page.teamName} · {page.ageGroupLabel}</p><h1 className="mt-2 text-2xl font-extrabold leading-tight">{page.tournamentName}</h1><p className="mt-3 text-base text-white/70">{page.dateLabel}</p><p className="mt-2 flex gap-2 text-base text-white/70"><MapPin size={18} className="shrink-0 text-[var(--t-accent)]"/>{page.venue}</p></div></div><p className="mt-3 text-sm text-white/50">{page.tournamentStatusLabel}{page.syncedAt ? ` · Aktualisiert ${new Date(page.syncedAt).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'})}` : ''}</p></section>
+        {error?<p role="status" className="text-amber-300">Aktualisierung nicht möglich – letzter geladener Stand.</p>:null}
+        <nav aria-label="Turnierbereiche" className="grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-white/[.03] p-2">{[['ours','Unsere Spiele'],['games','Alle Spiele'],['tables','Tabellen'],['final','Finalrunde']].map(([id,label])=><button key={id} aria-pressed={tab===id} onClick={()=>setTab(id)} className={`min-h-12 rounded-xl px-2 text-[15px] font-bold ${tab===id?'bg-[var(--t-accent)] text-white':'text-white/65'}`}>{label}</button>)}</nav>
+        {tab==='ours'?<><h2 className={heading}>Unsere Spiele</h2>{!page.allMatches.length?<p className={card}>Noch keine Spiele hinterlegt.</p>:page.allMatches.map(m=><article className={card} key={m.id}><div className="flex justify-between gap-3"><p className="text-base font-bold tabular-nums">{m.kickoffTimeLabel}</p><p className="text-sm text-white/60">{m.statusLabel}</p></div><div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3"><div className="min-w-0 space-y-2 text-base font-semibold"><p>{m.ourTeamName}</p><p className="text-white/65">{m.opponentName}</p></div><p className="text-3xl font-extrabold tabular-nums">{m.scoreOur!=null?`${m.scoreOur}:${m.scoreOpp}`:'–'}</p></div><p className="mt-3 text-sm text-white/50">{m.phase==='group'?`Gruppe ${m.groupLabel ?? ''}`:m.phase==='final'?'Finale':m.phase==='semifinal'?'Halbfinale':'Platzierungsrunde'}{m.pitch?` · ${m.pitch}`:''}</p></article>)}</>:null}
+        {tab==='tables'?<>{!(page.groupTables?.length)?<p className={card}>Noch keine Gruppentabellen vorhanden.</p>:page.groupTables.map(g=><section className={card} key={g.groupLabel}><h2 className={heading}>Gruppe {g.groupLabel}</h2><table className="w-full table-fixed text-[15px]"><thead className="text-xs text-white/50"><tr><th className="w-7 py-2 text-left">#</th><th className="text-left">Mannschaft</th><th className="w-8">Sp.</th><th className="w-12">Tore</th><th className="w-9">Pkt.</th></tr></thead><tbody>{g.rows.map(r=><tr key={r.teamName} className="border-t border-white/10"><td className="py-3 font-bold">{r.rank}</td><td className="py-3 pr-2 font-semibold break-words">{r.teamName}</td><td className="text-center tabular-nums">{r.played}</td><td className="text-center tabular-nums">{r.goalsFor}:{r.goalsAgainst}</td><td className="text-center font-extrabold tabular-nums">{r.points}</td></tr>)}</tbody></table></section>)}<p className="text-sm text-white/50">Offizielle Veranstaltertabellen</p></>:null}
+        {tab==='games'||tab==='final'?<><h2 className={heading}>{tab==='final'?'Final- und Platzierungsspiele':'Gesamter Spielplan'}</h2>{!fixtures.length?<p className={card}>Noch keine Spiele hinterlegt.</p>:fixtures.map((m,i)=><article className={card} key={m.id||i}><p className="mb-3 text-sm text-white/55">{m.time} · {m.roundLabel ?? (m.phase==='group'?`Gruppe ${m.groupLabel}`:m.phase==='semifinal'?'Halbfinale':'Platzierungsrunde')}</p><div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3"><div className="space-y-2 text-base font-semibold"><p>{m.homeTeam}</p><p className="text-white/65">{m.awayTeam}</p></div><p className="text-2xl font-extrabold">{m.homeGoals!=null?`${m.homeGoals}:${m.awayGoals}`:'–'}</p></div></article>)}{tab==='final'&&page.finalRanking?.length?<section className={card}><h2 className={heading}>Endplatzierung</h2><ol className="space-y-3">{page.finalRanking.map(r=><li key={r.rank} className="flex gap-3 text-base"><b className="w-7 shrink-0">{r.rank}.</b><span>{r.teamName}</span></li>)}</ol></section>:null}</>:null}
+        <Link to={returnTo} className="block rounded-full bg-[var(--t-accent)] px-5 py-4 text-center text-lg font-bold">Zum Turniercenter in der App</Link>
+      </>}
+    </main>
+  </div>;
 }

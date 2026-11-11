@@ -91,11 +91,14 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
     .maybeSingle();
 
   const teamRow = Array.isArray(ts?.teams) ? ts.teams[0] : ts?.teams;
-  const rawTeamName =
+  let rawTeamName =
     String(ts?.display_name ?? '').trim() ||
     String(teamRow?.name ?? '').trim() ||
     'Mannschaft';
-  const ageGroup = ts?.age_group ?? null;
+  const originalAge = String(event.notes ?? '').match(/^Turniermannschaft: (U\d{1,2})$/m)?.[1];
+  const originalSeason = String(event.notes ?? '').match(/^Turniersaison: (20\d{2}\/\d{2})$/m)?.[1];
+  const ageGroup = originalAge || ts?.age_group || null;
+  if (originalAge) rawTeamName = [teamRow?.name || rawTeamName, originalAge, originalSeason].filter(Boolean).join(' · ');
 
   let slotRes = await admin
     .from('tournament_matches')
@@ -172,6 +175,17 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
     eventStatus: event.status,
     slots: enriched,
   });
+
+  const { data: sync } = await admin.from('tournament_sync_state').select('analysis,synced_at').eq('event_id', publicId).maybeSingle();
+  const analysis = sync?.analysis ?? {};
+  dto.groupTables = (analysis.groupStandings ?? []).map(g => ({groupLabel:String(g.groupLabel),rows:(g.rows ?? []).map(r => ({teamName:String(r.teamName),rank:Number(r.rank),played:Number(r.played),goalsFor:Number(r.goalsFor),goalsAgainst:Number(r.goalsAgainst),points:Number(r.points)}))}));
+  dto.finalRanking = (analysis.finalStandings ?? []).map(r => ({rank:Number(r.rank),teamName:String(r.teamName)}));
+  dto.schedule = (analysis.rawMatches ?? []).map(m => ({id:String(m.externalMatchId ?? ''),homeTeam:String(m.homeTeam),awayTeam:String(m.awayTeam),time:String(m.kickoffTimeHHmm),phase:String(m.phase),groupLabel:m.groupLabel == null ? null : String(m.groupLabel),roundLabel:m.roundLabel == null ? null : String(m.roundLabel),homeGoals:m.hasResult ? Number(m.homeGoals) : null,awayGoals:m.hasResult ? Number(m.awayGoals) : null}));
+  dto.syncedAt = sync?.synced_at ?? null;
+  const {data: teamClub} = await admin.from('teams').select('club_id').eq('id',teamRow?.id).maybeSingle();
+  const {data: club} = teamClub?.club_id ? await admin.from('clubs').select('logo_url,accent_color').eq('id',teamClub.club_id).maybeSingle() : {data:null};
+  dto.teamLogoUrl = club?.logo_url ?? null;
+  dto.accentColor = /^#[0-9a-f]{6}$/i.test(club?.accent_color ?? '') ? club.accent_color : '#c82333';
 
   try {
     assertPublicDtoSafe(dto);
