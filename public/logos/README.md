@@ -15,3 +15,5 @@ Logos werden unter `/logos/<dateiname>` ausgeliefert (relative Pfade, keine Doma
 - Fallback: `placeholder-shield-a.png`
 
 Mapping siehe `src/lib/teamLogos.ts`.
+
+SV Weinburg: `sv-weinburg.png` — gelb-schwarzes Vereinswappen, passend zur Nutzerreferenz. Quelle: https://static.ligaportal.at/images/club/club-3715-large.png (11.11.2026). Die bisherigen Weinburg-Dateien zeigten irrtümlich das UHG-Hofstetten-Wappen; der Resolver verwendet nun das korrekte separate Asset.

@@ -189,6 +189,27 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
   const {data: teamClub} = await admin.from('teams').select('club_id').eq('id',teamRow?.id).maybeSingle();
   const {data: club} = teamClub?.club_id ? await admin.from('clubs').select('logo_url,accent_color').eq('id',teamClub.club_id).maybeSingle() : {data:null};
   dto.teamLogoUrl = club?.logo_url ?? null;
+  const {data: catalog} = teamClub?.club_id ? await admin.from('opponent_catalog').select('display_name,logo_url').eq('club_id',teamClub.club_id).not('logo_url','is',null) : {data:[]};
+  dto.teamLogos = Object.fromEntries((catalog ?? []).filter(r=>typeof r.logo_url==='string').map(r=>[r.display_name,r.logo_url]));
+  dto.fanRoster = []; dto.scorers = [];
+  if (matchIds.length) {
+    const {data: goals} = await admin.from('match_events').select('match_id,player_id').in('match_id',matchIds).eq('type','goal');
+    const playerIds = [...new Set((goals ?? []).map(g=>g.player_id).filter(Boolean))];
+    const {data: players} = playerIds.length ? await admin.from('players').select('id,first_name,last_name').in('id',playerIds) : {data:[]};
+    const names = new Map((players ?? []).map(p=>[p.id,[p.first_name,p.last_name].filter(Boolean).join(' ')]));
+    const totals = new Map();
+    for (const g of goals ?? []) { const slot=slots.find(s=>s.match_id===g.match_id); const name=names.get(g.player_id);if(!slot||!name)continue;
+      const time=new Intl.DateTimeFormat('de-AT',{timeZone:'Europe/Vienna',hour:'2-digit',minute:'2-digit'}).format(new Date(slot.kickoff_at));
+      const key=g.player_id+':'+time;const row=totals.get(key)??{name,goals:0,time,example:false};row.goals++;totals.set(key,row);
+    }
+    dto.scorers=[...totals.values()];
+  }
+  if (/^TEST/.test(String(event.notes ?? ''))) {
+    try { const sample=JSON.parse(String(event.notes ?? '').match(/^Fan-Testdaten: (.+)$/m)?.[1] ?? '{}');
+      dto.fanRoster=(sample.roster ?? []).map(name=>String(name));
+      if (!dto.scorers.length) dto.scorers=(sample.scorers ?? []).map(s=>({name:String(s.name),goals:Number(s.goals),time:String(s.time),example:true}));
+    } catch { /* no example data */ }
+  }
   dto.accentColor = /^#[0-9a-f]{6}$/i.test(club?.accent_color ?? '') ? club.accent_color : '#c82333';
 
   try {

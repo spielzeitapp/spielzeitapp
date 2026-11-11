@@ -119,10 +119,13 @@ const LOGO_MAP: Record<string, string> = {
   'spg alpenvorland': 'usg-alpenvorland',
   'alpenvorland usg': 'usg-alpenvorland',
   alpenvorland: 'usg-alpenvorland',
+  'sv weinburg': 'sv-weinburg',
+  'uhg hofstetten': 'uhg-hofstetten',
+  hofstetten: 'uhg-hofstetten',
   // SPG Weinburg
-  'spg weinburg a': 'spg-weinburg-a',
-  'spg weinburg': 'spg-weinburg',
-  weinburg: 'spg-weinburg',
+  'spg weinburg a': 'sv-weinburg',
+  'spg weinburg': 'sv-weinburg',
+  weinburg: 'sv-weinburg',
   // SPG Bischofstetten
   'spg bischofstetten': 'bischofstetten',
   bischofstetten: 'bischofstetten',

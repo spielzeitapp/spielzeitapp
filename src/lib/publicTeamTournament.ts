@@ -29,6 +29,9 @@ export type PublicTeamTournamentMatchDto = {
 };
 
 export type PublicTeamTournamentPageDto = {
+  teamLogos?: Record<string,string>;
+  fanRoster?: string[];
+  scorers?: Array<{name:string;goals:number;time:string;example?:boolean}>;
   ownParticipantName?: string | null;
   seasonLabel?: string | null;
   accentColor?: string;
