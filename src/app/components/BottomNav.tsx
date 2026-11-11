@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { useSession } from '../../auth/useSession';
 import { normalizeRole } from '../../lib/roles';
@@ -137,7 +137,6 @@ function NavItem({
 export const BottomNav: React.FC = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { effectiveRole } = useSession();
   const demo = useDemoMode();
@@ -175,8 +174,7 @@ export const BottomNav: React.FC = () => {
       return;
     }
     window.dispatchEvent(new CustomEvent(LIVE_NAV_RESET_EVENT));
-    const fromUrl = searchParams.get('matchId')?.trim() || '';
-    const matchId = liveMatchId || fromUrl;
+    const matchId = liveMatchId;
     navigate(matchId ? `/app/live?matchId=${encodeURIComponent(matchId)}` : '/app/live');
   };
 

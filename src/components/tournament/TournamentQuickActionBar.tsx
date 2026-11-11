@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { CenterQuickActionBar } from '../center/CenterQuickActionBar';
 import {
+  publicTeamTournamentPath,
   sharePublicTeamTournamentPage,
 } from '../../lib/publicTeamTournament';
 import { shareTournamentCenter } from './tournamentCenterUtils';
@@ -20,6 +22,7 @@ export function TournamentQuickActionBar({
   onNavigate,
   showNavigation = false,
 }: Props) {
+  const location = useLocation();
   const [hint, setHint] = useState<string | null>(null);
 
   const handleSharePublic = async () => {
@@ -39,10 +42,11 @@ export function TournamentQuickActionBar({
         onShare={() => shareTournamentCenter(shareTitle)}
       />
       <div className="flex flex-wrap gap-2">
+        <Link to={publicTeamTournamentPath(tournamentEventId)} state={{ returnTo: location.pathname + location.search }} className="inline-flex min-h-11 items-center rounded-full border sz-club-accent-chip px-4 py-2 text-[14px] font-semibold touch-manipulation">Turnierseite ansehen</Link>
         <button
           type="button"
           onClick={() => void handleSharePublic()}
-          className="inline-flex min-h-[34px] items-center rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold text-white/85 touch-manipulation"
+          className="inline-flex min-h-11 items-center rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-[14px] font-semibold text-white/85 touch-manipulation"
         >
           Turnierseite teilen
         </button>

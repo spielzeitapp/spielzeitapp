@@ -166,7 +166,7 @@ export function TournamentConnectedPlan({
           {state?.synced_at
             ? `Stand ${new Date(state.synced_at).toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" })} · ${age === 0 ? "gerade aktualisiert" : `vor ${age} Min.`}`
             : url ? "Der Veranstalterplan wird geladen." : "Rechtzeitig zurück zum Spielfeld."}{" "}
-          {url ? "Spiele und Tabellen bleiben in unserer App." : "Erinnerung für unser nächstes Turnierspiel."}
+          {url ? "Spielstände und Tabellen werden auf unserer Turnierseite aktualisiert." : "Erinnerung für unser nächstes Turnierspiel."}
         </p>
         {state?.last_error ? (
           <p role="status" className="text-[15px] text-amber-300">

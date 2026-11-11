@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useInternalBasePath } from '../../demo/demoPaths';
-import { PublicTeamTournamentPage } from '../../pages/public/PublicTeamTournamentPage';
+import { publicTeamTournamentPath } from '../../lib/publicTeamTournament';
 import { TournamentConnectedPlan, TournamentOpponentOutlook, officialTournamentStandings, type ConnectedTournament } from './TournamentConnectedPlan';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FileInput, Plus, Trash2 } from 'lucide-react';
@@ -159,6 +159,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   onTournamentCompleted,
 }) => {
   const basePath = useInternalBasePath();
+  const navigate = useNavigate();
   const [connectedPlan, setConnectedPlan] = useState<ConnectedTournament | null>(null);
   const [activeTab, setActiveTab] = useState<TournamentCenterTabId>('games');
   const [participants, setParticipants] = useState<TournamentParticipant[]>([]);
@@ -1201,18 +1202,24 @@ export const TournamentDetailSections: React.FC<Props> = ({
       {slots.some(s => s.is_own_team !== false && s.result_source !== 'official' && ['live','finished'].includes(s.match_status ?? '') && s.official_home_goals != null && s.official_away_goals != null && (s.score_home !== (s.away_team === s.opponent_name ? s.official_home_goals : s.official_away_goals) || s.score_away !== (s.away_team === s.opponent_name ? s.official_away_goals : s.official_home_goals))) ? <p role="status" className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-[15px] text-amber-200">Unser Liveticker und der Veranstalter melden unterschiedliche Spielstände. Die Tabelle zeigt den Veranstalterstand; unsere Tore und Torschützen bleiben erhalten.</p> : null}
       <TournamentOpponentOutlook state={connectedPlan} />
       {listError ? <p role="alert" className="text-sm text-red-300">{listError}</p> : null}
-      {canManage && (activeTab === 'admin' || activeTab === 'teams') ? <div className="flex flex-wrap gap-2"><button className={addButtonClass} onClick={()=>setActiveTab('games')}>← Turnierübersicht</button><button className={addButtonClass} onClick={()=>setActiveTab('teams')}>Mannschaften verwalten</button><button className={addButtonClass} onClick={()=>setActiveTab('admin')}>Trainer & Verwaltung</button></div> : null}
-      {activeTab !== 'admin' && activeTab !== 'teams' ? <>
-        <PublicTeamTournamentPage eventId={tournamentEventId} embedded onManage={canManage ? ()=>setActiveTab('admin') : undefined}
-          renderMatchActions={match=>{
-            const own = ownSlots.find(slot=>slot.match_id===match.id);
-            if (!own?.match_id) return null;
-            return <div className="flex flex-wrap gap-2">{match.status === 'live' ? <Link className={addButtonClass} to={`${basePath}/live?matchId=${encodeURIComponent(own.match_id!)}`}>Liveticker ansehen</Link> : null}<button className={addButtonClass} onClick={()=>onOpenMatchPreparation(own.match_id!)}>{canManage ? 'Aufstellung & Liveticker öffnen' : 'Aufstellung ansehen'}</button>{canManage ? <button className={addButtonClass} onClick={()=>void handleRemoveSlot(own.match_id!)}>Spiel entfernen</button> : null}</div>;
-          }} />
-        {canManage ? <button type="button" className={addButtonClass} onClick={openMatchModal}><Plus className="h-4 w-4"/>Turnierspiel hinzufügen</button> : null}
-      </> : null}
+      {!canManage ? <section className={TC_CARD}><div className={`${TC_CARD_INNER} space-y-3`}>
+        <h2 className="text-lg font-bold text-white">Alles zum Turnier</h2>
+        <p className="text-[15px] leading-relaxed text-white/70">Spielstände, alle Tabellen, Finalrunde und unsere Torschützen auf einer Seite. Die Übersicht aktualisiert sich automatisch.</p>
+        <Link className={addButtonClass} to={publicTeamTournamentPath(tournamentEventId)} state={{returnTo: `${basePath}/events/${tournamentEventId}`}}>Turnierseite ansehen</Link>
+        {ownSlots.filter(slot => slot.match_status === 'live' && slot.match_id).map(slot => <Link key={slot.id} className={addButtonClass} to={`${basePath}/live?matchId=${encodeURIComponent(slot.match_id!)}`}>Unser Spiel läuft · Zum Liveticker</Link>)}
+      </div></section> : null}
+      {canManage ? <TournamentCenterTabBar activeTab={activeTab} onTabChange={setActiveTab} canManage /> : null}
+      {canManage && activeTab === 'games' ? <div className={`flex flex-col ${TC_STACK_GAP}`}>
+        <h2 className="text-[16px] font-bold text-white">Unsere Turnierspiele vorbereiten</h2>
+        <p className="text-[15px] leading-relaxed text-white/65">Aufstellung und Liveticker für unser Team. Den gesamten Turnierverlauf findest du unter „Turnierseite ansehen“.</p>
+        <button type="button" className={addButtonClass} onClick={openMatchModal}><Plus className="h-4 w-4"/>Turnierspiel hinzufügen</button>
+        {loading ? <p className="text-[15px] text-white/65">Lade unsere Spiele…</p> : !ownSlots.length ? <section className={TC_CARD}><div className={TC_CARD_INNER}><p className="text-[15px] text-white/65">Noch keine eigenen Turnierspiele hinterlegt.</p></div></section> : ownSlots.map(slot => <TournamentMatchSlotCard key={slot.id} slot={slot} canManage isNextUpcoming={slot.id === nextMatchId}
+          onOpen={() => { if (!slot.match_id) return; if (slot.match_status === 'live') navigate(`${basePath}/live?matchId=${encodeURIComponent(slot.match_id)}`); else onOpenMatchPreparation(slot.match_id); }}
+          onDelete={slot.match_id ? () => void handleRemoveSlot(slot.match_id!) : undefined}/>) }
+      </div> : null}
+      {canManage && activeTab === 'table' ? <TournamentTableTab bundle={standingsBundle} loading={standingsLoading} /> : null}
 
-      {activeTab === 'teams' ? (
+      {canManage && activeTab === 'teams' ? (
         <div className={`flex flex-col ${TC_STACK_GAP}`}>
           {canManage ? (
             <div className="grid grid-cols-2 gap-2">
