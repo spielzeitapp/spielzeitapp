@@ -122,10 +122,10 @@ export function TournamentCompactAttendancePanel({
   const noPlayers = sorted.filter((p) => statusBucket(getAttendanceStatus, p.id) === 'no');
 
   const renderGroup = (title: 'OFFEN' | 'ZUGESAGT' | 'ABGESAGT', group: PlayerItem[]) => {
-    if (group.length === 0) return null;
     return (
       <div className="flex flex-col gap-1.5">
-        <p className={`${dsSectionLabelClass()} !text-[9px]`}>{title}</p>
+        <p className={`${dsSectionLabelClass()} !text-[11px]`}>{title} ({group.length})</p>
+        {group.length === 0 ? <p className="text-[12px] text-white/45">Keine Spieler</p> : null}
         <ul className={`flex flex-col ${DS_LIST_GAP}`}>
           {group.map((player) => {
             const bucket = statusBucket(getAttendanceStatus, player.id);
@@ -164,9 +164,9 @@ export function TournamentCompactAttendancePanel({
   return (
     <>
       {summary}
-      <div className="mt-2 flex max-h-[min(70vh,32rem)] flex-col gap-2.5 overflow-y-auto pr-0.5 [scrollbar-width:thin]">
-        {renderGroup('OFFEN', openPlayers)}
+      <div className="mt-3 flex flex-col gap-4">
         {renderGroup('ZUGESAGT', yesPlayers)}
+        {renderGroup('OFFEN', openPlayers)}
         {renderGroup('ABGESAGT', noPlayers)}
       </div>
     </>
