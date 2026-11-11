@@ -151,7 +151,7 @@ export function TournamentConnectedPlan({
       setBusy(false);
     }
   };
-  if (!url || eventId === "ev-tournament") return null;
+  if (eventId === "ev-tournament") return null;
   const age = state?.synced_at
     ? Math.max(
         0,
@@ -161,20 +161,20 @@ export function TournamentConnectedPlan({
   return (
     <section className={TC_CARD}>
       <div className={`${TC_CARD_INNER} space-y-3`}>
-        <p className={TC_SECTION_LABEL}>Veranstalter verbunden</p>
+        <p className={TC_SECTION_LABEL}>{url ? "Veranstalter verbunden" : "Spielerinnerung"}</p>
         <p className="text-[15px] leading-relaxed text-white/70">
           {state?.synced_at
             ? `Stand ${new Date(state.synced_at).toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" })} · ${age === 0 ? "gerade aktualisiert" : `vor ${age} Min.`}`
-            : "Der Veranstalterplan wird zentral geladen."}{" "}
-          Spiele und Tabellen bleiben in unserer App.
+            : url ? "Der Veranstalterplan wird geladen." : "Rechtzeitig zurück zum Spielfeld."}{" "}
+          {url ? "Spiele und Tabellen bleiben in unserer App." : "Erinnerung für unser nächstes Turnierspiel."}
         </p>
-        {state?.last_error || (age != null && age > 5) ? (
+        {state?.last_error ? (
           <p role="status" className="text-[15px] text-amber-300">
             {state?.last_error || "Der letzte Stand ist älter als 5 Minuten."}{" "}
             Der zuletzt geladene Stand bleibt sichtbar.
           </p>
         ) : null}
-        {canManage ? (
+        {canManage && url ? (
           <>
             <button
               disabled={busy}

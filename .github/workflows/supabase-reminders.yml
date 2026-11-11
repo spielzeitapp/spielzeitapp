@@ -104,7 +104,9 @@ jobs:
           npx --yes supabase@2.106.0 functions deploy send-reminders \
             --project-ref "$PROJECT_REF"
 
+      # TEST tournament delivery has its own restricted scheduler; do not enable all TEST reminders.
       - name: Configure and verify Supabase cron
+        if: github.ref_name == 'main'
         shell: bash
         run: |
           set -euo pipefail
@@ -161,6 +163,7 @@ jobs:
           NODE
 
       - name: Process due reminders now
+        if: github.ref_name == 'main'
         shell: bash
         run: |
           set -euo pipefail

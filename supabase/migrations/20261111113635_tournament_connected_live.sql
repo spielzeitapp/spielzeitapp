@@ -160,7 +160,7 @@ begin
  end loop;
  perform tournament_sync.queue_reminders();
  if exists(select 1 from public.notification_jobs where status='pending' and payload->>'automation'='tournament_next_match' and send_at<=now()) then
-  perform net.http_post(url:=reminder_url,body:='{}'::jsonb,timeout_milliseconds:=20000);
+  perform net.http_post(url:=reminder_url,headers:=jsonb_build_object('Content-Type','application/json','Authorization','Bearer '||(select decrypted_secret from vault.decrypted_secrets where name='send_reminders_anon_jwt' limit 1)),body:='{}'::jsonb,timeout_milliseconds:=20000);
  end if;
 end $$;
 revoke all on function tournament_sync.tick() from public,anon,authenticated,service_role;
