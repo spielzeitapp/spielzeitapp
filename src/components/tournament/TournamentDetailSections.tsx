@@ -1171,13 +1171,18 @@ export const TournamentDetailSections: React.FC<Props> = ({
         meetingAt={meetingAt}
         coverUrl={tournamentCoverUrl}
         participantCount={participants.length}
-        actions={canManage && trainerActions ? (
-          <button type="button" onClick={() => setTermActionsOpen(true)}
-            className="sz-club-event-action inline-flex h-11 w-11 items-center justify-center rounded-full border touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-            aria-label="Turniertermin bearbeiten oder löschen" aria-haspopup="dialog" title="Turniertermin verwalten">
-            <Settings2 className="h-5 w-5 sz-club-accent-text" aria-hidden />
-          </button>
-        ) : null}
+        actions={
+          <div className="flex items-center gap-2">
+            <TournamentConnectedPlan compact eventId={tournamentEventId} url={officialTournamentUrl} userId={userId} canManage={canManage} onUpdated={reload} onState={setConnectedPlan} />
+            {canManage && trainerActions ? (
+              <button type="button" onClick={() => setTermActionsOpen(true)}
+                className="sz-club-event-action inline-flex h-11 w-11 items-center justify-center rounded-full border touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                aria-label="Turniertermin bearbeiten oder löschen" aria-haspopup="dialog" title="Turniertermin verwalten">
+                <Settings2 className="h-5 w-5 sz-club-accent-text" aria-hidden />
+              </button>
+            ) : null}
+          </div>
+        }
       />
       {canManage && trainerActions ? (
         <Modal open={termActionsOpen} onClose={() => setTermActionsOpen(false)} title="Turniertermin verwalten">
@@ -1230,7 +1235,6 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
 
       {carpoolSection}
-      <TournamentConnectedPlan eventId={tournamentEventId} url={officialTournamentUrl} userId={userId} canManage={canManage} onUpdated={reload} onState={setConnectedPlan} />
       {slots.some(s => s.is_own_team !== false && s.result_source !== 'official' && ['live','finished'].includes(s.match_status ?? '') && s.official_home_goals != null && s.official_away_goals != null && (s.score_home !== (s.away_team === s.opponent_name ? s.official_home_goals : s.official_away_goals) || s.score_away !== (s.away_team === s.opponent_name ? s.official_away_goals : s.official_home_goals))) ? <p role="status" className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-[16px] text-amber-200">Unser Liveticker und der Veranstalter melden unterschiedliche Spielstände. Die Tabelle zeigt den Veranstalterstand; unsere Tore und Torschützen bleiben erhalten.</p> : null}
       <TournamentOpponentOutlook state={connectedPlan} />
       {listError ? <p role="alert" className="text-sm text-red-300">{listError}</p> : null}
