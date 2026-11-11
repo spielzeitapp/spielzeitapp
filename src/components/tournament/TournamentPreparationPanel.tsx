@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, Circle, ClipboardCheck, Radio } from 'lucide-react';
 import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
-import { fetchLineupForLiveMatch } from '../../lib/liveMatchService';
+import { fetchMatchById, fetchLineupForLiveMatch } from '../../lib/liveMatchService';
 import {
   liveMatchPath,
   matchLineupPath,
@@ -204,9 +204,9 @@ export function TournamentPreparationPanel({
 
     setLineupLoading(true);
     void (async () => {
-      const { data, error } = await fetchLineupForLiveMatch(matchId);
+      const [{ data, error }, match] = await Promise.all([fetchLineupForLiveMatch(matchId), fetchMatchById(matchId)]);
       if (cancelled) return;
-      setLineupReady(!error && isStartelfCompleteFromStartingIds(data.startingPlayerIds));
+      setLineupReady(!error && isStartelfCompleteFromStartingIds(data.startingPlayerIds, match.data?.u11_formation_id));
       setLineupLoading(false);
     })();
 
@@ -262,7 +262,7 @@ export function TournamentPreparationPanel({
         </div>
 
         <p className="text-[11px] leading-snug text-white/55">
-          Wie bei einem Spiel — nur eine Ebene darüber: Plan, Kader, erstes Spiel, dann Live.
+          Verfügbarkeit → Kader → Teilnehmer & Plan → Vorrunde → Finalrunde → Abschluss. Alle Bereiche bleiben jederzeit bearbeitbar.
         </p>
 
         <ol className="flex list-none flex-col gap-1 p-0">

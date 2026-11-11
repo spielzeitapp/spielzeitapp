@@ -1,3 +1,5 @@
+import { TournamentBlockControl } from '../../components/tournament/TournamentBlockControl';
+import { planBlockChange, type BlockChange } from '../../lib/tournamentBlocks';
 import { DemoFormationPreview } from '../../demo/components/DemoFormationPreview';
 import { ClubLogo } from '../../components/branding/ClubLogo';
 import { useClubOpponentLogos, preferredClubLogo } from '../../hooks/useClubOpponentLogos';
@@ -65,6 +67,7 @@ import {
   syncFinalLineupBenchFromEventReplay,
   persistPositionSwap,
   saveMatchEvent,
+  saveMatchEvents,
   updateGoalScorer,
   updateSubstitutionPlayers,
   updatePositionSwap,
@@ -266,6 +269,8 @@ function slotForFieldPlayer(
 }
 
 const FORMATION_OPTION_LABELS: Record<U11FormationId, string> = {
+  '1-2-2': 'Halle · 4+1',
+  '1-2-1-2': 'Halle · 5+1',
   '1-2-2-2': 'Kompakt',
   '1-2-3-1': 'Ausgewogen',
   '1-3-2-1': 'Defensiver',
@@ -3396,6 +3401,38 @@ export const LiveMatchScreen: React.FC = () => {
     ],
   );
 
+  const blockSavingRef = useRef(false);
+  const applyTournamentBlock = async (changes: BlockChange[], targetSlots: Record<FieldSlotId, string | null>): Promise<boolean> => {
+    if (!canControlLiveMatch || matchIsFinished || !effectiveMatchId || blockSavingRef.current || subSaving || matchRow?.status !== 'live' || fairPlayExtraPlayerId) return false;
+    // Revalidate against current replay, never the originally planned start lineup.
+    const before = liveReplayState.slotsBySlot;
+    const check = planBlockChange(before, targetSlots, squadPlayerIds, false);
+    if (JSON.stringify(check.changes) !== JSON.stringify(changes)) { setSaveError('Aufstellung hat sich geändert. Blockwechsel erneut prüfen.'); return false; }
+    blockSavingRef.current = true;
+    setSubSaving(true); setSaveError(null);
+    let inserted: string[] = [];
+    try {
+      const partials: Omit<MatchEngineEvent, 'id'>[] = changes.map(c => ({type:'substitution',timestamp:currentMatchSeconds,playerId:c.outId,swapWithPlayerId:c.inId}));
+      const saved = await saveMatchEvents(partials.map(e => engineEventToInsertPayload(effectiveMatchId,e,half)));
+      inserted = saved.ids;
+      if (saved.error || inserted.length !== changes.length) throw new Error(saved.error ?? 'Blockwechsel unvollständig gespeichert.');
+      const nextEvents = partials.map((e,i)=>({...e,id:inserted[i]}));
+      const result = await persistLiveLineupAndBenchSafe({matchId:effectiveMatchId,reason:'substitution',slots:targetSlots,beforeFieldIds:liveReplayState.onFieldPlayerIds,beforeBenchIds:liveReplayState.benchPlayerIds,squadPlayerIds,savedBenchPlayerIds,kickoffStartingPlayerIds,events:[...events,...nextEvents]});
+      if (result.error || !result.payload) throw new Error(result.error ?? 'Aufstellung konnte nicht gespeichert werden.');
+      setStartingPlayerIds(result.payload.startingPlayerIds);
+      setSavedBenchPlayerIds(result.payload.benchPlayerIds);
+      setLineupData({startingPlayerIds:result.payload.startingPlayerIds,squadPlayerIds:result.payload.squadPlayerIds,savedBenchPlayerIds:result.payload.benchPlayerIds});
+      setEvents(prev=>[...nextEvents,...prev]);
+      showSubstitutionToast(`${changes.length} Wechsel bestätigt`);
+      return true;
+    } catch(e) {
+      const cleanup = await Promise.all(inserted.map(id=>deleteMatchEventById(id)));
+      setSaveError((e as Error).message + (cleanup.some(r=>r.error) ? ' Bitte Spielereignisse prüfen: Rücknahme nicht vollständig.' : ''));
+      void queueRealtimeReload();
+      return false;
+    } finally {blockSavingRef.current=false;setSubSaving(false);}
+  };
+
   const confirmSubstitution = useCallback(async () => {
     const outId = String(subOutPlayerId ?? '').trim();
     const inId = String(subInPlayerId ?? '').trim();
@@ -5254,6 +5291,10 @@ export const LiveMatchScreen: React.FC = () => {
               ) : null}
             </div>
           )}
+
+          {canControlLiveMatch && tournamentNavContext && matchRow?.status === 'live' && !fairPlayExtraPlayerId && effectiveMatchId && mainTab === 'hub' ? (
+            <TournamentBlockControl key={effectiveMatchId} matchId={effectiveMatchId} seconds={currentMatchSeconds} current={liveReplayState.slotsBySlot} squad={squadPlayerIds} name={id=>rosterById.get(id)?.name ?? 'Spieler'} busy={subSaving} onApply={applyTournamentBlock} basePath={basePath}/>
+          ) : null}
 
           {mainTab === 'hub' ? (
             <nav

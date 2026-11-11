@@ -79,10 +79,10 @@ export function computeTournamentPreparationChecks(
     hasLineup ||
     displayStatus?.kind === 'result';
 
-  return [
+  const checks: PreparationCheckItem[] = [
     {
       id: 'plan',
-      label: 'Turnierplan vorhanden',
+      label: 'Teilnehmer & Turnierplan',
       status: hasPlan ? 'done' : 'pending',
       hint: hasPlan
         ? hasOfficialPlanUrl
@@ -101,7 +101,7 @@ export function computeTournamentPreparationChecks(
     },
     {
       id: 'matches',
-      label: 'Eigene Spiele vorhanden',
+      label: 'Vorrundenspiele vorbereiten',
       status: hasMatches ? 'done' : 'pending',
       hint: hasMatches
         ? `${slots.length} Turnierspiel${slots.length === 1 ? '' : 'e'} geplant.`
@@ -140,6 +140,8 @@ export function computeTournamentPreparationChecks(
               : 'Spiel in der Match-Vorbereitung vorbereiten.',
     },
   ];
+  const order: PreparationCheckId[] = ['availability','squad','participants','plan','matches','match_ready'];
+  return order.map(id => checks.find(item=>item.id===id)!);
 }
 
 export function resolveTournamentPrimaryAction(
@@ -160,6 +162,14 @@ export function resolveTournamentPrimaryAction(
     return { kind: 'live_match', label: 'Zum Live-Spiel', matchId };
   }
 
+  if (attendance.playerCount > 0 && attendance.openCount > 0) {
+    return { kind: 'check_attendance', label: 'Verfügbarkeit prüfen' };
+  }
+
+  if (tournamentSquadCount === 0) {
+    return { kind: 'set_squad', label: 'Turnierkader festlegen' };
+  }
+
   if (!hasOfficialPlanUrl && slots.length === 0) {
     return { kind: 'import_plan', label: 'Turnierplan importieren' };
   }
@@ -170,14 +180,6 @@ export function resolveTournamentPrimaryAction(
 
   if (slots.length === 0) {
     return { kind: 'add_match', label: 'Turnierspiel hinzufügen' };
-  }
-
-  if (attendance.playerCount > 0 && attendance.openCount > 0) {
-    return { kind: 'check_attendance', label: 'Verfügbarkeit prüfen' };
-  }
-
-  if (tournamentSquadCount === 0) {
-    return { kind: 'set_squad', label: 'Turnierkader festlegen' };
   }
 
   if (lineupReady && matchId) {

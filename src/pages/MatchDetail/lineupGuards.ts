@@ -1,3 +1,4 @@
+import { isU11FormationId, U11_FORMATIONS } from '../../lib/matchFormations';
 import { LIVE_FIELD_SLOT_ORDER } from '../../lib/liveMatchService';
 import type { Match } from '../../types/match';
 import type { FieldSlotId } from '../../types/match';
@@ -37,16 +38,18 @@ export function getOnFieldPlayers(
 /** 7er-Startelf vollständig (wie MatchLineupPage: 7/7 — ohne Fairplay-FP-Slot). */
 export function isStartelfCompleteFromStartingIds(
   startingPlayerIds: readonly (string | null | undefined)[],
+  formationId?: string | null,
 ): boolean {
   // LIVE_FIELD_SLOT_ORDER enthält FP als 8. Slot; Startelf zählt nur die 7 Kernplätze.
+  const required = isU11FormationId(formationId) ? U11_FORMATIONS[formationId].map(row=>row.slot) : STARTELF_SLOT_IDS;
   let filled = 0;
-  for (let i = 0; i < STARTELF_SLOT_IDS.length; i++) {
-    const slot = STARTELF_SLOT_IDS[i];
+  for (let i = 0; i < required.length; i++) {
+    const slot = required[i];
     const idx = LIVE_FIELD_SLOT_ORDER.indexOf(slot);
     if (idx < 0) continue;
     if (String(startingPlayerIds[idx] ?? '').trim().length > 0) filled++;
   }
-  return filled >= STARTELF_SLOT_IDS.length;
+  return filled >= required.length;
 }
 
 export function isStartelfCompleteForLive(match: Match): boolean {
