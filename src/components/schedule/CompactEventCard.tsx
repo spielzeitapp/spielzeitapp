@@ -54,7 +54,7 @@ function compactTrainingHeadline(ourTeamName: string, notesTitle: string | null)
 }
 
 function splitTrainingTitleLines(trainingTitle: string | null): { top: string; bottom: string | null } {
-  const t = (trainingTitle ?? '').trim();
+  const t = (trainingTitle ?? '').trim().replace(/hallentraining/gi, (word) => `${word.slice(0, 6)}\u00ad${word.slice(6)}`);
   if (!t) return { top: 'Training', bottom: null };
   const m = t.match(/^(.*)\s+Training$/i);
   if (!m) return { top: t, bottom: null };
@@ -267,7 +267,7 @@ export function CompactEventCard({
             <div className="shrink-0 pt-0.5">{inlineTypeIcon}</div>
             {et === 'training' ? (
               <div className="min-w-0 flex-1 overflow-hidden">
-                <p className="min-w-0 line-clamp-2 overflow-hidden text-[17px] font-semibold leading-tight text-white break-words [overflow-wrap:anywhere]" lang="de">
+                <p className="min-w-0 line-clamp-2 overflow-hidden text-[17px] font-semibold leading-tight text-white break-normal hyphens-manual [overflow-wrap:normal]" lang="de">
                   {trainingTitleLines.top}
                   {trainingTitleLines.bottom ? ` ${trainingTitleLines.bottom}` : ''}
                 </p>
@@ -381,7 +381,7 @@ export function CompactEventCard({
         </>
       ) : et === 'training' ? (
         <>
-          <p className="min-w-0 line-clamp-2 overflow-hidden text-[17px] font-semibold leading-tight text-white break-words [overflow-wrap:anywhere]" lang="de">
+          <p className="min-w-0 line-clamp-2 overflow-hidden text-[17px] font-semibold leading-tight text-white break-normal hyphens-manual [overflow-wrap:normal]" lang="de">
             {trainingTitleLines.top}
             {trainingTitleLines.bottom ? ` ${trainingTitleLines.bottom}` : ''}
           </p>
@@ -454,7 +454,7 @@ export function CompactEventCard({
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(88,28,135,0.12)_0%,transparent_60%)]" aria-hidden />
         <div className={dsScheduleListPanelGlowClass()} aria-hidden />
         <div className={`${dsScheduleDateBoxClass()} relative z-[1] shrink-0 !w-[78px]`}>
-          {teamAgeBadge ? <span className="mb-1 rounded border border-red-500/40 bg-red-950/60 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-red-200">{teamAgeBadge}</span> : null}
+          {teamAgeBadge ? <span className="mb-1 rounded border border-white/25 bg-white/10 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-white">{teamAgeBadge}</span> : null}
           <span className={dsScheduleDateBoxWeekdayClass()}>{wd}</span>
           <span className={`${dsScheduleDateBoxDayClass()} !text-[1.45rem]`}>{day}</span>
           <span className={`${dsScheduleDateBoxMonthClass()} !text-[9px]`}>{monYear}</span>
@@ -529,7 +529,7 @@ export function CompactEventCard({
         <div className="pointer-events-none absolute inset-0 sz-club-card-glow" aria-hidden />
         <div className={dsScheduleListPanelGlowClass()} aria-hidden />
         <div className={`${dsScheduleDateBoxClass()} relative z-[1] shrink-0 !w-[78px]`}>
-          {teamAgeBadge ? <span className="mb-1 rounded border border-red-500/40 bg-red-950/60 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-red-200">{teamAgeBadge}</span> : null}
+          {teamAgeBadge ? <span className="mb-1 rounded border border-white/25 bg-white/10 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-white">{teamAgeBadge}</span> : null}
           <span className={dsScheduleDateBoxWeekdayClass()}>{wd}</span>
           <span className={`${dsScheduleDateBoxDayClass()} !text-[1.45rem]`}>{day}</span>
           <span className={`${dsScheduleDateBoxMonthClass()} !text-[9px]`}>{monYear}</span>
@@ -541,7 +541,7 @@ export function CompactEventCard({
         </div>
 
         <div className="relative z-[1] min-w-0 overflow-hidden py-0.5">
-          <p className="line-clamp-2 overflow-hidden text-[18px] font-semibold leading-[1.05] text-white break-words [overflow-wrap:anywhere]" lang="de">
+          <p className="line-clamp-2 overflow-hidden text-[18px] font-semibold leading-[1.05] text-white break-normal hyphens-manual [overflow-wrap:normal]" lang="de">
             {trainingTitleLines.top}
             {trainingTitleLines.bottom ? ` ${trainingTitleLines.bottom}` : ''}
           </p>
@@ -606,7 +606,7 @@ export function CompactEventCard({
     >
       <div className={dsScheduleListPanelGlowClass()} aria-hidden />
       <div className={`${dsScheduleDateBoxClass()} relative z-[1] shrink-0 !w-[68px] min-[390px]:!w-[78px]`}>
-        {teamAgeBadge ? <span className="mb-1 rounded border border-red-500/40 bg-red-950/60 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-red-200">{teamAgeBadge}</span> : null}
+        {teamAgeBadge ? <span className="mb-1 rounded border border-white/25 bg-white/10 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-white">{teamAgeBadge}</span> : null}
           <span className={dsScheduleDateBoxWeekdayClass()}>{wd}</span>
         <span className={`${dsScheduleDateBoxDayClass()} !text-[1.45rem]`}>{day}</span>
         <span className={`${dsScheduleDateBoxMonthClass()} !text-[9px]`}>{monYear}</span>

@@ -388,7 +388,7 @@ export function ScheduleHeroEventCard({
           <TrainingPlayerIcon variant="hero" className="!m-0 !w-full" />
 
           <div className="min-w-0 flex-1 overflow-hidden text-left">
-            <p className="whitespace-normal break-words hyphens-auto [overflow-wrap:anywhere] text-[18px] font-bold leading-[1.12] text-white min-[375px]:text-[20px]" lang="de">{trainingMainTitle}</p>
+            <p className="whitespace-normal break-normal hyphens-manual [overflow-wrap:normal] text-[18px] font-bold leading-[1.12] text-white min-[375px]:text-[20px]" lang="de">{trainingMainTitle.replace(/hallentraining/gi, (word) => `${word.slice(0, 6)}\u00ad${word.slice(6)}`)}</p>
             {ev.status === 'canceled' ? <span className="text-[11px] font-bold uppercase tracking-wide text-red-300">Abgesagt</span> : null}
             <p className="mt-1 line-clamp-2 text-[15px] leading-[1.15] text-white/[0.78]">
               {trainingLocationLine}
