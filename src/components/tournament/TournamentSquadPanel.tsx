@@ -60,23 +60,23 @@ function LineupLink({
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <span className="inline-flex items-center gap-1.5">
           <ClipboardList className="h-3.5 w-3.5 text-red-300/80" strokeWidth={2.25} aria-hidden />
-          <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-white/75">Aufstellung</span>
+          <span className="text-[13px] font-bold uppercase tracking-[0.1em] text-white/75">Aufstellung</span>
         </span>
         <span className={dsStatusChipClass(hasLineup ? 'present' : 'neutral')}>
           {hasLineup ? 'Vorbereitet' : 'Offen'}
         </span>
       </div>
-      <p className="text-[11px] leading-snug text-white/50">
+      <p className="text-[13px] leading-snug text-white/65">
         {opponent
           ? `Formation und Startelf für vs ${opponent}.`
           : 'Formation, Startaufstellung und Ersatzspieler für das nächste Turnierspiel.'}
       </p>
       {!matchId ? (
-        <p className="mt-2 text-[11px] text-white/40">Zuerst Turnierspiel anlegen oder importieren.</p>
+        <p className="mt-2 text-[13px] text-white/40">Zuerst Turnierspiel anlegen oder importieren.</p>
       ) : (
         <Link
           to={matchLineupPath(matchId, basePath)}
-          className={`mt-2 inline-flex min-h-[32px] w-full items-center justify-center rounded-full px-3 text-[11px] font-semibold touch-manipulation ${dsScheduleGlassButtonClass()}`}
+          className={`mt-2 inline-flex min-h-[32px] w-full items-center justify-center rounded-full px-3 text-[13px] font-semibold touch-manipulation ${dsScheduleGlassButtonClass()}`}
         >
           {hasLineup ? 'Aufstellung öffnen' : 'Aufstellung erstellen'}
         </Link>
@@ -229,9 +229,9 @@ export function TournamentSquadPanel({
 
   const renderGroup = (title: string, list: typeof players, status: PrepStatus) => (
     <section className="flex flex-col gap-1">
-      <p className={`${dsSectionLabelClass()} !text-[9px]`}>{title}</p>
+      <p className={`${dsSectionLabelClass()} !text-[11px]`}>{title}</p>
       {list.length === 0 ? (
-        <p className="text-[11px] text-white/42">Keine Spieler</p>
+        <p className="text-[13px] text-white/42">Keine Spieler</p>
       ) : (
         <div className={`flex flex-col ${DS_LIST_GAP}`}>
           {list.map((p) => {
@@ -269,7 +269,7 @@ export function TournamentSquadPanel({
           </span>
         </div>
 
-        <p className="text-[11px] leading-snug text-white/50">
+        <p className="text-[13px] leading-snug text-white/65">
           Einmal für das gesamte Turnier festlegen. Die Match-Vorbereitung einzelner Spiele nutzt diesen Kader als
           Vorauswahl — bestehende Spiel-Kader bleiben unverändert.
         </p>
@@ -281,9 +281,9 @@ export function TournamentSquadPanel({
         </div>
 
         {dataLoading ? (
-          <p className="text-[12px] text-white/55">Lade Spieler…</p>
+          <p className="text-[14px] text-white/55">Lade Spieler…</p>
         ) : players.length === 0 ? (
-          <p className="text-[12px] text-white/55">Keine Spieler im Team.</p>
+          <p className="text-[14px] text-white/55">Keine Spieler im Team.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {renderGroup('ZUGESAGT', grouped.available, 'available')}
@@ -292,12 +292,12 @@ export function TournamentSquadPanel({
           </div>
         )}
 
-        {squadError ? <p className="text-[11px] text-red-300/90">{squadError}</p> : null}
+        {squadError ? <p className="text-[13px] text-red-300/90">{squadError}</p> : null}
 
         {featuredMatchId ? (
           <Link
             to={matchPreparationPath(featuredMatchId)}
-            className={`inline-flex min-h-[32px] w-full items-center justify-center rounded-full px-3 text-[11px] font-semibold touch-manipulation ${dsScheduleGlassButtonClass()}`}
+            className={`inline-flex min-h-[32px] w-full items-center justify-center rounded-full px-3 text-[13px] font-semibold touch-manipulation ${dsScheduleGlassButtonClass()}`}
           >
             Match-Vorbereitung für nächstes Spiel
           </Link>

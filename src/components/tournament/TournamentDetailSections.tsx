@@ -114,6 +114,7 @@ type Props = {
   canManage: boolean;
   userId?: string | null;
   trainerActions?: React.ReactNode;
+  carpoolSection?: React.ReactNode;
   trainerAttendanceSection?: React.ReactNode;
   trainerFeedSection?: React.ReactNode;
   attendanceSummary?: TournamentAttendanceSummary;
@@ -144,6 +145,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   canManage,
   userId = null,
   trainerActions = null,
+  carpoolSection = null,
   trainerAttendanceSection = null,
   trainerFeedSection = null,
   attendanceSummary = { playerCount: 0, yesCount: 0, noCount: 0, openCount: 0 },
@@ -930,10 +932,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
           </div>
         ) : null}
         <details id="tournament-squad-picker" className={TC_CARD}>
-          <summary className={`${TC_CARD_INNER} cursor-pointer text-[13px] font-semibold text-white/85`}>
+          <summary className={`${TC_CARD_INNER} cursor-pointer text-[15px] font-semibold text-white/85`}>
             Turnierkader auswählen
           </summary>
-          <p className="px-3 pb-2 text-[12px] text-white/55">Hier legst du fest, welche Spieler mitfahren. Die Rückmeldungen findest du oben unter Zu-/Absagen.</p>
+          <p className="px-3 pb-2 text-[14px] text-white/55">Hier legst du fest, welche Spieler mitfahren. Die Rückmeldungen findest du oben unter Zu-/Absagen.</p>
           <TournamentSquadPanel
             tournamentEventId={tournamentEventId}
             teamSeasonId={teamSeasonId}
@@ -1149,6 +1151,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
       />
 
       {quickActions}
+      {carpoolSection}
 
       {canManage && (planSyncBusy || planSyncStatus) ? (
         <p className="px-0.5 text-[10px] font-medium text-white/45" role="status" aria-live="polite">

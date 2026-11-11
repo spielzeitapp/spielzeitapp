@@ -69,6 +69,7 @@ type Props = {
   players: PlayerItem[];
   canOffer: boolean;
   canManage?: boolean;
+  defaultExpanded?: boolean;
 };
 
 function playerName(player: PlayerItem | undefined): string {
@@ -147,6 +148,7 @@ export const EventCarpoolCard: React.FC<Props> = ({
   myPlayerIds,
   players,
   canOffer,
+  defaultExpanded = true,
 }) => {
   const { profile } = useProfile(currentUserId);
   const [offers, setOffers] = useState<CarpoolOffer[]>([]);
@@ -157,7 +159,7 @@ export const EventCarpoolCard: React.FC<Props> = ({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
   const [editingOffer, setEditingOffer] = useState<CarpoolOffer | null>(null);
   const [offerTime, setOfferTime] = useState('');
