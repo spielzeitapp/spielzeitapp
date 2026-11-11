@@ -4066,11 +4066,10 @@ export const EventDetailPage: React.FC = () => {
                 tournamentCoverUrl={safeOptionalText((event as { tournament_cover_url?: unknown }).tournament_cover_url)}
                 tournamentNotes={tournamentNotesText}
                 headerActions={
-                  <TournamentHeaderQuickActions
-                    onAddToCalendar={() => void handleAddSingleEventToCalendar()}
-                    onNavigate={handleStartNavigation}
-                    showNavigation={canStartNavigation}
-                  />
+                  <TournamentHeaderQuickActions kind="calendar" onAddToCalendar={() => void handleAddSingleEventToCalendar()} />
+                }
+                navigationAction={
+                  <TournamentHeaderQuickActions kind="navigation" onNavigate={handleStartNavigation} showNavigation={canStartNavigation} />
                 }
                 quickActions={
                   <TournamentQuickActionBar

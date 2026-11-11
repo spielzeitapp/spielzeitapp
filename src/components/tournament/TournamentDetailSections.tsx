@@ -124,6 +124,7 @@ type Props = {
   attendanceSummary?: TournamentAttendanceSummary;
   quickActions?: React.ReactNode;
   headerActions?: React.ReactNode;
+  navigationAction?: React.ReactNode;
   onOpenMatchPreparation: (matchId: string) => void;
   onOfficialTournamentUrlUpdated: (url: string | null) => void;
   onTournamentCompleted?: () => void;
@@ -160,6 +161,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   attendanceSummary = { playerCount: 0, yesCount: 0, noCount: 0, openCount: 0 },
   quickActions = null,
   headerActions = null,
+  navigationAction = null,
   onOpenMatchPreparation,
   onOfficialTournamentUrlUpdated,
   onTournamentCompleted,
@@ -1136,22 +1138,29 @@ export const TournamentDetailSections: React.FC<Props> = ({
         meetingAt={meetingAt}
         coverUrl={tournamentCoverUrl}
         participantCount={participants.length}
+        titleActions={canManage && trainerActions ? (
+          <button type="button" onClick={() => setTermActionsOpen(true)}
+            className="sz-club-event-action inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            aria-label="Turniertermin bearbeiten oder löschen" aria-haspopup="dialog" title="Turniertermin verwalten">
+            <Settings2 className="h-5 w-5 sz-club-accent-text" aria-hidden />
+          </button>
+        ) : null}
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2" role="toolbar" aria-label="Turnieraktionen">
             {headerActions}
+            {canManage && trainerFeedSection ? <button type="button" onClick={() => openPreparationDialog('communication')}
+              className="sz-club-event-action inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              aria-label="Feed & Kommunikation öffnen" aria-haspopup="dialog" title="Feed & Kommunikation">
+              <Megaphone className="h-5 w-5 sz-club-accent-text" aria-hidden />
+            </button> : null}
             {carpoolSection ? <button type="button" onClick={() => setCarpoolOpen(true)}
               className="sz-club-event-action inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               aria-label="Fahrgemeinschaft öffnen" aria-haspopup="dialog" title="Fahrt anbieten oder Platz suchen">
               <Car className="h-5 w-5 sz-club-accent-text" aria-hidden />
             </button> : null}
+            {navigationAction}
             <TournamentConnectedPlan compact eventId={tournamentEventId} url={officialTournamentUrl} userId={userId} canManage={canManage} onUpdated={reload} onState={setConnectedPlan} />
-            {canManage && trainerActions ? (
-              <button type="button" onClick={() => setTermActionsOpen(true)}
-                className="sz-club-event-action inline-flex h-11 w-11 items-center justify-center rounded-full border touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                aria-label="Turniertermin bearbeiten oder löschen" aria-haspopup="dialog" title="Turniertermin verwalten">
-                <Settings2 className="h-5 w-5 sz-club-accent-text" aria-hidden />
-              </button>
-            ) : null}
+
           </div>
         }
       />
@@ -1187,7 +1196,6 @@ export const TournamentDetailSections: React.FC<Props> = ({
           onOpenAttendance={scrollToAttendance}
           onOpenSquad={scrollToSquad}
           onOpenLineup={() => openPreparationDialog('lineup')}
-          onOpenCommunication={trainerFeedSection ? () => openPreparationDialog('communication') : undefined}
           onImportPlan={handleImportPlanFromOverview}
           onAddMatch={openMatchModal}
           onCreateReport={() => setOrchestratorReportOpen(true)}

@@ -76,18 +76,20 @@ export function TournamentQuickActionBar({
 }
 
 /** Round actions shared with carpooling, reminders and tournament management. */
-export function TournamentHeaderQuickActions({ onAddToCalendar, onNavigate, showNavigation = false }: {
-  onAddToCalendar: () => void;
-  onNavigate?: () => void;
-  showNavigation?: boolean;
+export function TournamentHeaderQuickActions(props: {
+  kind: 'calendar'; onAddToCalendar: () => void;
+} | {
+  kind: 'navigation'; onNavigate?: () => void; showNavigation: boolean;
 }) {
   const roundActionClass = "sz-club-event-action inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
-  return <>
-    <button type="button" onClick={onAddToCalendar} className={roundActionClass} aria-label="Zum Kalender hinzufügen" title="Zum Kalender hinzufügen">
+  if (props.kind === 'calendar') return (
+    <button type="button" onClick={props.onAddToCalendar} className={roundActionClass} aria-label="Zum Kalender hinzufügen" title="Zum Kalender hinzufügen">
       <CalendarPlus className="h-5 w-5 sz-club-accent-text" aria-hidden />
     </button>
-    {showNavigation && onNavigate ? <button type="button" onClick={onNavigate} className={roundActionClass} aria-label="Navigation zum Spielort starten" title="Navigation zum Spielort starten">
+  );
+  return props.showNavigation && props.onNavigate ? (
+    <button type="button" onClick={props.onNavigate} className={roundActionClass} aria-label="Navigation zum Spielort starten" title="Navigation zum Spielort starten">
       <Navigation className="h-5 w-5 sz-club-accent-text" aria-hidden />
-    </button> : null}
-  </>;
+    </button>
+  ) : null;
 }
