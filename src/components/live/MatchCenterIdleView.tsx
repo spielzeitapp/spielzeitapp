@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { publicTeamTournamentPath } from '../../lib/publicTeamTournament';
 import { useInternalBasePath } from '../../demo/demoPaths';
 import { useSession } from '../../auth/useSession';
 import { useEvents } from '../../hooks/useEvents';
@@ -34,6 +33,7 @@ import { LivePageHeader, LivePremiumShell, LiveScheduleCtaLink } from './LivePre
 import { PremiumEmptyState } from '../../ui';
 import { MatchHeadToHead } from '../match/MatchHeadToHead';
 import { getClubLogo } from '../../lib/teamLogos';
+import { MatchCenterTournamentCard } from './MatchCenterTournamentCard';
 import { MatchCenterNextMatchCard } from './MatchCenterNextMatchCard';
 import { subscribeLiveMatchStateChanged } from '../../lib/liveMatchBroadcast';
 import { pickNextOpenTournamentSlot } from '../../lib/tournamentDayOrchestrator';
@@ -249,14 +249,37 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
   }
 
   if (featuredTournament && !tournamentCompleted) {
-    return <LivePremiumShell matchCenter>
-      <LivePageHeader title="Liveticker" subtitle="Aktuell läuft kein Spiel unserer Mannschaft." />
-      <section className="space-y-4 rounded-2xl border sz-club-surface p-4">
-        <p className="text-[16px] leading-relaxed text-white/75">Alle Ergebnisse, Tabellen und die Finalrunde findest du auf unserer Turnierseite. Sobald unser nächstes Spiel gestartet wird, erscheint hier der Liveticker.</p>
-        <Link to={publicTeamTournamentPath(featuredTournament.id)} state={{ returnTo: `${basePath}/live` }} className="flex min-h-12 items-center justify-center rounded-full bg-[var(--club-primary,#c82333)] px-4 py-3 text-base font-bold text-white">Turnierseite ansehen</Link>
-        {!isFan ? <Link to={`${basePath}/events/${featuredTournament.id}`} className="flex min-h-12 items-center justify-center rounded-full border border-white/15 px-4 py-3 text-base font-bold text-white">Zur Turniervorbereitung</Link> : null}
-      </section>
-    </LivePremiumShell>;
+    const headerSubtitle =
+      liveDayMode === 'awaiting_next_round'
+        ? 'Vorrunde beendet — warte auf nächstes Spiel'
+        : liveDayMode === 'next_own_match'
+          ? 'Turnier läuft — nächstes Spiel'
+          : activeTournamentDay
+            ? 'Turnier läuft'
+            : 'Nächstes Turnier';
+    return (
+      <LivePremiumShell matchCenter>
+        <LivePageHeader title="Match Center" subtitle={headerSubtitle} />
+        <MatchCenterTournamentCard
+          event={featuredTournament}
+          ourTeamName={teamName}
+          now={now}
+          teamCount={teamCount}
+          matchCount={matchCount}
+          participants={participants}
+          slots={slots}
+          tournamentCompleted={tournamentCompleted}
+          loadingExtras={tournamentExtrasLoading}
+          liveDayMode={liveDayMode}
+          nextOwnSlot={nextOwnSlot}
+          isFan={isFan}
+          planSyncBusy={planSyncBusy}
+          onRefreshPlan={
+            !isFan && liveDayMode === 'awaiting_next_round' ? handleRefreshPlan : undefined
+          }
+        />
+      </LivePremiumShell>
+    );
   }
 
   if (nextMatch) {

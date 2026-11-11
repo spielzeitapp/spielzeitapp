@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { publicTeamTournamentPath } from '../../lib/publicTeamTournament';
 import type { EventRow } from '../../hooks/useEvents';
-import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
+import { isOwnPlayableTournamentSlot, type TournamentMatchSlotView } from '../../lib/tournamentPlan';
 import {
   computeMatchCenterCountdown,
   isRudolfSteurerGedenkturnier,
@@ -67,8 +68,8 @@ export function MatchCenterTournamentCard({
     liveDayMode === 'awaiting_next_round';
 
   const countdown = useMemo(
-    () => computeMatchCenterCountdown(event.starts_at, now),
-    [event.starts_at, now],
+    () => computeMatchCenterCountdown(nextOwnSlot?.kickoff_at ?? event.starts_at, now),
+    [nextOwnSlot?.kickoff_at, event.starts_at, now],
   );
 
   const carouselTeams = useMemo((): MatchCenterParticipant[] => {
@@ -88,7 +89,7 @@ export function MatchCenterTournamentCard({
   }, [carouselTeams]);
 
   const teamsDisplay = teamCount ?? (carouselTeams.length > 0 ? carouselTeams.length : null);
-  const firstMatch = pickTournamentFirstMatch(slots);
+  const firstMatch = pickTournamentFirstMatch(slots.filter(isOwnPlayableTournamentSlot));
   const placementLabel = nextOwnSlot
     ? tournamentPhaseDisplayLabel(nextOwnSlot.phase, nextOwnSlot.group_label)
     : null;
@@ -117,10 +118,10 @@ export function MatchCenterTournamentCard({
   const prepareLabel = nextOwnSlot
     ? tournamentPrepareCtaLabel(nextOwnSlot, 1)
     : 'Nächstes Spiel vorbereiten';
-  const tournamentHref = `/app/events/${event.id}`;
+  const tournamentHref = publicTeamTournamentPath(event.id);
 
   const showPreparePrimary = liveDayMode === 'next_own_match' && !isFan && Boolean(nextOwnSlot?.match_id);
-  const primaryCtaLabel = showPreparePrimary ? prepareLabel : 'Turnier öffnen';
+  const primaryCtaLabel = showPreparePrimary ? prepareLabel : 'Turnierseite ansehen';
   const primaryCtaTo = showPreparePrimary ? prepareHref : tournamentHref;
 
   return (
@@ -174,12 +175,12 @@ export function MatchCenterTournamentCard({
           </div>
         ) : null}
 
-        {liveDayMode === 'upcoming' && countdown ? (
+        {(liveDayMode === 'upcoming' || liveDayMode === 'next_own_match') && countdown ? (
           <MatchCenterCountdown
             parts={countdown}
             variant="heroCompact"
             showHeader
-            headerLabel="Countdown bis Turnierstart"
+            headerLabel={nextOwnSlot ? 'Countdown bis zu unserem nächsten Spiel' : 'Countdown bis Turnierstart'}
           />
         ) : null}
 
@@ -225,12 +226,18 @@ export function MatchCenterTournamentCard({
           {primaryCtaLabel}
         </Link>
 
+        {!isFan && !showPreparePrimary ? (
+          <Link to={`/app/events/${event.id}`} className={`${dsSecondaryCtaClass()} mb-2 inline-flex min-h-[44px] w-full items-center justify-center rounded-xl px-4 text-[13px] font-semibold`}>
+            Zur Turniervorbereitung
+          </Link>
+        ) : null}
+
         {showPreparePrimary ? (
           <Link
             to={tournamentHref}
             className={`${dsSecondaryCtaClass()} mb-[max(0.5rem,env(safe-area-inset-bottom,0px))] inline-flex min-h-[44px] w-full touch-manipulation items-center justify-center rounded-xl px-4 text-[13px] font-semibold`}
           >
-            Turnier öffnen
+            Turnierseite ansehen
           </Link>
         ) : null}
 

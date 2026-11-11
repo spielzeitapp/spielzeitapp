@@ -93,7 +93,7 @@ export function PublicTeamTournamentPage(): React.ReactElement {
     const content = <TournamentFanFixture home={fixture.homeTeam} away={fixture.awayTeam} homeGoals={fixture.homeGoals} awayGoals={fixture.awayGoals} time={fixture.time} phase={fixture.roundLabel ?? (fixture.phase === 'group' ? (fixture.groupLabel ? `Gruppe ${fixture.groupLabel}` : 'Gruppenspiel') : 'Finalrunde')} logos={page.teamLogos} ownName={page.ownParticipantName} ownLogo={page.teamLogoUrl} scorers={own ? page.scorers?.filter(s => s.time === fixture.time) : []}/>;
     return own ? <Link key={fixture.id || index} to={`?spiel=${encodeURIComponent(own.id)}`} className="block rounded-2xl" aria-label={`${own.opponentName} · Zum Spiel, Aufstellung und Spielverlauf`}>{content}<p className="px-2 pt-2 text-right text-sm font-bold text-[var(--t-accent)]">Zum Spiel →</p></Link> : <React.Fragment key={fixture.id || index}>{content}</React.Fragment>;
   };
-  return <div data-theme={theme} className={`public-tournament-page min-h-screen bg-[var(--t-bg)] text-[var(--t-text)]`} style={{
+  return <div data-theme={theme} className={`public-tournament-page bg-[var(--t-bg)] text-[var(--t-text)]`} style={{
       '--t-accent': page?.accentColor ?? '#c82333',
       '--t-bg': theme === 'day' ? '#f7f8fa' : '#000000',
       '--t-surface': theme === 'day' ? '#ffffff' : '#0d0d10',
