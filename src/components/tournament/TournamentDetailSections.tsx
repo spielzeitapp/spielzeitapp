@@ -123,6 +123,7 @@ type Props = {
   trainerFeedSection?: React.ReactNode;
   attendanceSummary?: TournamentAttendanceSummary;
   quickActions?: React.ReactNode;
+  headerActions?: React.ReactNode;
   onOpenMatchPreparation: (matchId: string) => void;
   onOfficialTournamentUrlUpdated: (url: string | null) => void;
   onTournamentCompleted?: () => void;
@@ -158,6 +159,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   trainerFeedSection = null,
   attendanceSummary = { playerCount: 0, yesCount: 0, noCount: 0, openCount: 0 },
   quickActions = null,
+  headerActions = null,
   onOpenMatchPreparation,
   onOfficialTournamentUrlUpdated,
   onTournamentCompleted,
@@ -1135,7 +1137,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
         coverUrl={tournamentCoverUrl}
         participantCount={participants.length}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2" role="toolbar" aria-label="Turnieraktionen">
+            {headerActions}
             {carpoolSection ? <button type="button" onClick={() => setCarpoolOpen(true)}
               className="sz-club-event-action inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               aria-label="Fahrgemeinschaft öffnen" aria-haspopup="dialog" title="Fahrt anbieten oder Platz suchen">

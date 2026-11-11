@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { CalendarPlus, MapPin, Share2, ExternalLink } from "lucide-react";
+import { CalendarPlus, MapPin, Navigation, Share2, ExternalLink } from "lucide-react";
 import { TournamentCollapsibleSection } from "./TournamentCollapsibleSection";
 import {
   publicTeamTournamentPath,
@@ -12,16 +12,10 @@ const actionClass =
 export function TournamentQuickActionBar({
   shareTitle,
   tournamentEventId,
-  onAddToCalendar,
-  onNavigate,
-  showNavigation = false,
   location: venue,
 }: {
   shareTitle: string;
   tournamentEventId: string;
-  onAddToCalendar: () => void;
-  onNavigate?: () => void;
-  showNavigation?: boolean;
   location?: string | null;
 }) {
   const location = useLocation();
@@ -50,36 +44,7 @@ export function TournamentQuickActionBar({
               {venue?.trim() || "Spielort noch offen"}
             </p>
           </div>
-          <div
-            className={`grid gap-2 ${showNavigation && onNavigate ? "grid-cols-2" : "grid-cols-1"}`}
-            role="toolbar"
-            aria-label="Turnieraktionen"
-          >
-            <button
-              type="button"
-              onClick={onAddToCalendar}
-              className={actionClass}
-            >
-              <CalendarPlus
-                aria-hidden
-                className="h-5 w-5 shrink-0 sz-club-accent-text"
-              />
-              Kalender
-            </button>
-            {showNavigation && onNavigate ? (
-              <button
-                type="button"
-                onClick={onNavigate}
-                className={actionClass}
-              >
-                <MapPin
-                  aria-hidden
-                  className="h-5 w-5 shrink-0 sz-club-accent-text"
-                />
-                Navigation
-              </button>
-            ) : null}
-          </div>
+
         </div>
       </TournamentCollapsibleSection>
       <Link
@@ -108,4 +73,21 @@ export function TournamentQuickActionBar({
       ) : null}
     </div>
   );
+}
+
+/** Round actions shared with carpooling, reminders and tournament management. */
+export function TournamentHeaderQuickActions({ onAddToCalendar, onNavigate, showNavigation = false }: {
+  onAddToCalendar: () => void;
+  onNavigate?: () => void;
+  showNavigation?: boolean;
+}) {
+  const roundActionClass = "sz-club-event-action inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
+  return <>
+    <button type="button" onClick={onAddToCalendar} className={roundActionClass} aria-label="Zum Kalender hinzufügen" title="Zum Kalender hinzufügen">
+      <CalendarPlus className="h-5 w-5 sz-club-accent-text" aria-hidden />
+    </button>
+    {showNavigation && onNavigate ? <button type="button" onClick={onNavigate} className={roundActionClass} aria-label="Navigation zum Spielort starten" title="Navigation zum Spielort starten">
+      <Navigation className="h-5 w-5 sz-club-accent-text" aria-hidden />
+    </button> : null}
+  </>;
 }
