@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, ClipboardList, Loader2 } from 'lucide-react';
+import { Check, ChevronRight, ClipboardList, Loader2, Megaphone } from 'lucide-react';
 import { fetchMatchById, fetchLineupForLiveMatch } from '../../lib/liveMatchService';
 import {
   liveMatchPath,
@@ -47,6 +47,8 @@ type Props = {
   totalMatchCount?: number;
   onOpenAttendance: () => void;
   onOpenSquad: () => void;
+  onOpenLineup: () => void;
+  onOpenCommunication?: () => void;
   onImportPlan: () => void;
   onAddMatch: () => void;
   onCreateReport: () => void;
@@ -56,14 +58,13 @@ type Props = {
   onLineupCopied?: () => void;
 };
 
-function StepProgress({ step, checks }: { step: TournamentAssistantStep; checks: boolean[] }) {
+function StepProgress({ checks }: { checks: boolean[] }) {
+  const completed = checks.filter(Boolean).length;
   return (
-    <div className="mt-2">
-      <p className="text-[16px] font-semibold text-white/65">Schritt {step.stepNumber} von {step.totalSteps}</p>
-      <div className="mt-1.5 flex gap-1" role="progressbar" aria-label="Turnier-Vorbereitung" aria-valuemin={0} aria-valuemax={step.totalSteps} aria-valuenow={step.stepNumber}>
-        {Array.from({ length: step.totalSteps }, (_, index) => (
-          <span key={index} className={`h-1.5 flex-1 rounded-full ${index < 4 ? (checks[index] ? 'bg-emerald-400' : index + 1 === step.stepNumber ? 'sz-club-progress-fill' : 'bg-white/15') : index + 1 < step.stepNumber ? 'bg-emerald-400' : index + 1 === step.stepNumber ? 'sz-club-progress-fill' : 'bg-white/15'}`} />
-        ))}
+    <div className="mt-3">
+      <p className="text-[16px] font-semibold text-white/65">{completed} von {checks.length} Vorbereitungspunkten erledigt</p>
+      <div className="mt-2 flex gap-1.5" role="progressbar" aria-label="Turnier-Vorbereitung" aria-valuemin={0} aria-valuemax={checks.length} aria-valuenow={completed}>
+        {checks.map((done, index) => <span key={index} className={`h-2 flex-1 rounded-full ${done ? 'bg-emerald-400' : 'bg-white/15'}`} />)}
       </div>
     </div>
   );
@@ -141,6 +142,8 @@ export function TournamentAssistantCard({
   totalMatchCount = 0,
   onOpenAttendance,
   onOpenSquad,
+  onOpenLineup,
+  onOpenCommunication,
   onImportPlan,
   onAddMatch,
   onCreateReport,
@@ -458,12 +461,13 @@ export function TournamentAssistantCard({
   };
 
   const preparationChecks = [
-    { label: 'Verfügbarkeit geklärt', done: attendance.playerCount > 0 && attendance.openCount === 0 },
-    { label: 'Turnierkader gespeichert', done: squadCount > 0 },
-    { label: 'Turnierplan mit eigenen Spielen hinterlegt', done: ownMatchCount > 0 },
-    { label: 'Aufstellung / Blöcke gespeichert', done: templateReady || lineupReady },
+    { label: 'Verfügbarkeit klären', done: attendance.playerCount > 0 && attendance.openCount === 0, hint: `${attendance.yesCount} zugesagt · ${attendance.openCount} offen · ${attendance.noCount} abgesagt`, onClick: onOpenAttendance },
+    { label: 'Turnierkader wählen', done: squadCount > 0, hint: squadCount > 0 ? `${squadCount} Spieler gespeichert` : 'Spieler für das Turnier auswählen', onClick: onOpenSquad },
+    { label: 'Turnierplan hinterlegen', done: ownMatchCount > 0, hint: ownMatchCount > 0 ? `${ownMatchCount} eigene Spiele hinterlegt` : 'Plan importieren oder Spiele manuell anlegen', onClick: onImportPlan },
+    { label: 'Aufstellung & Blöcke', done: templateReady || lineupReady, hint: templateReady || lineupReady ? 'Aufstellung gespeichert' : 'Grundaufstellung mit Block A und B vorbereiten', onClick: onOpenLineup },
   ];
   const prepared = preparationChecks.every(check => check.done);
+  const gamePhaseStarted = slots.some(slot => ['live', 'finished'].includes(slot.match_status ?? ''));
 
   if (loading || lineupLoading || squadLoading) {
     return (
@@ -488,34 +492,33 @@ export function TournamentAssistantCard({
               <ClipboardList className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
               Turnier-Assistent
             </p>
-            <StepProgress step={step} checks={preparationChecks.map(check => check.done)} />
-            <details className="mt-3 group/steps">
-              <summary className="cursor-pointer text-[15px] font-semibold text-white/75">Alle 7 Schritte ansehen</summary>
-              <ol className="mt-3 space-y-2" aria-label="Ablauf des Turnierassistenten">
-                {['Verfügbarkeit klären', 'Turnierkader wählen', 'Turnierplan hinterlegen', 'Aufstellung vorbereiten', 'Live spielen', 'Nächstes Spiel vorbereiten', 'Turnier abschließen'].map((label, index) => (
-                  <li key={label} aria-current={index + 1 === step.stepNumber ? 'step' : undefined} className={`flex items-center gap-3 rounded-xl px-3 py-2 text-[16px] ${index + 1 === step.stepNumber ? 'sz-club-accent-chip font-bold' : 'text-white/65'}`}>
-                    <span className="sz-club-accent-text w-5 shrink-0 font-bold">{index + 1}.</span>{label}
-                  </li>
-                ))}
-              </ol>
-            </details>
+            <StepProgress checks={preparationChecks.map(check => check.done)} />
           </div>
         </div>
 
-        <div>
+        <p className="text-[16px] leading-relaxed text-white/65">Punkt antippen, bearbeiten und speichern. Erledigte Punkte werden grün.</p>
+        <ol className="space-y-2" aria-label="Turnier vorbereiten">
+          {preparationChecks.map((check, index) => <li key={check.label}>
+            <button type="button" onClick={check.onClick}
+              className={`flex min-h-[64px] w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-white ${check.done ? 'border-emerald-400/25 bg-emerald-400/[0.06]' : 'border-white/10 bg-white/[0.03]'}`}
+              aria-label={`${index + 1}. ${check.label} · ${check.done ? 'erledigt' : 'offen'}`}>
+              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[17px] font-bold ${check.done ? 'bg-emerald-400/15 text-emerald-300' : 'sz-club-accent-chip sz-club-accent-text'}`}>
+                {check.done ? <Check className="h-5 w-5" aria-hidden /> : index + 1}
+              </span>
+              <span className="min-w-0 flex-1"><span className="block text-[18px] font-bold leading-snug text-white">{check.label}</span><span className="mt-1 block text-[15px] leading-snug text-white/60">{check.hint}</span></span>
+              <ChevronRight className="h-5 w-5 shrink-0 text-white/50" aria-hidden />
+            </button>
+          </li>)}
+        </ol>
+        {prepared ? <p role="status" className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-[18px] font-bold text-emerald-300">✓ Turnier vorbereitet</p> : null}
+        {onOpenCommunication ? <button type="button" onClick={onOpenCommunication} className={`${dsScheduleGlassButtonClass()} flex min-h-12 w-full items-center gap-3 rounded-full px-4 py-3 text-left text-[16px] font-semibold touch-manipulation`}><Megaphone className="h-5 w-5 shrink-0 sz-club-accent-text" aria-hidden /><span className="flex-1">Feed & Kommunikation · optional</span><ChevronRight className="h-5 w-5 shrink-0" aria-hidden /></button> : null}
+        {prepared || gamePhaseStarted ? <div className="space-y-2 border-t border-white/10 pt-4">
+          <p className="text-[15px] font-bold uppercase tracking-wide sz-club-accent-text">Am Turniertag</p>
           <h2 className="text-[21px] font-bold leading-snug text-white">{step.title}</h2>
-          <p className="mt-1 text-[16px] leading-snug text-white/62">{step.description}</p>
-          {prepared ? <p role="status" className="mt-3 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-[17px] font-bold text-emerald-300">✓ Turnier vorbereitet · Live und Abschluss folgen am Turniertag</p> : null}
-          {step.detailLines.length > 0 ? (
-            <ul className="mt-2 flex list-none flex-col gap-0.5 p-0">
-              {step.detailLines.map((line) => (
-                <li key={line} className="text-[15px] text-white/65">
-                  {line}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
+          <p className="text-[16px] leading-relaxed text-white/65">{step.description}</p>
+          {step.detailLines.map(line => <p key={line} className="text-[15px] text-white/65">{line}</p>)}
+          {renderAction(step.action)}
+        </div> : null}
 
         {copyError ? (
           <p className="text-[15px] text-red-300/90" role="alert">
@@ -523,7 +526,6 @@ export function TournamentAssistantCard({
           </p>
         ) : null}
 
-        <div className="border-t border-white/[0.06] pt-2.5">{renderAction(step.action)}</div>
 
         {step.action.kind === 'complete_tournament' && canCreateReport ? (
           <SecondaryButton label="Zuerst Turnierbericht erstellen" onClick={onCreateReport} disabled={completingTournament} />

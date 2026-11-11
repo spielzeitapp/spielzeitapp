@@ -1,3 +1,6 @@
+import { fetchTournamentLineupTemplate } from '../../lib/tournamentLineupTemplates';
+import { tournamentTemplateReady } from '../../lib/tournamentLineupTemplate';
+import { fetchTournamentSquadPlayerIds } from '../../lib/tournamentSquad';
 import { TournamentLineupTemplatePanel } from './TournamentLineupTemplatePanel';
 import { tournamentDisplayNotes } from '../../lib/tournamentDisplayNotes';
 import { Link, useNavigate } from 'react-router-dom';
@@ -125,6 +128,10 @@ type Props = {
   onTournamentCompleted?: () => void;
 };
 
+type PreparationDialog = 'attendance' | 'squad' | 'plan' | 'lineup' | 'communication';
+const preparationTitles: Record<PreparationDialog, string> = { attendance: '1. Verfügbarkeit klären', squad: '2. Turnierkader wählen', plan: '3. Turnierplan hinterlegen', lineup: '4. Aufstellung & Blöcke', communication: 'Feed & Kommunikation' };
+const preparationOrder: PreparationDialog[] = ['attendance', 'squad', 'plan', 'lineup'];
+
 const inputClass =
   'w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-[16px] text-white placeholder:text-white/40 focus:border-purple-500/45 focus:outline-none';
 
@@ -155,6 +162,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
   onOfficialTournamentUrlUpdated,
   onTournamentCompleted,
 }) => {
+  const [lineupDraftDirty, setLineupDraftDirty] = useState(false);
+  const [preparationDialog, setPreparationDialog] = useState<PreparationDialog | null>(null);
   const [termActionsOpen, setTermActionsOpen] = useState(false);
   const additionalHints = tournamentDisplayNotes(tournamentNotes, tournamentTitle);
   const basePath = useInternalBasePath();
@@ -162,7 +171,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const [connectedPlan, setConnectedPlan] = useState<ConnectedTournament | null>(null);
   const [templateReady, setTemplateReady] = useState(false);
   const [assistantRefreshToken, setAssistantRefreshToken] = useState(0);
-  const [activeTab, setActiveTab] = useState<TournamentCenterTabId>(() => canManage ? 'admin' : 'games');
+  const [activeTab, setActiveTab] = useState<TournamentCenterTabId>('games');
   const [participants, setParticipants] = useState<TournamentParticipant[]>([]);
   const [slots, setSlots] = useState<TournamentMatchSlotView[]>([]);
   const [loading, setLoading] = useState(true);
@@ -268,8 +277,27 @@ export const TournamentDetailSections: React.FC<Props> = ({
     [gamesFilter, ourScheduleSlots, slots],
   );
 
+  useEffect(() => {
+    let active = true;
+    setTemplateReady(false);
+    if (!canManage) return;
+    void Promise.all([fetchTournamentLineupTemplate(tournamentEventId), fetchTournamentSquadPlayerIds(tournamentEventId)])
+      .then(([record, roster]) => {
+        if (active && !roster.error) setTemplateReady(tournamentTemplateReady(record?.blocks ?? null, roster.data, players.filter(p => p.is_injured).map(p => p.id)));
+      }).catch(() => { if (active) setTemplateReady(false); });
+    return () => { active = false; };
+  }, [canManage, tournamentEventId, assistantRefreshToken, players]);
+
+  const openPreparationDialog = (next: PreparationDialog | null) => {
+    if (lineupDraftDirty && preparationDialog === 'lineup' && next !== 'lineup' && !window.confirm('Die Aufstellung ist noch nicht gespeichert. Änderungen verwerfen?')) return;
+    setLineupDraftDirty(false);
+    setPreparationDialog(next);
+    setAssistantRefreshToken(token => token + 1);
+  };
+  const closePreparationDialog = () => openPreparationDialog(null);
+
   const scrollToTeamAliases = useCallback(() => {
-    setActiveTab('admin');
+    setPreparationDialog('plan');
     setAliasesReloadToken((t) => t + 1);
     requestAnimationFrame(() => {
       const section = document.getElementById('tournament-team-aliases');
@@ -738,39 +766,9 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
   const nextMatchId = heroSummary.nextMatch?.id ?? null;
 
-  const handleImportPlanFromOverview = useCallback(() => {
-    setActiveTab('admin');
-    requestAnimationFrame(() => {
-      const section = document.getElementById('tournament-plan-section');
-      const details = section?.querySelector('details');
-      if (details) details.open = true;
-      section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-    const planUrl = safeText(officialTournamentUrl);
-    setPlanWorkflowRequest({
-      action: planUrl ? 'import' : 'qr',
-      key: Date.now(),
-    });
-  }, [officialTournamentUrl]);
-
-  const scrollToAttendance = useCallback(() => {
-    setActiveTab('admin');
-    requestAnimationFrame(() => {
-      const section = document.getElementById('tournament-attendance-section');
-      const details = section?.querySelector('details');
-      if (details) details.open = true;
-      section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  }, []);
-
-  const scrollToSquad = useCallback(() => {
-    setActiveTab('admin');
-    requestAnimationFrame(() => {
-      const picker = document.getElementById('tournament-squad-picker') as HTMLDetailsElement | null;
-      if (picker) picker.open = true;
-      document.getElementById('tournament-squad-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  }, []);
+  const handleImportPlanFromOverview = useCallback(() => setPreparationDialog('plan'), []);
+  const scrollToAttendance = useCallback(() => setPreparationDialog('attendance'), []);
+  const scrollToSquad = useCallback(() => setPreparationDialog('squad'), []);
 
   const openTeamsForParticipants = useCallback(() => {
     setActiveTab('teams');
@@ -927,41 +925,15 @@ export const TournamentDetailSections: React.FC<Props> = ({
     }
   };
 
-  const renderAdminTab = () => {
-    if (!canManage) return null;
-    const planUrl = safeText(officialTournamentUrl);
-    return (
-      <div className={`flex flex-col ${TC_STACK_GAP}`}>
-        {trainerAttendanceSection ? (
-          <div id="tournament-attendance-section">
-            <TournamentCollapsibleSection title="1. Zu-/Absagen" icon={<Users />}>
-              {trainerAttendanceSection}
-            </TournamentCollapsibleSection>
-          </div>
-        ) : null}
-        <div id="tournament-squad-section" className="scroll-mt-24"><details id="tournament-squad-picker" className={`${TC_CARD} group/squad`}>
-          <summary className={`${TC_CARD_INNER} flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 text-[17px] font-bold text-white [&::-webkit-details-marker]:hidden`}>
-            <span className="flex items-center gap-3"><Users className="h-5 w-5 shrink-0 sz-club-accent-text" aria-hidden />2. Turnierkader auswählen</span>
-            <ChevronDown className="h-5 w-5 shrink-0 text-white/55 transition-transform group-open/squad:rotate-180" aria-hidden />
-          </summary>
-          <p className="px-3 pb-2 text-[14px] text-white/55">Hier legst du fest, welche Spieler mitfahren. Die Rückmeldungen findest du oben unter Zu-/Absagen.</p>
-          <TournamentSquadPanel
-            tournamentEventId={tournamentEventId}
-            teamSeasonId={teamSeasonId}
-            slots={ownSlots}
-            loading={loading}
-            canManage={canManage}
-            onSaved={() => setAssistantRefreshToken(token => token + 1)}
-            onOpenTemplate={() => {
-              const section = document.getElementById('tournament-template-section');
-              const details = section?.querySelector('details');
-              if (details) details.open = true;
-              section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
-          />
-        </details></div>
-        <div id="tournament-plan-section" className="scroll-mt-24">
-          <TournamentCollapsibleSection title="3. Turnierplan" icon={<ClipboardList />}>
+  const renderPreparationDialog = () => {
+    switch (preparationDialog) {
+      case 'attendance': return trainerAttendanceSection;
+      case 'squad': return <TournamentSquadPanel
+        tournamentEventId={tournamentEventId} teamSeasonId={teamSeasonId} slots={ownSlots}
+        loading={loading} canManage={canManage}
+        onSaved={() => setAssistantRefreshToken(token => token + 1)}
+        onOpenTemplate={() => openPreparationDialog('lineup')} />;
+      case 'plan': return <div id="tournament-plan-section" className="space-y-4">
             <TournamentOfficialPlanCard
               tournamentEventId={tournamentEventId}
               teamSeasonId={teamSeasonId}
@@ -988,29 +960,19 @@ export const TournamentDetailSections: React.FC<Props> = ({
               <p className="text-[16px] leading-relaxed text-white/65">Ohne Link oder wenn der Import nicht funktioniert: Gegner, Anstoß und Spielort selbst eintragen.</p>
               <button type="button" className={`${addButtonClass} w-full`} disabled={Boolean(completion.completedAt)} onClick={openMatchModal}><Plus className="h-5 w-5" aria-hidden />Turnierspiel manuell hinzufügen</button>
             </div>
-            <div className="mt-4">
+            <div id="tournament-team-aliases" className="mt-4">
               <TournamentCollapsibleSection title="Unsere Mannschaft zuordnen · Aliase" icon={<Tags />}>
                 <p className="mb-3 text-[16px] leading-relaxed text-white/65">Trage abweichende Namen unserer Mannschaft aus dem Veranstalterplan ein. So erkennt der Import unsere Spiele. Bei manueller Eingabe brauchst du keine Aliase.</p>
                 <TournamentTeamAliasesCard teamSeasonId={teamSeasonId} canManage={canManage} reloadToken={aliasesReloadToken} embedded />
               </TournamentCollapsibleSection>
             </div>
-          </TournamentCollapsibleSection>
-        </div>
-        <div id="tournament-template-section" className="scroll-mt-24">
-          <TournamentCollapsibleSection title="4. Grundaufstellung & Blöcke" icon={<ClipboardList />}>
-            <TournamentLineupTemplatePanel eventId={tournamentEventId} players={players} slots={ownSlots} refreshToken={assistantRefreshToken} onReady={setTemplateReady} canEdit={!completion.completedAt}
-              onSaved={() => { setAssistantRefreshToken(token => token + 1); void reload(); }} />
-          </TournamentCollapsibleSection>
-        </div>
-        {trainerFeedSection ? (
-          <TournamentCollapsibleSection title="Vor dem Start · Feed & Kommunikation" icon={<Megaphone />} defaultExpanded={false}>
-            <p className="mb-4 text-[16px] leading-relaxed text-white/65">Spieltag ankündigen und die Veröffentlichung von Kader und Aufstellung vorbereiten.</p>
-            {trainerFeedSection}
-          </TournamentCollapsibleSection>
-        ) : null}
-
-      </div>
-    );
+      </div>;
+      case 'lineup': return <TournamentLineupTemplatePanel eventId={tournamentEventId} players={players} slots={ownSlots}
+        refreshToken={assistantRefreshToken} onReady={setTemplateReady} onDirtyChange={setLineupDraftDirty} canEdit={!completion.completedAt}
+        onSaved={() => { setAssistantRefreshToken(token => token + 1); void reload(); }} />;
+      case 'communication': return <div className="space-y-4"><p className="text-[16px] leading-relaxed text-white/65">Optional: Spieltag ankündigen und die Veröffentlichung von Kader und Aufstellung vorbereiten.</p>{trainerFeedSection}</div>;
+      default: return null;
+    }
   };
 
   const slotSections = useMemo(
@@ -1212,6 +1174,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
           totalMatchCount={slots.length}
           onOpenAttendance={scrollToAttendance}
           onOpenSquad={scrollToSquad}
+          onOpenLineup={() => openPreparationDialog('lineup')}
+          onOpenCommunication={trainerFeedSection ? () => openPreparationDialog('communication') : undefined}
           onImportPlan={handleImportPlanFromOverview}
           onAddMatch={openMatchModal}
           onCreateReport={() => setOrchestratorReportOpen(true)}
@@ -1244,7 +1208,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
         <Link className={addButtonClass} to={publicTeamTournamentPath(tournamentEventId)} state={{returnTo: `${basePath}/events/${tournamentEventId}`}}>Turnierseite ansehen</Link>
         {ownSlots.filter(slot => slot.match_status === 'live' && slot.match_id).map(slot => <Link key={slot.id} className={addButtonClass} to={`${basePath}/live?matchId=${encodeURIComponent(slot.match_id!)}`}>Unser Spiel läuft · Zum Liveticker</Link>)}
       </div></section> : null}
-      {canManage ? <TournamentCenterTabBar activeTab={activeTab} onTabChange={setActiveTab} canManage /> : null}
+      {canManage ? <TournamentCenterTabBar activeTab={activeTab} onTabChange={setActiveTab} /> : null}
       {canManage && activeTab === 'games' ? <div className={`flex flex-col ${TC_STACK_GAP}`}>
         <h2 className="text-[16px] font-bold text-white">Unsere Turnierspiele vorbereiten</h2>
         <p className="text-[16px] leading-relaxed text-white/65">Aufstellung und Liveticker für unser Team. Den gesamten Turnierverlauf findest du unter „Turnierseite ansehen“.</p>
@@ -1302,7 +1266,18 @@ export const TournamentDetailSections: React.FC<Props> = ({
         </div>
       ) : null}
 
-      {activeTab === 'admin' && canManage ? renderAdminTab() : null}
+      {canManage ? <Modal open={preparationDialog !== null} onClose={closePreparationDialog}
+        title={preparationDialog ? preparationTitles[preparationDialog] : ''}
+        titleClassName="!text-[20px]"
+        footer={<div className="flex flex-wrap gap-2">
+          <AppButton variant="secondary" onClick={closePreparationDialog}>Zum Assistenten</AppButton>
+          {preparationDialog && preparationOrder.indexOf(preparationDialog) >= 0 && preparationOrder.indexOf(preparationDialog) < 3 ? (
+            <AppButton variant="primary" onClick={() => openPreparationDialog(preparationOrder[preparationOrder.indexOf(preparationDialog) + 1])}>Weiter</AppButton>
+          ) : null}
+        </div>}>
+        <p className="mb-4 text-[16px] leading-relaxed text-white/60">Rückmeldungen und Kader werden direkt gespeichert. Die Aufstellung bitte mit dem Speicherknopf bestätigen.</p>
+        {renderPreparationDialog()}
+      </Modal> : null}
 
 
       <Modal
