@@ -54,7 +54,7 @@ function compactTrainingHeadline(ourTeamName: string, notesTitle: string | null)
 }
 
 function splitTrainingTitleLines(trainingTitle: string | null): { top: string; bottom: string | null } {
-  const t = (trainingTitle ?? '').trim();
+  const t = (trainingTitle ?? '').trim().replace(/hallentraining/gi, (word) => `${word.slice(0, 6)}\u00ad${word.slice(6)}`);
   if (!t) return { top: 'Training', bottom: null };
   const m = t.match(/^(.*)\s+Training$/i);
   if (!m) return { top: t, bottom: null };
@@ -267,7 +267,7 @@ export function CompactEventCard({
             <div className="shrink-0 pt-0.5">{inlineTypeIcon}</div>
             {et === 'training' ? (
               <div className="min-w-0 flex-1 overflow-hidden">
-                <p className="min-w-0 line-clamp-2 overflow-hidden text-[17px] font-semibold leading-tight text-white break-words [overflow-wrap:anywhere]" lang="de">
+                <p className="min-w-0 line-clamp-2 overflow-hidden text-[17px] font-semibold leading-tight text-white break-normal hyphens-manual [overflow-wrap:normal]" lang="de">
                   {trainingTitleLines.top}
                   {trainingTitleLines.bottom ? ` ${trainingTitleLines.bottom}` : ''}
                 </p>
@@ -381,7 +381,7 @@ export function CompactEventCard({
         </>
       ) : et === 'training' ? (
         <>
-          <p className="min-w-0 line-clamp-2 overflow-hidden text-[17px] font-semibold leading-tight text-white break-words [overflow-wrap:anywhere]" lang="de">
+          <p className="min-w-0 line-clamp-2 overflow-hidden text-[17px] font-semibold leading-tight text-white break-normal hyphens-manual [overflow-wrap:normal]" lang="de">
             {trainingTitleLines.top}
             {trainingTitleLines.bottom ? ` ${trainingTitleLines.bottom}` : ''}
           </p>
@@ -541,7 +541,7 @@ export function CompactEventCard({
         </div>
 
         <div className="relative z-[1] min-w-0 overflow-hidden py-0.5">
-          <p className="line-clamp-2 overflow-hidden text-[18px] font-semibold leading-[1.05] text-white break-words [overflow-wrap:anywhere]" lang="de">
+          <p className="line-clamp-2 overflow-hidden text-[18px] font-semibold leading-[1.05] text-white break-normal hyphens-manual [overflow-wrap:normal]" lang="de">
             {trainingTitleLines.top}
             {trainingTitleLines.bottom ? ` ${trainingTitleLines.bottom}` : ''}
           </p>
