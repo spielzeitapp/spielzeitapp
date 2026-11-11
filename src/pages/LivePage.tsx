@@ -23,7 +23,7 @@ type LiveMatchRow = {
 /**
  * Haupt-Liveticker unter /app/live: roter LiveMatchScreen für alle Rollen (Trainer vs. Zuschauer nur Berechtigung).
  * Ohne ?matchId: bei genau einem live-Match wird derselbe Screen genutzt (intern erste Live-Zeile); bei mehreren zuerst Auswahl.
- * Turnierspiele: Match Center zeigt Live-Card mit CTA statt Auto-Sprung in den Liveticker.
+ * Laufende Turnierspiele öffnen ebenfalls direkt den Liveticker.
  */
 export const LivePage: React.FC = () => {
   const { effectiveRole, selectedTeamSeasonId: teamSeasonId } = useSession();
@@ -257,9 +257,9 @@ export const LivePage: React.FC = () => {
   }
 
   const rows = liveMatches ?? [];
-  const isFan = effectiveRole === 'fan';
+  const isFan = !['trainer', 'head_coach', 'co_trainer', 'admin'].includes(effectiveRole ?? '');
 
-  if (rows.length === 0 || tournamentLiveMatchId) {
+  if (rows.length === 0) {
     return (
       <MatchCenterIdleView
         isFan={isFan}

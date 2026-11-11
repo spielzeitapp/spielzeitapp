@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+import { useInternalBasePath } from '../../demo/demoPaths';
 import { PublicTeamTournamentPage } from '../../pages/public/PublicTeamTournamentPage';
 import { TournamentConnectedPlan, TournamentOpponentOutlook, officialTournamentStandings, type ConnectedTournament } from './TournamentConnectedPlan';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -156,6 +158,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   onOfficialTournamentUrlUpdated,
   onTournamentCompleted,
 }) => {
+  const basePath = useInternalBasePath();
   const [connectedPlan, setConnectedPlan] = useState<ConnectedTournament | null>(null);
   const [activeTab, setActiveTab] = useState<TournamentCenterTabId>('games');
   const [participants, setParticipants] = useState<TournamentParticipant[]>([]);
@@ -1204,7 +1207,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
           renderMatchActions={match=>{
             const own = ownSlots.find(slot=>slot.match_id===match.id);
             if (!own?.match_id) return null;
-            return <div className="flex flex-wrap gap-2"><button className={addButtonClass} onClick={()=>onOpenMatchPreparation(own.match_id!)}>{canManage ? 'Aufstellung & Liveticker öffnen' : 'Aufstellung ansehen'}</button>{canManage ? <button className={addButtonClass} onClick={()=>void handleRemoveSlot(own.match_id!)}>Spiel entfernen</button> : null}</div>;
+            return <div className="flex flex-wrap gap-2">{match.status === 'live' ? <Link className={addButtonClass} to={`${basePath}/live?matchId=${encodeURIComponent(own.match_id!)}`}>Liveticker ansehen</Link> : null}<button className={addButtonClass} onClick={()=>onOpenMatchPreparation(own.match_id!)}>{canManage ? 'Aufstellung & Liveticker öffnen' : 'Aufstellung ansehen'}</button>{canManage ? <button className={addButtonClass} onClick={()=>void handleRemoveSlot(own.match_id!)}>Spiel entfernen</button> : null}</div>;
           }} />
         {canManage ? <button type="button" className={addButtonClass} onClick={openMatchModal}><Plus className="h-4 w-4"/>Turnierspiel hinzufügen</button> : null}
       </> : null}

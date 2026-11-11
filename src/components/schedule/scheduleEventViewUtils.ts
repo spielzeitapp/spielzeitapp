@@ -81,7 +81,7 @@ export function formatTimeHHmmDe(iso: unknown): string {
 
 export function eventNotesTitle(notes: unknown): string | null {
   const t = safeText(notes)
-    .split(' · ')
+    .split(/\r?\n| · /)
     .map((p) => p.trim())
     .filter(Boolean)[0];
   return t || null;
