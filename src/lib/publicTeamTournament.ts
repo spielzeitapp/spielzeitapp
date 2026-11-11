@@ -332,6 +332,7 @@ export async function fetchPublicTeamTournamentPage(
   try {
     const res = await fetch(
       `/api/tournament-plan-analyze?publicTournamentId=${encodeURIComponent(id)}`,
+      { cache: 'no-store' },
     );
     const json = (await res.json().catch(() => ({}))) as {
       ok?: boolean;

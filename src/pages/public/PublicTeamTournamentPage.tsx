@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { MapPin, Radio, RefreshCw, Share2 } from 'lucide-react';
 import {
   fetchPublicTeamTournamentPage,
@@ -174,22 +174,40 @@ function ResultRow({ match, ourLogoUrl }: { match: PublicTeamTournamentMatchDto;
 
 export function PublicTeamTournamentPage(): React.ReactElement {
   const { publicId = '' } = useParams<{ publicId: string }>();
+  const location = useLocation();
+  const candidate = (location.state as {returnTo?: unknown} | null)?.returnTo;
+  const returnTo = typeof candidate === 'string' && /^\/(app|demo|manager)\//.test(candidate) ? candidate : `/app/events/${encodeURIComponent(publicId)}`;
+  const requestId = useRef(0);
   const [page, setPage] = useState<PublicTeamTournamentPageDto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [shareHint, setShareHint] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    const request = ++requestId.current;
+    if (!silent) setLoading(true);
     setError(null);
     const result = await fetchPublicTeamTournamentPage(publicId);
-    setPage(result.page);
+    if (request !== requestId.current) return;
+    if (result.page || !silent) setPage(result.page);
     setError(result.error);
     setLoading(false);
   }, [publicId]);
 
   useEffect(() => {
     void load();
+    const refresh = () => { if (document.visibilityState !== 'hidden') void load(true); };
+    const timer = window.setInterval(refresh, 20_000);
+    window.addEventListener('focus', refresh);
+    window.addEventListener('online', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      requestId.current++;
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('online', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
   }, [load]);
 
   const onShare = async () => {
@@ -209,7 +227,8 @@ export function PublicTeamTournamentPage(): React.ReactElement {
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#fff5f5_42%,#ffffff_100%)] text-slate-900">
-      <div className="mx-auto flex w-full max-w-lg flex-col px-4 pb-16 pt-5 sm:max-w-xl sm:px-6">
+      <div className="mx-auto flex w-full max-w-lg flex-col px-4 pb-16 pt-[max(1.25rem,env(safe-area-inset-top))] sm:max-w-xl sm:px-6">
+        <Link to={returnTo} className="mb-4 inline-flex min-h-11 items-center self-start rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800">← Zurück zum Turnier</Link>
         <header className="mb-5 flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-red-600">SpielzeitApp</p>
@@ -235,11 +254,12 @@ export function PublicTeamTournamentPage(): React.ReactElement {
           </p>
         ) : null}
 
+        {error && page ? <p role="status" className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Aktualisierung gerade nicht möglich. Der letzte geladene Stand bleibt sichtbar.</p> : null}
         {loading ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
             Turnierseite wird geladen…
           </div>
-        ) : error || !page ? (
+        ) : !page ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
             <p className="text-[16px] font-semibold text-slate-900">Seite nicht verfügbar</p>
             <p className="mt-2 text-[14px] leading-relaxed text-slate-600">
@@ -335,8 +355,8 @@ export function PublicTeamTournamentPage(): React.ReactElement {
               Nur Spiele von {page.teamName}
             </p>
             <p className="mt-3 text-center text-[12px]">
-              <Link to="/login" className="font-semibold text-red-600 hover:underline">
-                Zur App anmelden
+              <Link to={returnTo} className="font-semibold text-red-600 hover:underline">
+                Zur App
               </Link>
             </p>
           </>
