@@ -6,7 +6,6 @@ import {
   tournamentSlotScoreDisplay,
   type TournamentMatchSlotView,
 } from '../../lib/tournamentPlan';
-import { dsStatusChipClass } from '../../lib/premiumDesignSystem';
 import { TC_CARD, TC_CARD_INNER, TC_SECTION_LABEL } from './tournamentCenterStyles';
 import { pickLastFinishedTournamentSlots } from './tournamentCenterUtils';
 
@@ -54,7 +53,7 @@ export function TournamentLastResultsCard({ slots, loading = false, onOpen }: Pr
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <span className="text-[17px] font-bold tabular-nums text-white">{scoreLine}</span>
-                    
+
                   </div>
                 </button>
               </li>

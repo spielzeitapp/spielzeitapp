@@ -182,6 +182,8 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
   dto.finalRanking = (analysis.finalStandings ?? []).map(r => ({rank:Number(r.rank),teamName:String(r.teamName)}));
   dto.schedule = (analysis.rawMatches ?? []).map(m => ({id:String(m.externalMatchId ?? ''),homeTeam:String(m.homeTeam),awayTeam:String(m.awayTeam),time:String(m.kickoffTimeHHmm),phase:String(m.phase),groupLabel:m.groupLabel == null ? null : String(m.groupLabel),roundLabel:m.roundLabel == null ? null : String(m.roundLabel),homeGoals:m.hasResult ? Number(m.homeGoals) : null,awayGoals:m.hasResult ? Number(m.awayGoals) : null}));
   dto.syncedAt = sync?.synced_at ?? null;
+  const originalDate = String(event.notes ?? '').match(/^Turnierdatum: (20\d{2}-\d{2}-\d{2})$/m)?.[1];
+  if (originalDate) dto.dateLabel = new Intl.DateTimeFormat('de-AT',{timeZone:'Europe/Vienna',weekday:'short',day:'2-digit',month:'short',year:'numeric'}).format(new Date(originalDate+'T12:00:00Z'));
   const {data: teamClub} = await admin.from('teams').select('club_id').eq('id',teamRow?.id).maybeSingle();
   const {data: club} = teamClub?.club_id ? await admin.from('clubs').select('logo_url,accent_color').eq('id',teamClub.club_id).maybeSingle() : {data:null};
   dto.teamLogoUrl = club?.logo_url ?? null;
