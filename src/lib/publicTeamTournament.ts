@@ -28,7 +28,39 @@ export type PublicTeamTournamentMatchDto = {
   isLive: boolean;
 };
 
+export type PublicTournamentPlayer = {
+  name: string;
+  firstName: string;
+  lastName: string;
+  number: number | null;
+  imageUrl: string | null;
+};
+
+export type PublicTournamentMatchDetails = {
+  id: string;
+  formation: string | null;
+  startingPlayers: Array<{name:string;position:string}>;
+  benchPlayers: string[];
+  events: Array<{id:string;type:'start'|'resume'|'pause'|'end'|'goal'|'goal_away'|'substitution'|'sub_in'|'sub_out'|'extra_player_on'|'extra_player_off';second:number;playerName:string|null;otherPlayerName:string|null;removedPlayerName:string|null}>;
+  elapsedSeconds: number;
+  timingAvailable: boolean;
+  unavailable: boolean;
+};
+
 export type PublicTeamTournamentPageDto = {
+  matchDetails?: PublicTournamentMatchDetails[];
+  fanPlayers?: PublicTournamentPlayer[];
+  fanRosterExample?: boolean;
+  teamLogos?: Record<string,string>;
+  fanRoster?: string[];
+  scorers?: Array<{name:string;goals:number;time:string;example?:boolean}>;
+  ownParticipantName?: string | null;
+  seasonLabel?: string | null;
+  accentColor?: string;
+  syncedAt?: string | null;
+  groupTables?: Array<{groupLabel:string;rows:Array<{teamName:string;rank:number;played:number;goalsFor:number;goalsAgainst:number;points:number}>}>;
+  finalRanking?: Array<{rank:number;teamName:string}>;
+  schedule?: Array<{id:string;homeTeam:string;awayTeam:string;time:string;phase:string;groupLabel:string|null;roundLabel:string|null;homeGoals:number|null;awayGoals:number|null}>;
   publicId: string;
   tournamentName: string;
   dateLabel: string;

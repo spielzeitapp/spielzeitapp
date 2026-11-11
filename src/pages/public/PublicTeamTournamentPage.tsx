@@ -1,183 +1,36 @@
+import { TournamentFinalRanking } from '../../components/tournament/TournamentFinalRanking';
+import { PublicTournamentMatchView, type PublicMatchView } from '../../components/tournament/PublicTournamentMatchView';
+import { TournamentFanPlayerCard } from '../../components/tournament/TournamentFanPlayerCard';
+import { TournamentFanFixture, FanTeamLogo } from '../../components/tournament/TournamentFanFixture';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
-import { MapPin, Radio, RefreshCw, Share2 } from 'lucide-react';
+import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { MapPin, Moon, Sun, Share2 } from 'lucide-react';
 import {
   fetchPublicTeamTournamentPage,
   sharePublicTeamTournamentPage,
-  type PublicTeamTournamentMatchDto,
   type PublicTeamTournamentPageDto,
+  type PublicTournamentPlayer,
 } from '../../lib/publicTeamTournament';
-import { getOurTeamLogoUrl } from '../../lib/teamLogos';
 import { TournamentClubLogo } from '../../components/tournament/TournamentClubLogo';
-
-function TeamMark({
-  name,
-  logoUrl,
-  highlight,
-  size = 'regular',
-}: {
-  name: string;
-  logoUrl?: string | null;
-  highlight?: boolean;
-  size?: 'featured' | 'regular';
-}) {
-  const featured = size === 'featured';
-  return (
-    <div
-      className={`flex min-w-0 flex-1 flex-col items-center text-center ${
-        featured ? 'gap-2.5' : 'gap-2'
-      }`}
-    >
-      <TournamentClubLogo
-        name={name}
-        logoUrl={logoUrl}
-        size={featured ? 'xl' : 'lg'}
-        tone="light"
-      />
-      <p
-        className={`line-clamp-2 font-semibold leading-snug ${
-          featured ? 'text-[13px] sm:text-[14px]' : 'text-[12px] sm:text-[13px]'
-        } ${highlight ? 'text-slate-950' : 'text-slate-700'}`}
-      >
-        {name}
-      </p>
-    </div>
-  );
-}
-
-function StatusPill({
-  status,
-  label,
-}: {
-  status: PublicTeamTournamentMatchDto['status'] | PublicTeamTournamentPageDto['tournamentStatus'];
-  label: string;
-}) {
-  const cls =
-    status === 'live'
-      ? 'border-red-200 bg-red-50 text-red-700'
-      : status === 'finished'
-        ? 'border-slate-200 bg-slate-100 text-slate-600'
-        : status === 'canceled'
-          ? 'border-amber-200 bg-amber-50 text-amber-800'
-          : 'border-slate-200 bg-white text-slate-600';
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${cls}`}
-    >
-      {status === 'live' ? <Radio className="h-3 w-3" aria-hidden /> : null}
-      {label}
-    </span>
-  );
-}
-
-function MatchCard({
-  match,
-  featured,
-  ourLogoUrl,
-}: {
-  match: PublicTeamTournamentMatchDto;
-  featured?: boolean;
-  ourLogoUrl: string | null;
-}) {
-  const scoreReady = match.scoreOur != null && match.scoreOpp != null;
-  const markSize = featured ? 'featured' : 'regular';
-  return (
-    <article
-      className={`rounded-2xl border bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-5 ${
-        featured
-          ? 'border-red-200 shadow-[0_8px_28px_rgba(220,38,38,0.08)]'
-          : 'border-slate-200/90'
-      }`}
-    >
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          {featured ? (
-            <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-red-600">
-              Nächstes Spiel
-            </span>
-          ) : null}
-          <StatusPill status={match.status} label={match.statusLabel} />
-        </div>
-        <p
-          className={`font-bold tabular-nums leading-none text-slate-950 ${
-            featured ? 'text-[26px] sm:text-[30px]' : 'text-[24px] sm:text-[28px]'
-          }`}
-        >
-          {match.kickoffTimeLabel}
-        </p>
-      </div>
-
-      <div className={`flex items-start ${featured ? 'gap-2.5 sm:gap-3.5' : 'gap-2 sm:gap-3'}`}>
-        <TeamMark
-          name={match.homeName}
-          logoUrl={match.ourIsHome ? ourLogoUrl : undefined}
-          highlight={match.ourIsHome}
-          size={markSize}
-        />
-        <div
-          className={`flex shrink-0 flex-col items-center justify-center ${
-            featured ? 'w-[4.25rem] pt-5 sm:w-20 sm:pt-6' : 'w-14 pt-4 sm:w-16 sm:pt-5'
-          }`}
-        >
-          {scoreReady ? (
-            <p
-              className={`font-bold tabular-nums text-slate-950 ${
-                featured ? 'text-[26px] sm:text-[30px]' : 'text-[22px] sm:text-[26px]'
-              }`}
-            >
-              {match.scoreOur}:{match.scoreOpp}
-            </p>
-          ) : (
-            <p className={`font-semibold text-slate-300 ${featured ? 'text-[18px]' : 'text-[16px]'}`}>
-              vs
-            </p>
-          )}
-        </div>
-        <TeamMark
-          name={match.awayName}
-          logoUrl={!match.ourIsHome ? ourLogoUrl : undefined}
-          highlight={!match.ourIsHome}
-          size={markSize}
-        />
-      </div>
-
-      <div className="mt-3.5 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-slate-500">
-        {match.pitch ? <span>Platz: {match.pitch}</span> : null}
-        {match.groupLabel ? <span>Gruppe {match.groupLabel}</span> : null}
-        {match.phase && match.phase !== 'group' && match.phase !== 'unknown' ? (
-          <span className="capitalize">{match.phase}</span>
-        ) : null}
-      </div>
-    </article>
-  );
-}
-
-function ResultRow({ match, ourLogoUrl }: { match: PublicTeamTournamentMatchDto; ourLogoUrl: string | null }) {
-  return (
-    <li className="flex items-center gap-3 rounded-xl border border-slate-200/90 bg-white px-3 py-3">
-      <div className="w-14 shrink-0 text-center">
-        <p className="text-[18px] font-bold tabular-nums text-slate-900">{match.kickoffTimeLabel}</p>
-      </div>
-      <div className="flex min-w-0 flex-1 items-center gap-2">
-        <TournamentClubLogo name={match.ourTeamName} logoUrl={ourLogoUrl} size="sm" tone="light" />
-        <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 text-[13px] font-semibold leading-snug text-slate-900">{match.ourTeamName}</p>
-          <p className="line-clamp-2 text-[13px] leading-snug text-slate-600">{match.opponentName}</p>
-        </div>
-      </div>
-      <p className="shrink-0 text-[20px] font-bold tabular-nums text-slate-950">
-        {match.scoreOur ?? 0}:{match.scoreOpp ?? 0}
-      </p>
-    </li>
-  );
-}
 
 export function PublicTeamTournamentPage(): React.ReactElement {
   const { publicId = '' } = useParams<{ publicId: string }>();
   const location = useLocation();
   const candidate = (location.state as {returnTo?: unknown} | null)?.returnTo;
   const returnTo = typeof candidate === 'string' && /^\/(app|demo|manager)\//.test(candidate) ? candidate : `/app/events/${encodeURIComponent(publicId)}`;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const matchId = searchParams.get('spiel');
+  const viewRaw = searchParams.get('ansicht');
+  const matchView: PublicMatchView = viewRaw === 'formation' || viewRaw === 'ticker' || viewRaw === 'stats' ? viewRaw : 'overview';
   const requestId = useRef(0);
+  const [theme, setTheme] = useState<'day' | 'night'>(() => {
+    try { return localStorage.getItem('sz:public-tournament-theme:v2') === 'night' ? 'night' : 'day'; }
+    catch { return 'day'; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('sz:public-tournament-theme:v2', theme); } catch { /* optional preference */ }
+  }, [theme]);
+  const toggleTheme = () => setTheme(current => current === 'night' ? 'day' : 'night');
   const [page, setPage] = useState<PublicTeamTournamentPageDto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -189,7 +42,7 @@ export function PublicTeamTournamentPage(): React.ReactElement {
     setError(null);
     const result = await fetchPublicTeamTournamentPage(publicId);
     if (request !== requestId.current) return;
-    if (result.page || !silent) setPage(result.page);
+    if (result.page) setPage(result.page);
     setError(result.error);
     setLoading(false);
   }, [publicId]);
@@ -223,145 +76,58 @@ export function PublicTeamTournamentPage(): React.ReactElement {
     window.setTimeout(() => setShareHint(null), 2200);
   };
 
-  const ourLogo = page?.teamLogoUrl || getOurTeamLogoUrl();
-
-  return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#fff5f5_42%,#ffffff_100%)] text-slate-900">
-      <div className="mx-auto flex w-full max-w-lg flex-col px-4 pb-16 pt-[max(1.25rem,env(safe-area-inset-top))] sm:max-w-xl sm:px-6">
-        <Link to={returnTo} className="mb-4 inline-flex min-h-11 items-center self-start rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800">← Zurück zum Turnier</Link>
-        <header className="mb-5 flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-red-600">SpielzeitApp</p>
-            <h1 className="mt-1 text-[22px] font-bold leading-tight tracking-tight text-slate-950 sm:text-[26px]">
-              Turnierseite
-            </h1>
-          </div>
-          {page ? (
-            <button
-              type="button"
-              onClick={() => void onShare()}
-              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-red-200 bg-white px-3.5 text-[13px] font-semibold text-red-700 shadow-sm touch-manipulation"
-            >
-              <Share2 className="h-4 w-4" aria-hidden />
-              Teilen
-            </button>
-          ) : null}
-        </header>
-
-        {shareHint ? (
-          <p className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-800" role="status">
-            {shareHint}
-          </p>
-        ) : null}
-
-        {error && page ? <p role="status" className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Aktualisierung gerade nicht möglich. Der letzte geladene Stand bleibt sichtbar.</p> : null}
-        {loading ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-            Turnierseite wird geladen…
-          </div>
-        ) : !page ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-            <p className="text-[16px] font-semibold text-slate-900">Seite nicht verfügbar</p>
-            <p className="mt-2 text-[14px] leading-relaxed text-slate-600">
-              {error || 'Dieser Link ist ungültig oder das Turnier wurde nicht freigegeben.'}
-            </p>
-            <button
-              type="button"
-              onClick={() => void load()}
-              className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 text-[13px] font-semibold text-slate-800"
-            >
-              <RefreshCw className="h-4 w-4" aria-hidden />
-              Erneut versuchen
-            </button>
-          </div>
-        ) : (
-          <>
-            <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-              <div className="flex items-start gap-3">
-                <TournamentClubLogo name={page.teamName} logoUrl={ourLogo} size="lg" tone="light" />
-                <div className="min-w-0 flex-1">
-                  <div className="mb-1 flex flex-wrap items-center gap-2">
-                    {page.ageGroupLabel ? (
-                      <span className="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600">
-                        {page.ageGroupLabel}
-                      </span>
-                    ) : null}
-                    <StatusPill
-                      status={page.tournamentStatus}
-                      label={page.tournamentStatusLabel}
-                    />
-                  </div>
-                  <p className="text-[15px] font-bold text-slate-950">{page.teamName}</p>
-                  <h2 className="mt-1 text-[20px] font-bold leading-snug text-slate-950">
-                    {page.tournamentName}
-                  </h2>
-                  <div className="mt-2 space-y-1 text-[13px] text-slate-600">
-                    {page.dateLabel ? <p>{page.dateLabel}</p> : null}
-                    {page.venue ? (
-                      <p className="inline-flex items-start gap-1.5">
-                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-500" aria-hidden />
-                        <span>{page.venue}</span>
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {page.allMatches.length === 0 ? (
-              <section className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white/80 p-6 text-center">
-                <p className="text-[15px] font-semibold text-slate-900">Noch kein Spielplan</p>
-                <p className="mt-1 text-[13px] text-slate-600">
-                  Für unser Team sind noch keine Turnierspiele hinterlegt.
-                </p>
-              </section>
-            ) : (
-              <>
-                {page.nextMatch ? (
-                  <section className="mt-5 space-y-3">
-                    <MatchCard match={page.nextMatch} featured ourLogoUrl={ourLogo} />
-                  </section>
-                ) : null}
-
-                {page.upcomingMatches.length > 0 ? (
-                  <section className="mt-6">
-                    <h3 className="mb-3 text-[12px] font-bold uppercase tracking-[0.12em] text-slate-500">
-                      Weitere Spiele
-                    </h3>
-                    <div className="space-y-3">
-                      {page.upcomingMatches.map((m) => (
-                        <MatchCard key={m.id} match={m} ourLogoUrl={ourLogo} />
-                      ))}
-                    </div>
-                  </section>
-                ) : null}
-
-                {page.results.length > 0 ? (
-                  <section className="mt-6">
-                    <h3 className="mb-3 text-[12px] font-bold uppercase tracking-[0.12em] text-slate-500">
-                      Ergebnisse
-                    </h3>
-                    <ul className="space-y-2">
-                      {page.results.map((m) => (
-                        <ResultRow key={m.id} match={m} ourLogoUrl={ourLogo} />
-                      ))}
-                    </ul>
-                  </section>
-                ) : null}
-              </>
-            )}
-
-            <p className="mt-8 text-center text-[11px] text-slate-400">
-              Nur Spiele von {page.teamName}
-            </p>
-            <p className="mt-3 text-center text-[12px]">
-              <Link to={returnTo} className="font-semibold text-red-600 hover:underline">
-                Zur App
-              </Link>
-            </p>
-          </>
-        )}
-      </div>
-    </div>
-  );
+  const card = 'rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] shadow-sm p-4';
+  const [tab, setTab] = useState('ours');
+  const heading = 'mb-3 text-[15px] font-extrabold uppercase tracking-[.14em] text-[var(--t-accent)]';
+  const scorerTotals = Object.values((page?.scorers ?? []).reduce((all,s)=>{const row=all[s.name]??{name:s.name,goals:0};row.goals+=s.goals;all[s.name]=row;return all;},{} as Record<string,{name:string;goals:number}>)).sort((a,b)=>b.goals-a.goals);
+  const profileFor = (name: string): PublicTournamentPlayer => page?.fanPlayers?.find(player => player.name === name) ?? {
+    name, firstName: name.split(/\s+/)[0], lastName: name.split(/\s+/).slice(1).join(' '), number: null, imageUrl: null,
+  };
+  const rosterPlayers = (page?.fanRoster ?? []).map(profileFor).sort((a,b) => (a.number ?? Infinity) - (b.number ?? Infinity) || a.name.localeCompare(b.name, 'de'));
+  const selectedMatch = page?.allMatches.find(match => match.id === matchId);
+  const fixtures = (page?.schedule ?? []).filter(m => tab !== 'final' || m.phase !== 'group');
+  const renderScheduledFixture = (fixture: NonNullable<PublicTeamTournamentPageDto['schedule']>[number], index: number) => {
+    if (!page) return null;
+    const own = (fixture.homeTeam === page.ownParticipantName || fixture.awayTeam === page.ownParticipantName)
+      ? page.allMatches.find(match => match.kickoffTimeLabel === fixture.time) : null;
+    const content = <TournamentFanFixture home={fixture.homeTeam} away={fixture.awayTeam} homeGoals={fixture.homeGoals} awayGoals={fixture.awayGoals} time={fixture.time} phase={fixture.roundLabel ?? (fixture.phase === 'group' ? (fixture.groupLabel ? `Gruppe ${fixture.groupLabel}` : 'Gruppenspiel') : 'Finalrunde')} logos={page.teamLogos} ownName={page.ownParticipantName} ownLogo={page.teamLogoUrl} scorers={own ? page.scorers?.filter(s => s.time === fixture.time) : []}/>;
+    return own ? <Link key={fixture.id || index} to={`?spiel=${encodeURIComponent(own.id)}`} className="block rounded-2xl" aria-label={`${own.opponentName} · Zum Spiel, Aufstellung und Spielverlauf`}>{content}<p className="px-2 pt-2 text-right text-sm font-bold text-[var(--t-accent)]">Zum Spiel →</p></Link> : <React.Fragment key={fixture.id || index}>{content}</React.Fragment>;
+  };
+  return <div data-theme={theme} className={`public-tournament-page min-h-screen bg-[var(--t-bg)] text-[var(--t-text)]`} style={{
+      '--t-accent': page?.accentColor ?? '#c82333',
+      '--t-bg': theme === 'day' ? '#f7f8fa' : '#000000',
+      '--t-surface': theme === 'day' ? '#ffffff' : '#0d0d10',
+      '--t-text': theme === 'day' ? '#13151b' : '#ffffff',
+      '--t-muted': theme === 'day' ? '#526071' : '#b5b5bc',
+      '--t-border': theme === 'day' ? 'color-mix(in srgb, var(--t-accent) 18%, transparent)' : 'color-mix(in srgb, var(--t-accent) 28%, transparent)',
+      '--t-fixture': theme === 'day' ? 'linear-gradient(135deg,#ffffff,#fff1f2)' : 'linear-gradient(135deg,#121114,#270e15)',
+      '--t-player-badge': theme === 'day' ? '#f1f5f9' : 'rgba(0,0,0,.25)',
+      '--t-warning': theme === 'day' ? '#854d0e' : '#fcd34d',
+      colorScheme: theme === 'day' ? 'light' : 'dark',
+    } as React.CSSProperties}>
+    <main className="mx-auto max-w-2xl space-y-4 px-4 pb-12 pt-[max(1.25rem,env(safe-area-inset-top))]">
+      <header className="flex items-center justify-between gap-2">
+        <Link to={selectedMatch ? location.pathname : returnTo} state={location.state} aria-label="Zurück zum Turnier" className="inline-flex min-h-11 min-w-0 items-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2 text-sm font-bold">← Zurück<span className="ml-1 hidden min-[380px]:inline">zum Turnier</span></Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <button type="button" onClick={()=>void onShare()} className="flex h-11 items-center gap-2 rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 text-sm font-bold"><Share2 size={18} aria-hidden/>Teilen</button>
+          <button type="button" onClick={toggleTheme} aria-label={theme === 'night' ? 'Tagmodus einschalten' : 'Nachtmodus einschalten'} title={theme === 'night' ? 'Tagmodus einschalten' : 'Nachtmodus einschalten'} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)]">{theme === 'night' ? <Sun size={20} aria-hidden/> : <Moon size={20} aria-hidden/>}</button>
+        </div>
+      </header>
+      <p role="status" className="text-sm text-[var(--t-muted)]">{shareHint}</p>
+      {loading ? <p>Turnier wird geladen…</p> : !page ? <section className={card}><p>{error || 'Turnier nicht verfügbar'}</p><button onClick={()=>void load()} className="mt-3 underline">Erneut laden</button></section> : <>
+        {selectedMatch ? <PublicTournamentMatchView page={page} match={selectedMatch} view={matchView} onView={view=>setSearchParams({spiel:selectedMatch.id,ansicht:view})}/> : <>
+        <section className={card}><p className={heading}>SpielzeitApp · Turnierseite</p><div className="flex items-start gap-4"><TournamentClubLogo name={page.teamName} logoUrl={page.teamLogoUrl} size="lg"/><div className="min-w-0"><p className="text-sm text-[var(--t-muted)]">{[page.teamName,page.ageGroupLabel,page.seasonLabel].filter(Boolean).join(' · ')}</p><h1 className="mt-2 text-2xl font-extrabold leading-tight">{page.tournamentName}</h1><p className="mt-3 text-base text-[var(--t-muted)]">{page.dateLabel}</p><p className="mt-2 flex gap-2 text-base text-[var(--t-muted)]"><MapPin size={18} className="shrink-0 text-[var(--t-accent)]"/>{page.venue}</p></div></div><p className="mt-3 text-sm text-[var(--t-muted)]">{page.tournamentStatusLabel}{page.syncedAt ? ` · Aktualisiert ${new Date(page.syncedAt).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'})}` : ''}</p></section>
+        {error?<p role="status" className="text-[var(--t-warning)]">Aktualisierung nicht möglich – letzter geladener Stand.</p>:null}
+        {page.allMatches.find(m => m.status === 'live') ? <section aria-label="Aktuelles Livespiel" aria-live="polite"><h2 className={heading}>Jetzt live</h2>{page.allMatches.filter(m => m.status === 'live').map(m => <TournamentFanFixture key={m.id} home={page.ownParticipantName || m.ourTeamName} away={m.opponentName} status={m.status} homeGoals={m.scoreOur ?? 0} awayGoals={m.scoreOpp ?? 0} time={m.kickoffTimeLabel} phase={m.groupLabel ? `Gruppe ${m.groupLabel}` : 'Turnierspiel'} logos={page.teamLogos} ownName={page.ownParticipantName} ownLogo={page.teamLogoUrl}/>)}</section> : null}
+        <nav aria-label="Turnierbereiche" className="grid grid-cols-2 gap-2 rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-2">{[['ours','Unsere Spiele'],['games','Alle Spiele'],['tables','Tabellen'],['final','Finalrunde'],['scorers','Torschützen'],['roster','Unser Team']].map(([id,label])=><button key={id} aria-pressed={tab===id} onClick={()=>setTab(id)} className={`min-h-12 rounded-xl px-2 text-[15px] font-bold ${tab===id?'bg-[var(--t-accent)] text-white':'text-[var(--t-muted)]'}`}>{label}</button>)}</nav>
+        {tab==='ours'?<><h2 className={heading}>Unsere Spiele</h2>{!page.allMatches.length?<p className={card}>Noch keine Spiele hinterlegt.</p>:page.allMatches.map(m=><Link key={m.id} to={`?spiel=${encodeURIComponent(m.id)}`} className="block space-y-2 rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--t-accent)]" aria-label={`${m.opponentName} · Zum Spiel, Aufstellung und Spielverlauf`}><TournamentFanFixture home={page.ownParticipantName || m.ourTeamName} away={m.opponentName} status={m.status} homeGoals={m.scoreOur} awayGoals={m.scoreOpp} time={m.kickoffTimeLabel} phase={m.phase==='group'?(m.groupLabel ? `Gruppe ${m.groupLabel}` : 'Gruppenspiel'):m.phase==='unknown'?'Turnierspiel':'Platzierungsrunde'} logos={page.teamLogos} ownName={page.ownParticipantName} ownLogo={page.teamLogoUrl} scorers={page.scorers?.filter(s=>s.time===m.kickoffTimeLabel)}/><p className="px-2 pb-2 text-right text-sm font-bold text-[var(--t-accent)]">Zum Spiel · Aufstellung & Spielverlauf →</p></Link>)}</>:null}
+        {tab==='tables'?<>{!(page.groupTables?.length)?<p className={card}>Noch keine Gruppentabellen vorhanden.</p>:page.groupTables.map(g=><section className={card} key={g.groupLabel}><h2 className={heading}>Gruppe {g.groupLabel}</h2><table className="w-full table-fixed text-[15px]"><thead className="text-xs text-[var(--t-muted)]"><tr><th className="w-7 py-2 text-left">#</th><th className="text-left">Mannschaft</th><th className="w-8">Sp.</th><th className="w-12">Tore</th><th className="w-9">Pkt.</th></tr></thead><tbody>{g.rows.map(r=><tr key={r.teamName} className="border-t border-[var(--t-border)]"><td className="py-3 font-bold">{r.rank}</td><td className="py-3 pr-2 font-semibold break-words"><span className="flex items-center gap-2">{<FanTeamLogo name={r.teamName} logos={page.teamLogos} ownName={page.ownParticipantName} ownLogo={page.teamLogoUrl} small/>}{r.teamName}</span></td><td className="text-center tabular-nums">{r.played}</td><td className="text-center tabular-nums">{r.goalsFor}:{r.goalsAgainst}</td><td className="text-center font-extrabold tabular-nums">{r.points}</td></tr>)}</tbody></table></section>)}<p className="text-sm text-[var(--t-muted)]">Offizielle Veranstaltertabellen</p></>:null}
+        {tab==='games'||tab==='final'?<><h2 className={heading}>{tab==='final'?'Final- und Platzierungsspiele':'Gesamter Spielplan'}</h2>{!fixtures.length?<p className={card}>Noch keine Spiele hinterlegt.</p>:fixtures.map(renderScheduledFixture)}{tab==='final'&&page.finalRanking?.length?<TournamentFinalRanking ranking={page.finalRanking} logos={page.teamLogos} ownName={page.ownParticipantName || page.teamName} ownLogo={page.teamLogoUrl}/>:null}</>:null}
+        {tab==='scorers'?<section className={card}><h2 className={heading}>Unsere Torschützenliste</h2>{page.scorers?.some(s=>s.example)?<p className="mb-3 text-sm text-[var(--t-warning)]">TEST-Beispieldaten aus unserem Kader – keine bestätigten historischen Torschützen.</p>:null}{scorerTotals.length?<ol className="space-y-3">{scorerTotals.map((s,i)=><li key={s.name}><TournamentFanPlayerCard player={profileFor(s.name)} clubName={page.ownParticipantName || page.teamName} clubLogo={page.teamLogoUrl} goals={s.goals} rank={i+1}/></li>)}</ol>:<p>Noch keine Torschützen erfasst.</p>}</section>:null}
+        {tab==='roster'?<section className={card}><h2 className={heading}>Unser Team</h2>{page.fanRosterExample?<p className="mb-3 text-sm text-[var(--t-muted)]">TEST-Beispiel mit Bildern und Nummern aus unserem aktuellen Kader.</p>:null}{rosterPlayers.length?<ul className="space-y-3">{rosterPlayers.map(player=><li key={player.name}><TournamentFanPlayerCard player={player} clubName={page.ownParticipantName || page.teamName} clubLogo={page.teamLogoUrl}/></li>)}</ul>:<p>Der Turnierkader ist noch nicht festgelegt.</p>}</section>:null}
+        </>}
+        <Link to={returnTo} className="block rounded-full bg-[var(--t-accent)] px-5 py-4 text-center text-lg font-bold text-white">Zum Turniercenter in der App</Link>
+      </>}
+    </main>
+  </div>;
 }

@@ -1,3 +1,4 @@
+import { parseMeinTurnierplanModel, inferMeinTurnierplanPhase } from '../../server/lib/meinTurnierplanModel.js';
 import { isTeamAliasMatch } from './teamSeasonAliasMatch';
 import { safeOptionalText, safeText } from './safeText';
 import type { TournamentImportRecognition } from './teamSeasonAliases';
@@ -60,6 +61,15 @@ export type TournamentPlanImportRawMatch = {
   homeGoals: number | null;
   awayGoals: number | null;
   externalMatchId?: string | null;
+  homeConfirmed?: boolean;
+  awayConfirmed?: boolean;
+  homeSource?: { type: string; label: string; groupLabel?: string; rank?: number; externalMatchId?: string | null } | null;
+  awaySource?: { type: string; label: string; groupLabel?: string; rank?: number; externalMatchId?: string | null } | null;
+  homeCandidates?: string[];
+  awayCandidates?: string[];
+  homeProjection?: string | null;
+  awayProjection?: string | null;
+  roundLabel?: string | null;
 };
 
 export type TournamentPlanGroupSummary = {
@@ -80,6 +90,8 @@ export type TournamentPlanAnalysis = {
   groupSummaries: TournamentPlanGroupSummary[];
   teams: TournamentPlanImportTeam[];
   rawMatches: TournamentPlanImportRawMatch[];
+  groupStandings?: Array<{groupLabel: string; rows: Array<{teamName: string; rank: number; played: number; wins: number; draws: number; losses: number; goalsFor: number; goalsAgainst: number; goalDifference: number; points: number}>}>;
+  finalStandings?: Array<{rank: number; teamName: string}>;
 };
 
 export type TournamentPlanImportMatch = {
@@ -1484,29 +1496,7 @@ export function inferKnockoutPhaseFromMeinTurnierplan(
   sourceTeam1?: MeinTurnierplanSourceTeam,
   sourceTeam2?: MeinTurnierplanSourceTeam,
 ): TournamentMatchPhase {
-  const round = modeMapping?.round ?? 1;
-  const matchNo = modeMapping?.match ?? 0;
-  const rank1 = sourceTeam1?.rank ?? 0;
-  const rank2 = sourceTeam2?.rank ?? 0;
-  const maxRank = Math.max(rank1, rank2);
-  const minRank = Math.min(rank1, rank2);
-
-  if (round === 1 && matchNo === 1 && minRank === 1 && maxRank === 1) {
-    return 'final';
-  }
-  if (maxRank >= 5 || matchNo >= 5) {
-    return 'placement';
-  }
-  if (round >= 2) {
-    return 'semifinal';
-  }
-  if (maxRank <= 2 && matchNo <= 2) {
-    return 'semifinal';
-  }
-  if (maxRank === 3 || maxRank === 4) {
-    return 'placement';
-  }
-  return 'unknown';
+  return inferMeinTurnierplanPhase(modeMapping, sourceTeam1, sourceTeam2) as TournamentMatchPhase;
 }
 
 export function normalizeTeamMatchKey(name: unknown): string {
@@ -1756,118 +1746,7 @@ export function parseMeinTurnierplanHtml(html: string, tournamentId: string): To
 }
 
 export function parseMeinTurnierplanJson(data: unknown): TournamentPlanAnalysis | null {
-  const json = data as MeinTurnierplanJson;
-  if (!json?.participants || typeof json.participants !== 'object' || !Array.isArray(json.groups) || json.groups.length === 0) {
-    return null;
-  }
-
-  const participants = json.participants;
-  const teams: TournamentPlanImportTeam[] = [];
-  const groupSummaries: TournamentPlanGroupSummary[] = [];
-
-  for (let groupIndex = 0; groupIndex < json.groups.length; groupIndex += 1) {
-    const displayId = safeText(json.groups[groupIndex]?.displayId);
-    const label = displayId || String(groupIndex + 1);
-    const participantIds = json.groupParticipants?.[groupIndex] ?? [];
-    let teamCountInGroup = 0;
-
-    for (const participantId of participantIds) {
-      const teamName = participantName(participants, participantId);
-      if (!teamName) continue;
-      teams.push({ teamName, groupLabel: label });
-      teamCountInGroup += 1;
-    }
-
-    if (teamCountInGroup > 0) {
-      groupSummaries.push({ label, teamCount: teamCountInGroup });
-    }
-  }
-
-  if (teams.length === 0) return null;
-
-  const groupMinutes = Math.max(
-    1,
-    Math.min(120, Math.trunc(json.groupMatchDuration ?? 10) || 10),
-  );
-  const knockoutMinutes = Math.max(
-    1,
-    Math.min(120, Math.trunc(json.finalMatchDuration ?? json.groupMatchDuration ?? 10) || 10),
-  );
-  const courts = json.courts ?? [];
-  const rawMatches: TournamentPlanImportRawMatch[] = [];
-
-  for (const match of json.groupMatches ?? []) {
-    const homeTeam = participantName(participants, match.homeParticipant);
-    const awayTeam = participantName(participants, match.awayParticipant);
-    if (!homeTeam || !awayTeam) continue;
-
-    const groupIdx = match.groupId ?? 0;
-    const groupLabel = safeOptionalText(json.groups[groupIdx]?.displayId);
-    const court = courts[match.courtId ?? -1];
-    const pitchDisplay = safeOptionalText(court?.displayId);
-    const pitch = pitchDisplay ? `Platz ${pitchDisplay}` : null;
-
-    const scores = extractMeinTurnierplanMatchScores(match);
-    rawMatches.push({
-      homeTeam,
-      awayTeam,
-      groupLabel,
-      phase: 'group',
-      kickoffTimeHHmm: kickoffHHmmFromDateTime(match.dateAndTime),
-      plannedMinutes: groupMinutes,
-      pitch,
-      hasResult: scores.hasResult,
-      homeGoals: scores.homeGoals,
-      awayGoals: scores.awayGoals,
-      externalMatchId: `mtp-g-${match.homeParticipant ?? ''}-${match.awayParticipant ?? ''}-${kickoffHHmmFromDateTime(match.dateAndTime)}`,
-    });
-  }
-
-  const preliminaryMatchCount = rawMatches.length;
-
-  for (const match of json.finalMatches ?? []) {
-    const homeTeam = participantName(participants, match.homeParticipant);
-    const awayTeam = participantName(participants, match.awayParticipant);
-    if (!homeTeam || !awayTeam) continue;
-
-    const phase = inferKnockoutPhaseFromMeinTurnierplan(
-      match.modeMapping,
-      match.sourceTeam1,
-      match.sourceTeam2,
-    );
-    const court = courts[match.courtId ?? -1];
-    const pitchDisplay = safeOptionalText(court?.displayId);
-    const pitch = pitchDisplay ? `Platz ${pitchDisplay}` : null;
-    const scores = extractMeinTurnierplanMatchScores(match);
-
-    rawMatches.push({
-      homeTeam,
-      awayTeam,
-      groupLabel: null,
-      phase,
-      kickoffTimeHHmm: kickoffHHmmFromDateTime(match.dateAndTime),
-      plannedMinutes: knockoutMinutes,
-      pitch,
-      hasResult: scores.hasResult,
-      homeGoals: scores.homeGoals,
-      awayGoals: scores.awayGoals,
-      externalMatchId: `mtp-ko-${match.homeParticipant ?? ''}-${match.awayParticipant ?? ''}-${kickoffHHmmFromDateTime(match.dateAndTime)}`,
-    });
-  }
-
-  const knockoutMatchCount = rawMatches.length - preliminaryMatchCount;
-
-  return {
-    provider: 'meinturnierplan',
-    teamCount: teams.length,
-    groupCount: groupSummaries.length,
-    matchCount: rawMatches.length,
-    preliminaryMatchCount,
-    knockoutMatchCount,
-    groupSummaries,
-    teams,
-    rawMatches,
-  };
+  return parseMeinTurnierplanModel(data) as TournamentPlanAnalysis | null;
 }
 
 export function findOwnTeamInImport(
@@ -2847,6 +2726,14 @@ export async function importTournamentPlanFromAnalysis(params: {
       updatedResults: 0,
       error: 'Externer Turnierplan-Import ist in der Demo deaktiviert.',
     };
+  }
+
+  const { supabase: centralDb } = await import('./supabaseClient');
+  const { data: centralEvent } = await centralDb.from('events').select('official_tournament_url').eq('id', params.tournamentEventId).maybeSingle();
+  if (centralEvent?.official_tournament_url) {
+    const { error } = await centralDb.rpc('apply_tournament_plan', { p_event: params.tournamentEventId, p_url: centralEvent.official_tournament_url, p_analysis: params.analysis, p_own_team: null });
+    if (!error) return { importedTeams: params.analysis.teamCount, importedMatches: params.analysis.matchCount, skippedMatches: 0, updatedResults: 0, error: null };
+    if (!/PGRST202|42883/.test(error.code ?? '')) return { importedTeams: 0, importedMatches: 0, skippedMatches: 0, updatedResults: 0, error: error.message };
   }
 
   const { assertTeamSeasonWritable } = await import('./seasonTransition');

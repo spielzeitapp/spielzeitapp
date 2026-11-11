@@ -1,3 +1,4 @@
+import { buildPublicTournamentMatchDetails } from './publicTournamentMatchDetails.js';
 /**
  * Service-role loader for public team tournament page (TURNIER.1).
  * Does not open RLS — returns a sanitized DTO only.
@@ -9,6 +10,7 @@ import {
   buildPublicTeamTournamentDto,
   tournamentTitleFromNotes,
   assertPublicDtoSafe,
+  buildPublicTournamentPlayers,
 } from './publicTeamTournamentLogic.js';
 
 function getEnv(name) {
@@ -91,16 +93,19 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
     .maybeSingle();
 
   const teamRow = Array.isArray(ts?.teams) ? ts.teams[0] : ts?.teams;
-  const rawTeamName =
-    String(ts?.display_name ?? '').trim() ||
+  let rawTeamName =
     String(teamRow?.name ?? '').trim() ||
+    String(ts?.display_name ?? '').trim() ||
     'Mannschaft';
-  const ageGroup = ts?.age_group ?? null;
+  const originalAge = String(event.notes ?? '').match(/^Turniermannschaft: (U\d{1,2})$/m)?.[1];
+  const originalSeason = String(event.notes ?? '').match(/^Turniersaison: (20\d{2}\/\d{2})$/m)?.[1];
+  const ageGroup = originalAge || ts?.age_group || null;
+  if (originalAge) rawTeamName = teamRow?.name || rawTeamName;
 
   let slotRes = await admin
     .from('tournament_matches')
     .select(
-      'id, tournament_event_id, match_id, opponent_name, kickoff_at, planned_minutes, pitch, group_label, phase, sort_order',
+      'id, tournament_event_id, match_id, opponent_name, kickoff_at, planned_minutes, pitch, group_label, phase, sort_order, home_team, away_team, official_status, home_goals, away_goals',
     )
     .eq('tournament_event_id', publicId)
     .order('kickoff_at', { ascending: true })
@@ -138,7 +143,7 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
   if (matchIds.length) {
     const { data: matches } = await admin
       .from('matches')
-      .select('id, status, score_home, score_away, team_season_id')
+      .select('id, status, score_home, score_away, team_season_id, live_started_at, live_elapsed_seconds, live_is_running, u11_formation_id')
       .in('id', matchIds);
     for (const m of matches ?? []) {
       if (String(m.team_season_id) !== String(teamSeasonId)) continue;
@@ -150,11 +155,13 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
   for (const slot of slots) {
     const m = matchById.get(slot.match_id);
     if (!m) continue;
+    const officialFallback = m.status === 'upcoming' && !m.live_started_at && !m.live_elapsed_seconds && !m.score_home && !m.score_away && slot.official_status === 'finished' && slot.home_goals != null && slot.away_goals != null;
+    const ownHome = slot.away_team === slot.opponent_name;
     enriched.push({
       ...slot,
-      match_status: m.status ?? 'upcoming',
-      score_home: Number(m.score_home ?? 0),
-      score_away: Number(m.score_away ?? 0),
+      match_status: officialFallback ? 'finished' : m.status ?? 'upcoming',
+      score_home: Number(officialFallback ? (ownHome ? slot.home_goals : slot.away_goals) : m.score_home ?? 0),
+      score_away: Number(officialFallback ? (ownHome ? slot.away_goals : slot.home_goals) : m.score_away ?? 0),
     });
   }
 
@@ -170,6 +177,75 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
     eventStatus: event.status,
     slots: enriched,
   });
+
+  const { data: sync } = await admin.from('tournament_sync_state').select('analysis,synced_at,own_team_name').eq('event_id', publicId).maybeSingle();
+  const analysis = sync?.analysis ?? {};
+  dto.groupTables = (analysis.groupStandings ?? []).map(g => ({groupLabel:String(g.groupLabel),rows:(g.rows ?? []).map(r => ({teamName:String(r.teamName),rank:Number(r.rank),played:Number(r.played),goalsFor:Number(r.goalsFor),goalsAgainst:Number(r.goalsAgainst),points:Number(r.points)}))}));
+  dto.finalRanking = (analysis.finalStandings ?? []).map(r => ({rank:Number(r.rank),teamName:String(r.teamName)}));
+  dto.schedule = (analysis.rawMatches ?? []).map(m => ({id:String(m.externalMatchId ?? ''),homeTeam:String(m.homeTeam),awayTeam:String(m.awayTeam),time:String(m.kickoffTimeHHmm),phase:String(m.phase),groupLabel:m.groupLabel == null ? null : String(m.groupLabel),roundLabel:m.roundLabel == null ? null : String(m.roundLabel),homeGoals:m.hasResult ? Number(m.homeGoals) : null,awayGoals:m.hasResult ? Number(m.awayGoals) : null}));
+  dto.syncedAt = sync?.synced_at ?? null;
+  dto.ownParticipantName = sync?.own_team_name ?? null;
+  dto.seasonLabel = originalSeason || String(ts?.display_name ?? '').match(/20\d{2}\/\d{2}/)?.[0] || null;
+  const originalDate = String(event.notes ?? '').match(/^Turnierdatum: (20\d{2}-\d{2}-\d{2})$/m)?.[1];
+  if (originalDate) dto.dateLabel = new Intl.DateTimeFormat('de-AT',{timeZone:'Europe/Vienna',weekday:'short',day:'2-digit',month:'short',year:'numeric'}).format(new Date(originalDate+'T12:00:00Z'));
+  const {data: teamClub} = await admin.from('teams').select('club_id').eq('id',teamRow?.id).maybeSingle();
+  const {data: club} = teamClub?.club_id ? await admin.from('clubs').select('logo_url,accent_color').eq('id',teamClub.club_id).maybeSingle() : {data:null};
+  dto.teamLogoUrl = club?.logo_url ?? null;
+  const {data: catalog} = teamClub?.club_id ? await admin.from('opponent_catalog').select('display_name,logo_url').eq('club_id',teamClub.club_id).not('logo_url','is',null) : {data:[]};
+  dto.teamLogos = Object.fromEntries((catalog ?? []).filter(r=>typeof r.logo_url==='string').map(r=>[r.display_name,r.logo_url]));
+  const [{data: tournamentPlayers}, {data: rosterRows, error: rosterError}] = await Promise.all([
+    admin.from('tournament_squad').select('player_id').eq('tournament_event_id', publicId),
+    admin.from('team_season_players').select('player_id,jersey_number,players:players(id,first_name,last_name,cutout_url)').eq('team_season_id', event.team_season_id),
+  ]);
+  let roster = rosterRows ?? [];
+  if (rosterError) {
+    const {data: legacy} = await admin.from('players').select('id,first_name,last_name,jersey_number,cutout_url').eq('team_season_id', event.team_season_id);
+    roster = (legacy ?? []).map(player => ({player_id:player.id,jersey_number:player.jersey_number,players:player}));
+  }
+  const chosenIds = new Set((tournamentPlayers ?? []).map(row => row.player_id));
+  dto.fanRoster = roster.filter(row => chosenIds.has(row.player_id)).map(row => [row.players?.first_name,row.players?.last_name].filter(Boolean).join(' ')).filter(Boolean);
+  dto.fanRosterExample = false;
+  dto.scorers = [];
+  if (matchIds.length) {
+    const {data: goals} = await admin.from('match_events').select('match_id,player_id').in('match_id',matchIds).eq('type','goal');
+    const playerIds = [...new Set((goals ?? []).map(g=>g.player_id).filter(Boolean))];
+    const {data: players} = playerIds.length ? await admin.from('players').select('id,first_name,last_name').in('id',playerIds) : {data:[]};
+    const names = new Map((players ?? []).map(p=>[p.id,[p.first_name,p.last_name].filter(Boolean).join(' ')]));
+    const totals = new Map();
+    for (const g of goals ?? []) { const slot=slots.find(s=>s.match_id===g.match_id); const name=names.get(g.player_id);if(!slot||!name)continue;
+      const time=new Intl.DateTimeFormat('de-AT',{timeZone:'Europe/Vienna',hour:'2-digit',minute:'2-digit'}).format(new Date(slot.kickoff_at));
+      const key=g.player_id+':'+time;const row=totals.get(key)??{name,goals:0,time,example:false};row.goals++;totals.set(key,row);
+    }
+    dto.scorers=[...totals.values()];
+  }
+  if (/^TEST/.test(String(event.notes ?? ''))) {
+    try { const sample=JSON.parse(String(event.notes ?? '').match(/^Fan-Testdaten: (.+)$/m)?.[1] ?? '{}');
+      if (!dto.fanRoster.length && Array.isArray(sample.roster) && sample.roster.length) {
+        dto.fanRoster=sample.roster.map(name=>String(name));
+        dto.fanRosterExample=true;
+      }
+      if (!dto.scorers.length) dto.scorers=(sample.scorers ?? []).map(s=>({name:String(s.name),goals:Number(s.goals),time:String(s.time),example:true}));
+    } catch { /* no example data */ }
+  }
+  const ownMatchIds = [...matchById.keys()];
+  let currentRows = [], kickoffRows = [], benchRows = [], publicEvents = [], detailsUnavailable = false;
+  if (ownMatchIds.length) {
+    const results = await Promise.all([
+      admin.from('match_lineup').select('match_id,player_id,slot').in('match_id',ownMatchIds),
+      admin.from('match_lineup_snapshots').select('match_id,player_id,slot').in('match_id',ownMatchIds).eq('snapshot_type','kickoff'),
+      admin.from('match_bench').select('match_id,player_id').in('match_id',ownMatchIds),
+      admin.from('match_events').select('match_id,type,minute,player_id,payload').in('match_id',ownMatchIds).order('minute').order('created_at'),
+    ]);
+    detailsUnavailable = results.some(result => result.error);
+    [currentRows,kickoffRows,benchRows,publicEvents] = results.map(result=>result.data ?? []);
+  }
+  dto.matchDetails = buildPublicTournamentMatchDetails({matches:[...matchById.values()],roster,events:publicEvents,currentRows,kickoffRows,benchRows,unavailable:detailsUnavailable});
+  const detailNames = dto.matchDetails.flatMap(detail=>[...detail.startingPlayers.map(p=>p.name),...detail.benchPlayers,...detail.events.flatMap(event=>[event.playerName,event.otherPlayerName,event.removedPlayerName].filter(Boolean))]);
+  const profileNames = [...dto.fanRoster, ...dto.scorers.map(s => s.name),...detailNames];
+  const profileIds = roster.map(row => row.player_id).filter(Boolean);
+  const {data: avatars} = profileIds.length ? await admin.from('player_avatars').select('player_id,avatar_url').in('player_id',profileIds) : {data:[]};
+  dto.fanPlayers = buildPublicTournamentPlayers(profileNames, roster, avatars ?? []);
+  dto.accentColor = /^#[0-9a-f]{6}$/i.test(club?.accent_color ?? '') ? club.accent_color : '#c82333';
 
   try {
     assertPublicDtoSafe(dto);

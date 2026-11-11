@@ -330,6 +330,8 @@
     radial-gradient(ellipse 62% 140% at 100% 50%, rgb(var(--club-primary-rgb) / 0.26), transparent 72%),
     repeating-linear-gradient(130deg, transparent 0, transparent 29px, rgb(var(--club-border-rgb) / 0.018) 30px, transparent 31px),
     linear-gradient(100deg, rgba(8, 8, 10, 0.98), rgb(var(--club-primary-rgb) / 0.11));
+  /* The club tint must sit on an opaque dark base, including on light pages. */
+  background-color: #08080a;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.025),
     0 8px 22px rgba(0, 0, 0, 0.3);
@@ -1406,3 +1408,21 @@ html[data-club-theme="black-white"] .sz-club-placeholder-player {
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.42), inset 0 0 0 1px rgb(var(--club-border-rgb) / 0.08);
 }
 .sz-club-imported-portrait > .sz-club-diagonal-lines { display: none; }
+
+/* Public tournament pages can be taller than the app's fixed-height root. */
+.public-tournament-page {
+  width: 100%;
+  flex: none;
+  align-self: flex-start;
+}
+.public-tournament-page[data-theme="day"] .sz-club-list-card {
+  background: var(--t-fixture);
+  border-color: var(--t-border);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .08);
+}
+.public-tournament-page[data-theme="day"] .sz-club-list-card [class*="text-white"] {
+  color: var(--t-text);
+}
+.public-tournament-page[data-theme="day"] .sz-club-list-card [class*="text-white/"] {
+  color: var(--t-muted);
+}

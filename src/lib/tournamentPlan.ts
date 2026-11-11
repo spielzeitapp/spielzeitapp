@@ -87,6 +87,7 @@ export type TournamentMatchSlotView = TournamentMatchSlot & {
   score_away: number;
   has_lineup: boolean;
   has_squad: boolean;
+  result_source?: 'official' | 'spielzeitapp';
 };
 
 export type TournamentMatchDisplayStatus =
@@ -632,7 +633,7 @@ async function enrichTournamentMatchSlots(
 
   const { data: matches, error: matchErr } = await supabase
     .from('matches')
-    .select('id, status, score_home, score_away')
+    .select('id, status, score_home, score_away, live_started_at, live_elapsed_seconds')
     .in('id', matchIds);
 
   if (matchErr) {
@@ -640,7 +641,7 @@ async function enrichTournamentMatchSlots(
   }
 
   const matchById = new Map(
-    (matches ?? []).map((m: { id: string; status: string | null; score_home: number; score_away: number }) => [
+    (matches ?? []).map((m: { id: string; status: string | null; score_home: number; score_away: number; live_started_at?: string | null; live_elapsed_seconds?: number }) => [
       m.id,
       m,
     ]),
@@ -668,11 +669,14 @@ async function enrichTournamentMatchSlots(
       return enrichOfficialOnlySlot(r);
     }
     const m = matchById.get(matchId);
+    const officialFallback = m?.status === 'upcoming' && !m.live_started_at && !m.live_elapsed_seconds && !m.score_home && !m.score_away && r.official_status === 'finished' && r.official_home_goals != null && r.official_away_goals != null;
+    const ownHome = r.away_team === r.opponent_name;
     return {
       ...r,
-      match_status: m?.status ?? null,
-      score_home: Number(m?.score_home ?? 0),
-      score_away: Number(m?.score_away ?? 0),
+      result_source: officialFallback ? 'official' : 'spielzeitapp',
+      match_status: officialFallback ? 'finished' : m?.status ?? null,
+      score_home: Number(officialFallback ? (ownHome ? r.official_home_goals : r.official_away_goals) : m?.score_home ?? 0),
+      score_away: Number(officialFallback ? (ownHome ? r.official_away_goals : r.official_home_goals) : m?.score_away ?? 0),
       has_lineup: (lineupCounts.get(matchId) ?? 0) > 0,
       has_squad: (benchCounts.get(matchId) ?? 0) > 0,
     };

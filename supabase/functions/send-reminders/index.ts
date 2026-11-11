@@ -1,3 +1,4 @@
+import { isCurrentTournamentReminder, tournamentReminderRecipients } from './tournamentReminder.ts';
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 /**
@@ -20,6 +21,7 @@ type JobRow = {
   event_id: string | null;
   kind?: string | null;
   payload: Record<string, unknown> | null;
+  attempt_count?: number;
 };
 
 type EventRow = {
@@ -361,6 +363,7 @@ async function sendReminderWebPushes(
   jobId: string,
   eventId: string,
   recipientCopies?: Map<string, ReminderCopy>,
+  expiresAt?: string,
 ): Promise<void> {
   const url = normalizePushAppUrl(urlRaw);
   console.log("Reminder send:", { jobId, title, userCount: userIds.length });
@@ -446,7 +449,7 @@ async function sendReminderWebPushes(
           keys: { p256dh: row.p256dh, auth: row.auth },
         },
         payload,
-        { TTL: 86400 },
+        { TTL: expiresAt ? Math.max(1, Math.min(300, Math.floor((Date.parse(expiresAt) - Date.now()) / 1000))) : 86400 },
       );
       sentOk += 1;
       const { error: logError } = await supabase.from("notification_dispatch_log").upsert({
@@ -642,22 +645,26 @@ async function failJob(admin: ReturnType<typeof createClient>, id: string, error
   }).eq("id", id).eq("status", "processing");
 }
 
-serve(async () => {
+serve(async (request: Request) => {
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const reconciliation = await ensureUpcomingReminderJobs(supabase);
+    const tournamentOnly = new URL(request.url).searchParams.get("tournamentOnly") === "1";
+    const reconciliation = tournamentOnly ? { inserted: 0, normalized: 0 } : await ensureUpcomingReminderJobs(supabase);
     const now = new Date().toISOString();
 
-    const { data: jobs, error: jobsError } = await supabase
+    let jobQuery = supabase
       .from("notification_jobs")
       .select("*")
       .eq("status", "pending")
       .lte("send_at", now)
+      .order("send_at")
       .limit(JOB_BATCH_LIMIT);
+    if (tournamentOnly) jobQuery = jobQuery.contains("payload", { automation: "tournament_next_match" });
+    const { data: jobs, error: jobsError } = await jobQuery;
     if (jobsError) throw jobsError;
 
     if (!jobs || jobs.length === 0) {
@@ -674,6 +681,7 @@ serve(async () => {
         .from("notification_jobs")
         .update({
           status: "processing",
+          ...(job.payload?.automation === "tournament_next_match" ? { attempt_count: Number(job.attempt_count ?? 0) + 1 } : {}),
           updated_at: new Date().toISOString(),
         })
         .eq("id", job.id)
@@ -718,6 +726,41 @@ serve(async () => {
               String(locked.event_id ?? ""));
           }
           await completeJob(supabase, locked.id);
+          completed += 1;
+          continue;
+        }
+
+        if (locked.payload?.automation === "tournament_next_match") {
+          const p = locked.payload;
+          const { data: slot, error: slotError } = await supabase.from("tournament_matches")
+            .select("id,tournament_event_id,match_id,kickoff_at,opponent_name,official_status,is_own_team")
+            .eq("id", String(p.slotId ?? "")).maybeSingle();
+          if (slotError) throw slotError;
+          const { data: event, error: eventError } = await supabase.from("events")
+            .select("team_season_id,status,tournament_completed_at").eq("id", locked.event_id).maybeSingle();
+          if (eventError) throw eventError;
+          const { data: match } = slot?.match_id ? await supabase.from("matches")
+            .select("status").eq("id",slot.match_id).maybeSingle() : {data:null};
+          const current = isCurrentTournamentReminder(slot,event,match,locked.event_id,p);
+          if (current && event) {
+            const { data: subscribed, error: subError } = await supabase.from("tournament_reminder_subscriptions")
+              .select("user_id").eq("event_id",locked.event_id).eq("enabled",true);
+            if (subError) throw subError;
+            const { data: members, error: memberError } = await supabase.from("memberships")
+              .select("user_id").eq("team_season_id",event.team_season_id);
+            if (memberError) throw memberError;
+            const userIds = tournamentReminderRecipients(subscribed ?? [], members ?? []);
+            const title = String(p.pushTitle ?? "Nächstes Turnierspiel");
+            const message = String(p.pushBody ?? "");
+            const link = `/app/events/${locked.event_id}`;
+            if (userIds.length) {
+              if (!ensureVapid()) throw new Error('Web-Push-Konfiguration für Turniererinnerungen fehlt');
+              const {error: inboxError} = await supabase.from("notifications").upsert(userIds.map(user_id=>({user_id,team_id:locked.team_id,event_id:locked.event_id,title,message,type:"auto",read:false,link,event_type:"tournament_next_match",source_notification_job_id:locked.id})),{onConflict:"source_notification_job_id,user_id"});
+              if(inboxError) throw inboxError;
+              await sendReminderWebPushes(supabase,userIds,title,message,link,locked.id,String(locked.event_id),undefined,String(p.kickoff));
+            }
+          }
+          await completeJob(supabase,locked.id);
           completed += 1;
           continue;
         }

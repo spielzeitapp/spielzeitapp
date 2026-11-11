@@ -1,3 +1,8 @@
+import { tournamentDisplayNotes } from '../../lib/tournamentDisplayNotes';
+import { Link, useNavigate } from 'react-router-dom';
+import { useInternalBasePath } from '../../demo/demoPaths';
+import { publicTeamTournamentPath } from '../../lib/publicTeamTournament';
+import { TournamentConnectedPlan, TournamentOpponentOutlook, officialTournamentStandings, type ConnectedTournament } from './TournamentConnectedPlan';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FileInput, Plus, Trash2 } from 'lucide-react';
 import { AppButton } from '../ui/AppButton';
@@ -154,6 +159,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
   onOfficialTournamentUrlUpdated,
   onTournamentCompleted,
 }) => {
+  const additionalHints = tournamentDisplayNotes(tournamentNotes, tournamentTitle);
+  const basePath = useInternalBasePath();
+  const navigate = useNavigate();
+  const [connectedPlan, setConnectedPlan] = useState<ConnectedTournament | null>(null);
   const [activeTab, setActiveTab] = useState<TournamentCenterTabId>('games');
   const [participants, setParticipants] = useState<TournamentParticipant[]>([]);
   const [slots, setSlots] = useState<TournamentMatchSlotView[]>([]);
@@ -673,11 +682,12 @@ export const TournamentDetailSections: React.FC<Props> = ({
   }, [teamSeasonId]);
 
   const ourTeamNames = useMemo(() => {
+    if (connectedPlan?.own_team_name) return [connectedPlan.own_team_name];
     const fromPlan = planImportContext?.ourTeamNames ?? [];
     if (fromPlan.length > 0) return fromPlan;
     if (recognizedTeamNames.length > 0) return recognizedTeamNames;
     return ourTeamName ? [ourTeamName] : [];
-  }, [planImportContext, recognizedTeamNames, ourTeamName]);
+  }, [connectedPlan, planImportContext, recognizedTeamNames, ourTeamName]);
 
   const liveGroupStandings = useMemo(
     () =>
@@ -700,6 +710,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
   );
 
   const standingsBundle = useMemo((): TournamentStandingsBundle => {
+    const official = officialTournamentStandings(connectedPlan);
+    if (official) return official;
     if (combinedStandings.length > 0) {
       return {
         source: 'imported',
@@ -711,7 +723,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
       imported: groupStandings,
       liveGroups: liveGroupStandings,
     });
-  }, [combinedStandings, groupStandings, liveGroupStandings]);
+  }, [connectedPlan, combinedStandings, groupStandings, liveGroupStandings]);
 
   const standingsLoading = groupStandingsLoading && standingsBundle.source !== 'live';
 
@@ -1151,6 +1163,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
       />
 
       {quickActions}
+      {additionalHints ? <section className={TC_CARD}><div className={TC_CARD_INNER}><h2 className="mb-2 text-[15px] font-bold text-white">Hinweise zum Turnier</h2><p className="whitespace-pre-line text-[15px] leading-relaxed text-white/75">{additionalHints}</p></div></section> : null}
       {carpoolSection}
 
       {canManage && (planSyncBusy || planSyncStatus) ? (
@@ -1159,29 +1172,6 @@ export const TournamentDetailSections: React.FC<Props> = ({
         </p>
       ) : canManage && syncAgeLabel ? (
         <p className="px-0.5 text-[10px] font-medium text-white/40">{syncAgeLabel}</p>
-      ) : null}
-
-      {showFeatured ? (
-        <TournamentFeaturedMatchCard
-          slots={ownSlots}
-          ourTeamName={ourTeamName}
-          loading={loading}
-          canManage={canManage}
-          tournamentArchived={Boolean(completion.completedAt)}
-          canCreateReport={orchestratorCanCreateReport}
-          canCompleteTournament={orchestratorCanComplete}
-          completingTournament={completingTournament}
-          awaitingFurtherPhase={awaitingFurtherPhase}
-          refreshingPlan={planSyncBusy}
-          tournamentDayIso={tournamentDayIso}
-          onOpen={onOpenMatchPreparation}
-          onAddMatch={canManage ? openMatchModal : undefined}
-          onCreateReport={() => setOrchestratorReportOpen(true)}
-          onCompleteTournament={handleCompleteTournament}
-          onShowOverview={showOrchestratorOverview}
-          onRefreshPlan={() => void runForcedPlanSync({ reason: 'manual' })}
-          onSlotEdited={() => void reload()}
-        />
       ) : null}
 
       {showAssistant ? (
@@ -1211,139 +1201,28 @@ export const TournamentDetailSections: React.FC<Props> = ({
         />
       ) : null}
 
-      {showPremiumAboveTabs ? (
-        <TournamentPremiumFinalCard
-          tournamentTitle={tournamentTitle}
-          balance={teamBalance}
-          completion={completion}
-          summary={finalSummary}
-          goalScorers={goalScorers}
-          goalScorersLoading={goalScorersLoading}
-          slots={slots}
-          loading={loading}
-          canManage={canManage}
-        />
-      ) : null}
+      <TournamentConnectedPlan eventId={tournamentEventId} url={officialTournamentUrl} userId={userId} canManage={canManage} onUpdated={reload} onState={setConnectedPlan} />
+      {slots.some(s => s.is_own_team !== false && s.result_source !== 'official' && ['live','finished'].includes(s.match_status ?? '') && s.official_home_goals != null && s.official_away_goals != null && (s.score_home !== (s.away_team === s.opponent_name ? s.official_home_goals : s.official_away_goals) || s.score_away !== (s.away_team === s.opponent_name ? s.official_away_goals : s.official_home_goals))) ? <p role="status" className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-[15px] text-amber-200">Unser Liveticker und der Veranstalter melden unterschiedliche Spielstände. Die Tabelle zeigt den Veranstalterstand; unsere Tore und Torschützen bleiben erhalten.</p> : null}
+      <TournamentOpponentOutlook state={connectedPlan} />
+      {listError ? <p role="alert" className="text-sm text-red-300">{listError}</p> : null}
+      {!canManage ? <section className={TC_CARD}><div className={`${TC_CARD_INNER} space-y-3`}>
+        <h2 className="text-lg font-bold text-white">Alles zum Turnier</h2>
+        <p className="text-[15px] leading-relaxed text-white/70">Spielstände, alle Tabellen, Finalrunde und unsere Torschützen auf einer Seite. Die Übersicht aktualisiert sich automatisch.</p>
+        <Link className={addButtonClass} to={publicTeamTournamentPath(tournamentEventId)} state={{returnTo: `${basePath}/events/${tournamentEventId}`}}>Turnierseite ansehen</Link>
+        {ownSlots.filter(slot => slot.match_status === 'live' && slot.match_id).map(slot => <Link key={slot.id} className={addButtonClass} to={`${basePath}/live?matchId=${encodeURIComponent(slot.match_id!)}`}>Unser Spiel läuft · Zum Liveticker</Link>)}
+      </div></section> : null}
+      {canManage ? <TournamentCenterTabBar activeTab={activeTab} onTabChange={setActiveTab} canManage /> : null}
+      {canManage && activeTab === 'games' ? <div className={`flex flex-col ${TC_STACK_GAP}`}>
+        <h2 className="text-[16px] font-bold text-white">Unsere Turnierspiele vorbereiten</h2>
+        <p className="text-[15px] leading-relaxed text-white/65">Aufstellung und Liveticker für unser Team. Den gesamten Turnierverlauf findest du unter „Turnierseite ansehen“.</p>
+        <button type="button" className={addButtonClass} onClick={openMatchModal}><Plus className="h-4 w-4"/>Turnierspiel hinzufügen</button>
+        {loading ? <p className="text-[15px] text-white/65">Lade unsere Spiele…</p> : !ownSlots.length ? <section className={TC_CARD}><div className={TC_CARD_INNER}><p className="text-[15px] text-white/65">Noch keine eigenen Turnierspiele hinterlegt.</p></div></section> : ownSlots.map(slot => <TournamentMatchSlotCard key={slot.id} slot={slot} canManage isNextUpcoming={slot.id === nextMatchId}
+          onOpen={() => { if (!slot.match_id) return; if (slot.match_status === 'live') navigate(`${basePath}/live?matchId=${encodeURIComponent(slot.match_id)}`); else onOpenMatchPreparation(slot.match_id); }}
+          onDelete={slot.match_id ? () => void handleRemoveSlot(slot.match_id!) : undefined}/>) }
+      </div> : null}
+      {canManage && activeTab === 'table' ? <TournamentTableTab bundle={standingsBundle} loading={standingsLoading} /> : null}
 
-      {showCompactAboveTabs ? (
-        <div className={`flex flex-col ${TC_STACK_GAP}`}>
-          <TournamentGroupPreviewCard
-            bundle={standingsBundle}
-            loading={standingsLoading}
-            onShowFullTable={showFullStandingsTable}
-          />
-        </div>
-      ) : null}
-
-      <TournamentCenterTabBar activeTab={activeTab} onTabChange={setActiveTab} canManage={canManage} />
-
-      {listError ? (
-        <p className="text-[13px] text-red-300/90" role="alert">
-          {listError}
-        </p>
-      ) : null}
-
-      {activeTab === 'games' ? (
-        <div className={`flex flex-col ${TC_STACK_GAP}`}>
-          {overviewSectionOrder.filter((key) => key !== 'info' && key !== 'table').map(renderOverviewSection)}
-          <div className="flex flex-wrap items-center gap-2">
-            <div
-              className="inline-flex rounded-full border border-white/12 bg-white/[0.04] p-0.5"
-              role="group"
-              aria-label="Spielplan-Filter"
-            >
-              <button
-                type="button"
-                className={`min-h-[36px] rounded-full px-3 text-[12px] font-semibold touch-manipulation ${
-                  gamesFilter === 'ours'
-                    ? 'bg-white/12 text-white'
-                    : 'text-white/55 hover:text-white/80'
-                }`}
-                onClick={() => setGamesFilter('ours')}
-              >
-                Unsere Spiele
-              </button>
-              <button
-                type="button"
-                className={`min-h-[36px] rounded-full px-3 text-[12px] font-semibold touch-manipulation ${
-                  gamesFilter === 'all'
-                    ? 'bg-white/12 text-white'
-                    : 'text-white/55 hover:text-white/80'
-                }`}
-                onClick={() => setGamesFilter('all')}
-              >
-                Alle Spiele
-              </button>
-            </div>
-            {canManage && ownMatchCounts.total > 0 ? (
-              <p className="text-[11px] text-white/45">
-                {ownMatchCounts.knockout > 0
-                  ? `${ownMatchCounts.total} eigene Spiele`
-                  : `${ownMatchCounts.group} Gruppenspiele`}
-              </p>
-            ) : null}
-          </div>
-
-          {canManage ? (
-            <button type="button" className={addButtonClass} onClick={openMatchModal}>
-              <Plus className="h-3.5 w-3.5" aria-hidden />
-              Turnierspiel hinzufügen
-            </button>
-          ) : null}
-
-          {loading ? (
-            <section className={TC_CARD}>
-              <div className={TC_CARD_INNER}>
-                <p className="text-[14px] text-white/55">Lade Turnierplan…</p>
-              </div>
-            </section>
-          ) : filteredGamesSlots.length === 0 ? (
-            <section className={TC_CARD}>
-              <div className={`${TC_CARD_INNER} text-center py-2`}>
-                <p className={TC_SECTION_LABEL}>Spiele</p>
-                <p className="mt-2 text-[14px] text-white/55">
-                  {gamesFilter === 'ours'
-                    ? 'Keine eigenen Turnierspiele gefunden.'
-                    : 'Keine Turnierspiele geplant.'}
-                </p>
-              </div>
-            </section>
-          ) : (
-            slotSections.map((section) => (
-              <section key={section.key} className={TC_CARD}>
-                <div className={TC_CARD_INNER}>
-                  <p className={`${TC_SECTION_LABEL} mb-2.5`}>{section.label}</p>
-                  <ul className={`flex flex-col ${DS_LIST_GAP}`}>
-                    {section.slots.map((slot) => (
-                      <li key={slot.id}>
-                        <TournamentMatchSlotCard
-                          slot={slot}
-                          canManage={canManage}
-                          isNextUpcoming={slot.id === nextMatchId && slot.is_own_team !== false}
-                          onOpen={() => {
-                            if (slot.match_id) onOpenMatchPreparation(slot.match_id);
-                          }}
-                          onDelete={
-                            canManage && slot.match_id && slot.is_own_team !== false
-                              ? () => void handleRemoveSlot(slot.match_id as string)
-                              : undefined
-                          }
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </section>
-            ))
-          )}
-        </div>
-      ) : null}
-
-      {activeTab === 'table' ? (
-        <TournamentTableTab bundle={standingsBundle} loading={standingsLoading} />
-      ) : null}
-
-      {activeTab === 'teams' ? (
+      {canManage && activeTab === 'teams' ? (
         <div className={`flex flex-col ${TC_STACK_GAP}`}>
           {canManage ? (
             <div className="grid grid-cols-2 gap-2">
@@ -1392,9 +1271,6 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
       {activeTab === 'admin' && canManage ? renderAdminTab() : null}
 
-      <TournamentCollapsibleSection title="Weitere Turnierinfos" icon="ℹ️">
-        {renderOverviewSection('info')}
-      </TournamentCollapsibleSection>
 
       <Modal
         isOpen={participantModalOpen}

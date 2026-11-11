@@ -100,7 +100,7 @@ assert.strictEqual(String(next.match_status), 'live');
 
 const homeDto = toPublicMatchDto(sorted[1], 'U11 SPG Rohrbach');
 assert.strictEqual(homeDto.homeName, 'SPG Rohrbach');
-assert.strictEqual(homeDto.awayName, 'ASK Loosdorf');
+assert.strictEqual(homeDto.awayName, 'U11 ASK Loosdorf');
 assert.strictEqual(homeDto.ourIsHome, true);
 
 const page = buildPublicTeamTournamentDto({

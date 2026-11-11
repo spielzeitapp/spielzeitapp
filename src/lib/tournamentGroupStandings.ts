@@ -25,7 +25,7 @@ export type TournamentGroupStandings = {
   teamCount: number;
 };
 
-export type TournamentStandingsSource = 'imported' | 'live';
+export type TournamentStandingsSource = 'imported' | 'live' | 'official';
 
 export type TournamentStandingsBundle = {
   source: TournamentStandingsSource | null;
@@ -468,6 +468,7 @@ export function resolveTournamentStandingsBundle(params: {
 }
 
 export function tournamentStandingsSourceHint(source: TournamentStandingsSource | null): string | null {
+  if (source === 'official') return 'Offizielle Veranstaltertabelle · Eigene Liveticker-Ergebnisse bleiben separat erhalten.';
   if (source === 'live') return 'Aus SpielzeitApp-Ergebnissen berechnet';
   if (source === 'imported') return 'Aus offiziellem Turnierplan';
   return null;
