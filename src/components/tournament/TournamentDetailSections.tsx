@@ -8,7 +8,7 @@ import { useInternalBasePath } from '../../demo/demoPaths';
 import { publicTeamTournamentPath } from '../../lib/publicTeamTournament';
 import { TournamentConnectedPlan, TournamentOpponentOutlook, officialTournamentStandings, type ConnectedTournament } from './TournamentConnectedPlan';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FileInput, Plus, Trash2, Users, ClipboardList, Megaphone, ChevronDown, Settings2, Tags } from 'lucide-react';
+import { Car, FileInput, Plus, Trash2, Users, ClipboardList, Megaphone, ChevronDown, Settings2, Tags } from 'lucide-react';
 import { AppButton } from '../ui/AppButton';
 import { Modal } from '../../app/ui/Modal';
 import { dsScheduleGlassButtonClass, DS_LIST_GAP } from '../../lib/premiumDesignSystem';
@@ -164,6 +164,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
 }) => {
   const [lineupDraftDirty, setLineupDraftDirty] = useState(false);
   const [preparationDialog, setPreparationDialog] = useState<PreparationDialog | null>(null);
+  const [carpoolOpen, setCarpoolOpen] = useState(false);
   const [termActionsOpen, setTermActionsOpen] = useState(false);
   const additionalHints = tournamentDisplayNotes(tournamentNotes, tournamentTitle);
   const basePath = useInternalBasePath();
@@ -1135,6 +1136,11 @@ export const TournamentDetailSections: React.FC<Props> = ({
         participantCount={participants.length}
         actions={
           <div className="flex items-center gap-2">
+            {carpoolSection ? <button type="button" onClick={() => setCarpoolOpen(true)}
+              className="sz-club-event-action inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              aria-label="Fahrgemeinschaft öffnen" aria-haspopup="dialog" title="Fahrt anbieten oder Platz suchen">
+              <Car className="h-5 w-5 sz-club-accent-text" aria-hidden />
+            </button> : null}
             <TournamentConnectedPlan compact eventId={tournamentEventId} url={officialTournamentUrl} userId={userId} canManage={canManage} onUpdated={reload} onState={setConnectedPlan} />
             {canManage && trainerActions ? (
               <button type="button" onClick={() => setTermActionsOpen(true)}
@@ -1146,6 +1152,9 @@ export const TournamentDetailSections: React.FC<Props> = ({
           </div>
         }
       />
+      {carpoolSection ? <Modal open={carpoolOpen} onClose={() => setCarpoolOpen(false)} title="Fahrgemeinschaft">
+        {carpoolSection}
+      </Modal> : null}
       {canManage && trainerActions ? (
         <Modal open={termActionsOpen} onClose={() => setTermActionsOpen(false)} title="Turniertermin verwalten">
           <p className="mb-4 text-[16px] leading-relaxed text-white/65">Name, Datum, Treffpunkt und Spielort bearbeiten. Einzelne Spiele verwaltest du im Spielplan.</p>
@@ -1198,7 +1207,6 @@ export const TournamentDetailSections: React.FC<Props> = ({
       ) : null}
 
 
-      {carpoolSection}
       {slots.some(s => s.is_own_team !== false && s.result_source !== 'official' && ['live','finished'].includes(s.match_status ?? '') && s.official_home_goals != null && s.official_away_goals != null && (s.score_home !== (s.away_team === s.opponent_name ? s.official_home_goals : s.official_away_goals) || s.score_away !== (s.away_team === s.opponent_name ? s.official_away_goals : s.official_home_goals))) ? <p role="status" className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-[16px] text-amber-200">Unser Liveticker und der Veranstalter melden unterschiedliche Spielstände. Die Tabelle zeigt den Veranstalterstand; unsere Tore und Torschützen bleiben erhalten.</p> : null}
       <TournamentOpponentOutlook state={connectedPlan} />
       {listError ? <p role="alert" className="text-sm text-red-300">{listError}</p> : null}

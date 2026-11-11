@@ -50,7 +50,6 @@ export function TournamentCompactCard({
           <div className="flex items-start gap-3">
             <Trophy className="mt-0.5 h-7 w-7 shrink-0 text-amber-300/95" strokeWidth={1.8} aria-hidden />
             <h2 className="min-w-0 flex-1 break-words text-[22px] font-extrabold leading-tight text-white">{title}</h2>
-            {actions ? <div className="shrink-0">{actions}</div> : null}
           </div>
           <p className="text-[16px] font-medium text-white/70">{dateLabel}</p>
           <p className="flex flex-wrap gap-x-2 gap-y-1 text-[16px] font-semibold text-white/85">
@@ -58,6 +57,7 @@ export function TournamentCompactCard({
             <span aria-hidden>·</span>
             <span>Beginn {timeLabel || 'offen'}</span>
           </p>
+          {actions ? <div className="flex justify-end pt-1">{actions}</div> : null}
         </div>
       </article>
     );
