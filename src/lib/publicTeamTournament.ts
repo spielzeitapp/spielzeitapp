@@ -29,6 +29,7 @@ export type PublicTeamTournamentMatchDto = {
 };
 
 export type PublicTeamTournamentPageDto = {
+  ownParticipantName?: string | null;
   seasonLabel?: string | null;
   accentColor?: string;
   syncedAt?: string | null;
