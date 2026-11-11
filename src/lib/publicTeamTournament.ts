@@ -28,7 +28,17 @@ export type PublicTeamTournamentMatchDto = {
   isLive: boolean;
 };
 
+export type PublicTournamentPlayer = {
+  name: string;
+  firstName: string;
+  lastName: string;
+  number: number | null;
+  imageUrl: string | null;
+};
+
 export type PublicTeamTournamentPageDto = {
+  fanPlayers?: PublicTournamentPlayer[];
+  fanRosterExample?: boolean;
   teamLogos?: Record<string,string>;
   fanRoster?: string[];
   scorers?: Array<{name:string;goals:number;time:string;example?:boolean}>;

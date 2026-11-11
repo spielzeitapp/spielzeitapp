@@ -239,3 +239,30 @@ export function assertPublicDtoSafe(dto) {
   }
   return true;
 }
+
+/** Explicit public player fields only; roster membership is selected by the caller. */
+export function buildPublicTournamentPlayers(names, rosterRows, avatarRows = []) {
+  const normalize = value => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().replace(/\s+/g, ' ').toLowerCase();
+  const avatars = new Map(avatarRows.map(row => [row.player_id, row.avatar_url]));
+  const safeImage = value => {
+    const url = typeof value === 'string' ? value.trim() : '';
+    return /^https?:\/\//i.test(url) || /^\/(?!\/)/.test(url) ? url : null;
+  };
+  const byName = new Map(rosterRows.map(row => {
+    const player = row.players ?? row;
+    return [normalize([player.first_name, player.last_name].filter(Boolean).join(' ')), {row, player}];
+  }));
+  return [...new Set(names.map(name => String(name).trim()).filter(Boolean))].map(name => {
+    const found = byName.get(normalize(name));
+    const player = found?.player;
+    const rawNumber = found?.row.jersey_number;
+    const number = rawNumber != null && Number.isFinite(Number(rawNumber)) ? Number(rawNumber) : null;
+    return {
+      name,
+      firstName: player?.first_name ?? name.split(/\s+/)[0],
+      lastName: player?.last_name ?? name.split(/\s+/).slice(1).join(' '),
+      number,
+      imageUrl: safeImage(player?.cutout_url) || safeImage(avatars.get(player?.id)),
+    };
+  });
+}

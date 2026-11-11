@@ -9,6 +9,7 @@ import {
   buildPublicTeamTournamentDto,
   tournamentTitleFromNotes,
   assertPublicDtoSafe,
+  buildPublicTournamentPlayers,
 } from './publicTeamTournamentLogic.js';
 
 function getEnv(name) {
@@ -191,7 +192,19 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
   dto.teamLogoUrl = club?.logo_url ?? null;
   const {data: catalog} = teamClub?.club_id ? await admin.from('opponent_catalog').select('display_name,logo_url').eq('club_id',teamClub.club_id).not('logo_url','is',null) : {data:[]};
   dto.teamLogos = Object.fromEntries((catalog ?? []).filter(r=>typeof r.logo_url==='string').map(r=>[r.display_name,r.logo_url]));
-  dto.fanRoster = []; dto.scorers = [];
+  const [{data: tournamentPlayers}, {data: rosterRows, error: rosterError}] = await Promise.all([
+    admin.from('tournament_squad').select('player_id').eq('tournament_event_id', publicId),
+    admin.from('team_season_players').select('player_id,jersey_number,players:players(id,first_name,last_name,cutout_url)').eq('team_season_id', event.team_season_id),
+  ]);
+  let roster = rosterRows ?? [];
+  if (rosterError) {
+    const {data: legacy} = await admin.from('players').select('id,first_name,last_name,jersey_number,cutout_url').eq('team_season_id', event.team_season_id);
+    roster = (legacy ?? []).map(player => ({player_id:player.id,jersey_number:player.jersey_number,players:player}));
+  }
+  const chosenIds = new Set((tournamentPlayers ?? []).map(row => row.player_id));
+  dto.fanRoster = roster.filter(row => chosenIds.has(row.player_id)).map(row => [row.players?.first_name,row.players?.last_name].filter(Boolean).join(' ')).filter(Boolean);
+  dto.fanRosterExample = false;
+  dto.scorers = [];
   if (matchIds.length) {
     const {data: goals} = await admin.from('match_events').select('match_id,player_id').in('match_id',matchIds).eq('type','goal');
     const playerIds = [...new Set((goals ?? []).map(g=>g.player_id).filter(Boolean))];
@@ -206,10 +219,17 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
   }
   if (/^TEST/.test(String(event.notes ?? ''))) {
     try { const sample=JSON.parse(String(event.notes ?? '').match(/^Fan-Testdaten: (.+)$/m)?.[1] ?? '{}');
-      dto.fanRoster=(sample.roster ?? []).map(name=>String(name));
+      if (!dto.fanRoster.length && Array.isArray(sample.roster) && sample.roster.length) {
+        dto.fanRoster=sample.roster.map(name=>String(name));
+        dto.fanRosterExample=true;
+      }
       if (!dto.scorers.length) dto.scorers=(sample.scorers ?? []).map(s=>({name:String(s.name),goals:Number(s.goals),time:String(s.time),example:true}));
     } catch { /* no example data */ }
   }
+  const profileNames = [...dto.fanRoster, ...dto.scorers.map(s => s.name)];
+  const profileIds = roster.map(row => row.player_id).filter(Boolean);
+  const {data: avatars} = profileIds.length ? await admin.from('player_avatars').select('player_id,avatar_url').in('player_id',profileIds) : {data:[]};
+  dto.fanPlayers = buildPublicTournamentPlayers(profileNames, roster, avatars ?? []);
   dto.accentColor = /^#[0-9a-f]{6}$/i.test(club?.accent_color ?? '') ? club.accent_color : '#c82333';
 
   try {

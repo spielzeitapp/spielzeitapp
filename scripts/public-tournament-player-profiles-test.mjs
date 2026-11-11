@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import { buildPublicTournamentPlayers, assertPublicDtoSafe } from '../server/lib/publicTeamTournamentLogic.js';
+const rows = [{player_id:'one',jersey_number:19,players:{id:'one',first_name:'Daniel',last_name:'Baumann',cutout_url:'https://example.com/cutout.png',email:'private@example.com',injury:'private'}}, {player_id:'two',jersey_number:null,players:{id:'two',first_name:'Jonas',last_name:'Gamböck',cutout_url:'javascript:alert(1)'}}];
+const result = buildPublicTournamentPlayers(['Daniel Baumann','Jonas Gambock','Unbekannter Spieler'],rows,[{player_id:'two',avatar_url:'https://example.com/avatar.png'}]);
+assert.equal(result[0].number,19);
+assert.equal(result[0].imageUrl,'https://example.com/cutout.png');
+assert.equal(result[1].lastName,'Gamböck');
+assert.equal(result[1].number,null);
+assert.equal(result[1].imageUrl,'https://example.com/avatar.png');
+assert.equal(result[2].imageUrl,null);
+assert.equal(result[2].number,null);
+assertPublicDtoSafe({fanPlayers:result});
+assert.equal(JSON.stringify(result).includes('private'),false);
+assert.deepEqual(Object.keys(result[0]).sort(),['firstName','imageUrl','lastName','name','number'].sort());
+console.log('Public tournament cards: roster identity, photos, number fallback and private-field exclusion OK');
