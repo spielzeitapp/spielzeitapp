@@ -105,8 +105,13 @@ export function PublicTeamTournamentPage(): React.ReactElement {
       colorScheme: theme === 'day' ? 'light' : 'dark',
     } as React.CSSProperties}>
     <main className="mx-auto max-w-2xl space-y-4 px-4 pb-12 pt-[max(1.25rem,env(safe-area-inset-top))]">
-      <header className="flex flex-wrap items-center justify-between gap-3"><Link to={selectedMatch ? location.pathname : returnTo} state={location.state} className="rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-4 py-3 font-bold">← Zurück zum Turnier</Link><button onClick={()=>void onShare()} className="flex items-center gap-2 rounded-full border border-[var(--t-border)] px-4 py-3 font-bold"><Share2 size={18}/>Teilen</button></header>
-      <div className="flex justify-end"><button type="button" onClick={toggleTheme} aria-label="Tag-/Nachtmodus wechseln" className="flex min-h-11 items-center gap-2 rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-4 font-bold">{theme === 'night' ? <Sun size={18}/> : <Moon size={18}/>} {theme === 'night' ? 'Tagmodus' : 'Nachtmodus'}</button></div>
+      <header className="flex items-center justify-between gap-2">
+        <Link to={selectedMatch ? location.pathname : returnTo} state={location.state} aria-label="Zurück zum Turnier" className="inline-flex min-h-11 min-w-0 items-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2 text-sm font-bold">← Zurück<span className="ml-1 hidden min-[380px]:inline">zum Turnier</span></Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <button type="button" onClick={()=>void onShare()} className="flex h-11 items-center gap-2 rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 text-sm font-bold"><Share2 size={18} aria-hidden/>Teilen</button>
+          <button type="button" onClick={toggleTheme} aria-label={theme === 'night' ? 'Tagmodus einschalten' : 'Nachtmodus einschalten'} title={theme === 'night' ? 'Tagmodus einschalten' : 'Nachtmodus einschalten'} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)]">{theme === 'night' ? <Sun size={20} aria-hidden/> : <Moon size={20} aria-hidden/>}</button>
+        </div>
+      </header>
       <p role="status" className="text-sm text-[var(--t-muted)]">{shareHint}</p>
       {loading ? <p>Turnier wird geladen…</p> : !page ? <section className={card}><p>{error || 'Turnier nicht verfügbar'}</p><button onClick={()=>void load()} className="mt-3 underline">Erneut laden</button></section> : <>
         {selectedMatch ? <PublicTournamentMatchView page={page} match={selectedMatch} view={matchView} onView={view=>setSearchParams({spiel:selectedMatch.id,ansicht:view})}/> : <>
