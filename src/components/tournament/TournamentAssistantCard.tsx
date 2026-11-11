@@ -31,6 +31,7 @@ import { useInternalBasePath } from '../../demo/demoPaths';
 
 type Props = {
   tournamentEventId: string;
+  refreshToken?: number;
   slots: TournamentMatchSlotView[];
   attendance: TournamentAttendanceSummary;
   hasOfficialPlanUrl: boolean;
@@ -57,10 +58,10 @@ type Props = {
 function StepProgress({ step }: { step: TournamentAssistantStep }) {
   return (
     <div className="mt-2">
-      <p className="text-[11px] font-semibold text-white/65">Schritt {step.stepNumber} von {step.totalSteps}</p>
+      <p className="text-[16px] font-semibold text-white/65">Schritt {step.stepNumber} von {step.totalSteps}</p>
       <div className="mt-1.5 flex gap-1" role="progressbar" aria-label="Turnier-Vorbereitung" aria-valuemin={0} aria-valuemax={step.totalSteps} aria-valuenow={step.stepNumber}>
         {Array.from({ length: step.totalSteps }, (_, index) => (
-          <span key={index} className={`h-1 flex-1 rounded-full ${index < step.stepNumber ? 'sz-club-progress-fill' : 'bg-white/15'}`} />
+          <span key={index} className={`h-1.5 flex-1 rounded-full ${index < step.stepNumber ? 'sz-club-progress-fill' : 'bg-white/15'}`} />
         ))}
       </div>
     </div>
@@ -78,7 +79,7 @@ function PrimaryButton({
   disabled?: boolean;
   to?: string;
 }) {
-  const className = `${dsPrimaryCtaClass()} inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center gap-1.5 rounded-full px-4 py-3 text-[14px] font-bold disabled:opacity-60`;
+  const className = `${dsPrimaryCtaClass()} inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center gap-1.5 rounded-full px-4 py-3 text-[16px] font-bold disabled:opacity-60`;
   if (to) {
     return (
       <Link to={to} className={className}>
@@ -101,7 +102,7 @@ function GlassButton({ label, onClick, disabled }: { label: string; onClick: () 
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`${dsScheduleGlassButtonClass()} inline-flex min-h-[40px] w-full touch-manipulation items-center justify-center rounded-full px-3 py-2 text-[12px] font-semibold disabled:opacity-60`}
+      className={`${dsScheduleGlassButtonClass()} inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-full px-3 py-2 text-[15px] font-semibold disabled:opacity-60`}
     >
       {label}
     </button>
@@ -114,7 +115,7 @@ function SecondaryButton({ label, onClick, disabled }: { label: string; onClick:
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`${dsSecondaryCtaClass()} inline-flex min-h-[40px] w-full touch-manipulation items-center justify-center rounded-full px-3 py-2 text-[12px] font-semibold disabled:opacity-60`}
+      className={`${dsSecondaryCtaClass()} inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-full px-3 py-2 text-[15px] font-semibold disabled:opacity-60`}
     >
       {label}
     </button>
@@ -123,6 +124,7 @@ function SecondaryButton({ label, onClick, disabled }: { label: string; onClick:
 
 export function TournamentAssistantCard({
   tournamentEventId,
+  refreshToken = 0,
   slots,
   attendance,
   hasOfficialPlanUrl,
@@ -171,7 +173,7 @@ export function TournamentAssistantCard({
     return () => {
       cancelled = true;
     };
-  }, [tournamentEventId, slots]);
+  }, [tournamentEventId, slots, refreshToken]);
 
   useEffect(() => {
     let cancelled = false;
@@ -342,7 +344,7 @@ export function TournamentAssistantCard({
           ) : (
             <Link
               to={matchPreparationPath(action.matchId, basePath)}
-              className={`${dsSecondaryCtaClass()} inline-flex min-h-[40px] w-full touch-manipulation items-center justify-center rounded-full px-3 py-2 text-[12px] font-semibold`}
+              className={`${dsSecondaryCtaClass()} inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-full px-3 py-2 text-[15px] font-semibold`}
             >
               {label}
             </Link>
@@ -387,11 +389,11 @@ export function TournamentAssistantCard({
       const targetMatchId = action.matchId ?? copyContext?.targetSlot.match_id?.trim() ?? '';
       return (
         <div className="flex flex-col gap-1.5">
-          <p className="rounded-lg border sz-club-accent-chip px-2.5 py-2 text-[12px] font-semibold leading-snug sz-club-accent-text">
+          <p className="rounded-lg border sz-club-accent-chip px-2.5 py-2 text-[15px] font-semibold leading-snug sz-club-accent-text">
             Letzte Aufstellung übernehmen
           </p>
           {copyContext?.sourceOpponentName ? (
-            <p className="text-[12px] leading-snug text-white/60">
+            <p className="text-[15px] leading-snug text-white/60">
               Spiel gegen {copyContext.sourceOpponentName}
               {copyContext.sourceStarterCount > 0
                 ? ` · ${copyContext.sourceStarterCount} Startelf`
@@ -399,15 +401,15 @@ export function TournamentAssistantCard({
             </p>
           ) : null}
           {showReplaceConfirm ? (
-            <p className="rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2 text-[12px] leading-snug text-amber-100/90">
+            <p className="rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2 text-[15px] leading-snug text-amber-100/90">
               Die bestehende Aufstellung dieses Spiels wird ersetzt. Bitte erneut tippen zum Bestätigen.
             </p>
           ) : copyContext?.targetHasExistingLineup ? (
-            <p className="rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2 text-[12px] leading-snug text-amber-100/90">
+            <p className="rounded-lg border border-amber-500/25 bg-amber-950/20 px-2.5 py-2 text-[15px] leading-snug text-amber-100/90">
               Für dieses Spiel gibt es bereits eine Aufstellung. Übernehmen ersetzt sie.
             </p>
           ) : (
-            <p className="text-[12px] leading-snug text-white/55">
+            <p className="text-[15px] leading-snug text-white/55">
               Formation, Startelf und Bank werden übernommen — ohne erneute Spielerauswahl.
             </p>
           )}
@@ -434,7 +436,7 @@ export function TournamentAssistantCard({
           {targetMatchId ? (
             <Link
               to={matchPreparationPath(targetMatchId, basePath)}
-              className={`${dsSecondaryCtaClass()} inline-flex min-h-[40px] w-full touch-manipulation items-center justify-center rounded-full px-3 py-2 text-[12px] font-semibold`}
+              className={`${dsSecondaryCtaClass()} inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-full px-3 py-2 text-[15px] font-semibold`}
             >
               Manuell vorbereiten
             </Link>
@@ -457,8 +459,8 @@ export function TournamentAssistantCard({
     return (
       <section className={TC_CARD}>
         <div className={TC_CARD_INNER}>
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] sz-club-accent-text">Turnier-Assistent</p>
-          <p className="mt-2 flex items-center gap-2 text-[14px] text-white/55">
+          <p className="text-[16px] font-bold uppercase tracking-[0.14em] sz-club-accent-text">Turnier-Assistent</p>
+          <p className="mt-2 flex items-center gap-2 text-[16px] text-white/55">
             <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
             Lade nächsten Schritt…
           </p>
@@ -472,31 +474,41 @@ export function TournamentAssistantCard({
       <div className={`${TC_CARD_INNER} flex flex-col gap-3`}>
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] sz-club-accent-text">
-              <ClipboardList className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />
+            <p className="inline-flex items-center gap-1.5 text-[16px] font-bold uppercase tracking-[0.14em] sz-club-accent-text">
+              <ClipboardList className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
               Turnier-Assistent
             </p>
             <StepProgress step={step} />
+            <details className="mt-3 group/steps">
+              <summary className="cursor-pointer text-[15px] font-semibold text-white/75">Alle 7 Schritte ansehen</summary>
+              <ol className="mt-3 space-y-2" aria-label="Ablauf des Turnierassistenten">
+                {['Verfügbarkeit klären', 'Turnierkader wählen', 'Turnierplan hinterlegen', 'Aufstellung vorbereiten', 'Live spielen', 'Nächstes Spiel vorbereiten', 'Turnier abschließen'].map((label, index) => (
+                  <li key={label} aria-current={index + 1 === step.stepNumber ? 'step' : undefined} className={`flex items-center gap-3 rounded-xl px-3 py-2 text-[16px] ${index + 1 === step.stepNumber ? 'sz-club-accent-chip font-bold' : 'text-white/65'}`}>
+                    <span className="sz-club-accent-text w-5 shrink-0 font-bold">{index + 1}.</span>{label}
+                  </li>
+                ))}
+              </ol>
+            </details>
           </div>
         </div>
 
         <div>
-          <h2 className="text-[17px] font-bold leading-snug text-white">{step.title}</h2>
-          <p className="mt-1 text-[14px] leading-snug text-white/62">{step.description}</p>
+          <h2 className="text-[21px] font-bold leading-snug text-white">{step.title}</h2>
+          <p className="mt-1 text-[16px] leading-snug text-white/62">{step.description}</p>
           {step.stepNumber > 1 ? (
             <ul className="mt-2 flex list-none flex-col gap-0.5 p-0">
               {step.stepNumber > 1 ? (
-                <li className="text-[12px] text-emerald-300/85">✓ Verfügbarkeit geklärt</li>
+                <li className="text-[15px] text-emerald-300/85">✓ Verfügbarkeit geklärt</li>
               ) : null}
               {step.stepNumber > 2 && squadCount > 0 ? (
-                <li className="text-[12px] text-emerald-300/85">
+                <li className="text-[15px] text-emerald-300/85">
                   ✓ {squadCount} Spieler im Turnierkader
                 </li>
               ) : null}
               {step.stepNumber > 3 && (hasOfficialPlanUrl || totalMatchCount > 0) ? (
                 <>
-                  <li className="text-[12px] text-emerald-300/85">✓ Turnierplan importiert</li>
-                  <li className="text-[12px] text-white/50">
+                  <li className="text-[15px] text-emerald-300/85">✓ Turnierplan importiert</li>
+                  <li className="text-[15px] text-white/50">
                     {ownMatchCount} eigene Spiele · {totalMatchCount} Turnierspiele
                   </li>
                 </>
@@ -506,7 +518,7 @@ export function TournamentAssistantCard({
           {step.detailLines.length > 0 ? (
             <ul className="mt-2 flex list-none flex-col gap-0.5 p-0">
               {step.detailLines.map((line) => (
-                <li key={line} className="text-[12px] text-white/65">
+                <li key={line} className="text-[15px] text-white/65">
                   {line}
                 </li>
               ))}
@@ -515,7 +527,7 @@ export function TournamentAssistantCard({
         </div>
 
         {copyError ? (
-          <p className="text-[12px] text-red-300/90" role="alert">
+          <p className="text-[15px] text-red-300/90" role="alert">
             {copyError}
           </p>
         ) : null}

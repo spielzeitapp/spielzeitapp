@@ -54,10 +54,11 @@ type Props = {
   embedded?: boolean;
   /** Externer Trigger für Import/QR/Link-Workflow (z. B. aus Überblick). */
   workflowRequest?: { action: 'import' | 'qr' | 'link'; key: number } | null;
+  onWorkflowHandled?: () => void;
 };
 
 const inputClass =
-  'w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-[15px] text-white placeholder:text-white/40 focus:border-purple-500/45 focus:outline-none';
+  'w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-[16px] text-white placeholder:text-white/40 focus:border-purple-500/45 focus:outline-none';
 
 export const TournamentOfficialPlanCard: React.FC<Props> = ({
   tournamentEventId,
@@ -75,6 +76,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
   onManualAddMatch,
   embedded = false,
   workflowRequest = null,
+  onWorkflowHandled,
 }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [draftUrl, setDraftUrl] = useState('');
@@ -230,6 +232,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     if (workflowRequest.action === 'import') void startImport();
     else if (workflowRequest.action === 'qr') openQrScanner();
     else openEditor();
+    onWorkflowHandled?.();
   }, [workflowRequest?.key, canManage, startImport]);
 
   const handleImportConfirm = useCallback(async () => {
@@ -416,7 +419,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
   ]);
 
   const btnH = embedded ? 'min-h-[34px]' : 'min-h-[44px]';
-  const btnText = embedded ? 'text-[11px]' : 'text-sm';
+  const btnText = embedded ? 'text-[14px]' : 'text-sm';
   const iconCls = embedded ? 'h-3.5 w-3.5' : 'h-4 w-4';
   const panelBody = (
     <div className={`flex flex-col ${embedded ? 'gap-2' : 'gap-3'}`}>
@@ -437,13 +440,13 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
       )}
 
       {saveError ? (
-        <p className="text-[12px] text-red-300/90" role="alert">
+        <p className="text-[14px] text-red-300/90" role="alert">
           {saveError}
         </p>
       ) : null}
 
       {tournamentArchived ? (
-        <p className="rounded-lg border border-amber-500/20 bg-amber-950/15 px-2.5 py-1.5 text-[11px] leading-snug text-white/60">
+        <p className="rounded-lg border border-amber-500/20 bg-amber-950/15 px-2.5 py-1.5 text-[14px] leading-snug text-white/60">
           Turnier abgeschlossen — Aktualisieren ergänzt Daten, überschreibt keine Live-Daten.
         </p>
       ) : null}
@@ -454,7 +457,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
             className={`flex min-w-0 items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-950/20 ${embedded ? 'px-2 py-1.5' : 'px-3 py-2.5'}`}
           >
             <Link2 className={`${iconCls} shrink-0 text-emerald-300/85`} strokeWidth={2} aria-hidden />
-            <p className={`min-w-0 truncate font-semibold text-white ${embedded ? 'text-[12px]' : 'text-[15px]'}`}>
+            <p className={`min-w-0 truncate font-semibold text-white ${embedded ? 'text-[14px]' : 'text-[16px]'}`}>
               {domain}
             </p>
           </div>
@@ -507,7 +510,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
         </>
       ) : (
         <>
-          <p className={`text-white/65 ${embedded ? 'text-[12px]' : 'text-[14px]'}`}>
+          <p className={`text-white/65 ${embedded ? 'text-[14px]' : 'text-[14px]'}`}>
             Noch kein Turnierplan hinterlegt
           </p>
           {canManage ? (
@@ -630,12 +633,12 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
           >
             <div className="flex flex-col gap-3">
               {modalError ? (
-                <p className="text-[13px] text-red-300/90" role="alert">
+                <p className="text-[16px] text-red-300/90" role="alert">
                   {modalError}
                 </p>
               ) : null}
               <label className="flex flex-col gap-1.5">
-                <span className="text-[13px] text-white/65">Turnierplan URL</span>
+                <span className="text-[16px] text-white/65">Turnierplan URL</span>
                 <input
                   className={inputClass}
                   value={draftUrl}

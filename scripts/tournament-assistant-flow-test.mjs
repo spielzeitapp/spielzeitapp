@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {mkdtempSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+const require=createRequire(import.meta.url);
+const {buildSync}=require('esbuild');
+const tmp=mkdtempSync(join(tmpdir(),'tournament-assistant-'));
+try {
+  const file=join(tmp,'assistant.cjs');
+  buildSync({entryPoints:['src/lib/tournamentAssistant.ts'],bundle:true,platform:'node',format:'cjs',outfile:file,logLevel:'silent',define:{'import.meta.env':JSON.stringify({DEV:false,VITE_SUPABASE_URL:'https://test.supabase.co',VITE_SUPABASE_ANON_KEY:'synthetic-key'})}});
+  const {resolveTournamentAssistantStep: resolve}=require(file);
+  const base={slots:[],attendance:{playerCount:10,yesCount:4,noCount:0,openCount:6},tournamentSquadCount:0,hasOfficialPlanUrl:false,lineupReady:false,tournamentArchived:false,canCompleteTournament:false,canCreateReport:false,lineupCopyAvailable:false,targetHasExistingLineup:false};
+  const ready={...base,attendance:{playerCount:10,yesCount:9,noCount:1,openCount:0},tournamentSquadCount:8};
+  const slot={id:'slot1',match_id:'match1',match_status:'upcoming',kickoff_at:'2026-11-27T16:00:00Z',opponent_name:'Opponent',is_own_team:true,source:'spielzeitapp'};
+  const check=(input,step,action)=>{const r=resolve(input);assert.equal(r.totalSteps,7);assert.equal(r.stepNumber,step);assert.equal(r.action.kind,action);};
+  check(base,1,'open_attendance');
+  check({...ready,tournamentSquadCount:0},2,'open_squad');
+  check(ready,3,'import_plan');
+  check({...ready,slots:[slot]},4,'prepare_match');
+  check({...ready,slots:[slot],lineupReady:true},5,'start_live');
+  check({...base,slots:[{...slot,match_status:'live'}]},5,'go_live');
+  const finished={...slot,match_status:'finished'};
+  const next={...slot,id:'slot2',match_id:'match2',kickoff_at:'2026-11-27T17:00:00Z'};
+  check({...ready,slots:[finished,next],lineupCopyAvailable:true},6,'lineup_copy');
+  check({...ready,slots:[finished],awaitingFurtherPhase:true},6,'refresh_plan');
+  check({...ready,slots:[finished],canCompleteTournament:true},7,'complete_tournament');
+  check({...ready,slots:[finished],tournamentArchived:true},7,'view_status');
+  console.log('PASS: seven assistant stages, live priority, lineup reuse, unresolved next round and completion.');
+} finally {rmSync(tmp,{recursive:true,force:true});}
