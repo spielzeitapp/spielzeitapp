@@ -155,6 +155,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   onOfficialTournamentUrlUpdated,
   onTournamentCompleted,
 }) => {
+  const [termActionsOpen, setTermActionsOpen] = useState(false);
   const additionalHints = tournamentDisplayNotes(tournamentNotes, tournamentTitle);
   const basePath = useInternalBasePath();
   const navigate = useNavigate();
@@ -1001,14 +1002,9 @@ export const TournamentDetailSections: React.FC<Props> = ({
               onSaved={() => { setAssistantRefreshToken(token => token + 1); void reload(); }} />
           </TournamentCollapsibleSection>
         </div>
-        {trainerActions ? (
-          <TournamentCollapsibleSection title="Turniertermin bearbeiten oder löschen" icon={<Settings2 />}>
-            <p className="mb-4 text-[16px] leading-relaxed text-white/65">Hier änderst du Name, Datum, Treffpunkt und Spielort oder löschst den Turniertermin. Einzelne Spiele verwaltest du im Spielplan.</p>
-            {trainerActions}
-          </TournamentCollapsibleSection>
-        ) : null}
         {trainerFeedSection ? (
-          <TournamentCollapsibleSection title="Feed & Kommunikation" icon={<Megaphone />} defaultExpanded={false}>
+          <TournamentCollapsibleSection title="Vor dem Start · Feed & Kommunikation" icon={<Megaphone />} defaultExpanded={false}>
+            <p className="mb-4 text-[16px] leading-relaxed text-white/65">Spieltag ankündigen und die Veröffentlichung von Kader und Aufstellung vorbereiten.</p>
             {trainerFeedSection}
           </TournamentCollapsibleSection>
         ) : null}
@@ -1175,7 +1171,22 @@ export const TournamentDetailSections: React.FC<Props> = ({
         meetingAt={meetingAt}
         coverUrl={tournamentCoverUrl}
         participantCount={participants.length}
+        actions={canManage && trainerActions ? (
+          <button type="button" onClick={() => setTermActionsOpen(true)}
+            className="sz-club-event-action inline-flex h-11 w-11 items-center justify-center rounded-full border touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            aria-label="Turniertermin bearbeiten oder löschen" aria-haspopup="dialog" title="Turniertermin verwalten">
+            <Settings2 className="h-5 w-5 sz-club-accent-text" aria-hidden />
+          </button>
+        ) : null}
       />
+      {canManage && trainerActions ? (
+        <Modal open={termActionsOpen} onClose={() => setTermActionsOpen(false)} title="Turniertermin verwalten">
+          <p className="mb-4 text-[16px] leading-relaxed text-white/65">Name, Datum, Treffpunkt und Spielort bearbeiten. Einzelne Spiele verwaltest du im Spielplan.</p>
+          <div onClickCapture={(event) => {
+            if (event.target instanceof Element && event.target.closest('button:not(:disabled)')) setTermActionsOpen(false);
+          }}>{trainerActions}</div>
+        </Modal>
+      ) : null}
 
       {showAssistant ? (
         <TournamentAssistantCard
