@@ -34,6 +34,7 @@ type Props = {
   refreshToken: number;
   onSaved: () => void;
   onReady: (ready: boolean) => void;
+  onDirtyChange?: (dirty: boolean) => void;
   canEdit: boolean;
 };
 const input =
@@ -45,6 +46,7 @@ export function TournamentLineupTemplatePanel({
   refreshToken,
   onSaved,
   onReady,
+  onDirtyChange,
   canEdit,
 }: Props) {
   const demo = useDemoMode();
@@ -85,7 +87,8 @@ export function TournamentLineupTemplatePanel({
     };
   }, [eventId, refreshToken, reload]);
   const unavailable = players.filter((p) => p.is_injured).map((p) => p.id);
-  const dirty = JSON.stringify(draft) !== JSON.stringify(saved?.blocks);
+  const dirty = JSON.stringify(draft) !== JSON.stringify(saved?.blocks ?? emptyTournamentTemplate(squad));
+  useEffect(() => { onDirtyChange?.(!loading && dirty); }, [loading, dirty, onDirtyChange]);
   const ready =
     Boolean(saved) &&
     !dirty &&
