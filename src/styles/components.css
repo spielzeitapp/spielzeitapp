@@ -1409,11 +1409,18 @@ html[data-club-theme="black-white"] .sz-club-placeholder-player {
 }
 .sz-club-imported-portrait > .sz-club-diagonal-lines { display: none; }
 
-/* Public tournament pages can be taller than the app's fixed-height root. */
+/* Own scroll surface also works when iOS standalone locks html/body. */
 .public-tournament-page {
   width: 100%;
-  flex: none;
-  align-self: flex-start;
+  flex: 1 1 auto;
+  align-self: stretch;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .public-tournament-page[data-theme="day"] .sz-club-list-card {
   background: var(--t-fixture);
