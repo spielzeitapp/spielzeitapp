@@ -1433,3 +1433,13 @@ html[data-club-theme="black-white"] .sz-club-placeholder-player {
 .public-tournament-page[data-theme="day"] .sz-club-list-card [class*="text-white/"] {
   color: var(--t-muted);
 }
+
+/* Keep six tournament actions balanced on narrow phones. */
+@media (max-width: 380px) {
+  .tournament-header-actions:has(> :nth-child(6)) {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    justify-items: center;
+    gap: 0.5rem;
+  }
+}
