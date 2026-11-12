@@ -54,7 +54,8 @@
     "supabase/migrations/20261111212433_tournament_lineup_templates.sql": "11d9ad8103417cc0b84c624fdad0404eb13df3b2",
     "supabase/migrations/20261111213257_tournament_template_roster_guards.sql": "1aa478fcf46a60d6c07a559e5c3f42333d11d7a8",
     "supabase/migrations/20261112220302_hall_training_days.sql": "5b640d450ee321d6b93a10d72064a2c434cb4b65",
-    "supabase/migrations/20261112221251_hall_training_reject_anonymous_sessions.sql": "b409bcfb12ebea90fd5b2cc5239ae329c9984c14"
+    "supabase/migrations/20261112221251_hall_training_reject_anonymous_sessions.sql": "b409bcfb12ebea90fd5b2cc5239ae329c9984c14",
+    "supabase/migrations/20261112231741_hall_training_game_duration.sql": "997c389621090de2867654510506cc3edabe54e0"
   },
   "functions": {
     "supabase/functions/generate-club-communications/index.ts": "8f84887c9197b0bcc6c050e436b211dca44a01e8"
