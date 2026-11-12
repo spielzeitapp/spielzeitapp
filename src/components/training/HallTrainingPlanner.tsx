@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Lock, Play, Pause, Shirt, Undo2 } from 'lucide-react';
 import { Modal } from '../../app/ui/Modal';
 import { useDemoMode } from '../../demo/DemoContext';
-import { calculateHallSchedule, createHallDay, hallClock, hallElapsed, hallReady, hallScore, hallStandings, HALL_COLORS, type HallDay } from '../../lib/hallTraining';
+import { calculateHallSchedule, createHallDay, hallClock, hallElapsed, hallReady, hallScore, hallStandings, HALL_COLORS, HALL_NAMES, type HallDay } from '../../lib/hallTraining';
 import { loadHallDay, saveHallDay } from '../../lib/hallTrainingStore';
 import { TC_CARD } from '../tournament/tournamentCenterStyles';
 
@@ -26,7 +26,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
   const [count, setCount] = useState(3), [format, setFormat] = useState<3 | 4>(3), [minutes, setMinutes] = useState(defaultMinutes), [pause, setPause] = useState(2), [target, setTarget] = useState(8), [cycles, setCycles] = useState(0);
   const saving = useRef(false);
   const dirty = saved ? JSON.stringify(saved) !== JSON.stringify(day) : day.teams.some((t, i) => t.playerIds.length > 0 || t.name !== ['Rot', 'Blau', 'Gelb', 'Grün'][i]);
-  const configDirty = count !== day.teams.length || format !== day.format || minutes * 60 !== day.total || pause * 60 !== day.pause || target * 60 !== day.target || (cycles !== 0 && cycles !== day.cycles);
+  const configDirty = day.games.length !== count * (count - 1) / 2 * day.cycles || count !== day.teams.length || format !== day.format || minutes * 60 !== day.total || pause * 60 !== day.pause || target * 60 !== day.target || (cycles !== 0 && cycles !== day.cycles);
   const started = day.games.some(g => g.status !== 'pending');
   const availableKey = availableIds.join(',');
   const ready = hallReady(day, availableIds);
@@ -68,6 +68,12 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
     else availableIds.forEach((id, i) => next.teams[i % count].playerIds.push(id));
     if (await persist(next)) setTab('teams');
   };
+  const changeTeamCount = (nextCount: number) => {
+    if (started || readOnly || busy || ![3, 4].includes(nextCount)) return;
+    if (nextCount < day.teams.length && day.teams.slice(nextCount).some(team => team.playerIds.length) && !window.confirm('Die Spieler der entfernten Mannschaft werden wieder nicht zugeteilt. Fortfahren?')) return;
+    setCount(nextCount);
+    setDay(previous => ({ ...previous, teams: Array.from({ length: nextCount }, (_, i) => previous.teams[i] ?? { name: HALL_NAMES[i], playerIds: [] }) }));
+  };
   const assign = (id: string, team: number) => setDay(prev => ({ ...prev, teams: prev.teams.map((t, i) => ({ ...t, playerIds: [...t.playerIds.filter(x => x !== id), ...(i === team ? [id] : [])] })) }));
   const activeIndex = day.games.findIndex(g => g.status === 'running' || g.status === 'paused');
   const nextIndex = day.games.findIndex(g => g.status === 'pending');
@@ -98,7 +104,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
         <fieldset disabled={readOnly || busy || started} className={`${TC_CARD} space-y-3 p-4 disabled:opacity-65`}>
           <legend className="sr-only">Zeit und Spielform</legend>
           <div className="grid grid-cols-2 gap-3">
-            <label className="text-[15px] text-white/70">Mannschaften<select className={input} value={count} onChange={e => setCount(Number(e.target.value))}><option value={3}>3 Teams</option><option value={4}>4 Teams</option></select></label>
+            <label className="text-[15px] text-white/70">Mannschaften<select className={input} value={count} onChange={e => changeTeamCount(Number(e.target.value))}><option value={3}>3 Teams</option><option value={4}>4 Teams</option></select></label>
             <label className="text-[15px] text-white/70">Spielform<select className={input} value={format} onChange={e => setFormat(Number(e.target.value) as 3 | 4)}><option value={3}>3 gegen 3</option><option value={4}>4 gegen 4</option></select></label>
             <label className="text-[15px] text-white/70">Gesamtzeit (Min.)<input className={input} type="number" min={15} max={180} value={minutes} onChange={e => setMinutes(Number(e.target.value))} /></label>
             <label className="text-[15px] text-white/70">Wechselpause (Min.)<input className={input} type="number" min={0} max={5} step={0.5} value={pause} onChange={e => setPause(Number(e.target.value))} /></label>
@@ -113,7 +119,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
         {!started && !readOnly ? <>
           <button type="button" disabled={busy} className={`${button} w-full`} onClick={() => { if (day.teams.some(t => t.playerIds.length) && !window.confirm('Vorhandene Einteilung neu verteilen?')) return; const next = structuredClone(day); next.teams.forEach(t => { t.playerIds = []; }); availableIds.forEach((id, i) => next.teams[i % next.teams.length].playerIds.push(id)); setDay(next); }}>Zugesagte Spieler gleichmäßig verteilen</button>
           <p className="text-[15px] text-white/60">Nach Spielerzahl verteilt. Du kannst die Teams danach frei anpassen.</p>
-          <div className="space-y-2">{[...new Set([...availableIds, ...day.teams.flatMap(t => t.playerIds)])].map(id => <label key={id} className="flex items-center gap-2 rounded-xl border border-white/10 p-2"><span className="min-w-0 flex-1 text-[16px] font-semibold">{names.get(id) ?? 'Spieler'}{!availableIds.includes(id) ? ' · abgemeldet' : ''}</span><select className={`${input} !w-28 shrink-0`} disabled={busy} value={day.teams.findIndex(t => t.playerIds.includes(id))} onChange={e => assign(id, Number(e.target.value))}><option value={-1}>Nicht zugeteilt</option>{day.teams.map((team, i) => <option value={i} key={i}>{team.name}</option>)}</select></label>)}</div>
+          <div className="space-y-2">{[...new Set([...availableIds, ...day.teams.flatMap(t => t.playerIds)])].map(id => <label key={id} className="flex flex-col items-stretch gap-2 rounded-xl border border-white/10 p-3"><span className="min-w-0 flex-1 text-[16px] font-semibold">{names.get(id) ?? 'Spieler'}{!availableIds.includes(id) ? ' · abgemeldet' : ''}</span><select className={`${input} !w-full`} disabled={busy} value={day.teams.findIndex(t => t.playerIds.includes(id))} onChange={e => assign(id, Number(e.target.value))}><option value={-1}>Nicht zugeteilt</option>{day.teams.map((team, i) => <option value={i} key={i}>{team.name}</option>)}</select></label>)}</div>
           <button type="button" disabled={busy || !dirty || configDirty} className={`${button} w-full sz-club-tab-active`} onClick={() => void persist(day)}>{busy ? 'Speichert…' : 'Mannschaften speichern'}</button>
           {!ready ? <p className="text-[15px] text-white/60">Zum Start alle Zusagen zuteilen: Jedes Team braucht mindestens {day.format} verfügbare Spieler. Eine unvollständige Einteilung kannst du als Entwurf speichern.</p> : null}
         </> : null}
