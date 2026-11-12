@@ -3876,7 +3876,7 @@ export const EventDetailPage: React.FC = () => {
     Boolean(sessionUser?.id) &&
     !['finished', 'canceled', 'cancelled'].includes(safeText(event.status).toLowerCase()) &&
     ['parent', 'player', 'trainer', 'admin'].includes(effectiveRole) &&
-    (event.kind === 'match' || event.kind === 'tournament' || event.kind === 'training');
+    (event.kind === 'match' || event.kind === 'tournament');
   const carpoolingCard = showCarpooling && sessionUser?.id ? (
     <EventCarpoolCard
       eventId={event.id}
@@ -4187,11 +4187,7 @@ export const EventDetailPage: React.FC = () => {
               status={event.status}
               coverUrl={(event as { training_cover_url?: unknown }).training_cover_url}
               actions={<CenterQuickActionBar
-              onNavigate={canStartNavigation ? handleStartNavigation : undefined}
-              showNavigation={canStartNavigation}
               layout="round"
-              communication={canTrainerManageEvent && event.status !== 'canceled' ? <EventFeedCommunicationSection event={event} userId={sessionUser?.id ?? null} embedded /> : null}
-              carpool={carpoolingCard}
               reminders={canTrainerManageEvent && !isDemo ? <><p className="mb-4 text-[16px] text-white/70">Diese Erinnerungen gelten für die gesamte Mannschaft.</p><TeamReminderSettingsPanel teamSeasonId={event.team_season_id} embedded /></> : null}
               onAddToCalendar={() => void handleAddSingleEventToCalendar()}
               onEdit={canTrainerManageEvent ? () => openEditModal(event) : undefined}
