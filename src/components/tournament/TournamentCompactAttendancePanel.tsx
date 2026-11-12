@@ -1,3 +1,6 @@
+import { AttendanceThumbControls } from '../events/AttendanceThumbControls';
+import { dbStatusToTrainingAttendance, type TrainingAttendanceStatus } from '../../lib/trainingAttendance';
+import { PremiumStatusBadge } from '../player/PremiumStatusBadge';
 import React from 'react';
 import { MatchPlayerRow } from '../match/MatchPlayerRow';
 import {
@@ -20,6 +23,7 @@ type Props = {
   openCount: number;
   getAttendanceStatus: (playerId: string) => string | null | undefined;
   getMatchRsvpDisplay: (playerId: string) => string | null | undefined;
+  onSetDetailedStatus?: (playerId: string, status: TrainingAttendanceStatus) => void;
   onSetAttendance: (playerId: string, status: 'yes' | 'no') => void;
   sortPlayers: (
     players: PlayerItem[],
@@ -32,50 +36,6 @@ type Props = {
   readOnly?: boolean;
 };
 
-function AttendancePlayerRow({
-  player,
-  badge,
-  status,
-  bucket,
-  onYes,
-  onNo,
-  readOnly = false,
-}: {
-  player: PlayerItem;
-  badge: string;
-  status: 'open' | 'yes' | 'no';
-  bucket: AttendanceBucket;
-  onYes: () => void;
-  onNo: () => void;
-  readOnly?: boolean;
-}) {
-  return (
-    <li className="flex flex-col gap-1.5">
-      <MatchPlayerRow player={player} status={status} rightLabel={badge === 'VERLETZT' && player.is_injured ? undefined : badge} selected={bucket === 'yes'} layout="team-roster" hideSubline />
-      {readOnly ? null : (
-        <div className="grid grid-cols-2 gap-1.5 px-0.5">
-          <button
-            type="button"
-            onClick={onYes}
-            aria-label={`${badge === 'ZUGESAGT' ? 'Zugesagt belassen' : 'Zusage setzen'} für ${player.display_name ?? 'Spieler'}`}
-            className={`${dsRsvpChoiceClass('yes', bucket === 'yes')} !min-h-[44px] !rounded-xl !px-3 !py-2 !text-[13px] !font-bold touch-manipulation`}
-          >
-            ✓ Zusagen
-          </button>
-          <button
-            type="button"
-            onClick={onNo}
-            aria-label={`Absage setzen für ${player.display_name ?? 'Spieler'}`}
-            className={`${dsRsvpChoiceClass('no', bucket === 'no')} !min-h-[44px] !rounded-xl !px-3 !py-2 !text-[13px] !font-bold touch-manipulation`}
-          >
-            ✕ Absagen
-          </button>
-        </div>
-      )}
-    </li>
-  );
-}
-
 export function TournamentCompactAttendancePanel({
   players,
   playersLoading,
@@ -86,6 +46,7 @@ export function TournamentCompactAttendancePanel({
   getAttendanceStatus,
   getMatchRsvpDisplay,
   onSetAttendance,
+  onSetDetailedStatus,
   sortPlayers,
   statusBucket,
   readOnly = false,
@@ -144,16 +105,13 @@ export function TournamentCompactAttendancePanel({
               bucket === 'yes' ? 'yes' : bucket === 'no' ? 'no' : 'open';
 
             return (
-              <AttendancePlayerRow
-                key={player.id}
-                player={player}
-                badge={badge}
-                status={status}
-                bucket={bucket}
-                onYes={() => onSetAttendance(player.id, 'yes')}
-                onNo={() => onSetAttendance(player.id, 'no')}
-                readOnly={readOnly}
-              />
+              <li key={player.id}>
+                <MatchPlayerRow player={player} status={status} layout="team-roster" hideSubline
+                  nameStatus={<PremiumStatusBadge label={rsvpDisplay === 'external_training' ? 'LAZ' : badge} tone={rsvpDisplay === 'injured' ? 'injured' : rsvpDisplay === 'sick' ? 'sick' : rsvpDisplay === 'external_training' ? 'external' : bucket === 'yes' ? 'present' : bucket === 'no' ? 'absent' : 'open'} />}
+                  trailing={readOnly ? undefined : <AttendanceThumbControls name={player.display_name ?? player.name ?? 'Spieler'} status={dbStatusToTrainingAttendance(rsvpDisplay) ?? 'open'} isLaz={player.is_laz_player}
+                    onSelect={next => onSetDetailedStatus ? onSetDetailedStatus(player.id, next) : onSetAttendance(player.id, next === 'present' ? 'yes' : 'no')} />}
+                />
+              </li>
             );
           })}
         </ul>

@@ -1,3 +1,5 @@
+import { MatchPlayerRow } from '../match/MatchPlayerRow';
+import { AttendanceThumbControls } from './AttendanceThumbControls';
 import React, { useMemo, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { PlayerItem } from '../../hooks/usePlayers';
@@ -100,37 +102,6 @@ function trainingStatBoxClass(tone: DsChipTone | 'participation'): string {
   return [STAT_BOX_BASE, STAT_BOX_TONE[tone]].join(' ');
 }
 
-function trainingActionButtonClass(
-  tone: 'absent' | 'sick' | 'injured' | 'external' | 'present',
-  active?: boolean,
-): string {
-  const base =
-    'flex min-h-[42px] w-full min-w-0 items-center justify-center rounded-[12px] border border-transparent px-1.5 text-[12px] font-semibold leading-tight transition-[background,box-shadow] duration-150 disabled:cursor-default disabled:opacity-45';
-  const tones: Record<typeof tone, { idle: string; on: string }> = {
-    present: {
-      idle: ATTENDANCE_ACTION_GLASS_IDLE,
-      on: 'border border-[rgba(40,255,120,0.18)] bg-[rgba(18,110,68,0.4)] text-[#9DFFC5] shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_0_28px_rgba(40,255,120,0.24)]',
-    },
-    external: {
-      idle: ATTENDANCE_ACTION_GLASS_IDLE,
-      on: ATTENDANCE_ACTION_LAZ_ON,
-    },
-    absent: {
-      idle: ATTENDANCE_ACTION_GLASS_IDLE,
-      on: 'border border-[rgba(255,45,85,0.16)] bg-[rgba(82,12,22,0.44)] text-[#FF9AA6] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_26px_rgba(255,45,85,0.22)]',
-    },
-    sick: {
-      idle: ATTENDANCE_ACTION_GLASS_IDLE,
-      on: 'border border-[rgba(80,160,255,0.16)] bg-[rgba(24,64,120,0.42)] text-[#A8D4FF] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_24px_rgba(80,160,255,0.18)]',
-    },
-    injured: {
-      idle: ATTENDANCE_ACTION_GLASS_IDLE,
-      on: 'border border-[rgba(255,160,60,0.14)] bg-[rgba(88,46,10,0.42)] text-[#FFC878] shadow-[inset_0_1px_0_rgba(255,220,140,0.07),0_0_24px_rgba(255,160,60,0.2)]',
-    },
-  };
-  return [base, active ? tones[tone].on : tones[tone].idle].join(' ');
-}
-
 const TRAINING_BADGE_CLASS =
   '!inline-flex !h-[22px] !max-w-[5.5rem] shrink-0 !px-2 !text-[9px] !font-bold !uppercase !tracking-[0.04em] !leading-none';
 
@@ -142,11 +113,8 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
   className = '',
   readOnly = false,
 }) => {
-  const demo = useDemoMode();
-  const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
   const chooseStatus = (playerId: string, status: TrainingAttendanceStatus) => {
     onSetStatus(playerId, status);
-    setExpandedPlayerId(null);
   };
   const counts = useMemo(() => {
     const statuses = players.map((p) => getStatus(p.id));
@@ -191,116 +159,15 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
         <ul className="flex w-full flex-col gap-2 pb-1">
           {sorted.map((player) => {
             const status = getStatus(player.id);
-            const media = playerMedia(player, Boolean(demo));
-            const isUnavailable = status !== 'present';
-            const expanded = expandedPlayerId === player.id && !readOnly;
             const playerName = `${playerCardName(player)} ${playerCardFamilyName(player)}`.trim();
 
             return (
               <li key={player.id} className="w-full min-w-0">
-                <div className={`sz-club-list-card sz-club-surface sz-club-surface--quiet w-full overflow-hidden rounded-[15px] border ${expanded ? 'border-red-500/40' : ''}`}>
-                  <button
-                    type="button"
-                    disabled={readOnly}
-                    aria-expanded={readOnly ? undefined : expanded}
-                    aria-label={`${playerName}: ${trainingAttendanceLabel(status)}${readOnly ? '' : ', Status ändern'}`}
-                    onClick={() => setExpandedPlayerId(expanded ? null : player.id)}
-                    className="flex min-h-[66px] w-full items-center px-2.5 text-left disabled:cursor-default"
-                  >
-                    <div className="relative mr-2 h-[56px] w-[48px] shrink-0 self-end overflow-hidden">
-                      <img
-                        src={media.src}
-                        alt=""
-                        onError={(event) => {
-                          event.currentTarget.onerror = null;
-                          event.currentTarget.src = media.fallbackSrc;
-                        }}
-                        className={`h-full w-full origin-top scale-[1.55] object-contain object-top ${media.isUpperBodyDemo ? 'sz-club-placeholder-player' : ''} ${
-                          media.isCutout
-                            ? ''
-                            : media.isUpperBodyDemo
-                              ? 'object-contain'
-                              : 'object-cover'
-                        }`}
-                      />
-                    </div>
-                    <span className="sz-club-number-divider w-10 shrink-0 border-l pl-2 text-[23px] font-black leading-none text-white">
-                      {player.jersey_number ?? '–'}
-                    </span>
-                    <span className="min-w-0 flex-1 pl-2">
-                      <span className="block truncate text-[12px] font-semibold leading-tight text-white/55">
-                        {playerCardName(player)}
-                      </span>
-                      <span className="block truncate text-[16px] font-black leading-tight text-white sm:text-[18px]">
-                        {playerCardFamilyName(player) || playerCardName(player)}
-                      </span>
-                    </span>
-                    <div className="ml-1 flex shrink-0 flex-col items-end gap-1">
-                      <PremiumStatusBadge
-                        label={trainingAttendanceLabel(status)}
-                        tone={statusTone(status)}
-                        className={TRAINING_BADGE_CLASS}
-                      />
-                      <PlayerSpecialStatusBadges
-                        isLaz={player.is_laz_player}
-                        isInjured={player.is_injured && status !== 'injured'}
-                        size="xs"
-                      />
-                      {(player.status ?? 'active') === 'paused' ? (
-                        <span className="text-[9px] font-bold uppercase text-amber-200">Pausiert</span>
-                      ) : null}
-                    </div>
-                    {!readOnly ? <ChevronDown className={`ml-1 h-4 w-4 shrink-0 text-white/45 transition-transform ${expanded ? 'rotate-180' : ''}`} aria-hidden /> : null}
-                  </button>
-                  {expanded ? (
-                    <div className="border-t border-white/[0.08] px-2.5 pb-2.5 pt-2">
-                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-white/50">Status wählen</p>
-                      <div className="grid grid-cols-2 gap-1.5">
-                      {isUnavailable ? (
-                        <button
-                          type="button"
-                          onClick={() => chooseStatus(player.id, 'present')}
-                          className={`${trainingActionButtonClass('present', true)} col-span-2`}
-                        >
-                          Wieder dabei
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        disabled={status === 'absent'}
-                        onClick={() => chooseStatus(player.id, 'absent')}
-                        className={trainingActionButtonClass('absent', status === 'absent')}
-                      >
-                        Abwesend
-                      </button>
-                      <button
-                        type="button"
-                        disabled={status === 'sick'}
-                        onClick={() => chooseStatus(player.id, 'sick')}
-                        className={trainingActionButtonClass('sick', status === 'sick')}
-                      >
-                        Krank
-                      </button>
-                      <button
-                        type="button"
-                        disabled={status === 'injured'}
-                        onClick={() => chooseStatus(player.id, 'injured')}
-                        className={trainingActionButtonClass('injured', status === 'injured')}
-                      >
-                        Verletzt
-                      </button>
-                      <button
-                        type="button"
-                        disabled={status === 'external'}
-                        onClick={() => chooseStatus(player.id, 'external')}
-                        className={trainingActionButtonClass('external', status === 'external')}
-                      >
-                        LAZ
-                      </button>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
+                <MatchPlayerRow player={player} layout="team-roster" hideSubline
+                  nameStatus={<><PremiumStatusBadge label={trainingAttendanceLabel(status)} tone={status === 'open' || status === 'legacy_unknown' ? 'open' : statusTone(status)} className={TRAINING_BADGE_CLASS} />
+                    {(player.status ?? 'active') === 'paused' ? <span className="ml-1 text-[10px] text-amber-200">Pausiert</span> : null}</>}
+                  trailing={readOnly ? undefined : <AttendanceThumbControls name={playerName} status={status} isLaz={player.is_laz_player} onSelect={next => chooseStatus(player.id, next)} />}
+                />
               </li>
             );
           })}

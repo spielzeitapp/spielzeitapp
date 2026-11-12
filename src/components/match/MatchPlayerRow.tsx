@@ -63,7 +63,8 @@ export const MatchPlayerRow: React.FC<{
   trailing?: React.ReactNode;
   /** Blendet die Positionszeile aus, wenn nur Name und Status relevant sind. */
   hideSubline?: boolean;
-}> = ({ player, status, selected = false, rightLabel, metricHint, onClick, tone = "utility", layout = "default", trailing, hideSubline = false }) => {
+  nameStatus?: React.ReactNode;
+}> = ({ player, status, selected = false, rightLabel, metricHint, onClick, tone = "utility", layout = "default", trailing, hideSubline = false, nameStatus }) => {
   const number = player.jersey_number ?? player.number ?? null;
   const isMatchday = tone === "matchday";
   const baseSub = positionSubline(player.position);
@@ -91,11 +92,11 @@ export const MatchPlayerRow: React.FC<{
           {number ?? "–"}
         </span>
         <span className="min-w-0 flex-1 pl-2 max-[359px]:pl-1.5">
-          <span className="block whitespace-normal break-words text-[13px] font-semibold leading-tight text-white/55 max-[359px]:text-[11px] sm:text-[14px]">
+          <span className="block truncate text-[13px] font-semibold leading-tight text-white/55 max-[359px]:text-[11px] sm:text-[14px]">
             {nameParts.first}
           </span>
           <span
-            className={`block whitespace-normal break-words font-black leading-tight tracking-tight text-white ${
+            className={`block truncate font-black leading-tight tracking-tight text-white ${
               compactFamilyName
                 ? 'text-[14px] sm:text-[16px]'
                 : 'text-[17px] max-[359px]:text-[14px] sm:text-[18px]'
@@ -103,6 +104,7 @@ export const MatchPlayerRow: React.FC<{
           >
             {familyName}
           </span>
+          {nameStatus ? <span className="mt-1 block">{nameStatus}</span> : null}
           {!hideSubline ? <span className="mt-1 block text-[11px] font-semibold text-white/48">{subline}</span> : null}
         </span>
         {trailing ? (
