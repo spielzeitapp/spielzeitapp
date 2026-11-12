@@ -58,7 +58,7 @@ type Props = {
 };
 
 const inputClass =
-  'w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-[16px] text-white placeholder:text-white/40 focus:border-purple-500/45 focus:outline-none';
+  'w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-[16px] text-white placeholder:text-white/40 focus:border-[rgb(var(--club-border-rgb)/0.6)] focus:outline-none';
 
 export const TournamentOfficialPlanCard: React.FC<Props> = ({
   tournamentEventId,
@@ -418,15 +418,15 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     tournamentEventId,
   ]);
 
-  const btnH = embedded ? 'min-h-[34px]' : 'min-h-[44px]';
-  const btnText = embedded ? 'text-[14px]' : 'text-sm';
-  const iconCls = embedded ? 'h-3.5 w-3.5' : 'h-4 w-4';
+  const btnH = 'min-h-[48px]';
+  const btnText = '!text-[16px]';
+  const iconCls = 'h-5 w-5 sz-club-accent-text';
   const panelBody = (
     <div className={`flex flex-col ${embedded ? 'gap-2' : 'gap-3'}`}>
       {!embedded ? (
         <div className="flex flex-wrap items-start justify-between gap-2">
           <CardTitle className="!mb-0 flex items-center gap-2">
-            <ClipboardList className="h-4 w-4 text-purple-300/90" strokeWidth={2} aria-hidden />
+            <ClipboardList className="h-4 w-4 sz-club-accent-text" strokeWidth={2} aria-hidden />
             Offizieller Turnierplan
           </CardTitle>
           <span className={dsStatusChipClass(hasUrl ? 'present' : 'neutral')}>
@@ -434,7 +434,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
           </span>
         </div>
       ) : (
-        <span className={`w-fit ${dsStatusChipClass(hasUrl ? 'present' : 'neutral')}`}>
+        <span className={`max-w-full w-fit !whitespace-normal !leading-snug ${dsStatusChipClass(hasUrl ? 'present' : 'neutral')}`}>
           {hasUrl ? 'Link hinterlegt' : 'Kein Link hinterlegt'}
         </span>
       )}
@@ -540,7 +540,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
 
   return (
     <>
-      {embedded ? panelBody : <Card className="relative border border-purple-500/20 bg-purple-950/15">{panelBody}</Card>}
+      {embedded ? panelBody : <Card className="relative sz-club-list-card border">{panelBody}</Card>}
 
       {toastMessage ? (
         <div
@@ -617,6 +617,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
           />
 
           <Modal
+            className="tournamentWorkflowModal"
             isOpen={modalOpen}
             onClose={() => !saving && setModalOpen(false)}
             title="Offizieller Turnierplan"

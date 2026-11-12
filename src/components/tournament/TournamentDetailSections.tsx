@@ -1168,11 +1168,11 @@ export const TournamentDetailSections: React.FC<Props> = ({
           </div>
         }
       />
-      {carpoolSection ? <Modal open={carpoolOpen} onClose={() => setCarpoolOpen(false)} title="Fahrgemeinschaft">
+      {carpoolSection ? <Modal className="tournamentWorkflowModal" open={carpoolOpen} onClose={() => setCarpoolOpen(false)} title="Fahrgemeinschaft">
         {carpoolSection}
       </Modal> : null}
       {canManage && trainerActions ? (
-        <Modal open={termActionsOpen} onClose={() => setTermActionsOpen(false)} title="Turniertermin verwalten">
+        <Modal className="tournamentWorkflowModal" open={termActionsOpen} onClose={() => setTermActionsOpen(false)} title="Turniertermin verwalten">
           <p className="mb-4 text-[16px] leading-relaxed text-white/65">Name, Datum, Treffpunkt und Spielort bearbeiten. Einzelne Spiele verwaltest du im Spielplan.</p>
           <div onClickCapture={(event) => {
             if (event.target instanceof Element && event.target.closest('button:not(:disabled)')) {
@@ -1291,21 +1291,30 @@ export const TournamentDetailSections: React.FC<Props> = ({
         </div>
       ) : null}
 
-      {canManage ? <Modal open={preparationDialog !== null} onClose={closePreparationDialog}
+      {canManage ? <Modal className="tournamentWorkflowModal" open={preparationDialog !== null} onClose={closePreparationDialog}
         title={preparationDialog ? preparationTitles[preparationDialog] : ''}
         titleClassName="!text-[20px]"
-        footer={<div className="flex flex-wrap gap-2">
+        footer={<div className="grid w-full grid-cols-2 gap-2">
           <AppButton variant="secondary" onClick={closePreparationDialog}>Zum Assistenten</AppButton>
           {preparationDialog && preparationOrder.indexOf(preparationDialog) >= 0 && preparationOrder.indexOf(preparationDialog) < 3 ? (
             <AppButton variant="primary" onClick={() => openPreparationDialog(preparationOrder[preparationOrder.indexOf(preparationDialog) + 1])}>Weiter</AppButton>
           ) : null}
         </div>}>
-        <p className="mb-4 text-[16px] leading-relaxed text-white/60">Rückmeldungen und Kader werden direkt gespeichert. Die Aufstellung bitte mit dem Speicherknopf bestätigen.</p>
+        <p className="mb-4 text-[16px] leading-relaxed text-white/65">{preparationDialog === 'attendance'
+          ? 'Zu- und Absagen erfassen. Jede Änderung wird direkt gespeichert.'
+          : preparationDialog === 'squad'
+            ? 'Spieler für das Turnier auswählen. Die Auswahl wird direkt gespeichert.'
+            : preparationDialog === 'plan'
+              ? 'Turnierplan per QR-Code oder Link hinterlegen oder Spiele manuell anlegen.'
+              : preparationDialog === 'lineup'
+                ? 'Grundaufstellung und Blöcke vorbereiten. Änderungen mit „Grundaufstellung speichern“ oder „Entwurf speichern“ bestätigen.'
+                : 'Ankündigungen und Veröffentlichungen für das Turnier verwalten.'}</p>
         {renderPreparationDialog()}
       </Modal> : null}
 
 
       <Modal
+        className="tournamentWorkflowModal"
         isOpen={participantModalOpen}
         onClose={() => !participantBusy && setParticipantModalOpen(false)}
         title="Team hinzufügen"
@@ -1350,6 +1359,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
       </Modal>
 
       <Modal
+        className="tournamentWorkflowModal"
         isOpen={importModalOpen}
         onClose={() => !importBusy && setImportModalOpen(false)}
         title="Mannschaften importieren"
@@ -1409,6 +1419,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
       </Modal>
 
       <Modal
+        className="tournamentWorkflowModal"
         isOpen={matchModalOpen}
         onClose={() => !matchBusy && setMatchModalOpen(false)}
         title="Turnierspiel hinzufügen"

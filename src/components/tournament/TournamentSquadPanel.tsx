@@ -58,10 +58,10 @@ function LineupLink({
   if (loading) return null;
 
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-2">
+    <div className="rounded-[18px] border sz-club-event-section px-2.5 py-2">
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <span className="inline-flex items-center gap-1.5">
-          <ClipboardList className="h-3.5 w-3.5 text-red-300/80" strokeWidth={2.25} aria-hidden />
+          <ClipboardList className="h-3.5 w-3.5 sz-club-accent-text" strokeWidth={2.25} aria-hidden />
           <span className="text-[16px] font-bold uppercase tracking-[0.1em] text-white/75">Aufstellung</span>
         </span>
         <span className={dsStatusChipClass(hasLineup ? 'present' : 'neutral')}>
@@ -78,7 +78,7 @@ function LineupLink({
       ) : (
         <Link
           to={matchLineupPath(matchId, basePath)}
-          className={`mt-2 inline-flex min-h-[32px] w-full items-center justify-center rounded-full px-3 text-[16px] font-semibold touch-manipulation ${dsScheduleGlassButtonClass()}`}
+          className={`mt-2 inline-flex min-h-[48px] w-full items-center justify-center rounded-full px-3 text-[16px] font-semibold touch-manipulation ${dsScheduleGlassButtonClass()}`}
         >
           {hasLineup ? 'Aufstellung öffnen' : 'Aufstellung erstellen'}
         </Link>
@@ -266,7 +266,7 @@ export function TournamentSquadPanel({
       <div className={`${TC_CARD_INNER} flex flex-col gap-2`}>
         <div className="flex items-center justify-between gap-2">
           <p className={`${TC_SECTION_LABEL} inline-flex items-center gap-1.5`}>
-            <Users className="h-3.5 w-3.5 text-red-300/80" strokeWidth={2.25} aria-hidden />
+            <Users className="h-3.5 w-3.5 sz-club-accent-text" strokeWidth={2.25} aria-hidden />
             Turnierkader
           </p>
           <span className={dsStatusChipClass(squadIds.length > 0 ? 'present' : 'open')}>
@@ -302,7 +302,7 @@ export function TournamentSquadPanel({
         {featuredMatchId ? (
           <Link
             to={matchPreparationPath(featuredMatchId, basePath)}
-            className={`inline-flex min-h-[32px] w-full items-center justify-center rounded-full px-3 text-[16px] font-semibold touch-manipulation ${dsScheduleGlassButtonClass()}`}
+            className={`inline-flex min-h-[48px] w-full items-center justify-center rounded-full px-3 text-[16px] font-semibold touch-manipulation ${dsScheduleGlassButtonClass()}`}
           >
             Match-Vorbereitung für nächstes Spiel
           </Link>
