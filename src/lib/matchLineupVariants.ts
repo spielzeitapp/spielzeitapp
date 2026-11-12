@@ -11,6 +11,8 @@ export type MatchLineupVariantDraft = {
 
 export type StoredMatchLineupVariants = {
   version: 1;
+  /** Missing on older saved plans: two independent blocks. */
+  lineupMode?: 'single' | 'blocks';
   startVariant: MatchLineupVariantNumber;
   variants: Record<MatchLineupVariantNumber, MatchLineupVariantDraft>;
 };

@@ -9,6 +9,7 @@ import {
 } from "../../lib/matchFormations";
 import {
   emptyTournamentTemplate,
+  normalizeTournamentTemplate,
   tournamentTemplateReady,
 } from "../../lib/tournamentLineupTemplate";
 import {
@@ -21,6 +22,7 @@ import { fetchTournamentSquadPlayerIds } from "../../lib/tournamentSquad";
 import { type StoredMatchLineupVariants } from "../../lib/matchLineupVariants";
 import type { PlayerItem } from "../../hooks/usePlayers";
 import type { TournamentMatchSlotView } from "../../lib/tournamentPlan";
+import { PitchPlayerMarker } from "../match/PitchPlayerMarker";
 import { LineupFormationPitch } from "../match/LineupFormationPitch";
 import {
   dsPrimaryCtaClass,
@@ -51,7 +53,7 @@ export function TournamentLineupTemplatePanel({
 }: Props) {
   const demo = useDemoMode();
   const [draft, setDraft] = useState<StoredMatchLineupVariants>(() =>
-    emptyTournamentTemplate([]),
+    emptyTournamentTemplate([], undefined, 'single'),
   );
   const [saved, setSaved] = useState<TournamentTemplateRecord | null>(null);
   const [squad, setSquad] = useState<string[]>([]);
@@ -74,7 +76,7 @@ export function TournamentLineupTemplatePanel({
         if (roster.error) throw new Error(roster.error);
         setSaved(record);
         setSquad(roster.data);
-        setDraft(record?.blocks ?? emptyTournamentTemplate(roster.data));
+        setDraft(record?.blocks ?? emptyTournamentTemplate(roster.data, undefined, 'single'));
       })
       .catch((e) => {
         if (active) setError(e.message);
@@ -87,7 +89,7 @@ export function TournamentLineupTemplatePanel({
     };
   }, [eventId, refreshToken, reload]);
   const unavailable = players.filter((p) => p.is_injured).map((p) => p.id);
-  const dirty = JSON.stringify(draft) !== JSON.stringify(saved?.blocks ?? emptyTournamentTemplate(squad));
+  const dirty = JSON.stringify(draft) !== JSON.stringify(saved?.blocks ?? emptyTournamentTemplate(squad, undefined, 'single'));
   useEffect(() => { onDirtyChange?.(!loading && dirty); }, [loading, dirty, onDirtyChange]);
   const ready =
     Boolean(saved) &&
@@ -98,7 +100,9 @@ export function TournamentLineupTemplatePanel({
   useEffect(() => {
     onReady(ready);
   }, [ready, onReady]);
-  const current = draft.variants[block];
+  const useBlocks = draft.lineupMode !== 'single';
+  const currentBlock = useBlocks ? block : 1;
+  const current = draft.variants[currentBlock];
   const selectedPlayers = players.filter(
     (p) => squad.includes(p.id) && !p.is_injured,
   );
@@ -125,7 +129,7 @@ export function TournamentLineupTemplatePanel({
     setError(null);
     setMessage(null);
     try {
-      const next = structuredClone(draft);
+      const next = normalizeTournamentTemplate(draft);
       for (const n of [1, 2] as const) {
         next.variants[n].squadIds = [...squad];
         for (const s of Object.keys(next.variants[n].slots) as Array<
@@ -147,7 +151,7 @@ export function TournamentLineupTemplatePanel({
       setSaved({ blocks: next, updated_at: stamp });
       setMessage(
         tournamentTemplateReady(next, squad, unavailable)
-          ? "Block A und B sind vollständig gespeichert."
+          ? next.lineupMode === 'single' ? "Aufstellung vollständig gespeichert." : "Block A und B sind vollständig gespeichert."
           : "Entwurf gespeichert. Offene Positionen kannst du später ergänzen.",
       );
       onSaved();
@@ -166,7 +170,7 @@ export function TournamentLineupTemplatePanel({
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-[20px] font-bold text-white">
-          Grundaufstellung · Block A / B
+          {useBlocks ? "Grundaufstellung · Block A / B" : "Normale Aufstellung"}
         </h3>
         {ready ? (
           <CheckCircle2
@@ -176,15 +180,27 @@ export function TournamentLineupTemplatePanel({
         ) : null}
       </div>
       <p className="text-[16px] leading-relaxed text-white/70">
-        Vor dem Turnier planen – auch ohne Spielplan. Die gespeicherten Blöcke
-        kannst du später in ein eigenes Spiel übernehmen.
+        Vor dem Turnier planen – auch ohne Spielplan. Wähle eine normale Aufstellung oder zwei Blöcke für den Wechsel.
       </p>
       {!squad.length ? (
         <p className="rounded-xl border border-amber-400/25 p-3 text-[16px] text-amber-200">
           Wähle zuerst den Turnierkader unter Schritt 2.
         </p>
       ) : null}
-      <div
+      <div className="grid grid-cols-2 gap-2" role="group" aria-label="Aufstellungsart">
+        {(['single', 'blocks'] as const).map(mode => <button key={mode} type="button"
+          disabled={!canEdit || busy} aria-pressed={(draft.lineupMode ?? 'blocks') === mode}
+          className={`min-h-12 rounded-xl border px-2 py-2 text-[16px] font-bold ${(draft.lineupMode ?? 'blocks') === mode ? 'sz-club-tab-active text-white' : 'sz-club-event-action text-white/65'}`}
+          onClick={() => {
+            const next = structuredClone(draft);
+            if (mode === 'single' && useBlocks) next.variants[1] = structuredClone(current);
+            next.lineupMode = mode;
+            next.startVariant = 1;
+            setBlock(1);
+            edit(next);
+          }}>{mode === 'single' ? 'Normale Aufstellung' : 'Block A / B'}</button>)}
+      </div>
+      {useBlocks ? <div
         className="grid grid-cols-2 gap-2"
         role="tablist"
         aria-label="Turnierblöcke"
@@ -201,7 +217,7 @@ export function TournamentLineupTemplatePanel({
             {draft.startVariant === n ? " · Start" : ""}
           </button>
         ))}
-      </div>
+      </div> : null}
       <label className="block space-y-2 text-[16px] font-semibold text-white">
         Spielform / Formation
         <select
@@ -221,17 +237,18 @@ export function TournamentLineupTemplatePanel({
         <LineupFormationPitch
           formationId={current.formationId}
           slots={current.slots}
-          renderSlotContent={({ playerId, label }) => (
-            <span className="flex min-h-10 min-w-10 flex-col items-center justify-center rounded-xl bg-black/75 px-2 py-1 text-[12px] font-bold text-white">
-              <span>{label}</span>
-              <span>
-                {selectedPlayers.find((p) => p.id === playerId)?.last_name ||
-                  selectedPlayers.find((p) => p.id === playerId)
-                    ?.display_name ||
-                  "–"}
-              </span>
-            </span>
-          )}
+          displayMode="lineup-fullscreen"
+          renderSlotContent={({ playerId, label, isGk }) => {
+            const player = selectedPlayers.find(p => p.id === playerId);
+            return <PitchPlayerMarker
+              lastName={player?.last_name || player?.display_name || 'Position offen'}
+              number={player?.jersey_number}
+              positionBadge={label}
+              variant={isGk ? 'goalkeeper' : 'field'}
+              mode="pitch"
+              fullscreenLineup
+            />;
+          }}
         />
       </div>
       <div className="space-y-3">
@@ -243,19 +260,19 @@ export function TournamentLineupTemplatePanel({
             <span>{label}</span>
             <select
               disabled={!canEdit || busy || !squad.length}
-              aria-label={`Block ${block === 1 ? "A" : "B"} · ${label}`}
+              aria-label={`${useBlocks ? `Block ${block === 1 ? "A" : "B"}` : "Aufstellung"} · ${label}`}
               className={input}
               value={current.slots[slot] ?? ""}
               onChange={(e) => {
                 const next = structuredClone(draft);
                 const value = e.target.value;
                 for (const s of Object.keys(
-                  next.variants[block].slots,
+                  next.variants[currentBlock].slots,
                 ) as Array<typeof slot>) {
-                  if (value && next.variants[block].slots[s] === value)
-                    next.variants[block].slots[s] = null;
+                  if (value && next.variants[currentBlock].slots[s] === value)
+                    next.variants[currentBlock].slots[s] = null;
                 }
-                next.variants[block].slots[slot] = value || null;
+                next.variants[currentBlock].slots[slot] = value || null;
                 edit(next);
               }}
             >
@@ -279,7 +296,7 @@ export function TournamentLineupTemplatePanel({
       </p>
       {canEdit ? (
         <>
-          <button
+          {useBlocks ? <><button
             disabled={busy}
             onClick={() => {
               const next = structuredClone(draft);
@@ -300,7 +317,7 @@ export function TournamentLineupTemplatePanel({
             className={`${dsSecondaryCtaClass()} w-full !text-[16px]`}
           >
             Block {block === 1 ? "A nach B" : "B nach A"} kopieren
-          </button>
+          </button></> : null}
           <button
             disabled={busy || !squad.length}
             onClick={() => void save()}
