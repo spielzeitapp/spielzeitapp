@@ -1,0 +1,63 @@
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import { unlinkSync } from 'node:fs';
+import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
+const require = createRequire(import.meta.url);
+const { build } = require('esbuild');
+const output = join(process.cwd(), 'node_modules', '.center-preparation-test.mjs');
+try {
+  await build({ stdin: { resolveDir: process.cwd(), loader: 'tsx', contents: `
+    import React from 'react';
+    import assert from 'node:assert/strict';
+    import {MemoryRouter} from 'react-router-dom';
+    import TestRenderer, {act} from 'react-test-renderer';
+    import {CenterPreparationAssistant} from './src/components/center/CenterPreparationAssistant';
+    import {CenterQuickActionBar} from './src/components/center/CenterQuickActionBar';
+    import {MatchPreparationAssistant} from './src/components/center/MatchPreparationAssistant';
+    const wrap = child => <MemoryRouter future={{v7_startTransition:true,v7_relativeSplatPath:true}}>{child}</MemoryRouter>;
+    let view; const calls=[];
+    const steps=[{id:'availability',title:'Verfügbarkeit',detail:'Rückmeldungen',done:true,onClick:()=>calls.push('attendance')},{id:'plan',title:'Plan',detail:'Planung',done:false,to:'/app/plan'},{id:'groups',title:'Optional',detail:'Gruppen',done:false,optional:true,onClick:()=>{}}];
+    const update=async p=>act(async()=>{view.update(wrap(<CenterPreparationAssistant title="Training" readyLabel="Training vorbereitet" steps={steps} {...p}/>));});
+    await act(async()=>{view=TestRenderer.create(wrap(<CenterPreparationAssistant title="Training" readyLabel="Training vorbereitet" steps={steps}/>));});
+    assert.equal(view.root.findByProps({role:'progressbar'}).props['aria-valuemax'],2);
+    assert.equal(view.root.findByProps({role:'progressbar'}).props['aria-valuenow'],1);
+    act(()=>view.root.findAllByType('button')[0].props.onClick());assert.deepEqual(calls,['attendance']);
+    assert.equal(view.root.findByType('a').props.href,'/app/plan');
+    await update({steps:steps.map(s=>s.id==='plan'?{...s,done:true}:s)});
+    assert(JSON.stringify(view.toJSON()).includes('Training vorbereitet'));
+    await update({loading:true});assert.equal(view.root.findByProps({role:'progressbar'}).props['aria-valuenow'],0);
+    await update({error:'Laden fehlgeschlagen'});assert(!JSON.stringify(view.toJSON()).includes('Training vorbereitet'));
+    act(()=>view.unmount());
+    const props={onAddToCalendar:()=>calls.push('calendar'),onEdit:()=>calls.push('edit'),onCancel:()=>calls.push('cancel'),onDelete:()=>calls.push('delete'),layout:'round',communication:<p>Kommunikation</p>,carpool:<p>Fahrgemeinschaft</p>,showNavigation:true,onNavigate:()=>calls.push('navigation'),reminders:<p>Erinnerungen</p>};
+    await act(async()=>{view=TestRenderer.create(<CenterQuickActionBar {...props}/>);});
+    const labels=()=>view.root.findAllByType('button').map(b=>b.props['aria-label']).filter(Boolean);
+    assert.deepEqual(labels(),['Termin verwalten','Zum Kalender hinzufügen','Feed & Kommunikation','Fahrgemeinschaft','Navigation starten','Team-Erinnerungen']);
+    act(()=>view.root.findByProps({'aria-label':'Termin verwalten'}).props.onClick());
+    const edit=view.root.findAllByType('button').find(b=>b.children.includes('Bearbeiten / Verschieben'));
+    act(()=>edit.props.onClick());assert.equal(calls.at(-1),'edit');assert.equal(view.root.findAllByProps({role:'dialog'}).length,0);
+    act(()=>view.root.findByProps({'aria-label':'Fahrgemeinschaft'}).props.onClick());assert(JSON.stringify(view.toJSON()).includes('Fahrgemeinschaft'));
+    await act(async()=>view.update(<CenterQuickActionBar layout="round" onAddToCalendar={()=>{}}/>));
+    assert(!labels().includes('Termin verwalten'));assert(!labels().includes('Feed & Kommunikation'));
+    act(()=>view.unmount());
+    const matchProps={matchId:'test',basePath:'/demo',playerCount:2,openCount:0,yesCount:2,attendanceLoading:false,onOpenAttendance:()=>calls.push('match-attendance'),onOpenPlan:()=>{}};
+    globalThis.lineupResult={data:{startingPlayerIds:['a'],squadPlayerIds:['a','b']},error:null};
+    await act(async()=>{view=TestRenderer.create(wrap(<MatchPreparationAssistant {...matchProps}/>));});
+    assert.equal(view.root.findByProps({role:'progressbar'}).props['aria-valuenow'],2);
+    assert.equal(view.root.findAllByType('a')[0].props.href,'/demo/match-preparation?matchId=test');
+    globalThis.lineupResult={data:{startingPlayerIds:['a','b','c','d','e','f','g'],squadPlayerIds:['a','b','c','d','e','f','g']},error:null};
+    await act(async()=>view.update(wrap(<MatchPreparationAssistant {...matchProps} matchId="complete"/>)));
+    assert.equal(view.root.findByProps({role:'progressbar'}).props['aria-valuenow'],3);assert(JSON.stringify(view.toJSON()).includes('Match vorbereitet'));
+    globalThis.lineupResult={data:{startingPlayerIds:[],squadPlayerIds:[]},error:'offline'};
+    await act(async()=>view.update(wrap(<MatchPreparationAssistant {...matchProps} matchId="offline"/>)));
+    assert.equal(view.root.findByProps({role:'progressbar'}).props['aria-valuenow'],0);assert(!JSON.stringify(view.toJSON()).includes('Match vorbereitet'));
+    act(()=>view.unmount());
+    console.log('PASS: direct actions, optional steps, loading/error guards, complete/incomplete match lineup, route targets, role-dependent controls and menu handoff.');
+  ` }, bundle:true, platform:'node', format:'esm', outfile:output, packages:'external', logLevel:'silent', plugins:[{name:'controlled-services', setup(b) {
+    b.onResolve({filter:/\/(Modal|liveMatchService|liveMatchBroadcast)$/},args=>({path:args.path.split('/').pop(),namespace:'test'}));
+    b.onLoad({filter:/.*/,namespace:'test'},args=>({loader:'tsx',resolveDir:process.cwd(),contents:args.path==='Modal'?`import React from 'react';export function Modal(p){return p.open?<div role="dialog">{p.children}</div>:null}`:args.path==='liveMatchService'?`export const LIVE_FIELD_SLOT_ORDER=['GK','LB','RB','CM','LW','RW','ST','FP'];export const fetchLineupForLiveMatch=async()=>globalThis.lineupResult;export const fetchMatchById=async()=>({data:{u11_formation_id:null},error:null});`:`export const subscribeLiveMatchStateChanged=()=>()=>{};`}));
+  }}] });
+  // Browser focus listeners are not exercised by this component-state test.
+  const result=spawnSync(process.execPath,['--input-type=module','-e',`globalThis.window={addEventListener(){},removeEventListener(){}};await import(${JSON.stringify(output)});`],{stdio:'inherit'});
+  assert.equal(result.status,0);
+} finally { try { unlinkSync(output); } catch {} }

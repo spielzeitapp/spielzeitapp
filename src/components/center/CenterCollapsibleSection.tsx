@@ -38,11 +38,11 @@ export function CenterCollapsibleSection({
         >
           <span className={`inline-flex min-w-0 items-center ${prominent ? 'gap-2.5' : 'gap-1.5'}`}>
             {icon ? (
-              <span className={prominent ? 'shrink-0 text-red-400 [&>svg]:h-5 [&>svg]:w-5' : 'shrink-0 text-[13px] leading-none'}>
+              <span className={prominent ? 'shrink-0 sz-club-accent-text [&>svg]:h-5 [&>svg]:w-5' : 'shrink-0 text-[13px] leading-none'}>
                 {icon}
               </span>
             ) : null}
-            <span className={prominent ? 'truncate text-[15px] font-bold tracking-tight text-white/90' : `${EC_SECTION_LABEL} !text-[10px]`}>
+            <span className={prominent ? 'truncate text-[18px] font-bold tracking-tight text-white/90' : `${EC_SECTION_LABEL} !text-[10px]`}>
               {title}
             </span>
           </span>

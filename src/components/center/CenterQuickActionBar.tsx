@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
-import { CalendarClock, CalendarPlus, MapPin, Pencil, Share2, Trash2, XCircle } from 'lucide-react';
+import { Bell, Car, Megaphone, Navigation, Settings2, CalendarClock, CalendarPlus, MapPin, Pencil, Share2, Trash2, XCircle } from 'lucide-react';
+
+import { Modal } from '../../app/ui/Modal';
 
 type Props = {
+  communication?: React.ReactNode;
+  carpool?: React.ReactNode;
+  reminders?: React.ReactNode;
   onAddToCalendar: () => void;
   onNavigate?: () => void;
   showNavigation?: boolean;
@@ -11,10 +16,11 @@ type Props = {
   onCancel?: () => void;
   cancelLabel?: string;
   onDelete?: () => void;
-  layout?: 'scroll' | 'grid';
+  layout?: 'scroll' | 'grid' | 'round';
 };
 
 export function CenterQuickActionBar({
+  communication, carpool, reminders,
   onAddToCalendar,
   onNavigate,
   showNavigation = false,
@@ -26,6 +32,7 @@ export function CenterQuickActionBar({
   onDelete,
   layout = 'scroll',
 }: Props) {
+  const [dialog, setDialog] = useState<'manage' | 'communication' | 'carpool' | 'reminders' | null>(null);
   const [shareHint, setShareHint] = useState<string | null>(null);
 
   const handleShare = async () => {
@@ -34,6 +41,30 @@ export function CenterQuickActionBar({
     setShareHint(ok ? 'Link kopiert' : 'Teilen nicht verfügbar');
     window.setTimeout(() => setShareHint(null), 2200);
   };
+
+  if (layout === 'round') {
+    const actions = [
+      ...(onEdit || onCancel || onDelete ? [{ label: 'Termin verwalten', icon: Settings2, onClick: () => setDialog('manage') }] : []),
+      { label: 'Zum Kalender hinzufügen', icon: CalendarPlus, onClick: onAddToCalendar },
+      ...(communication ? [{ label: 'Feed & Kommunikation', icon: Megaphone, onClick: () => setDialog('communication') }] : []),
+      ...(carpool ? [{ label: 'Fahrgemeinschaft', icon: Car, onClick: () => setDialog('carpool') }] : []),
+      ...(showNavigation && onNavigate ? [{ label: 'Navigation starten', icon: Navigation, onClick: onNavigate }] : []),
+      ...(reminders ? [{ label: 'Team-Erinnerungen', icon: Bell, onClick: () => setDialog('reminders') }] : []),
+    ];
+    const run = (action?: () => void) => { setDialog(null); action?.(); };
+    return <div className="sz-club-surface sz-club-surface--quiet rounded-2xl border p-3">
+      <div className="flex flex-wrap items-center justify-around gap-2" role="group" aria-label="Terminaktionen">
+        {actions.map(({ label, icon: Icon, onClick }) => <button key={label} type="button" aria-label={label} title={label} onClick={onClick} className="sz-club-event-action inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"><Icon className="sz-club-accent-text h-5 w-5" aria-hidden /></button>)}
+      </div>
+      <Modal open={dialog !== null} onClose={() => setDialog(null)} title={dialog === 'manage' ? 'Termin verwalten' : dialog === 'communication' ? 'Feed & Kommunikation' : dialog === 'carpool' ? 'Fahrgemeinschaft' : 'Team-Erinnerungen'}>
+        {dialog === 'manage' ? <div className="space-y-3">
+          {onEdit ? <ActionChip icon={Pencil} label="Bearbeiten / Verschieben" onClick={() => run(onEdit)} layout="grid" /> : null}
+          {onCancel ? <ActionChip icon={XCircle} label={cancelLabel} onClick={() => run(onCancel)} dangerTone="cancel" layout="grid" /> : null}
+          {onDelete ? <ActionChip icon={Trash2} label="Löschen" onClick={() => run(onDelete)} dangerTone="delete" layout="grid" /> : null}
+        </div> : dialog === 'communication' ? communication : dialog === 'carpool' ? carpool : dialog === 'reminders' ? reminders : null}
+      </Modal>
+    </div>;
+  }
 
   return (
     <div className="relative">
@@ -79,7 +110,7 @@ function ActionChip({
   label: string;
   onClick: () => void;
   dangerTone?: 'cancel' | 'delete';
-  layout?: 'scroll' | 'grid';
+  layout?: 'scroll' | 'grid' | 'round';
 }) {
   return (
     <button
