@@ -1,4 +1,3 @@
-import {managerPortalRoot} from '../../lib/managerPortal';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ScanLine } from 'lucide-react';
@@ -361,6 +360,7 @@ export const TournamentPlanQrScannerSheet: React.FC<Props> = ({
           </AppButton>
         </div>
       </div>
-    </div>, managerPortalRoot(),
+    </div>,
+    document.body,
   );
 };

@@ -459,13 +459,10 @@
     inset 0 0 0 1px rgb(var(--club-border-rgb) / 0.045) !important;
 }
 
-/* Mobile posts fill the app scroll container; text retains its own inner padding. */
+/* Social-Feed auf Handys: Beitrag wirklich randlos wie Instagram/Facebook. */
 @media (max-width: 639px) {
   .app-home .home-feed-edge > .sz-club-feed-shell,
   .app-home .home-feed-edge > .sz-feed-club-scope > .sz-club-feed-shell {
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
     border-left-width: 0 !important;
     border-right-width: 0 !important;
     border-radius: 0 !important;
