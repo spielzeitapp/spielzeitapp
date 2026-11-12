@@ -59,7 +59,7 @@ export const TournamentPlanRefreshSheet: React.FC<Props> = ({
       role="presentation"
     >
       <div
-        className="modalSheet max-h-[min(92dvh,calc(100dvh-var(--app-header-h)-env(safe-area-inset-top,0px)-12px))] border border-purple-500/25 shadow-[0_0_40px_rgba(88,28,135,0.18)] sm:max-w-[480px]"
+        className="modalSheet tournamentWorkflowModal max-h-[min(92dvh,calc(100dvh-var(--app-header-h)-env(safe-area-inset-top,0px)-12px))] border sm:max-w-[480px]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="tournament-plan-refresh-title"
@@ -67,7 +67,7 @@ export const TournamentPlanRefreshSheet: React.FC<Props> = ({
       >
         <div className="modalHeader">
           <div id="tournament-plan-refresh-title" className="modalTitle flex items-center gap-2 text-white">
-            <RefreshCw className="h-4 w-4 text-purple-300/90" strokeWidth={2} aria-hidden />
+            <RefreshCw className="h-4 w-4 sz-club-accent-text" strokeWidth={2} aria-hidden />
             Turnierplan aktualisiert
           </div>
           <button type="button" className="modalClose" onClick={onClose} aria-label="Schließen" disabled={importing}>

@@ -38,7 +38,7 @@ type Props = {
   canEdit: boolean;
 };
 const input =
-  "min-h-12 w-full rounded-xl border border-white/15 bg-[#111114] px-3 py-2 text-[16px] text-white";
+  "min-h-12 w-full rounded-xl border border-[rgb(var(--club-border-rgb)/0.3)] bg-[#0c0c0f] px-3 py-2 text-[16px] text-white";
 export function TournamentLineupTemplatePanel({
   eventId,
   players,
@@ -195,7 +195,7 @@ export function TournamentLineupTemplatePanel({
             role="tab"
             aria-selected={block === n}
             onClick={() => setBlock(n)}
-            className={`min-h-12 rounded-xl border px-3 py-2 text-[17px] font-bold ${block === n ? "sz-club-tab-active" : "border-white/10 text-white/65"}`}
+            className={`min-h-12 rounded-xl border px-3 py-2 text-[17px] font-bold ${block === n ? "sz-club-tab-active" : "sz-club-event-action text-white/65"}`}
           >
             Block {n === 1 ? "A" : "B"}
             {draft.startVariant === n ? " · Start" : ""}

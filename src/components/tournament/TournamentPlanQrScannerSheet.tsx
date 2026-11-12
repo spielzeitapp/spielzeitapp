@@ -262,7 +262,7 @@ export const TournamentPlanQrScannerSheet: React.FC<Props> = ({
       role="presentation"
     >
       <div
-        className="modalSheet max-h-[min(92dvh,calc(100dvh-var(--app-header-h)-env(safe-area-inset-top,0px)-12px))] border border-purple-500/25 shadow-[0_0_40px_rgba(88,28,135,0.18)] sm:max-w-[480px]"
+        className="modalSheet tournamentWorkflowModal max-h-[min(92dvh,calc(100dvh-var(--app-header-h)-env(safe-area-inset-top,0px)-12px))] border sm:max-w-[480px]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="tournament-qr-scanner-title"
@@ -270,7 +270,7 @@ export const TournamentPlanQrScannerSheet: React.FC<Props> = ({
       >
         <div className="modalHeader">
           <div id="tournament-qr-scanner-title" className="modalTitle flex items-center gap-2 text-white">
-            <ScanLine className="h-4 w-4 text-purple-300/90" strokeWidth={2} aria-hidden />
+            <ScanLine className="h-4 w-4 sz-club-accent-text" strokeWidth={2} aria-hidden />
             QR-Code scannen
           </div>
           <button
@@ -306,7 +306,7 @@ export const TournamentPlanQrScannerSheet: React.FC<Props> = ({
               autoPlay
             />
             <div
-              className="pointer-events-none absolute inset-6 rounded-xl border-2 border-dashed border-purple-400/70 shadow-[inset_0_0_24px_rgba(168,85,247,0.12)]"
+              className="pointer-events-none absolute inset-6 rounded-xl border-2 border-dashed border-[rgb(var(--club-border-rgb)/0.7)] "
               aria-hidden
             />
             {phase === 'starting' ? (
