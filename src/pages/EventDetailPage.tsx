@@ -1,3 +1,4 @@
+import { isHallTraining } from '../lib/hallTraining';
 import { AttendanceThumbControls } from '../components/events/AttendanceThumbControls';
 import { TeamReminderSettingsPanel } from '../components/TeamReminderSettingsPanel';
 import { CenterAttendanceSurface } from '../components/center/CenterAttendanceSurface';
@@ -526,6 +527,8 @@ export const EventDetailPage: React.FC = () => {
   });
   const [editAssignment, setEditAssignment] = useState<EventFieldAssignmentRow | null>(null);
   const [editUseExternalLocation, setEditUseExternalLocation] = useState(false);
+  const editIsHallTraining = editEvent?.kind === 'training' && isHallTraining(editTitle, editLocation);
+  const editIsExternalLocation = !editIsHallTraining && editUseExternalLocation;
   const [linkedVenue, setLinkedVenue] = useState<VenueRow | null>(null);
   const [editMeetupAt, setEditMeetupAt] = useState('');
   const [editDetails, setEditDetails] = useState('');
@@ -1615,7 +1618,7 @@ export const EventDetailPage: React.FC = () => {
       }
     }
     const needsInternalAssignment =
-      !editUseExternalLocation &&
+      !editIsHallTraining && !editIsExternalLocation &&
       (editEvent.kind === 'training' || (editEvent.kind === 'match' && editEvent.is_home === true));
     if (needsInternalAssignment && !editVenue?.id) {
       setEditError('Bitte eine freigegebene Sportanlage auswählen.');
@@ -1630,7 +1633,7 @@ export const EventDetailPage: React.FC = () => {
     try {
     setEditError(null);
     const locationVal =
-      editUseExternalLocation || !editVenue
+      editIsExternalLocation || !editVenue
         ? combineLocationParts(editLocation, editLocationAddress)
         : locationTextFromVenue(editVenue);
     const meetupRaw = (editMeetupAt ?? '').trim();
@@ -1640,7 +1643,7 @@ export const EventDetailPage: React.FC = () => {
       starts_at: startsAt,
       meeting_at: meetingAt,
       location: locationVal,
-      venue_id: editUseExternalLocation ? null : editVenue?.id ?? null,
+      venue_id: editIsExternalLocation ? null : editVenue?.id ?? null,
       opponent: (editOpponent ?? '').trim() || null,
     };
     eventPersisted = true;
@@ -1768,7 +1771,7 @@ export const EventDetailPage: React.FC = () => {
       if (editEvent.kind === 'training') {
         previousPayload.training_absence_deadline_disabled = editEvent.training_absence_deadline_disabled ?? null;
       }
-      if (editUseExternalLocation) {
+      if (editIsHallTraining || editIsExternalLocation) {
         if (editAssignment?.id) {
           const deleteRes = await eventSaveTask('Platzzuordnung entfernen', deleteEventFieldAssignment(editAssignment.id));
           if (!deleteRes.ok) {
@@ -1898,7 +1901,7 @@ export const EventDetailPage: React.FC = () => {
     } finally {
       setSavingEdit(false);
     }
-  }, [editAssignment, editDetails, editEndTime, editEvent, editFacilitySelection.fieldId, editFacilitySelection.zoneId, editSheetEventType, editDateTime, editLocation, editLocationAddress, editUseExternalLocation, editVenue, editMeetupAt, editOpponent, editOpponentLogoUrl, editTitle, editTrainingDeadlineDisabled, reschedulePushExtra, closeEditModal, loadEvent, isDemo, basePath]);
+  }, [editIsHallTraining, editIsExternalLocation, editAssignment, editDetails, editEndTime, editEvent, editFacilitySelection.fieldId, editFacilitySelection.zoneId, editSheetEventType, editDateTime, editLocation, editLocationAddress, editUseExternalLocation, editVenue, editMeetupAt, editOpponent, editOpponentLogoUrl, editTitle, editTrainingDeadlineDisabled, reschedulePushExtra, closeEditModal, loadEvent, isDemo, basePath]);
 
   const handleDeleteEvent = useCallback(async () => {
     if (!eventId || !canTrainerManageEvent || !event) return;
@@ -4956,7 +4959,7 @@ export const EventDetailPage: React.FC = () => {
                   {(() => {
                     const previewStartsAt = parseViennaDateTimeLocalToUtcIso(editDateTime);
                     if (!previewStartsAt) return 'Bitte gültiges Datum und Uhrzeit eingeben.';
-                    const previewLocation = editUseExternalLocation || !editVenue
+                    const previewLocation = editIsExternalLocation || !editVenue
                       ? combineLocationParts(editLocation, editLocationAddress)
                       : locationTextFromVenue(editVenue);
                     if (editEvent.kind === 'tournament') {
@@ -5092,7 +5095,7 @@ export const EventDetailPage: React.FC = () => {
 
             <section className="eventEditSection rounded-xl border p-3">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55">Ort</p>
-              {editEvent?.kind === 'training' || (editEvent?.kind === 'match' && editEvent.is_home === true) ? (
+              {!editIsHallTraining && (editEvent?.kind === 'training' || (editEvent?.kind === 'match' && editEvent.is_home === true)) ? (
                 <label className="mb-3 flex cursor-pointer items-start gap-2 text-sm text-[var(--text-main)]">
                   <input
                     type="checkbox"
@@ -5108,6 +5111,7 @@ export const EventDetailPage: React.FC = () => {
                 </label>
               ) : null}
               <VenuePicker
+                hallOnly={editIsHallTraining}
                 teamSeasonId={editEvent?.team_season_id ?? null}
                 venueId={editVenue?.id ?? null}
                 onVenueChange={(v) => {
@@ -5145,7 +5149,7 @@ export const EventDetailPage: React.FC = () => {
                 disabled={savingEdit}
               />
               {(editEvent?.kind === 'training' || (editEvent?.kind === 'match' && editEvent.is_home === true)) &&
-              !editUseExternalLocation ? (
+              !editIsHallTraining && !editIsExternalLocation ? (
                 <div className="mt-3">
                   <TrainingFacilityFields
                     venueId={editVenue?.id ?? null}

@@ -1,3 +1,4 @@
+import { isHallTraining } from '../lib/hallTraining';
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { CalendarDays, CalendarPlus, ClipboardList, Pencil, Radio, Trash2 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -515,6 +516,8 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
   });
   const [editAssignment, setEditAssignment] = useState<EventFieldAssignmentRow | null>(null);
   const [editUseExternalLocation, setEditUseExternalLocation] = useState(false);
+  const editIsHallTraining = editEvent?.kind === 'training' && isHallTraining(editOpponent, editLocation);
+  const editIsExternalLocation = !editIsHallTraining && editUseExternalLocation;
   const [editMeetupAt, setEditMeetupAt] = useState('');
   const [editTrainingDeadlineDisabled, setEditTrainingDeadlineDisabled] = useState(false);
   const [editSeriesScope, setEditSeriesScope] = useState<SeriesEditScope>('single');
@@ -815,8 +818,8 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
     }
     const supportsInternalAssignment =
       editEvent.kind === 'training' || (editEvent.kind === 'match' && editEvent.is_home === true);
-    const needsInternalAssignment = supportsInternalAssignment && !editUseExternalLocation;
-    if (needsInternalAssignment && editSeriesScope !== 'single') {
+    const needsInternalAssignment = supportsInternalAssignment && !editIsHallTraining && !editIsExternalLocation;
+    if (supportsInternalAssignment && !editIsExternalLocation && editSeriesScope !== 'single') {
       setEditError('Platzzuordnungen bitte als Einzeltermin bearbeiten.');
       setSavingEdit(false);
       return;
@@ -832,7 +835,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
       return;
     }
     const locationVal =
-      editUseExternalLocation || !editVenue
+      editIsExternalLocation || !editVenue
         ? combineLocationParts(editLocation, editLocationAddress)
         : locationTextFromVenue(editVenue);
     let meetingAt: string | null = null;
@@ -850,7 +853,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
       starts_at: startsAt,
       meeting_at: meetingAt,
       location: locationVal,
-      venue_id: editUseExternalLocation ? null : editVenue?.id ?? null,
+      venue_id: editIsExternalLocation ? null : editVenue?.id ?? null,
     };
     if (eff === 'game') {
       fullPayload.opponent = opponent || null;
@@ -867,7 +870,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
 
     const sharedPayload: Record<string, unknown> = {
       location: locationVal,
-      venue_id: editUseExternalLocation ? null : editVenue?.id ?? null,
+      venue_id: editIsExternalLocation ? null : editVenue?.id ?? null,
     };
     if (eff === 'game') {
       sharedPayload.opponent = opponent || null;
@@ -959,7 +962,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
       if (editEvent.kind === 'training') {
         previousPayload.training_absence_deadline_disabled = editEvent.training_absence_deadline_disabled ?? null;
       }
-      if (editUseExternalLocation) {
+      if (editIsHallTraining || editIsExternalLocation) {
         if (editAssignment?.id) {
           const deleteRes = await deleteEventFieldAssignment(editAssignment.id);
           if (!deleteRes.ok) {
@@ -2411,7 +2414,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
               className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)] disabled:opacity-50"
             />
           </div>
-          {editEvent?.kind === 'training' || (editEvent?.kind === 'match' && editEvent.is_home === true) ? (
+          {!editIsHallTraining && (editEvent?.kind === 'training' || (editEvent?.kind === 'match' && editEvent.is_home === true)) ? (
             <label className="flex items-start gap-2 text-sm text-[var(--text-main)] cursor-pointer">
               <input
                 type="checkbox"
@@ -2428,6 +2431,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
             </label>
           ) : null}
           <VenuePicker
+            hallOnly={editIsHallTraining}
             teamSeasonId={editEvent?.team_season_id ?? null}
             venueId={editVenue?.id ?? null}
             onVenueChange={(v) => {
@@ -2465,7 +2469,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
             disabled={savingEdit || Boolean(editEvent?.series_id && editSeriesScope !== 'single' && (editEvent?.kind === 'training' || (editEvent?.kind === 'match' && editEvent.is_home === true)))}
           />
           {(editEvent?.kind === 'training' || (editEvent?.kind === 'match' && editEvent.is_home === true)) &&
-          !editUseExternalLocation ? (
+          !editIsHallTraining && !editIsExternalLocation ? (
             <>
               {Boolean(editEvent?.series_id && editSeriesScope !== 'single') ? (
                 <p className="text-xs text-[var(--text-sub)]">

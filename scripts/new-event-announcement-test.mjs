@@ -7,11 +7,13 @@ const { create, act } = require('react-test-renderer');
 const originalFetch = globalThis.fetch;
 let inserts = 0, sends = [], insertError = null, result = { ok: true, sent: 13, notificationsInserted: 58 };
 globalThis.__assignmentFailure = false;
+globalThis.__assignmentCalls = 0;
+let insertedRows = [];
 let session = { access_token: 'fixture-token' };
 globalThis.__announcementDb = {
   auth: { getSession: async () => ({data:{session}}), getUser: async () => ({data:{user:{id:'trainer'}}}) },
   from: table => ({ delete:()=>({eq:async()=>({error:null})}), insert: rows => ({ select: () => {
-    assert.equal(table, 'events'); inserts++;
+    assert.equal(table, 'events'); inserts++; insertedRows=Array.isArray(rows)?rows:[rows];
     const response={data: insertError ? null : (Array.isArray(rows)?rows:[rows]).map((row,i)=>({...row,id:`saved-${i}`})), error:insertError};
     return {then:resolve=>Promise.resolve(response).then(resolve),maybeSingle:async()=>({...response,data:response.data?.[0]??null})};
   } }) }),
@@ -22,12 +24,14 @@ globalThis.fetch = async (url, opts) => {
   return {ok:result.httpOk !== false,json:async()=>result};
 };
 const mocks = {
+  seasonLifecycleAssistant: 'export const resolveEventSeason=async id=>({prepared:false,team_season_id:id});',
+  SeasonLifecycleAssistant: 'export const SeasonLifecycleAssistant=()=>null;',
   supabaseClient: 'export const supabase=globalThis.__announcementDb;',
   seasonTransition: 'export const assertTeamSeasonWritable=async()=>({ok:true});',
-  venues: 'export const resolveClubIdForTeamSeason=async()=>({clubId:null}); export const locationTextFromVenue=()=>"";',
-  VenuePicker: 'export const VenuePicker=()=>null;',
-  TrainingFacilityFields: 'export const TrainingFacilityFields=()=>null;',
-  eventFieldAssignments: 'export const findAssignmentConflicts=async()=>({data:[],error:null}); export const upsertEventFieldAssignment=async()=>globalThis.__assignmentFailure?{error:"conflict"}:{data:{id:"assignment"}};export const defaultEventEndsAt=()=>"";',
+  venues: 'export const resolveClubIdForTeamSeason=async()=>({clubId:null}); export const locationTextFromVenue=v=>v.name;',
+  VenuePicker: `import React from 'react'; export const VenuePicker=p=>React.createElement('div',{'data-hall-only':p.hallOnly},React.createElement('input',{id:'test-hall-name',value:p.locationName,onChange:e=>{p.onVenueChange(null);p.onLocationNameChange(e.target.value)}}),React.createElement('button',{type:'button',id:'test-hall-select',onClick:()=>{p.onVenueChange({id:'hall',name:'Turnsaal St. Veit'});p.onLocationNameChange('Turnsaal St. Veit')}},'Choose hall'));`,
+  TrainingFacilityFields: `import React from 'react'; export const TrainingFacilityFields=()=>React.createElement('div',{'data-field-picker':true});`,
+  eventFieldAssignments: 'export const findAssignmentConflicts=async()=>({data:[],error:null}); export const upsertEventFieldAssignment=async()=>{globalThis.__assignmentCalls++;return globalThis.__assignmentFailure?{error:"conflict"}:{data:{id:"assignment"}}};export const defaultEventEndsAt=()=>"";',
   teamSeasonTrainingVenues: 'export const assertVenuePurposeAllowed=async()=>({ok:true});export const listAllowedVenueRowsForPurpose=async()=>({data:[]});',
   opponentCatalog: 'export const ensureOpponentCatalogEntry=async()=>{};',
   teamLogos: 'export const isPlaceholderLogoUrl=()=>false;',
@@ -82,15 +86,27 @@ try {
   const render=()=>settle(()=>{root=create(React.createElement(CreateEventModal,{isOpen:true,teamSeasonId:'team',eventType:'training',onSuccess:async()=>{},onClose:()=>closed++}));});
   const change=async(id,value)=>settle(()=>root.root.findAllByType('input').find(n=>n.props.id===id).props.onChange({target:{value}}));
   await render();
-  await change('create-event-title','U12 Hallentraining');
+  assert.equal(root.root.findAllByProps({'data-field-picker':true}).length,1,'Outdoor training keeps its field picker');
+  await change('create-event-title','U12 Training');
   await change('create-event-start_date','2099-11-13');
   await change('create-event-start_time','17:00');
-  await settle(()=>root.root.findAllByType('input').filter(n=>n.props.type==='checkbox').at(-1).props.onChange({target:{checked:true}}));
+  const beforeOutdoor=inserts;
+  await settle(()=>root.root.findByType('form').props.onSubmit({preventDefault(){}}));
+  assert.equal(inserts,beforeOutdoor,'Outdoor training without a field cannot be saved');
+  await change('create-event-title','U12 Hallentraining');
+  assert.equal(root.root.findAllByProps({'data-field-picker':true}).length,0,'Hall training has no field picker');
+  assert.equal(root.root.findAllByProps({'data-hall-only':true}).length,1);
+  await change('test-hall-name','Turnsaal St. Veit');
+  await change('create-event-start_date','2099-11-13');
+  await change('create-event-start_time','17:00');
   const submit=()=>root.root.findByType('form').props.onSubmit({preventDefault(){}});
   insertError={message:'insert rejected'};sends=[];
   await settle(submit);assert.equal(sends.length,0);
   insertError=null;result=new Error('network');
   await settle(submit);assert.equal(sends.length,1);assert.equal(closed,0);
+  assert.equal(insertedRows[0].location,'Turnsaal St. Veit');
+  assert.equal(insertedRows[0].venue_id,null);
+  assert.equal(globalThis.__assignmentCalls,0,'Hall training saves without any field assignment');
   assert.ok(root.root.findAllByProps({role:'alert'}).some(n=>n.children.join('').includes('Termin gespeichert')));
   const savedInsertCount=inserts;
   await settle(submit);assert.equal(inserts,savedInsertCount,'Saving again after notification failure cannot duplicate events');
@@ -100,11 +116,13 @@ try {
   await change('create-event-title','U12 Hallentraining');
   await change('create-event-start_date','2099-11-13');
   await change('create-event-start_time','17:00');
-  await settle(()=>root.root.findAllByType('input').filter(n=>n.props.type==='checkbox').at(-1).props.onChange({target:{checked:true}}));
+  await settle(()=>root.root.findByProps({id:'test-hall-select'}).props.onClick());
   await settle(()=>root.root.findByProps({id:'create-event-recurrence'}).props.onChange({target:{value:'weekly'}}));
   await change('create-event-until','2099-12-11');
   await settle(submit);
   assert.equal(sends.length,1);assert.match(sends[0].body.title,/5 neue Termine/);assert.equal(closed,1);
+  assert(insertedRows.every(e=>e.venue_id==='hall' && e.location==='Turnsaal St. Veit'),'Recurring hall training preserves the selected hall');
+  assert.equal(globalThis.__assignmentCalls,0);
   const occupancy={clubId:'club',teamSeasonId:'team',kind:'training',title:'Hallentraining',startsAtIso:future[0].starts_at,endsAtIso:new Date(Date.parse(future[0].starts_at)+3600000).toISOString(),venue:{id:'venue',name:'Halle'},fieldId:'field',zoneId:null,createdByUserId:'trainer'};
   sends=[];globalThis.__assignmentFailure=true;
   const rolledBack=await createFacilityOccupancy(occupancy);
