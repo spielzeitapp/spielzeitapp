@@ -1,3 +1,4 @@
+import { AttendanceThumbControls } from '../components/events/AttendanceThumbControls';
 import { TeamReminderSettingsPanel } from '../components/TeamReminderSettingsPanel';
 import { CenterAttendanceSurface } from '../components/center/CenterAttendanceSurface';
 import { MatchPreparationAssistant } from '../components/center/MatchPreparationAssistant';
@@ -3934,6 +3935,7 @@ export const EventDetailPage: React.FC = () => {
         openCount={eventRsvpCounts.open}
         getAttendanceStatus={getAttendanceStatus}
         getMatchRsvpDisplay={getMatchRsvpDisplay}
+        onSetDetailedStatus={(playerId, status) => { if (canTrainerManageEvent) void handleTrainerTrainingStatus(playerId, status); }}
         onSetAttendance={(playerId, status) => {
           if (!canTrainerManageEvent) return;
           handleTrainerRsvp(playerId, status);
@@ -4579,43 +4581,8 @@ export const EventDetailPage: React.FC = () => {
                                       status={bucket}
                                       layout="team-roster"
                                       hideSubline
-                                      trailing={
-                                        <div className="flex shrink-0 items-center gap-0.5">
-                                          {rsvpDisplay === 'injured' || rsvpDisplay === 'sick' ? (
-                                            <PremiumStatusBadge label={badge} tone={chipTone} />
-                                          ) : null}
-                                          <button
-                                            type="button"
-                                            onClick={() => handleTrainerRsvp(player.id, 'yes')}
-                                            className={`inline-flex h-[34px] w-[34px] items-center justify-center rounded-xl border border-transparent transition active:scale-95 ${
-                                              bucket === 'yes'
-                                                ? 'bg-emerald-900/70 text-emerald-300 shadow-[0_0_14px_rgba(52,211,153,0.16)]'
-                                                : 'bg-white/[0.045] text-white/45 hover:text-emerald-300'
-                                            }`}
-                                            aria-label={`${premiumPlayerDisplayName(player)} ${
-                                              bucket === 'yes' ? 'wieder auf Offen setzen' : 'auf Dabei setzen'
-                                            }`}
-                                            title={bucket === 'yes' ? 'Wieder auf Offen setzen' : 'Dabei'}
-                                          >
-                                            <ThumbsUp className="h-4 w-4" aria-hidden />
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() => handleTrainerRsvp(player.id, 'no')}
-                                            className={`inline-flex h-[34px] w-[34px] items-center justify-center rounded-xl border border-transparent transition active:scale-95 ${
-                                              bucket === 'no'
-                                                ? 'bg-red-950/80 text-[#FF8D98] shadow-[0_0_14px_rgba(255,40,40,0.16)]'
-                                                : 'bg-white/[0.045] text-white/45 hover:text-[#FF8D98]'
-                                            }`}
-                                            aria-label={`${premiumPlayerDisplayName(player)} ${
-                                              bucket === 'no' ? 'wieder auf Offen setzen' : 'auf Abwesend setzen'
-                                            }`}
-                                            title={bucket === 'no' ? 'Wieder auf Offen setzen' : 'Abwesend'}
-                                          >
-                                            <ThumbsDown className="h-4 w-4" aria-hidden />
-                                          </button>
-                                        </div>
-                                      }
+                                      nameStatus={<PremiumStatusBadge label={badge} tone={chipTone} />}
+                                      trailing={<AttendanceThumbControls name={premiumPlayerDisplayName(player)} status={dbStatusToTrainingAttendance(rsvpDisplay) ?? 'open'} isLaz={player.is_laz_player} onSelect={next => void handleTrainerTrainingStatus(player.id, next)} />}
                                     />
                                   </li>
                                 );
