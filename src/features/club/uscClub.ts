@@ -10,9 +10,9 @@ export const USC_APP_ICON = "/clubs/usc-rohrbach/icon-180.png";
 export function isUscAppPath(path: string): boolean {
   return path === USC_APP_PATH || path.startsWith(USC_APP_PATH + "/");
 }
-export type ClubTab = "home" | "spiele" | "teams" | "verein" | "tabelle";
+export type ClubTab = "home" | "spiele" | "teams" | "live" | "verein" | "tabelle";
 export function clubTab(raw: string | null): ClubTab {
-  return raw === "spiele" ||
+  return raw === "live" || raw === "spiele" ||
     raw === "teams" ||
     raw === "verein" ||
     raw === "tabelle"

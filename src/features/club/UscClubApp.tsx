@@ -1,3 +1,6 @@
+import { UscClubStart, USC_START_PHOTO } from "./UscClubStart";
+import { UscClubLive } from "./UscClubLive";
+import { useUscLiveMatches } from "./uscLive";
 import { UscMainTeamFilter, useUscTeamSelection } from "./UscMainTeamFilter";
 import { UscTeamPicker } from "./UscTeamPicker";
 import { useMatchClubBranding } from "../../hooks/useMatchClubBranding";
@@ -64,6 +67,7 @@ const tabs = [
   { id: "home", label: "Home", iconFile: "home-ball.png" },
   { id: "spiele", label: "Spiele", iconFile: "pitch.svg" },
   { id: "teams", label: "Teams", iconFile: "team.svg" },
+  { id: "live", label: "Live", iconFile: "live.svg" },
   { id: "verein", label: "Verein", iconFile: "more.svg" },
 ] as const;
 const date = (iso: string) =>
@@ -176,6 +180,7 @@ function ClubSeasonContent({
         (previous) => {
           const next = new URLSearchParams(previous);
           next.delete("event");
+          next.delete("liveMatch");
           return next;
         },
         { replace: true },
@@ -603,6 +608,7 @@ export function UscClubApp() {
   };
   const club = useUscClub(user?.id ?? null);
   const myTeams = useUscTeamSelection(user?.id ?? null, club.seasons);
+  const live = useUscLiveMatches(user?.id ?? null, myTeams.seasons);
   const [teamFilterOpen, setTeamFilterOpen] = useState(false);
   useEffect(() => { setTeamFilterOpen(false); }, [user?.id]);
   const [params, setParams] = useSearchParams();
@@ -620,6 +626,7 @@ export function UscClubApp() {
     setParams((previous) => {
       const next = new URLSearchParams(previous);
       next.delete("event");
+      next.delete("liveMatch");
       if (id === "home") next.delete("tab");
       else next.set("tab", id);
       return next;
@@ -666,8 +673,8 @@ export function UscClubApp() {
             Vereinsapp wird geladen…
           </p>
         ) : !user ? (
-          <section className="usc-welcome">
-            <span className="usc-eyebrow">USC Rohrbach</span>
+          <section className="usc-welcome usc-welcome-photo" style={{ backgroundImage: `linear-gradient(180deg, #10121418, #101214bb 48%, #101214 100%), url(${USC_START_PHOTO})` }}>
+            <span className="usc-eyebrow">#GEMEINSAMSTARK</span>
             <h1>
               DEIN VEREIN.
               <br />
@@ -712,13 +719,14 @@ export function UscClubApp() {
           </section>
         ) : (
           <>
-            {tab !== "verein" && tab !== "home" && season ? <UscTeamPicker seasons={myTeams.seasons} selectedId={season.id} onSelect={(id) => {
+            {tab !== "verein" && tab !== "home" && tab !== "live" && season ? <UscTeamPicker seasons={myTeams.seasons} selectedId={season.id} onSelect={(id) => {
               if (!myTeams.seasons.some((item) => item.id === id)) return;
               setParams((previous) => { const next = new URLSearchParams(previous); next.set("teamSeason", id); next.delete("event"); return next; });
             }} /> : null}
+            {tab === "live" ? <UscClubLive key={`${user.id}:${myTeams.visibleIds.join(",")}`} seasons={myTeams.seasons} live={live} onOpenTeamFilter={() => setTeamFilterOpen(true)} /> : null}
             {tab === "home" ? <UscClubNewsHome key={`${user.id}:${myTeams.visibleIds.join(",")}`} seasons={myTeams.seasons} allSelected={myTeams.allSelected} onOpenTeamFilter={() => setTeamFilterOpen(true)} /> : null}
-            {tab !== "verein" && tab !== "home" && !season ? <section className="usc-news-empty"><h2>Keine Mannschaft ausgewählt</h2><p>Wähle unter „Meine Mannschaften“, welche Teams du hier sehen möchtest.</p><button className="usc-action" onClick={() => setTeamFilterOpen(true)}>Mannschaften auswählen</button></section> : null}
-            {tab !== "verein" && tab !== "home" && season ? (
+            {tab !== "verein" && tab !== "home" && tab !== "live" && !season ? <section className="usc-news-empty"><h2>Keine Mannschaft ausgewählt</h2><p>Wähle unter „Meine Mannschaften“, welche Teams du hier sehen möchtest.</p><button className="usc-action" onClick={() => setTeamFilterOpen(true)}>Mannschaften auswählen</button></section> : null}
+            {tab !== "verein" && tab !== "home" && tab !== "live" && season ? (
               <ClubSeasonContent
                 key={season.id}
                 season={season}
@@ -809,15 +817,16 @@ export function UscClubApp() {
       </main>
       {user && club.seasons.length > 0 ? <UscMainTeamFilter key={user.id} open={teamFilterOpen} scopes={myTeams.scopes} visibleIds={myTeams.visibleIds} onClose={() => setTeamFilterOpen(false)} onApply={(ids) => {
         myTeams.save(ids);
-        if (!ids.includes(params.get("teamSeason") ?? "")) setParams((previous) => {
+        if (params.get("liveMatch") || !ids.includes(params.get("teamSeason") ?? "")) setParams((previous) => {
           const next = new URLSearchParams(previous);
           const first = myTeams.scopes.find((item) => ids.includes(item.id));
           if (first) next.set("teamSeason", first.id); else next.delete("teamSeason");
           next.delete("event");
+          next.delete("liveMatch");
           return next;
         });
       }} /> : null}
-      <nav className="usc-bottom-nav" aria-label="Vereinsnavigation">
+      {user ? <nav className="usc-bottom-nav" aria-label="Vereinsnavigation">
         {tabs.map(({ id, label, iconFile }) => (
           <button
             key={id}
@@ -832,9 +841,11 @@ export function UscClubApp() {
           >
             <img src={`${import.meta.env.BASE_URL || "/"}icons/${iconFile}`} alt="" className={`usc-nav-icon ${id === "home" ? "usc-nav-icon-ball" : ""}`} decoding="async" draggable={false} />
             <span>{label}</span>
+            {id === "live" && live.rows.length > 0 ? <span className="usc-nav-live-count" aria-label={`${live.rows.length} laufende Spiele`}>{live.rows.length}</span> : null}
           </button>
         ))}
-      </nav>
+      </nav> : null}
+      <UscClubStart enabled={!params.get("tab") && !params.get("event")} ready={!authLoading && (!user || !club.loading)} />
       <dialog
         className="usc-menu usc-dialog"
         ref={menuDialog}
