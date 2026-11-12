@@ -498,7 +498,7 @@ export function TournamentAssistantCard({
         <ol className="space-y-2" aria-label="Turnier vorbereiten">
           {preparationChecks.map((check, index) => <li key={check.label}>
             <button type="button" onClick={check.onClick}
-              className={`flex min-h-[64px] w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-white ${check.done ? 'border-emerald-400/25 bg-emerald-400/[0.06]' : 'border-white/10 bg-white/[0.03]'}`}
+              className={`flex min-h-[64px] w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-white ${check.done ? 'border-emerald-400/25 bg-emerald-400/[0.06]' : 'sz-club-list-card'}`}
               aria-label={`${index + 1}. ${check.label} · ${check.done ? 'erledigt' : 'offen'}`}>
               <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[17px] font-bold ${check.done ? 'bg-emerald-400/15 text-emerald-300' : 'sz-club-accent-chip sz-club-accent-text'}`}>
                 {check.done ? <Check className="h-5 w-5" aria-hidden /> : index + 1}

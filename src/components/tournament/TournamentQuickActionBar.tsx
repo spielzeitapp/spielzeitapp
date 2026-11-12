@@ -8,7 +8,7 @@ import {
 } from "../../lib/publicTeamTournament";
 
 const actionClass =
-  "inline-flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[15px] font-semibold text-white/80 hover:bg-white/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white touch-manipulation";
+  "sz-club-event-action inline-flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-[16px] border px-2 py-2 text-[16px] font-semibold text-white/80 hover:bg-white/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white touch-manipulation";
 export function TournamentQuickActionBar({
   shareTitle,
   tournamentEventId,

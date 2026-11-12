@@ -1142,15 +1142,15 @@ export const TournamentDetailSections: React.FC<Props> = ({
         meetingAt={meetingAt}
         coverUrl={tournamentCoverUrl}
         participantCount={participants.length}
-        titleActions={canManage && trainerActions ? (
-          <button type="button" onClick={() => setTermActionsOpen(true)}
-            className="sz-club-event-action inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-            aria-label="Turniertermin verwalten" aria-haspopup="dialog" title="Turniertermin verwalten">
-            <Settings2 className="h-5 w-5 sz-club-accent-text" aria-hidden />
-          </button>
-        ) : null}
         actions={
-          <div className="flex flex-wrap items-center justify-end gap-2" role="toolbar" aria-label="Turnieraktionen">
+          <div className="tournament-header-actions flex w-full flex-wrap items-center justify-between gap-x-1 gap-y-2" role="toolbar" aria-label="Turnieraktionen">
+            {canManage && trainerActions ? (
+              <button type="button" onClick={() => setTermActionsOpen(true)}
+                className="sz-club-event-action inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                aria-label="Turniertermin verwalten" aria-haspopup="dialog" title="Turniertermin verwalten">
+                <Settings2 className="h-5 w-5 sz-club-accent-text" aria-hidden />
+              </button>
+            ) : null}
             {headerActions}
             {canManage && trainerFeedSection ? <button type="button" onClick={() => openPreparationDialog('communication')}
               className="sz-club-event-action inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"

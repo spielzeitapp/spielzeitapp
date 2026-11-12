@@ -46,7 +46,7 @@ export function TournamentCompactCard({
 
   if (compact) {
     return (
-      <article className="relative overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--hero px-4 py-4">
+      <article className="relative overflow-hidden rounded-[18px] border sz-club-surface sz-club-surface--hero sz-club-list-card sz-club-schedule-list-card px-4 py-4">
         <div className="sz-club-diagonal-lines pointer-events-none absolute inset-0" aria-hidden />
         <div className="relative space-y-2">
           <div className="flex items-start gap-3">
@@ -60,7 +60,7 @@ export function TournamentCompactCard({
             <span aria-hidden>·</span>
             <span>Beginn {timeLabel || 'offen'}</span>
           </p>
-          {actions ? <div className="flex justify-end pt-1">{actions}</div> : null}
+          {actions ? <div className="pt-2">{actions}</div> : null}
         </div>
       </article>
     );

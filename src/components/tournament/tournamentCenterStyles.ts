@@ -1,5 +1,5 @@
 /** Tournament surfaces share the team/profile design and inherit the event club theme. */
-export const TC_CARD = 'relative overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--quiet';
+export const TC_CARD = 'relative overflow-hidden rounded-[18px] border sz-club-surface sz-club-surface--quiet sz-club-list-card';
 export const TC_CARD_INNER = 'px-4 py-4 sm:px-5';
 export const TC_STACK_GAP = 'gap-4';
 export const TC_SECTION_LABEL = 'sz-club-accent-text text-[14px] font-bold uppercase tracking-[0.12em]';

@@ -92,12 +92,10 @@ export function TournamentMatchSlotCard({
 
   return (
     <div
-      className={`sz-club-surface sz-club-surface--hero relative w-full min-w-0 overflow-hidden rounded-[22px] border outline-none backdrop-blur-sm ${
+      className={`sz-club-list-card sz-club-schedule-list-card relative w-full min-w-0 overflow-hidden rounded-[22px] border outline-none backdrop-blur-sm ${
         isNextUpcoming ? 'ring-1 ring-red-400/30 shadow-[0_0_20px_rgba(255,71,71,0.08)]' : ''
       }`}
     >
-      <div className="sz-club-page-hero-glow pointer-events-none absolute inset-0 opacity-90" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(106,16,20,0.18),transparent_70%)]" />
       <div className={`relative px-3.5 sm:px-4 ${compact ? 'py-2.5' : 'py-3'}`}>
         <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">

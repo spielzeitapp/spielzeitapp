@@ -13,7 +13,7 @@ export function TournamentCenterTabBar({ activeTab, onTabChange, canManage = fal
 
   return (
     <nav
-      className="sticky top-[calc(var(--app-header-offset,0px)+48px)] z-[5] -mx-0.5 rounded-2xl border sz-club-tab-track bg-[#0c0c0f] p-1 backdrop-blur-sm"
+      className="sticky top-[calc(var(--app-header-offset,0px)+48px)] z-[5] -mx-0.5 rounded-[18px] border sz-club-list-card bg-[#0c0c0f] p-1 backdrop-blur-sm"
       aria-label="Turniercenter — Nachsehen"
     >
       <div className={`grid gap-0.5 ${canManage ? 'grid-cols-2' : 'grid-cols-3'}`}>
