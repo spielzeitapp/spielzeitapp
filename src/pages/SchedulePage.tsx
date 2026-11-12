@@ -1512,7 +1512,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
   }, [teamIcsFeedUrl]);
 
 
-  const toolbarActionClass = 'sz-club-schedule-toolbar-action inline-flex h-11 min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-[var(--radius-btn)] border px-3 text-[12px] font-bold no-underline disabled:cursor-not-allowed disabled:opacity-40';
+  const toolbarActionClass = 'sz-club-schedule-toolbar-action inline-flex h-14 min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-1 whitespace-nowrap rounded-[var(--radius-btn)] border px-1.5 text-[12px] font-bold no-underline disabled:cursor-not-allowed disabled:opacity-40';
 
   return (
     <div
@@ -1575,7 +1575,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                   ) : null}
                 </div>
               </div>
-              <div className={`${managerSimpleMode ? 'hidden' : 'flex'} w-full min-w-0 flex-wrap items-center gap-1.5 sm:w-auto sm:shrink-0 sm:justify-end`}>
+              <div className={`${managerSimpleMode ? 'hidden' : 'flex'} w-full min-w-0 flex-nowrap items-center gap-1.5 sm:w-auto sm:min-w-[340px] sm:shrink-0 sm:justify-end`}>
                 {!forcePublicView && normalizedUiRole !== 'fan' && !managerSimpleMode ? (
                   <Link
                     to={internalPath(basePath, '/spielplan')}
