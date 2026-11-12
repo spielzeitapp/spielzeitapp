@@ -53,6 +53,7 @@ globalThis.__uscFixture = fixtures;
 globalThis.__uscUser = { id: "authorized-user" };
 globalThis.__uscReadCalls = [];
 const mocks = {
+  uscLive: `export const useUscLiveMatches=()=>({rows:[],loading:false,error:false,refetch(){}});export const viennaDay=()=>"2026-11-12";export const USC_KM_LIGAPORTAL="https://ticker.ligaportal.at/mannschaft/1244/usc-rohrbach/info";`,
   AuthProvider:
     "export const useAuth=()=>({user:globalThis.__uscUser,loading:false});",
   useUscClub:
@@ -94,7 +95,7 @@ const b = await build({
   packages: "external",
   write: false,
   define: { "import.meta.env": "{}" },
-  loader: { ".css": "empty" },
+  loader: { ".css": "empty", ".png": "dataurl" },
   plugins: [
     {
       name: "fixtures",
@@ -106,7 +107,7 @@ const b = await build({
         b.onResolve(
           {
             filter:
-              /AuthProvider$|useUscClub$|useEvents$|useTeamFeedPosts$|usePlayers$|useTeamStaff$|supabaseClient$|HomeFeedPostRenderer$|PlayerProfileModal$|ProfileHeroCard$|OefbCompetitionTable$|oefbTableSettings$|UscMatchReport$|MatchCardGameCore$|TeamHeroFrame$|TeamSquadShowcase$|TeamTrainerShowcase$|PastMatchResultCard$/,
+              /AuthProvider$|useUscClub$|useEvents$|useTeamFeedPosts$|usePlayers$|useTeamStaff$|supabaseClient$|HomeFeedPostRenderer$|PlayerProfileModal$|ProfileHeroCard$|OefbCompetitionTable$|oefbTableSettings$|UscMatchReport$|MatchCardGameCore$|TeamHeroFrame$|TeamSquadShowcase$|TeamTrainerShowcase$|PastMatchResultCard$|uscLive$/,
           },
           (a) => ({ path: a.path.split("/").pop(), namespace: "mock" }),
         );
@@ -255,7 +256,7 @@ assert.equal(globalThis.__uscSquad.players[0].id,"u13-player");
 await act(async()=>tree.root.findByProps({className:"usc-team-chips"}).props.onKeyDown({key:"Home",preventDefault(){}}));
 assert.equal(globalThis.__uscSquad.teamName,"USC Rohrbach");
 const nav=tree.root.findByProps({"aria-label":"Vereinsnavigation"});
-assert.deepEqual(nav.findAllByType("img").map(n=>n.props.src),["/icons/home-ball.png","/icons/pitch.svg","/icons/team.svg","/icons/more.svg"]);
+assert.deepEqual(nav.findAllByType("img").map(n=>n.props.src),["/icons/home-ball.png","/icons/pitch.svg","/icons/team.svg","/icons/live.svg","/icons/more.svg"]);
 await act(async()=>tree.unmount());
 const filterStorage = new Map([["spz_usc_news_teams_authorized-user",JSON.stringify(["km","u13"])]]);
 globalThis.window = {location:{hostname:"app.spielzeitapp.at",pathname:"/app/usc-rohrbach",search:""},localStorage:{getItem:key=>filterStorage.get(key)??null,setItem:(key,value)=>filterStorage.set(key,value)}};

@@ -382,7 +382,7 @@
   max-width: 900px;
   margin: auto;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   padding: 8px 6px;
   border-radius: 22px;
   box-shadow: 0 10px 30px #0008;
@@ -633,3 +633,44 @@
 .usc-filter-team small { display: block; margin-top: 4px; font-size: 11px; color: #aeb7c5; }
 .usc-news-filter .usc-filter-hint { margin-top: 14px; font-size: 11px; }
 @media (max-width: 380px) { .usc-news-tools { gap: 8px; } .usc-news-tools > button:not(.usc-icon-button) { font-size: 10px; } }
+
+/* USC start and read-only club live hub. */
+.usc-start { position: fixed; inset: 0; z-index: 100; max-width: 900px; margin: auto; background: #101214; display: flex; flex-direction: column; justify-content: space-between; padding: calc(28px + env(safe-area-inset-top, 0px)) 24px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y: auto; }
+.usc-start::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, #0004, transparent 30%, #0004 50%, #101214 100%); pointer-events: none; }
+.usc-start-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 57% center; }
+.usc-start-logo { position: relative; z-index: 1; width: 190px; height: 90px; object-fit: contain; object-position: left; }
+.usc-start-copy { position: relative; z-index: 1; padding-top: 180px; }
+.usc-start-copy h1 { font-size: clamp(30px, 8.8vw, 54px); font-weight: 950; letter-spacing: -.055em; line-height: 1; }
+.usc-start-copy p { margin-top: 14px; font-size: 15px; font-weight: 900; color: #9bd17b; }
+.usc-start-copy .usc-action { width: 100%; }
+.usc-start-copy small { display: block; margin-top: 20px; font-size: 10px; text-align: center; color: #c5cbd2; }
+.usc-welcome-photo { min-height: 74dvh; display: flex; flex-direction: column; justify-content: flex-end; background-size: cover; background-position: 57% top; padding-top: 240px; }
+.usc-bottom-nav button { position: relative; }
+.usc-nav-live-count { position: absolute; top: -3px; left: calc(50% + 7px); min-width: 16px; height: 16px; border-radius: 999px; padding: 1px 4px; background: #a3d384; color: #101214; font-size: 9px; font-weight: 850; }
+.usc-live-team-chips { display: flex; gap: 8px; overflow-x: auto; padding: 0 16px 20px; }
+.usc-live-team-chips button { flex: 0 0 auto; min-height: 40px; padding: 8px 18px; border-radius: 99px; border: 1px solid #ffffff20; background: #202329; color: #bfc6d0; font-size: 12px; font-weight: 800; }
+.usc-live-team-chips button[aria-pressed="true"] { color: #101214; background: #dce0e7; }
+.usc-live-card { margin: 0 14px 14px; padding: 16px; border-radius: 18px; border: 1px solid #ffffff24; background: linear-gradient(135deg, #272b31, #141619); }
+.usc-live-meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: #d6dbe2; }
+.usc-live-badge { font-size: 10px; font-weight: 850; border: 1px solid #a3d38455; border-radius: 99px; padding: 3px 7px; color: #a3d384; background: #a3d38410; }
+.usc-live-scoreboard { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; padding: 22px 0 8px; }
+.usc-live-scoreboard > div { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; }
+.usc-live-scoreboard img { width: 100%; max-width: 115px; height: 64px; object-fit: contain; }
+.usc-live-scoreboard strong { font-size: 12px; line-height: 1.25; overflow-wrap: anywhere; }
+.usc-live-scoreboard .usc-live-score { display: flex; gap: 5px; font-size: clamp(30px, 9vw, 54px); font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+.usc-live-score > span { color: #adb4be; }
+.usc-live-card .usc-action { margin-top: 16px; min-height: 44px; }
+.usc-live-pending { grid-column: 1/-1; text-align: center; font-size: 13px; line-height: 1.6; color: #bac2cc; }
+.usc-live-section-title { font-size: 17px; font-weight: 850; padding: 20px 16px 14px; }
+.usc-live-upcoming { display: flex; width: calc(100% - 28px); margin: 0 14px 10px; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid #ffffff20; background: #ffffff05; border-radius: 14px; text-align: left; padding: 16px; font-size: 13px; }
+.usc-live-upcoming small { display: block; margin-top: 7px; font-size: 12px; color: #aeb7c5; }
+.usc-live-external { display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px; margin: 16px; text-decoration: underline; font-size: 12px; color: #c5cbd4; }
+.usc-live-refresh-note { padding: 12px 16px 24px; text-align: center; font-size: 10px; color: #9ba4b1; }
+.usc-live-back { display: flex; align-items: center; gap: 8px; min-height: 44px; margin: 10px 16px 0; font-size: 12px; color: #d0d6df; }
+.usc-live-timeline { list-style: none; padding: 0 16px 24px; margin: 0; }
+.usc-live-timeline li { display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid #ffffff18; font-size: 13px; }
+.usc-live-timeline time { width: 36px; font-weight: 800; color: #aeb7c5; }
+.usc-live-hub .usc-news-heading > div { flex: 1; min-width: 0; }
+.usc-live-hub .usc-news-heading > button { flex: 0 0 auto; font-size: 11px; }
+.usc-live-card .usc-action { width: 100%; }
+.usc-live-timeline li p { margin-top: 5px; color: #bdc5d0; font-size: 12px; }

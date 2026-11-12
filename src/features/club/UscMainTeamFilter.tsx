@@ -50,7 +50,7 @@ export function UscMainTeamFilter({ open, scopes, visibleIds, onApply, onClose }
   }, [open, visibleKey]);
   return <dialog className="usc-dialog usc-news-filter" ref={dialog} aria-label="Meine Mannschaften auswählen" onCancel={onClose} onClose={onClose}>
     <button type="button" className="usc-dialog-close" aria-label="Mannschaftsfilter schließen" onClick={onClose}><X /></button>
-    <h2>Meine Mannschaften</h2><p>Diese Auswahl gilt für Home, Teams, Spiele und Tabelle.</p>
+    <h2>Meine Mannschaften</h2><p>Diese Auswahl gilt für Home, Teams, Spiele, Live und Tabelle.</p>
     <div className="usc-filter-shortcuts"><button type="button" onClick={() => setDraft(scopes.map((season) => season.id))}>Alle Mannschaften anzeigen</button><button type="button" onClick={() => setDraft([])}>Alle abwählen</button></div>
     <fieldset><legend className="sr-only">Mannschaften auswählen</legend>{scopes.map((season) => <label key={season.id} className="usc-filter-team"><input type="checkbox" checked={draft.includes(season.id)} onChange={(event) => setDraft((previous) => event.target.checked ? [...new Set([...previous, season.id])] : previous.filter((id) => id !== season.id))} /><span><strong>{season.age_group === "RES" ? "Reserve" : season.age_group}</strong><small>{clubSeasonTeamName(season)} · {season.season?.name}</small></span></label>)}</fieldset>
     <button type="button" className="usc-action" onClick={() => { onApply(draft); onClose(); }}>Auswahl übernehmen</button>
