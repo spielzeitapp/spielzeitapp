@@ -3,16 +3,41 @@ const out='node_modules/.hall-training-ui-test.mjs';
 try{
 await build({stdin:{resolveDir:process.cwd(),loader:'tsx',contents:`
 import React from 'react';import TestRenderer,{act} from 'react-test-renderer';import assert from 'node:assert/strict';import {HallTrainingPlanner} from './src/components/training/HallTrainingPlanner';
-globalThis.window={confirm:()=>true,setInterval:()=>1,clearInterval:()=>{}};globalThis.hallRow=null;globalThis.hallFail=false;
+let clock=Date.now();Date.now=()=>clock;
+globalThis.hallAudioStarts=0;globalThis.hallTick=()=>{};
+class TestAudioContext {
+ state='running';currentTime=0;destination={};
+ async resume(){this.state='running';}async close(){this.state='closed';}
+ createOscillator(){return {type:'sine',frequency:{linearRampToValueAtTime(){}},connect(){},disconnect(){},start(){globalThis.hallAudioStarts++;},stop(){}};}
+ createGain(){return {gain:{setValueAtTime(){},linearRampToValueAtTime(){}},connect(){},disconnect(){}};}
+}
+globalThis.window={AudioContext:TestAudioContext,confirm:()=>true,setInterval:f=>{globalThis.hallTick=f;return 1;},clearInterval:()=>{}};globalThis.hallRow=null;globalThis.hallFail=false;
 const ids=Array.from({length:9},(_,i)=>'player-'+i);const ready=[];const props={eventId:'test-hall',startsAt:'2026-11-13T16:00:00Z',players:ids.map((id,i)=>({id,display_name:'Spieler '+i})),availableIds:ids,open:true,onClose:()=>{},onReadyChange:r=>ready.push(r)};
 let view;const text=n=>typeof n==='string'?n:n?.children?.map(text).join('')||'';const button=label=>{const b=view.root.findAllByType('button').find(b=>text(b)===label);assert(b,label);return b;};const click=async label=>{const b=button(label);assert(!b.props.disabled,label+' disabled');await act(async()=>b.props.onClick());};
 await act(async()=>{view=TestRenderer.create(<HallTrainingPlanner {...props}/>);});
 assert(JSON.stringify(view.toJSON()).includes('8:20'));await click('Spielplan erstellen & speichern');assert.equal(globalThis.hallRow.revision,1);
 await click('Zugesagte Spieler gleichmäßig verteilen');await click('Mannschaften speichern');assert.equal(globalThis.hallRow.revision,2);assert.equal(ready.at(-1),true);assert(globalThis.hallRow.day.teams.every(t=>t.playerIds.length===3));
-await click('Spielplan');await click('Spiel starten');assert.equal(globalThis.hallRow.day.games[0].status,'running');await click('+ Tor Rot');await click('+ Tor Blau');await click('+ Tor Rot');assert.equal(globalThis.hallRow.day.games[0].goals.length,3);await click('Letztes Tor zurücknehmen');assert.equal(globalThis.hallRow.day.games[0].goals.length,2);
+await click('Spielplan');await click('Ton testen');assert.equal(globalThis.hallAudioStarts,1);await click('Spiel starten');assert.equal(globalThis.hallRow.day.games[0].status,'running');
+await click('Teams');assert(view.root.findAllByType('input').filter(i=>i.props.maxLength===32).every(i=>i.props.disabled),'teams locked during active game');assert(!view.root.findAllByType('button').some(b=>text(b)==='Mannschaften speichern'));await click('Spielplan');await click('+ Tor Rot');await click('+ Tor Blau');await click('+ Tor Rot');assert.equal(globalThis.hallRow.day.games[0].goals.length,3);await click('Letztes Tor zurücknehmen');assert.equal(globalThis.hallRow.day.games[0].goals.length,2);
 await click('Pause');assert.equal(globalThis.hallRow.day.games[0].status,'paused');await click('Weiter');assert.equal(globalThis.hallRow.day.games[0].status,'running');
-await act(async()=>view.unmount());await act(async()=>{view=TestRenderer.create(<HallTrainingPlanner {...props}/>);});await click('Spielplan');assert.equal(globalThis.hallRow.day.games[0].goals.length,2);await click('Spiel beenden');assert.equal(globalThis.hallRow.day.games[0].status,'finished');await click('Tabelle');assert(JSON.stringify(view.toJSON()).includes('Interne Trainingstabelle'));await click('Spielplan');await click('Spiel starten');assert.equal(globalThis.hallRow.day.games[1].status,'running');assert.equal(globalThis.hallRow.day.games.filter(g=>g.status==='running').length,1);
+await act(async()=>view.unmount());await act(async()=>{view=TestRenderer.create(<HallTrainingPlanner {...props}/>);});await click('Spielplan');assert.equal(globalThis.hallRow.day.games[0].goals.length,2);await click('Spiel beenden');assert.equal(globalThis.hallRow.day.games[0].status,'finished');await click('Teams');
+let edits=view.root.findAllByType('input').filter(i=>i.props.maxLength===32);assert(edits.every(i=>!i.props.disabled),'teams editable between games');
+await act(async()=>edits[1].props.onChange({target:{value:'Blau neu'}}));
+let swaps=view.root.findAllByType('select').filter(s=>s.props.className.includes('!w-full'));
+await act(async()=>swaps[0].props.onChange({target:{value:'1'}}));
+swaps=view.root.findAllByType('select').filter(s=>s.props.className.includes('!w-full'));
+const swapBack=swaps.find(s=>text(s.parent).includes('Spieler 1'));assert(swapBack);
+await act(async()=>swapBack.props.onChange({target:{value:'0'}}));
+await click('Mannschaften speichern');assert.equal(globalThis.hallRow.day.teams[1].name,'Blau neu');assert(globalThis.hallRow.day.teams[1].playerIds.includes(ids[0]));assert(globalThis.hallRow.day.teams[0].playerIds.includes(ids[1]));assert.equal(globalThis.hallRow.day.games[0].goals.length,2,'team edit preserves scores');
+await click('Tabelle');assert(JSON.stringify(view.toJSON()).includes('Interne Trainingstabelle'));await click('Spielplan');await click('Spiel starten');assert.equal(globalThis.hallRow.day.games[1].status,'running');assert.equal(globalThis.hallRow.day.games.filter(g=>g.status==='running').length,1);
 globalThis.hallFail=true;await click('+ Tor Rot');assert(JSON.stringify(view.toJSON()).includes('Bitte neu laden'));assert.equal(globalThis.hallRow.day.games[1].goals.length,0);globalThis.hallFail=false;
+const beforeSiren=globalThis.hallAudioStarts;clock+=501000;
+await act(async()=>globalThis.hallTick());assert.equal(globalThis.hallAudioStarts,beforeSiren+1,'one siren on time expiry');
+await act(async()=>globalThis.hallTick());assert.equal(globalThis.hallAudioStarts,beforeSiren+1,'no repeated siren');
+assert(JSON.stringify(view.toJSON()).includes('Spielzeit abgelaufen'));assert.equal(globalThis.hallRow.day.games[1].status,'running','expiry still requires trainer confirmation');
+await click('Spiel beenden');await click('Schlusssirene ein');assert.equal(button('Schlusssirene aus').props['aria-pressed'],false);
+await click('Spiel starten');const silent=globalThis.hallAudioStarts;clock+=501000;await act(async()=>globalThis.hallTick());assert.equal(globalThis.hallAudioStarts,silent,'disabled siren remains silent');
+await click('Spiel beenden');await click('Teams');window.confirm=()=>false;await click('Neuen Spielplan erstellen');assert.equal(globalThis.hallRow.day.games[0].status,'finished','cancel reset preserves results');window.confirm=()=>true;await click('Neuen Spielplan erstellen');assert(globalThis.hallRow.day.games.every(g=>g.status==='pending'));assert.equal(globalThis.hallRow.day.teams[1].name,'Blau neu');await click('Spielplan');
 await act(async()=>view.update(<HallTrainingPlanner {...props} readOnly/>));assert.equal(view.root.findAllByType('button').some(b=>text(b)==='Spiel beenden'),false);await act(async()=>view.unmount());
 globalThis.hallRow=null;
 const fourIds=Array.from({length:12},(_,i)=>'four-'+i);const fourProps={...props,eventId:'four-teams',players:fourIds.map(id=>({id,display_name:id})),availableIds:fourIds};

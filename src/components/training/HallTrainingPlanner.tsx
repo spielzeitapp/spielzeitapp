@@ -25,6 +25,41 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
   const [now, setNow] = useState(Date.now());
   const [count, setCount] = useState(3), [format, setFormat] = useState<3 | 4>(3), [minutes, setMinutes] = useState(defaultMinutes), [pause, setPause] = useState(2), [target, setTarget] = useState(8), [cycles, setCycles] = useState(0);
   const saving = useRef(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundError, setSoundError] = useState<string | null>(null);
+  const audio = useRef<AudioContext | null>(null);
+  const armedGame = useRef<string | null>(null);
+  const soundedGame = useRef<string | null>(null);
+  const prepareSound = async () => {
+    try {
+      const Ctor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctor) throw new Error('Audio unavailable');
+      if (!audio.current || audio.current.state === 'closed') audio.current = new Ctor();
+      if (audio.current.state !== 'running') await audio.current.resume();
+      if (audio.current.state !== 'running') throw new Error('Audio suspended');
+      setSoundError(null);
+      return audio.current;
+    } catch {
+      setSoundError('Ton konnte nicht aktiviert werden. Bitte „Ton testen“ antippen und Lautstärke prüfen.');
+      return null;
+    }
+  };
+  const playSiren = (context: AudioContext) => {
+    const oscillator = context.createOscillator(), gain = context.createGain(), start = context.currentTime;
+    oscillator.type = 'sine';
+    for (let i = 0; i < 6; i++) oscillator.frequency.linearRampToValueAtTime(i % 2 ? 620 : 920, start + i * 0.3);
+    gain.gain.setValueAtTime(0, start);
+    gain.gain.linearRampToValueAtTime(0.22, start + 0.03);
+    gain.gain.setValueAtTime(0.22, start + 1.7);
+    gain.gain.linearRampToValueAtTime(0, start + 1.8);
+    oscillator.connect(gain); gain.connect(context.destination);
+    oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
+    oscillator.start(start); oscillator.stop(start + 1.8);
+  };
+  useEffect(() => {
+    armedGame.current = null; soundedGame.current = null;
+    return () => { const context = audio.current; audio.current = null; if (context) void context.close().catch(() => {}); };
+  }, [eventId, open]);
   const dirty = saved ? JSON.stringify(saved) !== JSON.stringify(day) : day.teams.some((t, i) => t.playerIds.length > 0 || t.name !== ['Rot', 'Blau', 'Gelb', 'Grün'][i]);
   const configDirty = day.games.length !== count * (count - 1) / 2 * day.cycles || count !== day.teams.length || format !== day.format || minutes * 60 !== day.total || pause * 60 !== day.pause || target * 60 !== day.target || (cycles !== 0 && cycles !== day.cycles);
   const started = day.games.some(g => g.status !== 'pending');
@@ -79,19 +114,41 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
   const nextIndex = day.games.findIndex(g => g.status === 'pending');
   const current = activeIndex >= 0 ? day.games[activeIndex] : null;
   const elapsed = current ? hallElapsed(current, day.seconds, now) : 0;
+  const teamsLocked = activeIndex >= 0;
+  const gameKey = activeIndex >= 0 ? `${eventId}:${activeIndex}` : null;
+  useEffect(() => {
+    if (!open || loading || readOnly || !soundEnabled || !current || current.status !== 'running' || elapsed < day.seconds || armedGame.current !== gameKey || soundedGame.current === gameKey) return;
+    soundedGame.current = gameKey;
+    if (audio.current?.state === 'running') {
+      try { playSiren(audio.current); } catch { setSoundError('Sirene konnte nicht abgespielt werden. Bitte Ton testen.'); }
+    } else setSoundError('Spielzeit abgelaufen. Ton ist nicht aktiv – bitte „Ton testen“ antippen.');
+  }, [open, loading, readOnly, soundEnabled, current, elapsed, day.seconds, gameKey]);
+  const resetPlan = async () => {
+    if (busy || readOnly || teamsLocked || dirty || configDirty) return;
+    if (!window.confirm('Neuen Spielplan erstellen? Alle bisherigen Spiele, Tore und Ergebnisse dieses Hallenspieltags werden gelöscht. Die Mannschaften bleiben erhalten.')) return;
+    const next = createHallDay(day.teams.length, day.format, day.total, day.pause, day.target, day.cycles);
+    next.teams = structuredClone(day.teams);
+    if (await persist(next)) { init(next); armedGame.current = null; soundedGame.current = null; }
+  };
   const mutateGame = async (action: 'start' | 'pause' | 'finish' | 'undo' | 'goal', team?: number) => {
     if (dirty || configDirty || busy || loading || readOnly) return;
     const next = structuredClone(day), index = activeIndex >= 0 ? activeIndex : nextIndex;
     if (index < 0) return;
     const game = next.games[index], time = hallElapsed(game, next.seconds);
     if (action === 'start') {
-      if ((!started && !ready) || unavailable.length || time >= day.seconds) return;
+      if (!ready || unavailable.length || time >= day.seconds) return;
+      if (soundEnabled) {
+        void prepareSound().then(context => {
+          if (context) armedGame.current = `${eventId}:${index}`;
+        });
+      }
       game.status = 'running'; game.runningSince = Date.now();
     } else if (action === 'pause') { game.elapsed = time; game.runningSince = null; game.status = 'paused'; }
     else if (action === 'finish') { if (!window.confirm('Spiel beenden und Ergebnis übernehmen?')) return; game.elapsed = time; game.runningSince = null; game.status = 'finished'; }
     else if (action === 'undo') game.goals.pop();
     else if (action === 'goal' && team !== undefined && game.status === 'running' && time < day.seconds) game.goals.push({ team, second: Math.floor(time) });
     await persist(next);
+    setNow(Date.now());
   };
   const gameTime = (index: number) => new Date(new Date(startsAt).getTime() + index * (day.seconds + day.pause) * 1000).toLocaleTimeString('de-AT', { timeZone: 'Europe/Vienna', hour: '2-digit', minute: '2-digit', second: (day.seconds + day.pause) % 60 === 0 ? undefined : '2-digit' });
   return <Modal open={open} onClose={close} title="Hallenspieltag · Nur intern">
@@ -114,17 +171,40 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
           {preview ? <p className="text-[16px] leading-relaxed text-white/80">{preview.count} Spiele à <strong>{hallClock(preview.seconds)} Min.</strong> · {preview.cycles} Durchgänge<br />Jedes Team: {preview.gamesPerTeam} Spiele · {hallClock(preview.playPerTeam)} Min. Spielzeit<br />{preview.count - 1} Wechselpausen à {hallClock(pause * 60)} Min.{preview.buffer ? ` · ${hallClock(preview.buffer)} Min. Restpuffer` : ''}</p> : <p role="alert" className="text-red-200">{calculationError}</p>}
           <button type="button" disabled={!preview} className={`${button} w-full`} onClick={() => void generate()}>{saved ? 'Zeitplanung übernehmen' : 'Spielplan erstellen & speichern'}</button>
         </fieldset>
-        {started ? <p className="text-[15px] text-white/60">Der Spieltag läuft. Zeitplanung und Mannschaften bleiben für diese Spiele fest.</p> : null}
-        <div className="grid grid-cols-2 gap-2">{day.teams.map((team, i) => <div key={i} className={`${TC_CARD} p-3`}><label className="flex items-center gap-2"><Shirt className="h-6 w-6 shrink-0" style={{ color: HALL_COLORS[i] }} aria-hidden /><span className="sr-only">Name Team {i + 1}</span><input className={`${input} min-w-0 px-2 font-bold`} maxLength={32} disabled={readOnly || started || busy} value={team.name} onChange={e => setDay(prev => ({ ...prev, teams: prev.teams.map((t, n) => n === i ? { ...t, name: e.target.value } : t) }))} /></label><p className="mt-2 text-[15px] text-white/65">{team.playerIds.length} Spieler {team.playerIds.length > day.format ? '· mit Wechselspielern' : ''}</p><p className="mt-1 break-words text-[15px] text-white/80">{team.playerIds.map(id => names.get(id) ?? 'Nicht mehr im Kader').join(' · ') || 'Noch keine Spieler'}</p></div>)}</div>
-        {!started && !readOnly ? <>
+        {started ? <p className="text-[15px] text-white/60">Zeitplanung und Teamanzahl bleiben fest. Spieler und Teamnamen kannst du zwischen den Spielen ändern; bisherige Ergebnisse bleiben bei den Teams.</p> : null}
+        <div className="grid grid-cols-2 gap-2">{day.teams.map((team, i) => <div key={i} className={`${TC_CARD} p-3`}><label className="flex items-center gap-2"><Shirt className="h-6 w-6 shrink-0" style={{ color: HALL_COLORS[i] }} aria-hidden /><span className="sr-only">Name Team {i + 1}</span><input className={`${input} min-w-0 px-2 font-bold`} maxLength={32} disabled={readOnly || teamsLocked || busy} value={team.name} onChange={e => setDay(prev => ({ ...prev, teams: prev.teams.map((t, n) => n === i ? { ...t, name: e.target.value } : t) }))} /></label><p className="mt-2 text-[15px] text-white/65">{team.playerIds.length} Spieler {team.playerIds.length > day.format ? '· mit Wechselspielern' : ''}</p><p className="mt-1 break-words text-[15px] text-white/80">{team.playerIds.map(id => names.get(id) ?? 'Nicht mehr im Kader').join(' · ') || 'Noch keine Spieler'}</p></div>)}</div>
+        {teamsLocked ? <p className="text-[15px] text-amber-200">Bitte zuerst das aktuelle Spiel beenden. Danach kannst du die Mannschaften umstellen.</p> : null}
+        {!teamsLocked && !readOnly ? <>
           <button type="button" disabled={busy} className={`${button} w-full`} onClick={() => { if (day.teams.some(t => t.playerIds.length) && !window.confirm('Vorhandene Einteilung neu verteilen?')) return; const next = structuredClone(day); next.teams.forEach(t => { t.playerIds = []; }); availableIds.forEach((id, i) => next.teams[i % next.teams.length].playerIds.push(id)); setDay(next); }}>Zugesagte Spieler gleichmäßig verteilen</button>
           <p className="text-[15px] text-white/60">Nach Spielerzahl verteilt. Du kannst die Teams danach frei anpassen.</p>
           <div className="space-y-2">{[...new Set([...availableIds, ...day.teams.flatMap(t => t.playerIds)])].map(id => <label key={id} className="flex flex-col items-stretch gap-2 rounded-xl border border-white/10 p-3"><span className="min-w-0 flex-1 text-[16px] font-semibold">{names.get(id) ?? 'Spieler'}{!availableIds.includes(id) ? ' · abgemeldet' : ''}</span><select className={`${input} !w-full`} disabled={busy} value={day.teams.findIndex(t => t.playerIds.includes(id))} onChange={e => assign(id, Number(e.target.value))}><option value={-1}>Nicht zugeteilt</option>{day.teams.map((team, i) => <option value={i} key={i}>{team.name}</option>)}</select></label>)}</div>
-          <button type="button" disabled={busy || !dirty || configDirty} className={`${button} w-full sz-club-tab-active`} onClick={() => void persist(day)}>{busy ? 'Speichert…' : 'Mannschaften speichern'}</button>
-          {!ready ? <p className="text-[15px] text-white/60">Zum Start alle Zusagen zuteilen: Jedes Team braucht mindestens {day.format} verfügbare Spieler. Eine unvollständige Einteilung kannst du als Entwurf speichern.</p> : null}
+          <button type="button" disabled={busy || !dirty || configDirty || (started && !ready)} className={`${button} w-full sz-club-tab-active`} onClick={() => void persist(day)}>{busy ? 'Speichert…' : 'Mannschaften speichern'}</button>
+          {!ready ? <p className="text-[15px] text-white/60">Zum Start alle Zusagen zuteilen: Jedes Team braucht mindestens {day.format} verfügbare Spieler. {started ? 'Bitte vor dem Speichern alle Teams vollständig einteilen.' : 'Eine unvollständige Einteilung kannst du als Entwurf speichern.'}</p> : null}
+          {started ? <button type="button" disabled={busy || dirty || configDirty} className={`${button} w-full`} onClick={() => void resetPlan()}>Neuen Spielplan erstellen</button> : null}
         </> : null}
       </> : null}
       {tab === 'games' ? <>
+        {!readOnly ? <div className="space-y-2 rounded-xl border border-white/10 p-3">
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className={button} aria-pressed={soundEnabled} onClick={async () => {
+              if (soundEnabled) { setSoundEnabled(false); armedGame.current = null; }
+              else {
+                setSoundEnabled(true);
+                const context = await prepareSound();
+                if (context && current?.status === 'running' && elapsed < day.seconds) armedGame.current = gameKey;
+              }
+            }}>Schlusssirene {soundEnabled ? 'ein' : 'aus'}</button>
+            <button type="button" className={button} onClick={async () => {
+              const context = await prepareSound();
+              if (context) {
+                try { playSiren(context); } catch { setSoundError('Ton konnte nicht abgespielt werden.'); }
+                if (soundEnabled && current?.status === 'running' && elapsed < day.seconds) armedGame.current = gameKey;
+              }
+            }}>Ton testen</button>
+          </div>
+          <p className="text-[15px] text-white/60">Für die Sirene App geöffnet und Bildschirm eingeschaltet lassen. Lautstärke mit „Ton testen“ prüfen.</p>
+          {soundError ? <p role="status" className="text-[15px] text-amber-200">{soundError}</p> : null}
+        </div> : null}
         {current ? <section className={`${TC_CARD} space-y-3 p-4`}>
           <h3 className="text-[18px] font-bold">Interner Ticker · Spiel {activeIndex + 1} von {day.games.length}</h3>
           <p className="text-center text-[22px] font-black"><span style={{ color: HALL_COLORS[current.home] }}>{day.teams[current.home].name}</span> {hallScore(current, current.home)} : {hallScore(current, current.away)} <span style={{ color: HALL_COLORS[current.away] }}>{day.teams[current.away].name}</span></p>
