@@ -4218,6 +4218,7 @@ export const EventDetailPage: React.FC = () => {
                 startsAtIso={event.starts_at}
                 status={event.status}
                 attendanceSummary={{ playerCount: players.length, yesCount: eventRsvpCounts.yes, openCount: eventRsvpCounts.open, loading: playersLoading || loadingEventAttendance }}
+                availablePlayerIds={players.filter(player => getTrainingAttendanceStatus(player.id) === 'present').map(player => player.id)}
                 trainingTitle={eventCompactTitle}
                 trainingTopics={eventDetailsPrimary}
                 trainingLocation={event.location}

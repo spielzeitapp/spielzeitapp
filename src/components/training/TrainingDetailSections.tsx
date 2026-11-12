@@ -1,3 +1,5 @@
+import { HallTrainingPlanner } from './HallTrainingPlanner';
+import { isHallTraining } from '../../lib/hallTraining';
 import React, { useEffect, useMemo, useState } from 'react';
 import { BarChart3, ClipboardList, Radio, Trophy, Users } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
@@ -22,6 +24,7 @@ import { trainingPlanManagerHref } from '../../manager/trainingManagerEntry';
 
 type Props = {
   attendanceSummary?: { playerCount: number; openCount: number; yesCount: number; loading: boolean };
+  availablePlayerIds?: string[];
   eventId: string;
   teamSeasonId: string;
   startsAtIso: string;
@@ -38,6 +41,7 @@ type Props = {
 
 export function TrainingDetailSections({
   attendanceSummary,
+  availablePlayerIds = [],
   eventId,
   teamSeasonId,
   startsAtIso,
@@ -50,6 +54,9 @@ export function TrainingDetailSections({
   trainerAttendanceSection = null,
 }: Props) {
   const location = useLocation();
+  const hall = isHallTraining(trainingTitle, trainingLocation);
+  const [hallOpen, setHallOpen] = useState(false);
+  const [hallPrepared, setHallPrepared] = useState(false);
   const demo = useDemoMode();
   const [hasAssignment, setHasAssignment] = useState(false);
   const [attendanceOpen, setAttendanceOpen] = useState(false);
@@ -58,7 +65,8 @@ export function TrainingDetailSections({
   const [planError, setPlanError] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
-    if (demo || !canManage) { setPlanLoading(false); return; }
+    setPlanError(null);
+    if (demo || !canManage || hall) { setPlanLoading(false); return; }
     setPlanLoading(true);
     Promise.all([getTrainingSessionByEvent(eventId), getAssignmentForEvent(eventId)]).then(([result, assignment]) => {
       if (!active) return;
@@ -66,7 +74,7 @@ export function TrainingDetailSections({
       setPlan(result.data); setPlanError(result.error ? 'Trainingsplanung konnte nicht geladen werden.' : null); setPlanLoading(false);
     }).catch(() => { if (active) { setPlanError('Trainingsplanung konnte nicht geladen werden.'); setPlanLoading(false); } });
     return () => { active = false; };
-  }, [eventId, canManage, demo]);
+  }, [eventId, canManage, demo, hall]);
   const canViewStaffReadouts = canManage || canViewHistory;
   /** Saisonweite Stats/Kaiser: immer active-only. Event-Teilnehmer kommen separat aus EventDetail. */
   const { players } = usePlayers(teamSeasonId, { mode: 'active' });
@@ -231,10 +239,16 @@ export function TrainingDetailSections({
       {canManage && trainingPhase !== 'after' ? <>
         <CenterPreparationAssistant title="Trainings-Assistent" readyLabel="Training vorbereitet" loading={planLoading || attendanceSummary?.loading} error={planError} steps={[
           { id: 'availability', title: 'Verfügbarkeit klären', detail: attendanceSummary ? `${attendanceSummary.yesCount} dabei · ${attendanceSummary.openCount} offen` : 'Rückmeldungen prüfen', done: Boolean(attendanceSummary && attendanceSummary.playerCount > 0 && attendanceSummary.openCount === 0 && !attendanceSummary.loading), onClick: () => setAttendanceOpen(true) },
+          ...(hall ? [{ id: 'hall', title: 'Hallenspieltag planen', detail: 'Teams einteilen · Spielzeit berechnen · intern spielen', done: hallPrepared, onClick: () => setHallOpen(true) }] : [
           { id: 'plan', title: 'Trainingseinheit planen', detail: plan ? `${plan.title} · ${plan.planned_duration_minutes ?? 0} Min.` : 'Übungen und Ablauf auswählen', done: plan?.status === 'ready', to: demo ? '/demo/trainingsplanung' : trainingPlanManagerHref({ sessionId: plan?.id, eventId, teamSeasonId, startsAtIso }) },
           { id: 'place', title: 'Platzbelegung prüfen', detail: 'Trainingsplatz und Zonen', optional: true, done: false, to: `${demo ? '/demo' : hasAssignment ? '/app' : '/manager'}/platzbelegung?date=${encodeURIComponent(dayKeyFromIso(startsAtIso))}&event=${encodeURIComponent(eventId)}` },
+          ]),
         ]} />
         <Modal open={attendanceOpen} onClose={() => setAttendanceOpen(false)} title="Verfügbarkeit klären">{trainerAttendanceSection}</Modal>
+      </> : null}
+      {hall && canViewStaffReadouts ? <>
+        {trainingPhase === 'after' ? <button type="button" onClick={() => setHallOpen(true)} className="sz-club-event-action min-h-14 rounded-2xl border p-4 text-left text-[18px] font-bold">Hallenspieltag · interne Ergebnisse ansehen</button> : null}
+        <HallTrainingPlanner eventId={eventId} startsAt={startsAtIso} players={players} availableIds={availablePlayerIds} open={hallOpen} onClose={() => setHallOpen(false)} onReadyChange={setHallPrepared} readOnly={!canManage || status === 'finished' || status === 'canceled'} />
       </> : null}
       {overviewSectionOrder.map((sectionKey) => renderSection(sectionKey))}
     </div>
