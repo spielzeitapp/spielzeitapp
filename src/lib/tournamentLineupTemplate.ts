@@ -18,8 +18,10 @@ export const templateEmptySlots = (): Record<FieldSlotId, string | null> => ({
 export function emptyTournamentTemplate(
   squadIds: string[],
   formationId: U11FormationId = "1-2-2",
+  lineupMode: 'single' | 'blocks' = 'blocks',
 ): StoredMatchLineupVariants {
   return {
+    lineupMode,
     version: 1,
     startVariant: 1,
     variants: {
@@ -28,6 +30,15 @@ export function emptyTournamentTemplate(
     },
   };
 }
+/** A single lineup uses the existing two-variant storage format compatibly. */
+export function normalizeTournamentTemplate(value: StoredMatchLineupVariants): StoredMatchLineupVariants {
+  const next = structuredClone(value);
+  if (next.lineupMode === 'single') {
+    next.startVariant = 1;
+    next.variants[2] = structuredClone(next.variants[1]);
+  }
+  return next;
+}
 export function tournamentTemplateReady(
   value: StoredMatchLineupVariants | null,
   squad: readonly string[],
@@ -35,6 +46,8 @@ export function tournamentTemplateReady(
 ): boolean {
   if (!value || value.version !== 1 || ![1, 2].includes(value.startVariant))
     return false;
+  if (value.lineupMode && !['single', 'blocks'].includes(value.lineupMode)) return false;
+  value = normalizeTournamentTemplate(value);
   let count: number | undefined;
   return ([1, 2] as const).every((n) => {
     const d = value.variants?.[n];

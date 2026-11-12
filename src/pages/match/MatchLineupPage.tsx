@@ -158,6 +158,7 @@ export const MatchLineupPage: React.FC = () => {
   const [lineupViewMode, setLineupViewMode] = useState<'pitch' | 'list'>('pitch');
   const [saveToastFading, setSaveToastFading] = useState(false);
   const [visibleVariant, setVisibleVariant] = useState<MatchLineupVariantNumber>(1);
+  const [singleTournamentLineup, setSingleTournamentLineup] = useState(false);
   const [startVariant, setStartVariant] = useState<MatchLineupVariantNumber>(1);
   const [variantDrafts, setVariantDrafts] = useState<
     Record<MatchLineupVariantNumber, MatchLineupVariantDraft> | null
@@ -442,6 +443,7 @@ export const MatchLineupPage: React.FC = () => {
     const canonical = captureVisibleVariant();
     const stored = (canManage ? await fetchRemoteMatchBlocks(matchId) : null) ?? readMatchLineupVariants(matchId);
     if (cancelled) return;
+    setSingleTournamentLineup(stored?.lineupMode === 'single');
     if (stored) {
       const selected = stored.startVariant;
       const reconciledVariants = {
@@ -452,6 +454,7 @@ export const MatchLineupPage: React.FC = () => {
       setVariantDrafts(reconciledVariants);
       writeMatchLineupVariants(matchId, {
         version: 1,
+        lineupMode: stored.lineupMode,
         startVariant: selected,
         variants: reconciledVariants,
       });
@@ -481,6 +484,7 @@ export const MatchLineupPage: React.FC = () => {
     if (!matchId) return;
     writeMatchLineupVariants(matchId, {
       version: 1,
+      lineupMode: singleTournamentLineup ? 'single' : undefined,
       startVariant: nextStartVariant,
       variants: nextDrafts,
     });
@@ -598,11 +602,12 @@ export const MatchLineupPage: React.FC = () => {
         }
       : { 1: cloneMatchLineupVariant(currentDraft), 2: cloneMatchLineupVariant(currentDraft) };
     nextDrafts[visibleVariant] = cloneMatchLineupVariant(currentDraft);
+    if (singleTournamentLineup) nextDrafts[2] = cloneMatchLineupVariant(currentDraft);
     setVariantDrafts(nextDrafts);
     persistVariantDrafts(nextDrafts);
 
     if (visibleVariant !== startVariant) {
-      try { await saveRemoteMatchBlocks(matchId, {version:1,startVariant,variants:nextDrafts}); }
+      try { await saveRemoteMatchBlocks(matchId, {version:1,lineupMode:singleTournamentLineup ? 'single' : undefined,startVariant,variants:nextDrafts}); }
       catch (e) { setSavingLineup(false); setSaveError(e instanceof Error ? e.message : String(e)); return false; }
       setSavingLineup(false);
       setSaveMsg(`Variante ${visibleVariant} gespeichert.`);
@@ -631,7 +636,7 @@ export const MatchLineupPage: React.FC = () => {
       console.warn('[MatchLineup] formation save failed', { matchId, error: formationErr });
       return false;
     }
-    try { await saveRemoteMatchBlocks(matchId, {version:1,startVariant,variants:nextDrafts}); }
+    try { await saveRemoteMatchBlocks(matchId, {version:1,lineupMode:singleTournamentLineup ? 'single' : undefined,startVariant,variants:nextDrafts}); }
     catch (e) { setSaveError('Startaufstellung gespeichert; Blockplanung konnte nicht synchronisiert werden. Bitte erneut speichern.'); return false; }
     setSaveMsg('Aufstellung gespeichert.');
     return true;
@@ -814,7 +819,7 @@ export const MatchLineupPage: React.FC = () => {
           </h1>
         </header>
 
-        {canManage ? (
+        {canManage && !singleTournamentLineup ? (
           <div
             className="mb-1 mt-0.5 grid h-11 w-full shrink-0 grid-cols-2 gap-1.5 sm:mt-1 sm:h-12"
             role="tablist"
