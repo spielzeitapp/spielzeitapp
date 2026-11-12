@@ -8,9 +8,9 @@ export const TC_META_ICON = 'sz-club-accent-text h-3.5 w-3.5 shrink-0';
 export type TournamentCenterTabId = 'games' | 'table' | 'teams' | 'admin';
 
 const BASE_TABS: { id: TournamentCenterTabId; label: string }[] = [
+  { id: 'teams', label: 'Teilnehmer' },
   { id: 'games', label: 'Spielplan' },
   { id: 'table', label: 'Tabelle' },
-  { id: 'teams', label: 'Teilnehmer' },
 ];
 
 const ADMIN_TAB: { id: TournamentCenterTabId; label: string } = {

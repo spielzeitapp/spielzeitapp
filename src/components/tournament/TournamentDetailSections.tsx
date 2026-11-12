@@ -1213,7 +1213,6 @@ export const TournamentDetailSections: React.FC<Props> = ({
         />
       ) : null}
 
-      {quickActions}
       {additionalHints ? <section className={TC_CARD}><div className={TC_CARD_INNER}><h2 className="mb-2 text-[16px] font-bold text-white">Hinweise zum Turnier</h2><p className="whitespace-pre-line text-[16px] leading-relaxed text-white/75">{additionalHints}</p></div></section> : null}
 
       {canManage && (planSyncBusy || planSyncStatus) ? (
@@ -1231,10 +1230,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
       {!canManage ? <section className={TC_CARD}><div className={`${TC_CARD_INNER} space-y-3`}>
         <h2 className="text-lg font-bold text-white">Alles zum Turnier</h2>
         <p className="text-[16px] leading-relaxed text-white/70">Spielstände, alle Tabellen, Finalrunde und unsere Torschützen auf einer Seite. Die Übersicht aktualisiert sich automatisch.</p>
-        <Link className={addButtonClass} to={publicTeamTournamentPath(tournamentEventId)} state={{returnTo: `${basePath}/events/${tournamentEventId}`}}>Turnierseite ansehen</Link>
+        {quickActions ?? (<Link className={addButtonClass} to={publicTeamTournamentPath(tournamentEventId)} state={{returnTo: `${basePath}/events/${tournamentEventId}`}}>Turnierseite ansehen</Link>)}
         {ownSlots.filter(slot => !tournamentCanceled && slot.match_status === 'live' && slot.match_id).map(slot => <Link key={slot.id} className={addButtonClass} to={`${basePath}/live?matchId=${encodeURIComponent(slot.match_id!)}`}>Unser Spiel läuft · Zum Liveticker</Link>)}
       </div></section> : null}
-      {canManage ? <TournamentCenterTabBar activeTab={activeTab} onTabChange={setActiveTab} /> : null}
+      {canManage ? <TournamentCenterTabBar activeTab={activeTab} onTabChange={setActiveTab} actions={quickActions} /> : null}
       {canManage && activeTab === 'games' ? <div className={`flex flex-col ${TC_STACK_GAP}`}>
         <h2 className="text-[16px] font-bold text-white">Unsere Turnierspiele vorbereiten</h2>
         <p className="text-[16px] leading-relaxed text-white/65">Aufstellung und Liveticker für unser Team. Den gesamten Turnierverlauf findest du unter „Turnierseite ansehen“.</p>

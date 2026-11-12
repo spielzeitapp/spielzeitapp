@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { CalendarPlus, MapPin, Navigation, Share2, ExternalLink } from "lucide-react";
-import { TournamentCollapsibleSection } from "./TournamentCollapsibleSection";
+import { Modal } from "../../app/ui/Modal";
 import {
   publicTeamTournamentPath,
   sharePublicTeamTournamentPage,
 } from "../../lib/publicTeamTournament";
 
 const actionClass =
-  "sz-club-event-action inline-flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-full border px-4 py-3 text-[16px] font-bold text-white touch-manipulation";
+  "inline-flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[15px] font-semibold text-white/80 hover:bg-white/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white touch-manipulation";
 export function TournamentQuickActionBar({
   shareTitle,
   tournamentEventId,
@@ -19,6 +19,7 @@ export function TournamentQuickActionBar({
   location?: string | null;
 }) {
   const location = useLocation();
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
   const share = async () => {
     const result = await sharePublicTeamTournamentPage(
@@ -35,42 +36,26 @@ export function TournamentQuickActionBar({
     window.setTimeout(() => setHint(null), 2200);
   };
   return (
-    <div className="space-y-3">
-      <TournamentCollapsibleSection title="Turnierdetails" icon={<MapPin />}>
-        <div className="space-y-4">
-          <div>
-            <p className="text-[16px] font-bold text-white">Spielort</p>
-            <p className="mt-1 whitespace-pre-line text-[16px] leading-relaxed text-white/75">
-              {venue?.trim() || "Spielort noch offen"}
-            </p>
-          </div>
-
-        </div>
-      </TournamentCollapsibleSection>
-      <Link
-        to={publicTeamTournamentPath(tournamentEventId)}
-        state={{ returnTo: location.pathname + location.search }}
-        className={`${actionClass} w-full`}
-      >
-        <ExternalLink
-          aria-hidden
-          className="h-5 w-5 shrink-0 sz-club-accent-text"
-        />
-        Turnierseite ansehen
-      </Link>
-      <button
-        type="button"
-        onClick={() => void share()}
-        className={`${actionClass} w-full`}
-      >
-        <Share2 aria-hidden className="h-5 w-5 shrink-0 sz-club-accent-text" />
-        Turnierseite teilen
-      </button>
-      {hint ? (
-        <p className="text-[14px] text-white/70" role="status">
-          {hint}
-        </p>
-      ) : null}
+    <div className="space-y-2">
+      <div className="grid grid-cols-3 gap-1" role="group" aria-label="Turnierdetails und öffentliche Turnierseite">
+        <button type="button" onClick={() => setDetailsOpen(true)} className={actionClass} aria-label="Turnierdetails öffnen" aria-haspopup="dialog">
+          <MapPin className="h-5 w-5 sz-club-accent-text" aria-hidden />
+          Details
+        </button>
+        <Link to={publicTeamTournamentPath(tournamentEventId)} state={{ returnTo: location.pathname + location.search }} className={actionClass} aria-label="Turnierseite ansehen">
+          <ExternalLink className="h-5 w-5 sz-club-accent-text" aria-hidden />
+          Turnierseite
+        </Link>
+        <button type="button" onClick={() => void share()} className={actionClass} aria-label="Turnierseite teilen">
+          <Share2 className="h-5 w-5 sz-club-accent-text" aria-hidden />
+          Teilen
+        </button>
+      </div>
+      {hint ? <p className="px-2 text-[14px] text-white/70" role="status">{hint}</p> : null}
+      <Modal open={detailsOpen} onClose={() => setDetailsOpen(false)} title="Turnierdetails">
+        <h2 className="text-[18px] font-bold text-white">Spielort</h2>
+        <p className="mt-2 whitespace-pre-line text-[17px] leading-relaxed text-white/75">{venue?.trim() || 'Spielort noch offen'}</p>
+      </Modal>
     </div>
   );
 }

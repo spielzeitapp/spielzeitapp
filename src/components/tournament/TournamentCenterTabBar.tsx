@@ -5,9 +5,10 @@ type Props = {
   activeTab: TournamentCenterTabId;
   onTabChange: (tab: TournamentCenterTabId) => void;
   canManage?: boolean;
+  actions?: React.ReactNode;
 };
 
-export function TournamentCenterTabBar({ activeTab, onTabChange, canManage = false }: Props) {
+export function TournamentCenterTabBar({ activeTab, onTabChange, canManage = false, actions }: Props) {
   const tabs = getTournamentCenterTabs(canManage);
 
   return (
@@ -35,6 +36,7 @@ export function TournamentCenterTabBar({ activeTab, onTabChange, canManage = fal
           );
         })}
       </div>
+      {actions ? <div className="mt-1 border-t border-white/[0.06] pt-1">{actions}</div> : null}
     </nav>
   );
 }
