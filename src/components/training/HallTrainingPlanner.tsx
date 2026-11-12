@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Lock, Play, Pause, Shirt, Undo2, Volume2, VolumeX, Goal } from 'lucide-react';
+import { Lock, Play, Pause, Shirt, Undo2, Volume2, VolumeX, Goal, Trophy, Crown, Clock3 } from 'lucide-react';
 import { Modal } from '../../app/ui/Modal';
 import { useDemoMode } from '../../demo/DemoContext';
-import { calculateHallSchedule, createHallDay, hallClock, hallElapsed, hallReady, hallScore, hallStandings, HALL_COLORS, HALL_NAMES, type HallDay } from '../../lib/hallTraining';
+import { hallGameSeconds, hallPlanSeconds, withHallGameDuration, hallScorers, calculateHallSchedule, createHallDay, hallClock, hallElapsed, hallReady, hallScore, hallStandings, HALL_COLORS, HALL_NAMES, type HallDay } from '../../lib/hallTraining';
 import { loadHallDay, saveHallDay } from '../../lib/hallTrainingStore';
 import { TC_CARD } from '../tournament/tournamentCenterStyles';
 import './hallMatchScreen.css';
@@ -32,6 +32,8 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
   useEffect(() => {
     if (goalPicker) { scorerPanel.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); scorerPanel.current?.focus({ preventScroll: true }); }
   }, [goalPicker]);
+  const [durationMinutes, setDurationMinutes] = useState(8);
+  const [durationSeconds, setDurationSeconds] = useState(20);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [soundError, setSoundError] = useState<string | null>(null);
   const audio = useRef<AudioContext | null>(null);
@@ -99,7 +101,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
     } catch (e) { setError(e instanceof Error ? e.message : 'Speichern fehlgeschlagen'); return false; }
     finally { saving.current = false; setBusy(false); }
   };
-  const close = () => { if (busy) return; if ((dirty || configDirty || goalPicker) && !window.confirm('Ungespeicherte Änderungen verwerfen?')) return; if (saved) init(structuredClone(saved)); setGoalPicker(null); onClose(); };
+  const close = () => { if (busy) return; if ((dirty || configDirty || goalPicker || (activeIndex < 0 && durationDirty)) && !window.confirm('Ungespeicherte Änderungen verwerfen?')) return; if (saved) init(structuredClone(saved)); setGoalPicker(null); onClose(); };
   let preview: ReturnType<typeof calculateHallSchedule> | null = null;
   let calculationError = '';
   try { preview = calculateHallSchedule(count, minutes * 60, pause * 60, target * 60, cycles || undefined); } catch (e) { calculationError = e instanceof Error ? e.message : 'Zeitplanung prüfen'; }
@@ -120,16 +122,25 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
   const activeIndex = day.games.findIndex(g => g.status === 'running' || g.status === 'paused');
   const nextIndex = day.games.findIndex(g => g.status === 'pending');
   const current = activeIndex >= 0 ? day.games[activeIndex] : null;
-  const elapsed = current ? hallElapsed(current, day.seconds, now) : 0;
+  const matchSeconds = current ? hallGameSeconds(day, current) : day.seconds;
+  const elapsed = current ? hallElapsed(current, matchSeconds, now) : 0;
+  const nextSeconds = nextIndex >= 0 ? hallGameSeconds(day, day.games[nextIndex]) : day.seconds;
+  useEffect(() => { setDurationMinutes(Math.floor(nextSeconds / 60)); setDurationSeconds(nextSeconds % 60); }, [eventId, open, nextIndex, nextSeconds]);
+  const draftSeconds = durationMinutes * 60 + durationSeconds;
+  const durationDirty = nextIndex >= 0 && draftSeconds !== nextSeconds;
+  const durationValid = Number.isInteger(durationMinutes) && Number.isInteger(durationSeconds) && durationSeconds >= 0 && durationSeconds < 60 && draftSeconds >= 60 && draftSeconds <= 1800;
+  const plannedSeconds = hallPlanSeconds(day);
+  const standings = hallStandings(day), scorers = hallScorers(day);
+  const finishedCount = day.games.filter(g => g.status === 'finished').length;
   const teamsLocked = activeIndex >= 0;
   const gameKey = activeIndex >= 0 ? `${eventId}:${activeIndex}` : null;
   useEffect(() => {
-    if (!open || loading || readOnly || !soundEnabled || !current || current.status !== 'running' || elapsed < day.seconds || armedGame.current !== gameKey || soundedGame.current === gameKey) return;
+    if (!open || loading || readOnly || !soundEnabled || !current || current.status !== 'running' || elapsed < matchSeconds || armedGame.current !== gameKey || soundedGame.current === gameKey) return;
     soundedGame.current = gameKey;
     if (audio.current?.state === 'running') {
       try { playSiren(audio.current); } catch { setSoundError('Sirene konnte nicht abgespielt werden. Bitte Ton testen.'); }
     } else setSoundError('Spielzeit abgelaufen. Ton ist nicht aktiv – bitte „Ton testen“ antippen.');
-  }, [open, loading, readOnly, soundEnabled, current, elapsed, day.seconds, gameKey]);
+  }, [open, loading, readOnly, soundEnabled, current, elapsed, matchSeconds, gameKey]);
   const resetPlan = async () => {
     if (busy || readOnly || teamsLocked || dirty || configDirty) return;
     if (!window.confirm('Neuen Spielplan erstellen? Alle bisherigen Spiele, Tore und Ergebnisse dieses Hallenspieltags werden gelöscht. Die Mannschaften bleiben erhalten.')) return;
@@ -141,9 +152,9 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
     if (dirty || configDirty || busy || loading || readOnly || goalPicker) return;
     const next = structuredClone(day), index = activeIndex >= 0 ? activeIndex : nextIndex;
     if (index < 0) return;
-    const game = next.games[index], time = hallElapsed(game, next.seconds);
+    const game = next.games[index], seconds = hallGameSeconds(next, game), time = hallElapsed(game, seconds);
     if (action === 'start') {
-      if (!ready || unavailable.length || time >= day.seconds) return;
+      if (!ready || unavailable.length || time >= seconds || (activeIndex < 0 && durationDirty)) return;
       if (soundEnabled) {
         void prepareSound().then(context => {
           if (context) armedGame.current = `${eventId}:${index}`;
@@ -154,7 +165,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
     else if (action === 'finish') { if (!window.confirm('Spiel beenden und Ergebnis übernehmen?')) return; game.elapsed = time; game.runningSince = null; game.status = 'finished'; }
     else if (action === 'undo') game.goals.pop();
     else if (action === 'goal') {
-      if (team !== undefined && [game.home, game.away].includes(team) && game.status === 'running' && time < day.seconds) setGoalPicker({ game: index, team, second: Math.floor(time) });
+      if (team !== undefined && [game.home, game.away].includes(team) && game.status === 'running' && time < seconds) setGoalPicker({ game: index, team, second: Math.floor(time) });
       return;
     }
     await persist(next);
@@ -189,7 +200,16 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
       }) : <li className="hall-match-empty">Noch keine Tore · bereit für den Anpfiff.</li>}
     </ol>;
   };
-  const gameTime = (index: number) => new Date(new Date(startsAt).getTime() + index * (day.seconds + day.pause) * 1000).toLocaleTimeString('de-AT', { timeZone: 'Europe/Vienna', hour: '2-digit', minute: '2-digit', second: (day.seconds + day.pause) % 60 === 0 ? undefined : '2-digit' });
+  const saveDuration = async () => {
+    if (busy || readOnly || activeIndex >= 0 || nextIndex < 0 || dirty || configDirty || !durationValid) return;
+    try {
+      const next = withHallGameDuration(day, nextIndex, draftSeconds);
+      const overtime = hallPlanSeconds(next) - next.total;
+      if (overtime > 0 && !window.confirm(`Der Spielplan dauert damit ${hallClock(overtime)} Minuten länger als die verfügbare Trainingszeit. Spielzeit trotzdem übernehmen?`)) return;
+      await persist(next);
+    } catch (e) { setError(e instanceof Error ? e.message : 'Spielzeit konnte nicht gespeichert werden.'); }
+  };
+  const gameTime = (index: number) => new Date(new Date(startsAt).getTime() + (day.games.slice(0, index).reduce((sum, game) => sum + hallGameSeconds(day, game), 0) + index * day.pause) * 1000).toLocaleTimeString('de-AT', { timeZone: 'Europe/Vienna', hour: '2-digit', minute: '2-digit', second: day.games.slice(0, index).every(game => (hallGameSeconds(day, game) + day.pause) % 60 === 0) ? undefined : '2-digit' });
   return <Modal open={open} onClose={close} className="hall-training-modal" title="Hallenspieltag · Nur intern">
     {loading ? <p role="status">Hallenspieltag wird geladen…</p> : <div className="space-y-4">
       <p className="flex items-center gap-2 text-[15px] text-white/60"><Lock className="h-4 w-4" aria-hidden />Interne Trainingsspiele · nur für Trainer</p>
@@ -210,6 +230,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
           {preview ? <p className="text-[16px] leading-relaxed text-white/80">{preview.count} Spiele à <strong>{hallClock(preview.seconds)} Min.</strong> · {preview.cycles} Durchgänge<br />Jedes Team: {preview.gamesPerTeam} Spiele · {hallClock(preview.playPerTeam)} Min. Spielzeit<br />{preview.count - 1} Wechselpausen à {hallClock(pause * 60)} Min.{preview.buffer ? ` · ${hallClock(preview.buffer)} Min. Restpuffer` : ''}</p> : <p role="alert" className="text-red-200">{calculationError}</p>}
           <button type="button" disabled={!preview} className={`${button} w-full`} onClick={() => void generate()}>{saved ? 'Zeitplanung übernehmen' : 'Spielplan erstellen & speichern'}</button>
         </fieldset>
+        {day.games.some(game => game.seconds !== undefined) ? <p className="text-[15px] text-white/60">Individuelle Spielzeiten stehen im Spielplan. Dadurch kann die Gesamtspielzeit der Teams unterschiedlich sein.</p> : null}
         {started ? <p className="text-[15px] text-white/60">Zeitplanung und Teamanzahl bleiben fest. Spieler und Teamnamen kannst du zwischen den Spielen ändern; bisherige Ergebnisse bleiben bei den Teams.</p> : null}
         <div className="grid grid-cols-2 gap-2">{day.teams.map((team, i) => <div key={i} className={`${TC_CARD} p-3`}><label className="flex items-center gap-2"><Shirt className="h-6 w-6 shrink-0" style={{ color: HALL_COLORS[i] }} aria-hidden /><span className="sr-only">Name Team {i + 1}</span><input className={`${input} min-w-0 px-2 font-bold`} maxLength={32} disabled={readOnly || teamsLocked || busy} value={team.name} onChange={e => setDay(prev => ({ ...prev, teams: prev.teams.map((t, n) => n === i ? { ...t, name: e.target.value } : t) }))} /></label><p className="mt-2 text-[15px] text-white/65">{team.playerIds.length} Spieler {team.playerIds.length > day.format ? '· mit Wechselspielern' : ''}</p><p className="mt-1 break-words text-[15px] text-white/80">{team.playerIds.map(id => names.get(id) ?? 'Nicht mehr im Kader').join(' · ') || 'Noch keine Spieler'}</p></div>)}</div>
         {teamsLocked ? <p className="text-[15px] text-amber-200">Bitte zuerst das aktuelle Spiel beenden. Danach kannst du die Mannschaften umstellen.</p> : null}
@@ -232,19 +253,19 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
           <button type="button" className="hall-match-text-button" disabled={busy} onClick={() => setGoalPicker(null)}>Abbrechen</button>
         </section> : null}
         {current ? <section className="hall-match-screen" aria-label="Aktuelles Trainingsspiel">
-          <header className="hall-match-topline"><span className={`hall-match-status ${current.status === 'running' && elapsed < day.seconds ? 'is-running' : ''}`}><i />{elapsed >= day.seconds ? 'Abpfiff' : current.status === 'running' ? 'Live' : 'Pause'}</span><span>Spiel {activeIndex + 1} <span className="hall-match-muted">/ {day.games.length}</span></span><span>{day.format} gegen {day.format}</span></header>
+          <header className="hall-match-topline"><span className={`hall-match-status ${current.status === 'running' && elapsed < matchSeconds ? 'is-running' : ''}`}><i />{elapsed >= matchSeconds ? 'Abpfiff' : current.status === 'running' ? 'Live' : 'Pause'}</span><span>Spiel {activeIndex + 1} <span className="hall-match-muted">/ {day.games.length}</span></span><span>{day.format} gegen {day.format}</span></header>
           <div className="hall-match-scoreboard">
             {[current.home, current.away].map((team, side) => <React.Fragment key={team}>
               {side === 1 ? <span className="hall-match-score-divider" aria-hidden>:</span> : null}
               <div className="hall-match-team" style={{ '--team-color': HALL_COLORS[team] } as React.CSSProperties}><span className="hall-match-shirt"><Shirt size={30} strokeWidth={1.8} aria-hidden /></span><h3>{day.teams[team].name}</h3><strong className="hall-match-score">{hallScore(current, team)}</strong></div>
             </React.Fragment>)}
           </div>
-          <div className="hall-match-clock"><span className="hall-match-eyebrow">VERBLEIBENDE SPIELZEIT</span><strong role="timer" aria-label="Verbleibende Spielzeit">{hallClock(Math.ceil(Math.max(0, day.seconds - elapsed)))}</strong><span>{hallClock(elapsed)} gespielt · {hallClock(day.seconds)} Min.</span></div>
-          <div className="hall-match-progress" role="progressbar" aria-label="Gespielte Zeit" aria-valuemin={0} aria-valuemax={day.seconds} aria-valuenow={Math.floor(elapsed)}><span style={{ width: `${Math.min(100, elapsed / day.seconds * 100)}%` }} /></div>
-          {elapsed >= day.seconds ? <p role="status" className="hall-match-expired">Spielzeit abgelaufen · Spiel beenden</p> : null}
+          <div className="hall-match-clock"><span className="hall-match-eyebrow">VERBLEIBENDE SPIELZEIT</span><strong role="timer" aria-label="Verbleibende Spielzeit">{hallClock(Math.ceil(Math.max(0, matchSeconds - elapsed)))}</strong><span>{hallClock(elapsed)} gespielt · {hallClock(matchSeconds)} Min.</span></div>
+          <div className="hall-match-progress" role="progressbar" aria-label="Gespielte Zeit" aria-valuemin={0} aria-valuemax={matchSeconds} aria-valuenow={Math.floor(elapsed)}><span style={{ width: `${Math.min(100, elapsed / matchSeconds * 100)}%` }} /></div>
+          {elapsed >= matchSeconds ? <p role="status" className="hall-match-expired">Spielzeit abgelaufen · Spiel beenden</p> : null}
           {!readOnly ? <div className="hall-match-actions">
-            <div className="hall-match-goal-actions">{[current.home, current.away].map(team => <button key={team} className="hall-match-goal-button" style={{ '--team-color': HALL_COLORS[team] } as React.CSSProperties} type="button" disabled={busy || Boolean(goalPicker) || current.status !== 'running' || elapsed >= day.seconds} onClick={() => void mutateGame('goal', team)}><Goal size={22} aria-hidden /><span>+ Tor {day.teams[team].name}</span></button>)}</div>
-            <div className="hall-match-secondary-actions"><button className="hall-match-button" type="button" disabled={busy || Boolean(goalPicker) || elapsed >= day.seconds} onClick={() => void mutateGame(current.status === 'running' ? 'pause' : 'start')}>{current.status === 'running' ? <Pause size={17} aria-hidden /> : <Play size={17} aria-hidden />}{current.status === 'running' ? 'Pause' : 'Weiter'}</button><button type="button" className="hall-match-button" aria-label="Letztes Tor zurücknehmen" disabled={busy || Boolean(goalPicker) || !current.goals.length} onClick={() => void mutateGame('undo')}><Undo2 size={17} aria-hidden /><span>Tor zurück</span></button></div>
+            <div className="hall-match-goal-actions">{[current.home, current.away].map(team => <button key={team} className="hall-match-goal-button" style={{ '--team-color': HALL_COLORS[team] } as React.CSSProperties} type="button" disabled={busy || Boolean(goalPicker) || current.status !== 'running' || elapsed >= matchSeconds} onClick={() => void mutateGame('goal', team)}><Goal size={22} aria-hidden /><span>+ Tor {day.teams[team].name}</span></button>)}</div>
+            <div className="hall-match-secondary-actions"><button className="hall-match-button" type="button" disabled={busy || Boolean(goalPicker) || elapsed >= matchSeconds} onClick={() => void mutateGame(current.status === 'running' ? 'pause' : 'start')}>{current.status === 'running' ? <Pause size={17} aria-hidden /> : <Play size={17} aria-hidden />}{current.status === 'running' ? 'Pause' : 'Weiter'}</button><button type="button" className="hall-match-button" aria-label="Letztes Tor zurücknehmen" disabled={busy || Boolean(goalPicker) || !current.goals.length} onClick={() => void mutateGame('undo')}><Undo2 size={17} aria-hidden /><span>Tor zurück</span></button></div>
             <button type="button" className="hall-match-button hall-match-finish" disabled={busy || Boolean(goalPicker)} onClick={() => void mutateGame('finish')}>Spiel beenden</button>
           </div> : null}
           <div className="hall-match-history"><h4>Spielverlauf <span>{current.goals.length} Tore</span></h4>{goalHistory(activeIndex)}</div>
@@ -256,29 +277,58 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
               else {
                 setSoundEnabled(true);
                 const context = await prepareSound();
-                if (context && current?.status === 'running' && elapsed < day.seconds) armedGame.current = gameKey;
+                if (context && current?.status === 'running' && elapsed < matchSeconds) armedGame.current = gameKey;
               }
             }}>Schlusssirene {soundEnabled ? 'ein' : 'aus'}</button>
             <button type="button" className={button} onClick={async () => {
               const context = await prepareSound();
               if (context) {
                 try { playSiren(context); } catch { setSoundError('Ton konnte nicht abgespielt werden.'); }
-                if (soundEnabled && current?.status === 'running' && elapsed < day.seconds) armedGame.current = gameKey;
+                if (soundEnabled && current?.status === 'running' && elapsed < matchSeconds) armedGame.current = gameKey;
               }
             }}>Ton testen</button>
           </div>
           <p className="text-[15px] text-white/60">Für die Sirene App geöffnet und Bildschirm eingeschaltet lassen. Lautstärke mit „Ton testen“ prüfen.</p>
           {soundError ? <p role="status" className="text-[15px] text-amber-200">{soundError}</p> : null}
         </div></details> : null}
-        {nextIndex >= 0 && activeIndex < 0 ? <div className={`${TC_CARD} space-y-3 p-4`}><p className="text-[18px] font-bold">Nächstes Spiel: {day.teams[day.games[nextIndex].home].name} – {day.teams[day.games[nextIndex].away].name}</p><button type="button" className={`${button} sz-club-tab-active w-full`} disabled={busy || dirty || configDirty || readOnly || !ready} onClick={() => void mutateGame('start')}>Spiel starten</button>{(!ready || dirty || configDirty) ? <p className="text-[15px] text-amber-200">Bitte zuerst Teams vollständig einteilen und speichern.</p> : null}</div> : null}
+        {nextIndex >= 0 && activeIndex < 0 ? <div className="hall-next-match">
+          <span className="hall-match-eyebrow">NÄCHSTES SPIEL · {nextIndex + 1} / {day.games.length}</span>
+          <h3>{day.teams[day.games[nextIndex].home].name} <span>–</span> {day.teams[day.games[nextIndex].away].name}</h3>
+          {!readOnly ? <div className="hall-duration-editor">
+            <label htmlFor="hall-game-minutes"><Clock3 size={16} aria-hidden />Spielzeit vor Anpfiff</label>
+            <div className="hall-duration-fields">
+              <button type="button" aria-label="Spielzeit um eine Minute verkürzen" disabled={busy || draftSeconds - 60 < 60} onClick={() => setDurationMinutes(value => value - 1)}>−</button>
+              <label><input id="hall-game-minutes" aria-label="Spielzeit Minuten" type="number" min={1} max={30} value={durationMinutes} disabled={busy} onChange={e => setDurationMinutes(Number(e.target.value))} /><span>Min.</span></label><span>:</span>
+              <label><select aria-label="Spielzeit Sekunden" value={durationSeconds} disabled={busy} onChange={e => setDurationSeconds(Number(e.target.value))}>{Array.from({ length: 12 }, (_, i) => i * 5).map(value => <option key={value} value={value}>{String(value).padStart(2, '0')}</option>)}</select><span>Sek.</span></label>
+              <button type="button" aria-label="Spielzeit um eine Minute verlängern" disabled={busy || draftSeconds + 60 > 1800} onClick={() => setDurationMinutes(value => value + 1)}>+</button>
+            </div>
+            {durationDirty ? <button type="button" className="hall-match-button" disabled={busy || !durationValid || dirty || configDirty} onClick={() => void saveDuration()}>Spielzeit übernehmen</button> : <p>Gespeichert: {hallClock(nextSeconds)} Minuten · nur für dieses Spiel</p>}
+            {!durationValid ? <p role="alert">Bitte 1:00 bis 30:00 Minuten wählen.</p> : null}
+          </div> : <p>Spielzeit: {hallClock(nextSeconds)} Min.</p>}
+          <button type="button" className="hall-match-button hall-match-primary" disabled={busy || dirty || configDirty || durationDirty || readOnly || !ready} onClick={() => void mutateGame('start')}>Spiel starten</button>
+          {(!ready || dirty || configDirty) ? <p className="text-[15px] text-amber-200">Bitte zuerst Teams vollständig einteilen und speichern.</p> : null}
+        </div> : null}
         {nextIndex < 0 && !current ? <p role="status" className="text-[18px] font-bold text-emerald-300">Hallenspieltag abgeschlossen ✓</p> : null}
+        {plannedSeconds > day.total ? <p className="hall-match-expired">Geplante Dauer {hallClock(plannedSeconds)} Min. · {hallClock(plannedSeconds - day.total)} Min. über der verfügbaren Trainingszeit</p> : null}
         <p className="text-[15px] text-white/60">Geplante Zeiten. Bei Verzögerungen startest du jedes Spiel selbst.</p>
         <div className="hall-match-fixtures">{day.games.map((g, i) => <details key={i} className="hall-match-fixture">
-          <summary><span className="hall-fixture-number">{i + 1}</span><span className="hall-fixture-teams">{day.teams[g.home].name} – {day.teams[g.away].name}<small>{gameTime(i)} · {g.status === 'finished' ? 'Beendet' : g.status === 'running' ? 'Live' : g.status === 'paused' ? 'Pause' : 'Geplant'}</small></span><strong>{g.status !== 'pending' ? `${hallScore(g, g.home)}:${hallScore(g, g.away)}` : '–:–'}</strong></summary>
+          <summary><span className="hall-fixture-number">{i + 1}</span><span className="hall-fixture-teams">{day.teams[g.home].name} – {day.teams[g.away].name}<small>{gameTime(i)} · {hallClock(hallGameSeconds(day, g))} Min. · {g.status === 'finished' ? 'Beendet' : g.status === 'running' ? 'Live' : g.status === 'paused' ? 'Pause' : 'Geplant'}</small></span><strong>{g.status !== 'pending' ? `${hallScore(g, g.home)}:${hallScore(g, g.away)}` : '–:–'}</strong></summary>
           {goalHistory(i)}
         </details>)}</div>
       </> : null}
-      {tab === 'table' ? <div className="overflow-x-auto"><table className="w-full text-left text-[16px]"><caption className="mb-3 text-left font-bold">Interne Trainingstabelle · beendete Spiele</caption><thead><tr><th className="py-2">Team</th><th>Sp.</th><th>Tore</th><th>Pkt.</th></tr></thead><tbody>{hallStandings(day).map(row => <tr key={row.id} className="border-t border-white/10"><td className="py-3 font-bold" style={{ color: HALL_COLORS[row.id] }}>{row.name}</td><td>{row.played}</td><td>{row.goals}:{row.against}</td><td className="font-bold">{row.points}</td></tr>)}</tbody></table></div> : null}
+      {tab === 'table' ? <div className="hall-results">
+        <header className="hall-results-heading"><span><Trophy size={18} aria-hidden />Trainingstabelle</span><small>{finishedCount} / {day.games.length} Spiele beendet</small></header>
+        {finishedCount > 0 && standings[0] ? <div className="hall-results-leader"><Trophy size={26} aria-hidden /><div><small>Tabellenführer</small><strong style={{ color: HALL_COLORS[standings[0].id] }}>{standings[0].name}</strong></div><b>{standings[0].points}<small>Punkte</small></b></div> : null}
+        <div className="hall-standings-wrap"><table className="hall-standings"><caption className="sr-only">Interne Trainingstabelle · beendete Spiele</caption><thead><tr><th scope="col"><span className="sr-only">Platz</span>#</th><th scope="col">Team</th><th scope="col">Sp.</th><th scope="col">Tore</th><th scope="col">Diff.</th><th scope="col">Pkt.</th></tr></thead><tbody>{standings.map((row, index) => <tr key={row.id} className={index === 0 && finishedCount ? 'is-leader' : ''}><td><span className="hall-rank">{index + 1}</span></td><th scope="row"><span className="hall-table-team"><i style={{ background: HALL_COLORS[row.id] }} />{row.name}</span></th><td>{row.played}</td><td>{row.goals}:{row.against}</td><td className="hall-goal-diff">{row.goals - row.against > 0 ? '+' : ''}{row.goals - row.against}</td><td><strong className="hall-points">{row.points}</strong></td></tr>)}</tbody></table></div>
+        <p className="hall-results-note">Sieg 3 · Unentschieden 1 · Niederlage 0 Punkte</p>
+        <section className="hall-scorers"><header className="hall-results-heading"><span><Crown size={19} aria-hidden />Torschützen</span><small>Beendete Spiele</small></header>
+          {scorers.players.length ? <>
+            <div className="hall-scorer-king"><Crown size={25} aria-hidden /><div><small>{scorers.players.filter(row => row.rank === 1).length > 1 ? 'Torschützenkönige' : 'Torschützenkönig'}</small><strong>{scorers.players.filter(row => row.rank === 1).map(row => row.name).join(' · ')}</strong></div><b>{scorers.players[0].goals}<small>{scorers.players[0].goals === 1 ? 'Tor' : 'Tore'}</small></b></div>
+            <ol className="hall-scorer-ranking">{scorers.players.map(row => <li key={row.id}><span className="hall-rank">{row.rank}</span><span className="hall-scorer-jersey" style={{ color: HALL_COLORS[row.teams[0]] }}><Shirt size={21} aria-hidden /></span><div><strong>{row.name}</strong><small>{row.teams.map(team => day.teams[team].name).join(' · ')}</small></div><b>{row.goals}<small>{row.goals === 1 ? 'Tor' : 'Tore'}</small></b></li>)}</ol>
+          </> : <p className="hall-scorers-empty">Noch keine Torschützen aus beendeten Spielen. Beim Tor einen Spieler auswählen oder im Spielverlauf ergänzen.</p>}
+          {scorers.unassigned ? <p className="hall-scorers-unassigned">{scorers.unassigned} {scorers.unassigned === 1 ? 'Tor noch ohne Torschützen' : 'Tore noch ohne Torschützen'} · im Spielplan nachtragen</p> : null}
+        </section>
+      </div> : null}
     </div>}
   </Modal>;
 }

@@ -1,7 +1,7 @@
 /** Internal training only. No matches, feed posts or league statistics are created. */
 export type HallTeam = { name: string; playerIds: string[] };
 export type HallGoal = { team: number; second: number; scorerId?: string; scorerName?: string };
-export type HallGame = { home: number; away: number; status: 'pending' | 'running' | 'paused' | 'finished'; elapsed: number; runningSince: number | null; goals: HallGoal[] };
+export type HallGame = { seconds?: number; home: number; away: number; status: 'pending' | 'running' | 'paused' | 'finished'; elapsed: number; runningSince: number | null; goals: HallGoal[] };
 export type HallDay = { version: 1; teams: HallTeam[]; format: 3 | 4; total: number; pause: number; target: number; cycles: number; seconds: number; buffer: number; games: HallGame[] };
 export const HALL_COLORS = ['#fb425c', '#419cff', '#facc15', '#4ade80'];
 export const HALL_NAMES = ['Rot', 'Blau', 'Gelb', 'Grün'];
@@ -43,3 +43,33 @@ export function hallStandings(day: HallDay) {
   }).sort((a, b) => b.points - a.points || (b.goals - b.against) - (a.goals - a.against) || b.goals - a.goals || a.id - b.id);
 }
 export function hallClock(seconds: number) { const s = Math.max(0, Math.floor(seconds)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
+
+/** Saved days without an individual duration keep the calculated default. */
+export function hallGameSeconds(day: HallDay, game: HallGame) { return game.seconds ?? day.seconds; }
+export function hallPlanSeconds(day: HallDay) {
+  return day.games.reduce((sum, game) => sum + hallGameSeconds(day, game), 0) + Math.max(0, day.games.length - 1) * day.pause;
+}
+export function withHallGameDuration(day: HallDay, index: number, seconds: number): HallDay {
+  if (!Number.isInteger(seconds) || seconds < 60 || seconds > 1800) throw new Error('Bitte eine Spielzeit von 1:00 bis 30:00 Minuten wählen.');
+  if (!day.games[index] || day.games[index].status !== 'pending') throw new Error('Die Spielzeit kann nur vor Spielbeginn geändert werden.');
+  const next = structuredClone(day);
+  next.games[index].seconds = seconds;
+  const total = hallPlanSeconds(next);
+  if (total > 10800) throw new Error('Der gesamte Spielplan darf höchstens 180 Minuten dauern.');
+  next.buffer = Math.max(0, next.total - total);
+  return next;
+}
+export function hallScorers(day: HallDay) {
+  const players = new Map<string, { id: string; name: string; goals: number; teams: number[] }>();
+  let unassigned = 0;
+  for (const game of day.games.filter(g => g.status === 'finished')) for (const goal of game.goals) {
+    if (!goal.scorerId) { unassigned++; continue; }
+    const row = players.get(goal.scorerId) ?? { id: goal.scorerId, name: goal.scorerName || 'Spieler', goals: 0, teams: [] };
+    row.goals++;
+    if (goal.scorerName) row.name = goal.scorerName;
+    if (!row.teams.includes(goal.team)) row.teams.push(goal.team);
+    players.set(row.id, row);
+  }
+  const sorted = [...players.values()].sort((a, b) => b.goals - a.goals || a.name.localeCompare(b.name, 'de-AT'));
+  return { unassigned, players: sorted.map((row, index) => ({ ...row, rank: sorted.findIndex(other => other.goals === row.goals) + 1 })) };
+}

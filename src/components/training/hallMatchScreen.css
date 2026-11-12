@@ -58,3 +58,57 @@
 .hall-scorer-options { display: grid; gap: 7px; margin-bottom: 10px; }
 .hall-scorer-options button { display: flex; align-items: center; gap: 12px; text-align: left; min-height: 48px; padding: 10px 12px; background: #ffffff05; border: 1px solid #ffffff17; border-radius: 12px; font-size: 15px; font-weight: 650; color: white; }
 @media(min-width:640px) { .hall-training-modal.modalSheet { max-width: 620px; } }
+.hall-results { display: grid; gap: 14px; }
+.hall-results-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
+.hall-results-heading > span { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 750; }
+.hall-results-heading > span svg { color: #e8bd68; }
+.hall-results-heading > small { font-size: 11px; color: #7f8da1; }
+.hall-results-leader,.hall-scorer-king { display: flex; align-items: center; gap: 12px; padding: 15px; border-radius: 16px; border: 1px solid #e9bc5b29; background: linear-gradient(115deg,#e9bc5b0d,#12161e); }
+.hall-results-leader > svg,.hall-scorer-king > svg { color: #e8bd68; flex-shrink: 0; }
+.hall-results-leader > div,.hall-scorer-king > div { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.hall-results-leader small,.hall-scorer-king small { font-size: 10px; color: #9c917c; font-weight: 500; }
+.hall-results-leader strong,.hall-scorer-king strong { font-size: 17px; font-weight: 750; overflow-wrap: anywhere; }
+.hall-results-leader > b,.hall-scorer-king > b { display: grid; text-align: center; gap: 2px; font-size: 28px; font-variant-numeric: tabular-nums; }
+.hall-standings-wrap { overflow-x: auto; border: 1px solid #ffffff12; border-radius: 16px; background: #10131a; }
+.hall-standings { width: 100%; border-collapse: collapse; text-align: center; font-size: 12px; }
+.hall-standings thead { color: #8390a4; font-size: 10px; background: #ffffff03; }
+.hall-standings th,.hall-standings td { padding: 12px 4px; font-variant-numeric: tabular-nums; }
+.hall-standings thead th { font-weight: 500; }
+.hall-standings tr > :first-child { padding-left: 9px; width: 26px; }
+.hall-standings tr > :last-child { padding-right: 9px; }
+.hall-standings tbody tr { border-top: 1px solid #ffffff0c; }
+.hall-standings tbody th { max-width: 130px; text-align: left; font-size: 13px; font-weight: 650; }
+.hall-standings thead th:nth-child(2) { text-align: left; }
+.hall-table-team { display: flex; align-items: center; gap: 7px; overflow-wrap: anywhere; }
+.hall-table-team > i { width: 4px; height: 24px; border-radius: 3px; flex-shrink: 0; }
+.hall-standings .is-leader { background: #e8bd6807; }
+.hall-rank { color: #8593a7; font-size: 12px; font-weight: 650; }
+.hall-standings .is-leader .hall-rank { color: #edc36f; }
+.hall-goal-diff { color: #8290a4; }
+.hall-points { display: inline-grid; place-items: center; min-width: 27px; min-height: 28px; border-radius: 8px; background: #ffffff07; font-size: 14px; color: white; }
+.hall-results-note { margin: 0; font-size: 10px; color: #7f8da1; }
+.hall-scorers { display: grid; gap: 12px; margin-top: 10px; }
+.hall-scorer-king { background: linear-gradient(115deg,#e8bd6814,#12161e); }
+.hall-scorer-king strong { font-size: 15px; }
+.hall-scorer-ranking { margin: 0; padding: 0; list-style: none; border: 1px solid #ffffff12; border-radius: 16px; background: #10131a; overflow: hidden; }
+.hall-scorer-ranking li { display: flex; align-items: center; gap: 10px; padding: 12px; border-bottom: 1px solid #ffffff0c; }
+.hall-scorer-ranking li:last-child { border: 0; }
+.hall-scorer-ranking li > div { display: grid; gap: 4px; flex: 1; min-width: 0; }
+.hall-scorer-ranking strong { font-size: 13px; font-weight: 650; overflow-wrap: anywhere; }
+.hall-scorer-ranking small { color: #7f8da1; font-size: 10px; font-weight: 400; }
+.hall-scorer-ranking b { display: grid; text-align: center; gap: 2px; font-size: 20px; }
+.hall-scorer-jersey { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: #ffffff05; }
+.hall-scorers-empty,.hall-scorers-unassigned { border-radius: 13px; padding: 12px; margin: 0; font-size: 12px; line-height: 1.6; color: #93a0b4; background: #ffffff04; }
+.hall-scorers-unassigned { color: #d4bb82; }
+.hall-next-match { display: grid; gap: 13px; padding: 18px; border: 1px solid #ffffff15; border-radius: 20px; background: #10131a; }
+.hall-next-match h3 { margin: 0; font-weight: 750; font-size: 21px; overflow-wrap: anywhere; }
+.hall-next-match h3 > span { color: #58667d; }
+.hall-duration-editor { display: grid; gap: 10px; padding: 13px 0; border-top: 1px solid #ffffff0d; border-bottom: 1px solid #ffffff0d; }
+.hall-duration-editor > label { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #93a0b4; }
+.hall-duration-fields { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.hall-duration-fields > button { width: 38px; height: 44px; padding: 0; border: 1px solid #ffffff18; border-radius: 11px; background: #ffffff05; color: white; font-size: 23px; flex-shrink: 0; }
+.hall-duration-fields > label { display: flex; flex-direction: column; gap: 3px; align-items: center; min-width: 0; }
+.hall-duration-fields input,.hall-duration-fields select { width: 65px; height: 44px; border-radius: 10px; border: 1px solid #ffffff18; background: #0b0e14; color: white; text-align: center; font-size: 19px; font-weight: 700; padding: 4px; }
+.hall-duration-fields > label > span { font-size: 10px; color: #7d8b9f; }
+.hall-duration-editor p { margin: 0; color: #8d9aaf; font-size: 11px; }
+@media(max-width:360px) { .hall-next-match { padding: 13px; } .hall-duration-fields input,.hall-duration-fields select { width: 51px; } .hall-standings th,.hall-standings td { padding: 11px 3px; } }
