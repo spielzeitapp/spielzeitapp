@@ -1,3 +1,6 @@
+import { TeamReminderSettingsPanel } from '../components/TeamReminderSettingsPanel';
+import { CenterAttendanceSurface } from '../components/center/CenterAttendanceSurface';
+import { MatchPreparationAssistant } from '../components/center/MatchPreparationAssistant';
 import { tournamentChangeNotice, tournamentCanBeCanceled } from '../lib/tournamentEventChanges';
 import { fetchTournamentMatchSlots } from '../lib/tournamentPlan';
 import { MatchFeedSwitches } from '../components/match/MatchFeedSwitches';
@@ -611,7 +614,7 @@ export const EventDetailPage: React.FC = () => {
     minutes: number;
   } | null>(null);
 
-  const [feedSectionExpanded, setFeedSectionExpanded] = useState(false);
+  const [centerAttendanceOpen, setCenterAttendanceOpen] = useState(false);
   const [matchAttendanceExpanded, setMatchAttendanceExpanded] = useState(true);
 
   const { teamSeasons } = useActiveTeamSeason();
@@ -3873,7 +3876,7 @@ export const EventDetailPage: React.FC = () => {
     Boolean(sessionUser?.id) &&
     !['finished', 'canceled', 'cancelled'].includes(safeText(event.status).toLowerCase()) &&
     ['parent', 'player', 'trainer', 'admin'].includes(effectiveRole) &&
-    (event.kind === 'match' || event.kind === 'tournament');
+    (event.kind === 'match' || event.kind === 'tournament' || event.kind === 'training');
   const carpoolingCard = showCarpooling && sessionUser?.id ? (
     <EventCarpoolCard
       eventId={event.id}
@@ -4016,9 +4019,9 @@ export const EventDetailPage: React.FC = () => {
                 : CalendarPlus;
 
   return (
-    <div className={`min-h-screen text-white ${event.kind === 'match' ? 'sz-club-event-detail' : 'bg-black'}`}>
+    <div style={matchClub.style} className={`min-h-screen text-white ${event.kind === 'match' || isTraining ? 'sz-club-event-detail' : 'bg-black'}`}>
       <div
-        className={`mx-auto flex w-full max-w-2xl flex-col overflow-x-hidden ${isTraining ? 'px-0 sm:px-4' : 'px-2 sm:px-4'} ${
+        className={`mx-auto flex w-full max-w-2xl flex-col overflow-x-hidden px-2 sm:px-4 ${
           isTournament || isTraining || event.kind === 'match'
             ? 'gap-2.5 py-2.5 pb-[calc(9.5rem+env(safe-area-inset-bottom,0px))]'
             : isAudienceMatchDetail
@@ -4183,9 +4186,13 @@ export const EventDetailPage: React.FC = () => {
               location={event.location}
               status={event.status}
               coverUrl={(event as { training_cover_url?: unknown }).training_cover_url}
-            />
-            <CenterQuickActionBar
-              layout="grid"
+              actions={<CenterQuickActionBar
+              onNavigate={canStartNavigation ? handleStartNavigation : undefined}
+              showNavigation={canStartNavigation}
+              layout="round"
+              communication={canTrainerManageEvent && event.status !== 'canceled' ? <EventFeedCommunicationSection event={event} userId={sessionUser?.id ?? null} embedded /> : null}
+              carpool={carpoolingCard}
+              reminders={canTrainerManageEvent && !isDemo ? <><p className="mb-4 text-[16px] text-white/70">Diese Erinnerungen gelten für die gesamte Mannschaft.</p><TeamReminderSettingsPanel teamSeasonId={event.team_season_id} embedded /></> : null}
               onAddToCalendar={() => void handleAddSingleEventToCalendar()}
               onEdit={canTrainerManageEvent ? () => openEditModal(event) : undefined}
               onReschedule={canTrainerManageEvent && event.status === 'upcoming' ? () => openEditModal(event) : undefined}
@@ -4193,6 +4200,7 @@ export const EventDetailPage: React.FC = () => {
                 ? () => { setTrainingCancelError(null); setCancellationPushExtra(''); setTrainingCancelOpen(true); }
                 : undefined}
               onDelete={canTrainerManageEvent ? () => setDeleteConfirmOpen(true) : undefined}
+              />}
             />
             {event.status === 'canceled' && trainingCancelFeedback ? (
               <div role="status" className="rounded-xl border border-red-400/30 bg-red-950/30 px-3 py-3 text-[13px] text-red-100">
@@ -4211,6 +4219,7 @@ export const EventDetailPage: React.FC = () => {
                 teamSeasonId={event.team_season_id}
                 startsAtIso={event.starts_at}
                 status={event.status}
+                attendanceSummary={{ playerCount: players.length, yesCount: eventRsvpCounts.yes, openCount: eventRsvpCounts.open, loading: playersLoading || loadingEventAttendance }}
                 trainingTitle={eventCompactTitle}
                 trainingTopics={eventDetailsPrimary}
                 trainingLocation={event.location}
@@ -4271,16 +4280,12 @@ export const EventDetailPage: React.FC = () => {
               squadStatus={event.match_id ? personalSquadStatusByMatchId[event.match_id] ?? null : null}
               isPublicView={true}
             />
-          </div>
-        )}
-
-        {!isDemo && event.kind === 'match' && event.status !== 'canceled' && event.team_season_id && (
-          <MatchHeadToHead eventId={event.id} matchId={event.match_id ?? undefined} teamSeasonId={event.team_season_id} ownTeamName={ourTeamName} opponentName={event.opponent ?? undefined} opponentLogoSrc={getClubLogo(event.opponent ?? '', { logoUrl: event.opponent_logo_url })} canManage={canTrainerManageEvent} preview />
-        )}
-
         {event.kind === 'match' ? (
           <CenterQuickActionBar
-            layout="grid"
+            layout="round"
+              communication={canTrainerManageEvent && event.status !== 'canceled' ? <div className="space-y-4"><MatchFeedSwitches eventId={event.id} /><EventFeedCommunicationSection event={event} userId={sessionUser?.id ?? null} embedded /></div> : null}
+              carpool={carpoolingCard}
+              reminders={canTrainerManageEvent && !isDemo ? <><p className="mb-4 text-[16px] text-white/70">Diese Erinnerungen gelten für die gesamte Mannschaft.</p><TeamReminderSettingsPanel teamSeasonId={event.team_season_id} embedded /></> : null}
             cancelLabel="Spiel absagen"
             onAddToCalendar={() => void handleAddSingleEventToCalendar()}
             onNavigate={canStartNavigation ? handleStartNavigation : undefined}
@@ -4293,6 +4298,18 @@ export const EventDetailPage: React.FC = () => {
             onDelete={canTrainerManageEvent ? () => setDeleteConfirmOpen(true) : undefined}
           />
         ) : null}
+
+          </div>
+        )}
+
+        {event.kind === 'match' && canTrainerManageEvent && event.status === 'upcoming' ? <MatchPreparationAssistant
+          matchId={event.match_id} basePath={basePath} playerCount={players.length} yesCount={eventRsvpCounts.yes} openCount={eventRsvpCounts.open}
+          attendanceLoading={playersLoading || loadingEventAttendance} onOpenAttendance={() => { setMatchAttendanceExpanded(true); setCenterAttendanceOpen(true); }} onOpenPlan={() => openEditModal(event)}
+        /> : null}
+
+        {!isDemo && event.kind === 'match' && event.status !== 'canceled' && event.team_season_id && (
+          <MatchHeadToHead eventId={event.id} matchId={event.match_id ?? undefined} teamSeasonId={event.team_season_id} ownTeamName={ourTeamName} opponentName={event.opponent ?? undefined} opponentLogoSrc={getClubLogo(event.opponent ?? '', { logoUrl: event.opponent_logo_url })} canManage={canTrainerManageEvent} preview />
+        )}
 
         {(event.kind === 'match' || event.kind === 'training') && reschedulePushFeedback ? (
           <p role="status" className="rounded-xl border border-amber-400/30 bg-amber-950/25 px-3 py-2 text-[13px] text-amber-100">
@@ -4389,7 +4406,7 @@ export const EventDetailPage: React.FC = () => {
           </Card>
         ) : null}
 
-        {event.kind === 'match' && !canTrainerViewEvent ? carpoolingCard : null}
+
 
         {isAudienceMatchDetail && event.status === 'live' && event.match_id ? (
           <div className="flex flex-col gap-2.5 rounded-[14px] border border-red-500/28 bg-[linear-gradient(135deg,rgba(58,18,24,0.55)_0%,rgba(12,12,14,0.96)_100%)] px-3.5 py-3.5 shadow-[0_0_22px_rgba(220,38,38,0.14)]">
@@ -4436,6 +4453,7 @@ export const EventDetailPage: React.FC = () => {
         !(isAudienceMatchDetail && canShowSelfRsvp) &&
         !(isTournament && canTrainerViewEvent) &&
         !(isTraining && canTrainerViewEvent) ? (
+          <CenterAttendanceSurface dialog={event.kind === 'match' && canTrainerManageEvent && event.status === 'upcoming'} open={centerAttendanceOpen} onClose={() => setCenterAttendanceOpen(false)}>
           <Card
             className={
               isTraining
@@ -4451,7 +4469,7 @@ export const EventDetailPage: React.FC = () => {
                 aria-hidden
               />
             ) : null}
-            {event.kind === 'match' ? (
+            {event.kind === 'match' && !(canTrainerManageEvent && event.status === 'upcoming') ? (
               <button
                 type="button"
                 className="flex w-full items-center gap-2.5 text-left"
@@ -4478,17 +4496,6 @@ export const EventDetailPage: React.FC = () => {
               <div className={`flex flex-col gap-3 ${isTraining ? 'relative z-[1]' : ''}`}>
                 {event.kind === 'match' && event.match_id ? (
                   <>
-                    <button
-                      type="button"
-                      className={`mb-1 w-full ${dsPrimaryCtaClass()}`}
-                      onClick={() => {
-                        navigate(
-                          `${basePath}/match-preparation?matchId=${encodeURIComponent(event.match_id!)}`,
-                        );
-                      }}
-                    >
-                      Match vorbereiten
-                    </button>
                     {matchMinPlaytime && !isDemo ? (
                       <MinimumPlaytimeMatchSettings
                         matchId={event.match_id}
@@ -4737,9 +4744,10 @@ export const EventDetailPage: React.FC = () => {
               </div>
             ) : null : null}
           </Card>
+          </CenterAttendanceSurface>
         ) : null}
 
-        {event.kind === 'match' && canTrainerViewEvent ? carpoolingCard : null}
+
 
         {isEventOrOther && showFurtherEventInfo ? (
           <Card className="flex flex-col gap-2 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]">
@@ -4771,75 +4779,6 @@ export const EventDetailPage: React.FC = () => {
             ) : null}
           </Card>
         ) : null}
-
-        {event.kind === 'match' && canTrainerManageEvent ? <div className="mt-6"><MatchFeedSwitches eventId={event.id} /></div> : null}
-
-        {event.kind === 'match' && event.status !== 'canceled' && canTrainerManageEvent && (
-          <Card className="mt-6 flex flex-col gap-2 overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setFeedSectionExpanded((v) => !v)}
-              aria-expanded={feedSectionExpanded}
-              className="flex min-h-[44px] w-full items-center justify-between gap-3 text-left touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:rounded-xl"
-            >
-              <span className="inline-flex min-w-0 items-center gap-2.5">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-red-400/20 bg-red-950/20 text-red-400">
-                  <FileText className="h-[18px] w-[18px]" strokeWidth={2.25} aria-hidden />
-                </span>
-                <span className="text-[15px] font-bold tracking-tight text-white/90">Feed-Posts</span>
-              </span>
-              <ChevronDown className={`h-[18px] w-[18px] shrink-0 text-white/55 transition-transform duration-200 ${feedSectionExpanded ? 'rotate-180' : ''}`} strokeWidth={2.25} aria-hidden />
-            </button>
-            {feedSectionExpanded ? (
-              <div className="flex flex-col gap-3 pt-1">
-                <div className="grid gap-2 text-[13px]">
-                  {[
-                    {
-                      icon: CalendarDays,
-                      title: 'Spieltag-Post',
-                      text: 'Poster, Text und Zeitpunkt für die Veröffentlichung festlegen.',
-                      active: true,
-                    },
-                    {
-                      icon: Users,
-                      title: 'Kader-Post',
-                      text: 'Wird beim Veröffentlichen des Kaders aus der Match-Vorbereitung erstellt.',
-                      active: false,
-                    },
-                    {
-                      icon: ClipboardList,
-                      title: 'Aufstellungs-Post',
-                      text: 'Wird mit der gespeicherten Startaufstellung frühestens 60 Minuten vor Anpfiff veröffentlicht.',
-                      active: false,
-                    },
-                  ].map(({ icon: Icon, title, text, active }) => (
-                    <div
-                      key={title}
-                      className={active
-                        ? 'flex items-start gap-3 rounded-xl border border-red-400/25 bg-gradient-to-r from-red-500/[0.11] to-red-950/[0.04] px-3 py-3'
-                        : 'flex items-start gap-3 rounded-xl border border-white/[0.08] bg-black/25 px-3 py-3'}
-                    >
-                      <span className={active
-                        ? 'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-red-400/25 bg-red-500/15 text-red-300'
-                        : 'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/55'}
-                      >
-                        <Icon className="h-[18px] w-[18px]" aria-hidden />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="font-bold text-white">{title}</p>
-                        <p className="mt-0.5 leading-snug text-white/58">{text}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <p className="pt-1 text-[12px] font-medium uppercase tracking-[0.16em] text-red-300/75">
-                  Einstellungen für den Spieltag-Post
-                </p>
-                <EventFeedCommunicationSection event={event} userId={sessionUser?.id ?? null} embedded />
-              </div>
-            ) : null}
-          </Card>
-        )}
 
         <Modal
           isOpen={attendanceModalOpen}
