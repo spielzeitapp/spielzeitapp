@@ -88,9 +88,12 @@ export const MatchPlayerRow: React.FC<{
             }}
           />
         </div>
+        {/* Attendance rows use the number column for the player name. */}
+        {!nameStatus ? (
         <span className="sz-club-number-divider w-11 shrink-0 border-l pl-2 text-[25px] font-black leading-none text-white max-[359px]:w-8 max-[359px]:pl-1.5 max-[359px]:text-[21px]">
           {number ?? "–"}
         </span>
+        ) : null}
         <span className="min-w-0 flex-1 pl-2 max-[359px]:pl-1.5">
           <span className="block truncate text-[13px] font-semibold leading-tight text-white/55 max-[359px]:text-[11px] sm:text-[14px]">
             {nameParts.first}
