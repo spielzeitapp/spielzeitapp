@@ -46,6 +46,8 @@ const boards=tree.root.findAllByProps({className:'usc-live-scoreboard'});
 assert.match(JSON.stringify(boards[0].toJSON?.()??boards[0].findAllByType('strong').map(x=>x.children)),/Loosdorf.*USC Rohrbach/,'away match keeps stadium ordering');
 assert.match(html(),/SPG Rohrbach/);
 assert.equal(tree.root.findAllByType('a').length,1,'only KM has external portal');
+assert.equal(tree.root.findByType('a').props.href,'https://ticker.ligaportal.at/spielplan/94/gebietsliga-west');
+assert.equal(tree.root.findByType('a').props.target,'_blank');
 await click('U13');assert.equal(tree.root.findAllByProps({className:'usc-live-card'}).length,1);assert.equal(tree.root.findAllByType('a').length,0);
 await click('Alle');await click('Zum Liveticker ');
 assert.ok(tree.root.findByProps({'aria-label':'USC Liveticker'}));assert.deepEqual(globalThis.__uscTickerReads,['m1']);assert.match(html(),/Tor Heimmannschaft/);
