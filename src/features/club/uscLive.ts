@@ -4,7 +4,7 @@ import { subscribeLiveMatchStateChanged } from "../../lib/liveMatchBroadcast";
 import type { LiveMatchRow } from "../../lib/liveMatchService";
 import type { ClubSeason } from "./uscClub";
 
-export const USC_KM_LIGAPORTAL = "https://ticker.ligaportal.at/mannschaft/1244/usc-rohrbach/info";
+export const USC_KM_LIGAPORTAL = "https://ticker.ligaportal.at/spielplan/94/gebietsliga-west";
 export const USC_LIVE_COLUMNS = "id,team_season_id,opponent,match_date,location,status,score_home,score_away,live_started_at,live_elapsed_seconds,live_is_running,live_period";
 export function viennaDay(iso: string | number): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Vienna", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso));

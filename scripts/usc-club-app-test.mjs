@@ -53,7 +53,7 @@ globalThis.__uscFixture = fixtures;
 globalThis.__uscUser = { id: "authorized-user" };
 globalThis.__uscReadCalls = [];
 const mocks = {
-  uscLive: `export const useUscLiveMatches=()=>({rows:[],loading:false,error:false,refetch(){}});export const viennaDay=()=>"2026-11-12";export const USC_KM_LIGAPORTAL="https://ticker.ligaportal.at/mannschaft/1244/usc-rohrbach/info";`,
+  uscLive: `export const useUscLiveMatches=()=>({rows:[],loading:false,error:false,refetch(){}});export const viennaDay=()=>"2026-11-12";export const USC_KM_LIGAPORTAL="https://ticker.ligaportal.at/spielplan/94/gebietsliga-west";`,
   AuthProvider:
     "export const useAuth=()=>({user:globalThis.__uscUser,loading:false});",
   useUscClub:
