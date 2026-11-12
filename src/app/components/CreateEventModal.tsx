@@ -1,3 +1,4 @@
+import { isHallTraining } from '../../lib/hallTraining';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from './ui/Button';
 import { Modal } from '../ui/Modal';
@@ -154,6 +155,9 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           : 'game',
   );
 
+  const isIndoorTraining = eventTypeLocal === 'training' && isHallTraining(form.title, form.location);
+  const isExternalLocation = !isIndoorTraining && useExternalLocation;
+
   const resetForm = () => {
     setSaved(false);
     setForm(defaultForm);
@@ -226,7 +230,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       return;
     }
     const needsInternalAssignment =
-      !useExternalLocation &&
+      !isIndoorTraining && !isExternalLocation &&
       (eventTypeLocal === 'training' || (eventTypeLocal === 'game' && form.is_home));
     if (needsInternalAssignment && !selectedVenue?.id) {
       setError('Bitte eine freigegebene Sportanlage auswählen.');
@@ -250,7 +254,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       const startDate = new Date(firstStartUtcIso);
 
       const locationVal =
-        useExternalLocation || !selectedVenue
+        isExternalLocation || !selectedVenue
           ? combineLocationParts(form.location, form.location_address)
           : locationTextFromVenue(selectedVenue);
 
@@ -329,7 +333,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           opponent: eventTypeLocal === 'game' ? nullIfEmpty(opponentVal) : null,
           is_home: eventTypeLocal === 'game' ? form.is_home : null,
           location: locationVal,
-          venue_id: useExternalLocation ? null : selectedVenue?.id ?? null,
+          venue_id: isExternalLocation ? null : selectedVenue?.id ?? null,
           starts_at: d.toISOString(),
           meeting_at: meetupIsoForStart(d),
           status: 'upcoming',
@@ -410,7 +414,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       }
 
       if (
-        !useExternalLocation &&
+        !isIndoorTraining && !isExternalLocation &&
         (eventTypeLocal === 'training' || (eventTypeLocal === 'game' && form.is_home)) &&
         selectedVenue?.id &&
         facilitySelection.fieldId &&
@@ -476,7 +480,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
   const inputClass = EVENT_FORM_INPUT_CLASS;
   const labelClass = EVENT_FORM_LABEL_CLASS;
   const canUseInternalAssignment =
-    eventTypeLocal === 'training' || (eventTypeLocal === 'game' && form.is_home);
+    !isIndoorTraining && (eventTypeLocal === 'training' || (eventTypeLocal === 'game' && form.is_home));
 
   return (
     <Modal
@@ -680,6 +684,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           </>
         )}
         <VenuePicker
+          hallOnly={isIndoorTraining}
           teamSeasonId={teamSeasonId}
           venueId={selectedVenue?.id ?? null}
           onVenueChange={(v) => {

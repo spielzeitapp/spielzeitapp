@@ -49,6 +49,8 @@ type Props = {
    * general = Club-Katalog (Auswärts/Turniere/Events); bei Heimspiel-Kontext ggf. home_match-Allowlist.
    */
   purpose?: 'training' | 'home_match' | 'general';
+  /** Hall training stores only a hall venue or free-text location, without a field reservation. */
+  hallOnly?: boolean;
   labelClass?: string;
   inputClass?: string;
   disabled?: boolean;
@@ -103,13 +105,16 @@ export function VenuePicker({
   onLocationNameChange,
   onLocationAddressChange,
   matchContext = null,
-  purpose = 'general',
+  purpose: requestedPurpose = 'general',
+  hallOnly = false,
   labelClass = 'mb-1 block text-sm font-medium text-white/80',
   inputClass = 'w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-[15px] text-white focus:border-red-500/45 focus:outline-none',
   disabled = false,
   compactEmptyState = false,
-  exclusiveExternal = false,
+  exclusiveExternal: requestedExternal = false,
 }: Props): React.ReactElement {
+  const purpose = hallOnly ? 'general' : requestedPurpose;
+  const exclusiveExternal = !hallOnly && requestedExternal;
   const [clubId, setClubId] = useState<string | null>(null);
   const [teamId, setTeamId] = useState<string | null>(null);
   const [preferred, setPreferred] = useState<VenueCandidate[]>([]);
@@ -125,6 +130,8 @@ export function VenuePicker({
   const [rememberOpponent, setRememberOpponent] = useState(true);
   const [rememberHome, setRememberHome] = useState(true);
   const autoSelectedForKey = useRef<string>('');
+  const hallModeRef = useRef(hallOnly);
+  hallModeRef.current = hallOnly;
   const [draft, setDraft] = useState<VenueFormDraft>({
     name: '',
     address: '',
@@ -243,7 +250,7 @@ export function VenuePicker({
       setPreferred([]);
       setTrainingEmptyReason(allowed.emptyReason);
       setLoading(false);
-      if (opts?.skipAutoSelect) return;
+      if (opts?.skipAutoSelect || hallModeRef.current) return;
       const autoKey = `${isTrainingPurpose ? 'training' : 'home_match'}:${teamSeasonId}`;
       if (allowed.data.length >= 1 && !venueId && autoSelectedForKey.current !== autoKey) {
         autoSelectedForKey.current = autoKey;
@@ -262,7 +269,7 @@ export function VenuePicker({
         setPreferred([]);
         setTrainingEmptyReason(homeAllowed.emptyReason);
         setLoading(false);
-        if (opts?.skipAutoSelect) return;
+        if (opts?.skipAutoSelect || hallModeRef.current) return;
         const autoKey = `home_match:${teamSeasonId}`;
         if (!venueId && homeAllowed.data.length >= 1 && autoSelectedForKey.current !== autoKey) {
           autoSelectedForKey.current = autoKey;
@@ -296,7 +303,7 @@ export function VenuePicker({
     setPreferred(pref);
     setLoading(false);
 
-    if (opts?.skipAutoSelect) return;
+    if (opts?.skipAutoSelect || hallModeRef.current) return;
 
     const autoKey = `${isMatchHome ? 'home' : isMatchAway ? 'away' : 'any'}:${opponentName.toLowerCase()}`;
     if (pref.length === 1 && !venueId && autoSelectedForKey.current !== autoKey) {
@@ -588,6 +595,34 @@ export function VenuePicker({
       : isAllowlistPurpose && !loading && trainingEmptyReason === 'migration'
         ? 'Anlagen-Zuordnung ist noch nicht verfügbar.'
         : null;
+
+  if (hallOnly) {
+    const halls = allSelectable.filter(v => /halle|turnsaal|gymnasium/i.test(v.name) || v.id === venueId);
+    return (
+      <div className="min-w-0 space-y-3">
+        <div>
+          <label htmlFor="hall-picker-select" className={labelClass}>Halle auswählen</label>
+          <select id="hall-picker-select" className={inputClass} disabled={disabled || loading}
+            value={venueId ?? '__custom__'} onChange={e => handleSelect(e.target.value)}>
+            <option value="__custom__">Halle selbst eingeben</option>
+            {halls.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="hall-location-name" className={labelClass}>Halle</label>
+          <input id="hall-location-name" className={inputClass} disabled={disabled}
+            value={locationName} placeholder="z. B. Turnsaal St. Veit"
+            onChange={e => { onVenueChange(null); onLocationNameChange(e.target.value); }} />
+        </div>
+        <div>
+          <label htmlFor="hall-location-address" className={labelClass}>Adresse (optional)</label>
+          <input id="hall-location-address" className={inputClass} disabled={disabled}
+            value={locationAddress} placeholder="Straße, PLZ und Ort"
+            onChange={e => { onVenueChange(null); onLocationAddressChange(e.target.value); }} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-w-0 max-w-full space-y-3 overflow-x-hidden">
