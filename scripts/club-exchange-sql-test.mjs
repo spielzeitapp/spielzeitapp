@@ -38,6 +38,7 @@ try {
   await db.exec(fs.readFileSync('supabase/migrations/20261113083440_club_exchange.sql', 'utf8'));
   await db.exec(fs.readFileSync('supabase/migrations/20261113084232_exchange_revision_and_blocks.sql', 'utf8'));
   await db.exec(fs.readFileSync('supabase/migrations/20261113093424_exchange_explicit_privileges.sql', 'utf8'));
+  await db.exec(fs.readFileSync('supabase/migrations/20261113094653_exchange_main_app_links.sql', 'utf8'));
   await db.exec(`insert into public.exchange_partner_teams values('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002')`);
   const results = await db.exec(fs.readFileSync('scripts/club-exchange-rls-test.sql','utf8'));
   console.log(results.at(-1).rows);

@@ -96,6 +96,7 @@ import { DemoTournamentPage } from '../demo/pages/DemoTournamentPage';
 import { DEMO_MATCH_ID_LIVE } from '../demo/demoDataSource';
 
 const UscClubApp = React.lazy(() => import('../features/club/UscClubApp').then(m => ({default:m.UscClubApp})));
+const ClubExchangePage = React.lazy(() => import('../pages/ClubExchangePage').then(m => ({default:m.ClubExchangePage})));
 
 /** /demo/players/:playerId → produktive TeamPage mit Profil-Modal */
 function DemoPlayerProfileRedirect(): React.ReactElement {
@@ -299,6 +300,7 @@ function InternalRoutes(): React.ReactElement {
         <Route element={<InternalLayout />}>
         <Route path="home" element={<AppHomePage />} />
         <Route path="platzbelegung" element={<AppPlatzbelegungPage />} />
+        <Route path="tauschboerse" element={<React.Suspense fallback={<p className="p-6 text-white/70">Tauschbörse wird geladen…</p>}><ClubExchangePage /></React.Suspense>} />
         <Route path="termine" element={<TermineLayout />}>
           <Route index element={<SchedulePage />} />
           <Route path="calendar" element={<CalendarPage />} />

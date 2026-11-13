@@ -1,6 +1,7 @@
 # Vereinsinterne Tauschbörse – TEST
 
 Entry: `/app/usc-rohrbach?tab=verein&section=tauschboerse`.
+SpielzeitApp entry: **Mehr → Tauschbörse**, `/app/tauschboerse`. Uses the selected team's club (or configured partner-club exchange) and offers a club selector when multiple clubs are available. Both surfaces use identical listings and private chats. New notification links preserve the actual club and thread on the authenticated main-app route. Existing USC notification links remain valid.
 UI is staging-only. The push API additionally rejects every non-staging database URL.
 
 ## Behavior
@@ -18,7 +19,8 @@ UI is staging-only. The push API additionally rejects every non-staging database
 ## Evidence and limits
 
 - Vite production build, the configured `npm run typecheck`, and a dedicated TypeScript check for the exchange UI pass. The full-project TypeScript check reports errors in existing legacy/live/training modules outside this change; it is not a clean project-wide check. No diagnostics reference the new exchange files or modified USC app. The existing USC fanshop regression test also passes after incorporating its concurrent TEST update.
-- `scripts/club-exchange-sql-test.mjs`: PGlite replays all three migrations with Supabase-style default grants, then runs synthetic transactions as the authenticated role. Covers outsider/player rejection, partner access, owner-only changes, no anonymous/TRUNCATE/immutable-column grants, path/storage RLS, third-party chat rejection, forged sender/owner, duplicate thread, targeted notifications, blocking, stale revisions and deletion. Fixtures roll back.
+- `scripts/club-exchange-sql-test.mjs`: PGlite replays all exchange migrations with Supabase-style default grants, then runs synthetic transactions as the authenticated role. Covers outsider/player rejection, partner access, owner-only changes, no anonymous/TRUNCATE/immutable-column grants, path/storage RLS, third-party chat rejection, forged sender/owner, duplicate thread, targeted notifications with club/thread deep links, blocking, stale revisions and deletion. Fixtures roll back.
+- `scripts/club-exchange-main-app-test.mjs`: verifies the main-app entry, shared SPG/USC scope, switching clubs, notification club taking precedence over the selected team, and authorization before team data is requested.
 - `scripts/club-exchange-ui-test.mjs`: React renderer exercises listing creation, photo input/upload path, private inquiry/reply, voluntary contact sharing, block/unblock and reserve. DOM/canvas/Supabase are mocked; this does not prove native camera or visual layout.
 - `scripts/club-exchange-push-test.mjs`: mocked delivery verifies method/auth, strict TEST target, outbound-disable, server-owned recipients/content, job claim and completed-job dedupe. No real push is sent. The endpoint uses a self-contained CommonJS entry to avoid Vercel runtime resolution of extensionless TypeScript imports.
 - TEST database inspection confirms all six tables use RLS, the bucket is private, actual storage policies do not grant unrelated buckets access, and explicit grants are installed. Security advisor's no-policy notice for `exchange_push_queue` is intentional: all client grants revoked, service-role only.

@@ -75,6 +75,7 @@ end$$;
 reset role;
 select pg_temp.assert_true(count(*)=1,'exactly one durable push job for message') from public.exchange_push_queue where message_id=(select message_id from exchange_test_context);
 select pg_temp.assert_true(recipient_id=c.owner_id and q.sender_id=c.requester_id,'push targets only owner') from public.exchange_push_queue q cross join exchange_test_context c where q.message_id=c.message_id;
+select pg_temp.assert_true(q.link='/app/tauschboerse?club='||c.club_id::text||'&thread='||c.thread_id::text,'canonical link preserves club and private thread') from public.exchange_push_queue q cross join exchange_test_context c where q.message_id=c.message_id;
 select pg_temp.assert_true(count(*)=1,'in-app notification inserted') from public.notifications n cross join exchange_test_context c where n.user_id=c.owner_id and n.kind='exchange:'||c.thread_id::text;
 
 select set_config('request.jwt.claim.sub',bystander_id::text,true) from exchange_test_context;

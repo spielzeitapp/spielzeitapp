@@ -20,6 +20,8 @@ import { cn } from '../ui/lib/cn';
 import { useDemoMode } from '../demo/DemoContext';
 import { resetDemoTourState } from '../demo/demoTourState';
 import { LayoutDiagnostics } from '../components/LayoutDiagnostics';
+import { isStagingApp } from '../lib/appEnvironment';
+import { Shirt } from 'lucide-react';
 
 const RESET_CONFIRM =
   'Demo zurücksetzen? Alle lokalen Änderungen wie Zusagen, Aufstellungen, LIVE-Ereignisse und Ergebnisse werden auf den Ausgangszustand zurückgesetzt.';
@@ -316,6 +318,7 @@ export const MoreHubPage: React.FC = () => {
       <LayoutDiagnostics />
 
       <nav className="grid gap-2 md:grid-cols-2 lg:grid-cols-3" aria-label="Mehr-Menü">
+        {!isDemo && isStagingApp() ? <Link to="/app/tauschboerse" className={dsPanelRowClass()}><span className="flex items-center gap-3"><Shirt className="h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden /><span><span className="block">Tauschbörse</span><span className="block text-[11px] text-white/60">Trainingsgewand · alle Mannschaften im Verein</span></span></span><ChevronRight className="h-5 w-5 text-white/40" aria-hidden /></Link> : null}
         {showPreviewLink&&<Link to={fotoboxHref} className={dsPanelRowClass()}><span className="flex items-center gap-3"><Camera className="h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden/><span><span className="block">Fotobox</span><span className="block text-[11px] text-white/60">Spielerfotos aufnehmen · Fernsteuerung verbinden</span></span></span><ChevronRight className="h-5 w-5 text-white/40" aria-hidden/></Link>}
         {showManagerLink ? (
           <Link to="/manager/musikstudio" className={dsPanelRowClass()}>
