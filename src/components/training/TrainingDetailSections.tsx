@@ -238,13 +238,13 @@ export function TrainingDetailSections({
     <div className={`flex min-w-0 flex-col overflow-x-hidden ${EC_STACK_GAP}`}>
       {canManage && trainingPhase !== 'after' ? <>
         <CenterPreparationAssistant title="Trainings-Assistent" readyLabel="Training vorbereitet" loading={planLoading || attendanceSummary?.loading} error={planError} steps={[
-          { id: 'availability', title: 'Verfügbarkeit klären', detail: attendanceSummary ? `${attendanceSummary.yesCount} dabei · ${attendanceSummary.openCount} offen` : 'Rückmeldungen prüfen', done: Boolean(attendanceSummary && attendanceSummary.playerCount > 0 && attendanceSummary.openCount === 0 && !attendanceSummary.loading), onClick: () => setAttendanceOpen(true) },
+          { id: 'availability', title: 'Teilnehmer', detail: attendanceSummary ? `${attendanceSummary.yesCount} dabei · ${attendanceSummary.openCount} offen` : 'Rückmeldungen prüfen', done: Boolean(attendanceSummary && attendanceSummary.playerCount > 0 && attendanceSummary.openCount === 0 && !attendanceSummary.loading), onClick: () => setAttendanceOpen(true) },
           ...(hall ? [{ id: 'hall', title: 'Hallenspieltag planen', detail: 'Teams einteilen · Spielzeit berechnen · intern spielen', done: hallPrepared, onClick: () => setHallOpen(true) }] : [
           { id: 'plan', title: 'Trainingseinheit planen', detail: plan ? `${plan.title} · ${plan.planned_duration_minutes ?? 0} Min.` : 'Übungen und Ablauf auswählen', done: plan?.status === 'ready', to: demo ? '/demo/trainingsplanung' : trainingPlanManagerHref({ sessionId: plan?.id, eventId, teamSeasonId, startsAtIso }) },
           { id: 'place', title: 'Platzbelegung prüfen', detail: 'Trainingsplatz und Zonen', optional: true, done: false, to: `${demo ? '/demo' : hasAssignment ? '/app' : '/manager'}/platzbelegung?date=${encodeURIComponent(dayKeyFromIso(startsAtIso))}&event=${encodeURIComponent(eventId)}` },
           ]),
         ]} />
-        <Modal open={attendanceOpen} onClose={() => setAttendanceOpen(false)} title="Verfügbarkeit klären">{trainerAttendanceSection}</Modal>
+        <Modal open={attendanceOpen} onClose={() => setAttendanceOpen(false)} title="Teilnehmer">{trainerAttendanceSection}</Modal>
       </> : null}
       {hall && canViewStaffReadouts ? <>
         {trainingPhase === 'after' ? <button type="button" onClick={() => setHallOpen(true)} className="sz-club-event-action min-h-14 rounded-2xl border p-4 text-left text-[18px] font-bold">Hallenspieltag · interne Ergebnisse ansehen</button> : null}
