@@ -61,6 +61,7 @@ import {
 } from "./uscClub";
 import { useUscClub } from "./useUscClub";
 import "./uscClubApp.css";
+const ClubExchange = React.lazy(() => import('./ClubExchange').then(m => ({ default: m.ClubExchange })));
 
 const NO_OWN_PLAYERS = new Set<string>();
 
@@ -621,14 +622,6 @@ export function UscClubApp() {
   const [menu, setMenu] = useState(false);
   const [install, setInstall] = useState(false);
   const clubSection = params.get("section") || "ueber";
-  const setClubSection = (section: string) => setParams((previous) => {
-    const next = new URLSearchParams(previous);
-    next.set("tab", "verein");
-    next.set("section", section);
-    next.delete("event");
-    next.delete("liveMatch");
-    return next;
-  });
   const menuDialog = useRef<HTMLDialogElement>(null);
   const installDialog = useRef<HTMLDialogElement>(null);
   const setTab = (id: ClubTab) => {
@@ -654,7 +647,12 @@ export function UscClubApp() {
     document.querySelector(".usc-app")?.scrollTo({ top: 0 });
   }, [tab, season?.id]);
   const openClub = (section: string) => {
-    setClubSection(section);
+    setParams(previous => {
+      const next = new URLSearchParams(previous);
+      next.set("tab", "verein"); next.set("section", section);
+      next.delete("event"); next.delete("liveMatch"); next.delete("thread");
+      return next;
+    });
     setMenu(false);
   };
   return (
@@ -746,9 +744,9 @@ export function UscClubApp() {
           </>
         )}
         {tab === "verein" ? (
-          clubSection === "fanshop" ? <UscFanshop onBack={() => setClubSection("ueber")} /> :
+          clubSection === "fanshop" ? <UscFanshop onBack={() => openClub("ueber")} /> :
           <section className="usc-club-section">
-            <span className="usc-eyebrow">USC Rohrbach</span>
+            {clubSection !== 'tauschboerse' ? <><span className="usc-eyebrow">USC Rohrbach</span>
             <h1>Unser Verein.</h1>
             <div className="usc-club-links">
               {[
@@ -756,18 +754,19 @@ export function UscClubApp() {
                 ["funktionaere", "Funktionäre"],
                 ["sponsoren", "Sponsoren"],
                 ["fanshop", "Fanshop"],
+                ...(isStagingApp() ? [["tauschboerse", "Tauschbörse"]] : []),
               ].map(([id, label]) => (
                 <button
                   key={id}
                   aria-pressed={clubSection === id}
-                  onClick={() => setClubSection(id)}
+                  onClick={() => openClub(id)}
                 >
                   {label}
                   <ChevronRight size={18} />
                 </button>
               ))}
-            </div>
-            <div className="usc-club-copy">
+            </div></> : <button className="usc-install-link" onClick={() => openClub('ueber')}>← Zum Vereinsmenü</button>}
+            {clubSection === 'tauschboerse' && isStagingApp() ? (user ? <React.Suspense fallback={<p role="status">Tauschbörse wird geladen…</p>}><ClubExchange key={user.id} clubId={USC_CLUB_ID} userId={user.id} seasons={club.seasons} /></React.Suspense> : <p className="usc-note">Bitte melde dich an, um die vereinsinterne Tauschbörse zu öffnen.</p>) : <div className="usc-club-copy">
               {clubSection === "ueber" ? (
                 <>
                   <h2>Zu Hause in Rohrbach.</h2>
@@ -815,7 +814,7 @@ export function UscClubApp() {
                   </p>
                 </>
               )}
-            </div>
+            </div>}
           </section>
         ) : null}
         <footer className="usc-footer">
@@ -880,6 +879,7 @@ export function UscClubApp() {
           <button onClick={() => openClub("funktionaere")}>Funktionäre</button>
           <button onClick={() => openClub("sponsoren")}>Sponsoren</button>
           <button onClick={() => openClub("fanshop")}>Fanshop</button>
+          {isStagingApp() && user ? <button onClick={() => openClub("tauschboerse")}>Tauschbörse</button> : null}
           {user ? (
             <button
               type="button"

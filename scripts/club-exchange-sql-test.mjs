@@ -1,0 +1,47 @@
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const { PGlite } = require(process.env.EXCHANGE_PGLITE_PATH || '@electric-sql/pglite');
+const db = new PGlite();
+try {
+  await db.exec(`
+    create role anon; create role authenticated; create role service_role bypassrls;
+    create schema auth; create schema storage;
+    create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+    grant usage on schema auth,storage,public to authenticated,service_role;
+    alter default privileges in schema public grant all on tables to anon,authenticated,service_role;
+    create table auth.users(id uuid primary key,email text);
+    create type public.membership_role as enum('parent','trainer','co_trainer','head_coach','player','fan');
+    create table public.clubs(id uuid primary key default gen_random_uuid(),status text default 'active');
+    create table public.teams(id uuid primary key default gen_random_uuid(),club_id uuid references public.clubs(id));
+    create table public.team_seasons(id uuid primary key default gen_random_uuid(),team_id uuid references public.teams(id),status text default 'active');
+    create table public.memberships(id uuid primary key default gen_random_uuid(),user_id uuid references auth.users(id),team_season_id uuid references public.team_seasons(id),role public.membership_role,unique(user_id,team_season_id));
+    alter table public.memberships enable row level security;
+    grant select on public.memberships,public.teams,public.team_seasons to authenticated;
+    create policy membership_self on public.memberships for select to authenticated using(user_id=auth.uid());
+    create table public.profiles(id uuid primary key references auth.users(id),first_name text,last_name text,display_name text,email text,phone text);
+    alter table public.profiles enable row level security;
+    grant select on public.profiles to authenticated;
+    create policy profile_self on public.profiles for select to authenticated using(id=auth.uid());
+    create function public.club_is_operable(c uuid) returns boolean language sql stable security definer as $$select exists(select 1 from public.clubs where id=c and status='active')$$;
+    create function public.can_manage_club_venues(c uuid) returns boolean language sql stable as $$select false$$;
+    create table public.notifications(id uuid primary key default gen_random_uuid(),user_id uuid references auth.users(id),title text,message text,link text,type text,event_type text,kind text,read boolean default false);
+    create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
+    create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text references storage.buckets(id),name text);
+    alter table storage.objects enable row level security;
+    grant select,insert,delete on storage.objects to authenticated;
+    create function storage.foldername(path text) returns text[] language sql immutable as $$select (string_to_array(path,'/'))[1:array_length(string_to_array(path,'/'),1)-1]$$;
+    insert into public.clubs(id) values('10000000-0000-0000-0000-000000000001'),('10000000-0000-0000-0000-000000000002');
+    insert into public.teams(id,club_id) values('20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001'),('20000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000002');
+    insert into public.team_seasons(id,team_id) values('30000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001'),('30000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000002');
+  `);
+  await db.exec(fs.readFileSync('supabase/migrations/20261113083440_club_exchange.sql', 'utf8'));
+  await db.exec(fs.readFileSync('supabase/migrations/20261113084232_exchange_revision_and_blocks.sql', 'utf8'));
+  await db.exec(fs.readFileSync('supabase/migrations/20261113093424_exchange_explicit_privileges.sql', 'utf8'));
+  await db.exec(`insert into public.exchange_partner_teams values('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002')`);
+  const results = await db.exec(fs.readFileSync('scripts/club-exchange-rls-test.sql','utf8'));
+  console.log(results.at(-1).rows);
+  const remaining = await db.query('select count(*)::int as users from auth.users');
+  if (remaining.rows[0].users !== 0) throw Error('Fixture rollback failed');
+  console.log('PASS: no synthetic users remain');
+} finally { await db.close(); }
