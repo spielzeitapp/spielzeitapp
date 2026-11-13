@@ -19,7 +19,6 @@ import { PageShell, PremiumButton, PremiumCard, SectionTitle } from '../ui';
 import { cn } from '../ui/lib/cn';
 import { useDemoMode } from '../demo/DemoContext';
 import { resetDemoTourState } from '../demo/demoTourState';
-import { LayoutDiagnostics } from '../components/LayoutDiagnostics';
 import { isStagingApp } from '../lib/appEnvironment';
 import { Shirt } from 'lucide-react';
 
@@ -315,7 +314,6 @@ export const MoreHubPage: React.FC = () => {
       contentClassName="mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl lg:max-w-4xl"
     >
       <SectionTitle subtitle="Einstellungen und weitere Bereiche">Mehr</SectionTitle>
-      <LayoutDiagnostics />
 
       <nav className="grid gap-2 md:grid-cols-2 lg:grid-cols-3" aria-label="Mehr-Menü">
         {!isDemo && isStagingApp() ? <Link to="/app/tauschboerse" className={dsPanelRowClass()}><span className="flex items-center gap-3"><Shirt className="h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden /><span><span className="block">Tauschbörse</span><span className="block text-[11px] text-white/60">Trainingsgewand · alle Mannschaften im Verein</span></span></span><ChevronRight className="h-5 w-5 text-white/40" aria-hidden /></Link> : null}
