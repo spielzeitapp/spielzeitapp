@@ -2,6 +2,8 @@
 
 Entry: `/app/usc-rohrbach?tab=verein&section=tauschboerse`.
 SpielzeitApp entry: **Mehr → Tauschbörse**, `/app/tauschboerse`. Uses the selected team's club (or configured partner-club exchange) and offers a club selector when multiple clubs are available. Both surfaces use identical listings and private chats. New notification links preserve the actual club and thread on the authenticated main-app route. Existing USC notification links remain valid.
+
+Parent context refinement: only active parent memberships contribute clubs in parent mode; favourite/fan-only and archived team entries do not create a club selector. One club opens directly with a small club label; two actual parent clubs offer a compact switcher. Trainer/admin mode uses active parent/staff/admin assignments. The caller's team label is prefilled in new listings, and a single assigned team is shown without an unnecessary team selector. The unrelated event-creation FAB is hidden on the exchange route. Glass surfaces, club gradients, compact segmented tabs and editor controls follow the app's shared visual tokens. Renderer tests cover one parent club plus a favourite, two parent clubs, switching, and saved team prefill; native iOS visual/camera verification remains a manual check.
 UI is staging-only. The push API additionally rejects every non-staging database URL.
 
 ## Behavior

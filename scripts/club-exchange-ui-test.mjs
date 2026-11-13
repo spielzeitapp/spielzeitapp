@@ -57,7 +57,7 @@ const text=node=>typeof node==='string'?node:Array.isArray(node)?node.map(text).
 let app;
 const button=(name)=>app.root.findAllByType('button').find(b=>text(b).trim()===name || b.props['aria-label']===name);
 const click=async name=>{const b=button(name);assert.ok(b,'button: '+name);await act(async()=>{b.props.onClick?.();await flush();});};
-const mount=async userId=>{await act(async()=>{app=renderer.create(React.createElement(MemoryRouter,{initialEntries:['/app/usc-rohrbach?tab=verein&section=tauschboerse']},React.createElement(ClubExchange,{clubId:'club',userId,seasons:[{id:'season',age_group:'U11',team:{name:'USC Rohrbach'}}]})),{createNodeMock:element=>element.type==='dialog'?{showModal(){},close(){}}:null});await flush();});window.exchangeFixture.user=userId;};
+const mount=async userId=>{await act(async()=>{app=renderer.create(React.createElement(MemoryRouter,{initialEntries:['/app/usc-rohrbach?tab=verein&section=tauschboerse']},React.createElement(ClubExchange,{clubId:'club',userId,defaultTeamLabel:'U11',ownTeamLabels:['U11'],seasons:[{id:'season',age_group:'U11',team:{name:'USC Rohrbach'}}]})),{createNodeMock:element=>element.type==='dialog'?{showModal(){},close(){}}:null});await flush();});window.exchangeFixture.user=userId;};
 try{
  await mount('requester');
  const card=app.root.findAllByType('button').find(b=>b.props.className==='exchange-card');
@@ -91,6 +91,7 @@ try{
  assert.equal(window.exchangeFixture.uploads[0].type,'image/jpeg');
  assert.match(window.exchangeFixture.uploads[0].path,/^club\/owner\//);
  assert.equal(window.exchangeFixture.tables.exchange_listings.find(l=>l.title==='USC Trainingsshirt').status,'Verfügbar');
+ assert.equal(window.exchangeFixture.tables.exchange_listings.find(l=>l.title==='USC Trainingsshirt').team_label,'U11','own team prefilled and saved');
  const ownerCard=app.root.findAllByType('button').find(b=>b.props.className==='exchange-card'&&text(b).includes('USC Trainingspulli'));
  await act(async()=>ownerCard.props.onClick());
  await act(async()=>{app.root.findByProps({'aria-label':'Status des Inserats'}).props.onChange({target:{value:'Reserviert'}});await flush();});
