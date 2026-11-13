@@ -1,7 +1,7 @@
 /** Internal training only. No matches, feed posts or league statistics are created. */
 export type HallTeam = { name: string; playerIds: string[] };
 export type HallGoal = { team: number; second: number; ownGoal?: boolean; timeUnknown?: boolean; scorerId?: string; scorerName?: string };
-export type HallGame = { seconds?: number; home: number; away: number; status: 'pending' | 'running' | 'paused' | 'finished'; elapsed: number; runningSince: number | null; goals: HallGoal[] };
+export type HallGame = { participation?: Record<string, HallParticipation>; seconds?: number; home: number; away: number; status: 'pending' | 'running' | 'paused' | 'finished'; elapsed: number; runningSince: number | null; goals: HallGoal[] };
 export type HallDay = { version: 1; teams: HallTeam[]; format: 2 | 3 | 4; total: number; pause: number; target: number; cycles: number; seconds: number; buffer: number; games: HallGame[] };
 export const HALL_COLORS = ['#fb425c', '#419cff', '#facc15', '#4ade80'];
 export const HALL_NAMES = ['Rot', 'Blau', 'Gelb', 'Grün'];
@@ -85,4 +85,46 @@ export function withHallFirstPairing(day: HallDay, home: number, away: number): 
   const remaining = Array.from({ length: n }, (_, i) => i).filter(i => i !== home && i !== away);
   for (let i = 0; i < n; i++) if (!mapping.has(i)) mapping.set(i, remaining.shift()!);
   return { ...day, games: day.games.map(game => ({ ...game, home: mapping.get(game.home)!, away: mapping.get(game.away)! })) };
+}
+
+export type HallParticipation = { roster: string[]; stints: { second: number; on: string[] }[] };
+/** Snapshot rosters prevent later team edits from rewriting played minutes. */
+export function hallPlayerTimes(day: HallDay, now = Date.now()) {
+ const ids = new Set(day.teams.flatMap(t => t.playerIds));
+ day.games.forEach(g => Object.values(g.participation ?? {}).forEach(p => p.roster.forEach(id => ids.add(id))));
+ const totals = new Map([...ids].map(id => [id, 0]));
+ let untracked = 0;
+ for (const g of day.games) {
+  if (g.status === 'pending') continue;
+  if (!g.participation) { untracked++; continue; }
+  const end = hallElapsed(g, hallGameSeconds(day, g), now);
+  for (const p of Object.values(g.participation)) p.stints.forEach((stint, i) => {
+   const duration = Math.max(0, Math.min(end, p.stints[i + 1]?.second ?? end) - stint.second);
+   stint.on.forEach(id => totals.set(id, (totals.get(id) ?? 0) + duration));
+  });
+ }
+ return { players: [...totals].map(([id, seconds]) => ({ id, seconds })).sort((a,b) => a.seconds-b.seconds || a.id.localeCompare(b.id)), untracked };
+}
+export function prepareHallPlayers(day: HallDay, index: number): HallDay {
+ const next = structuredClone(day), game = next.games[index];
+ if (!game || game.status !== 'pending') throw new Error('Aufstellung nur vor Anpfiff vorbereiten.');
+ if (game.participation) return next;
+ const times = new Map(hallPlayerTimes(day).players.map(p => [p.id, p.seconds]));
+ game.participation = {};
+ for (const team of [game.home,game.away]) {
+  const roster = [...day.teams[team].playerIds];
+  const on = [...roster].sort((a,b) => (times.get(a) ?? 0)-(times.get(b) ?? 0)).slice(0,day.format);
+  game.participation[team] = { roster, stints: [{ second: 0, on }] };
+ }
+ return next;
+}
+export function changeHallPlayers(day: HallDay, index: number, team: number, on: string[], now = Date.now()): HallDay {
+ const next = structuredClone(day), game = next.games[index], p = game?.participation?.[team];
+ if (!game || !p || ![game.home,game.away].includes(team) || !['pending','running','paused'].includes(game.status)) throw new Error('Wechsel für dieses Spiel nicht möglich.');
+ if (new Set(on).size !== on.length || on.length < day.format || on.length > day.format+1 || on.some(id => !p.roster.includes(id))) throw new Error('Bitte vollständige Aufstellung wählen (höchstens ein Zusatzspieler).');
+ const second = game.status === 'pending' ? 0 : hallElapsed(game,hallGameSeconds(day,game),now);
+ if (second >= hallGameSeconds(day,game)) throw new Error('Spielzeit abgelaufen.');
+ if (p.stints.at(-1)!.second === second) p.stints[p.stints.length-1] = {second,on:[...on]};
+ else p.stints.push({second,on:[...on]});
+ return next;
 }
