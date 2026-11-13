@@ -1,0 +1,18 @@
+.player-squad-modal .modalHeader { padding-top: 16px; }
+.player-squad-modal .modalTitle { font-size: 19px; font-weight: 800; letter-spacing: -.025em; }
+.player-squad-modal .modalBody { padding: 18px 16px; }
+.player-squad-modal .modalFooter { padding-top: 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); background: #0b0d13; }
+.player-form-intro { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+.player-form-icon { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border: 1px solid #ef42542b; background: #ef42540d; border-radius: 14px; color: var(--club-primary,#ef4254); }
+.player-form-intro strong { font-size: 15px; font-weight: 750; color: #fff; }
+.player-form-intro p { margin: 4px 0 0; font-size: 12px; line-height: 1.5; color: #9299a7; }
+.player-form-photo-hint { display: flex; gap: 11px; align-items: center; padding: 13px; border: 1px dashed #ffffff20; border-radius: 15px; color: #9da5b5; background: #ffffff03; }
+.player-form-photo-hint > svg { flex-shrink: 0; color: var(--club-primary,#ef4254); }
+.player-form-photo-hint p { display: grid; gap: 4px; margin: 0; }
+.player-form-photo-hint strong { font-size: 13px; font-weight: 650; color: #ced2db; }
+.player-form-photo-hint span { font-size: 12px; line-height: 1.5; }
+.player-form-photos { display: grid; gap: 12px; border-top: 1px solid #ffffff10; padding-top: 16px; }
+.player-form-photo-heading { display: flex; align-items: center; gap: 9px; color: var(--club-primary,#ef4254); }
+.player-form-photo-heading h3 { margin: 0; color: #fff; font-size: 15px; font-weight: 750; }
+.player-form-photo-heading p { margin: 3px 0 0; color: #8d96a6; font-size: 11px; }
+@media(max-width:359px) { .player-squad-modal .modalBody { padding: 14px 12px; } }

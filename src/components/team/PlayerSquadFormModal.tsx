@@ -1,4 +1,6 @@
 import React from "react";
+import { Camera, UserRound } from "lucide-react";
+import "./playerSquadForm.css";
 import { Modal } from "../../app/ui/Modal";
 import { AppButton } from "../ui/AppButton";
 import { ProfileImageUploadFields } from "./profile/ProfileImageUploadFields";
@@ -80,6 +82,7 @@ export const PlayerSquadFormModal: React.FC<Props> = ({
 
   return (
     <Modal
+      className="player-squad-modal"
       isOpen={isOpen}
       title={mode === "edit" ? "Spieler bearbeiten" : "Spieler hinzufügen"}
       onClose={() => {
@@ -87,15 +90,15 @@ export const PlayerSquadFormModal: React.FC<Props> = ({
       }}
       footer={
         <div className="flex w-full gap-2">
-          <AppButton type="button" variant="secondary" className="min-h-[46px] flex-1" disabled={busy} onClick={onClose}>
+          <AppButton type="button" variant="secondary" className="min-h-12 flex-1 !rounded-full" disabled={busy} onClick={onClose}>
             Abbrechen
           </AppButton>
           <AppButton
             type="submit"
             form="player-squad-form"
             variant="primary"
-            className="min-h-[46px] flex-1"
-            disabled={busy || !form.first_name.trim() || Boolean(jerseyErrorMsg) || !canManage}
+            className="min-h-12 flex-1 !rounded-full"
+            disabled={busy || !form.first_name.trim() || !form.last_name.trim() || Boolean(jerseyErrorMsg) || !canManage}
           >
             {saving ? "Speichern…" : "Speichern"}
           </AppButton>
@@ -107,6 +110,69 @@ export const PlayerSquadFormModal: React.FC<Props> = ({
           <p className="-mt-1 text-[13px] font-medium text-white/55">{formDisplayName(form, editingPlayer)}</p>
         ) : null}
 
+        <div className="player-form-intro"><span className="player-form-icon"><UserRound size={22} aria-hidden /></span><div><strong>{mode === 'create' ? 'Neuer Spieler' : 'Spielerdaten'}</strong><p>{mode === 'create' ? 'Lege den Spieler für deine Mannschaft an.' : 'Daten und Fotos für die Spielerkarte bearbeiten.'}</p></div></div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="flex flex-col gap-1">
+            <span className="text-[12px] font-semibold text-white/65">Vorname *</span>
+            <input
+              type="text"
+              value={form.first_name}
+              onChange={(e) => onFormChange({ first_name: e.target.value })}
+              required
+              disabled={busy || !canManage}
+              className="min-h-12 rounded-xl border border-white/10 bg-black/40 px-3 text-[16px] text-white focus:outline-none focus:ring-1 focus:ring-red-500/50"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[12px] font-semibold text-white/65">Nachname *</span>
+            <input
+              type="text"
+              value={form.last_name}
+              onChange={(e) => onFormChange({ last_name: e.target.value })}
+              required
+              disabled={busy || !canManage}
+              className="min-h-12 rounded-xl border border-white/10 bg-black/40 px-3 text-[16px] text-white focus:outline-none focus:ring-1 focus:ring-red-500/50"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[12px] font-semibold text-white/65">Nummer</span>
+            <input
+              type="number"
+              min={1}
+              max={99}
+              value={form.jersey_number}
+              onChange={(e) => onFormChange({ jersey_number: e.target.value })}
+              disabled={busy || !canManage}
+              className="min-h-12 rounded-xl border border-white/10 bg-black/40 px-3 text-[16px] text-white focus:outline-none focus:ring-1 focus:ring-red-500/50"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[12px] font-semibold text-white/65">Position</span>
+            <input
+              type="text"
+              value={form.position}
+              onChange={(e) => onFormChange({ position: e.target.value })}
+              placeholder="z. B. ST"
+              disabled={busy || !canManage}
+              className="min-h-12 rounded-xl border border-white/10 bg-black/40 px-3 text-[16px] text-white focus:outline-none focus:ring-1 focus:ring-red-500/50"
+            />
+          </label>
+        </div>
+
+        <label className="flex flex-col gap-1">
+          <span className="text-[12px] font-semibold text-white/65">Geburtsdatum</span>
+          <input
+            type="date"
+            value={form.birthdate || ""}
+            onChange={(e) => onFormChange({ birthdate: e.target.value })}
+            disabled={busy || !canManage}
+            className="min-h-12 rounded-xl border border-white/10 bg-black/40 px-3 text-[16px] text-white focus:outline-none focus:ring-1 focus:ring-red-500/50"
+          />
+        </label>
+
+        {mode === 'edit' ? <section className="player-form-photos">
+          <div className="player-form-photo-heading"><Camera size={19} aria-hidden /><div><h3>Spielerfotos</h3><p>Für Teamliste und Spielerkarte</p></div></div>
         <ProfileImageUploadFields
           mode={mode}
           canUpload={Boolean(editingPlayer) && canManage}
@@ -120,65 +186,7 @@ export const PlayerSquadFormModal: React.FC<Props> = ({
           onCutoutFile={onCutoutFile}
           onValidationError={onImageValidationError}
         />
-
-        <div className="grid grid-cols-2 gap-3">
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-white/45">Vorname *</span>
-            <input
-              type="text"
-              value={form.first_name}
-              onChange={(e) => onFormChange({ first_name: e.target.value })}
-              required
-              disabled={busy || !canManage}
-              className="min-h-[42px] rounded-lg border border-white/10 bg-black/40 px-3 text-[15px] text-white focus:outline-none focus:ring-1 focus:ring-red-500/50"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-white/45">Nachname *</span>
-            <input
-              type="text"
-              value={form.last_name}
-              onChange={(e) => onFormChange({ last_name: e.target.value })}
-              required
-              disabled={busy || !canManage}
-              className="min-h-[42px] rounded-lg border border-white/10 bg-black/40 px-3 text-[15px] text-white focus:outline-none focus:ring-1 focus:ring-red-500/50"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-white/45">Nummer</span>
-            <input
-              type="number"
-              min={1}
-              max={99}
-              value={form.jersey_number}
-              onChange={(e) => onFormChange({ jersey_number: e.target.value })}
-              disabled={busy || !canManage}
-              className="min-h-[42px] rounded-lg border border-white/10 bg-black/40 px-3 text-[15px] text-white focus:outline-none focus:ring-1 focus:ring-red-500/50"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-white/45">Position</span>
-            <input
-              type="text"
-              value={form.position}
-              onChange={(e) => onFormChange({ position: e.target.value })}
-              placeholder="z. B. ST"
-              disabled={busy || !canManage}
-              className="min-h-[42px] rounded-lg border border-white/10 bg-black/40 px-3 text-[15px] text-white focus:outline-none focus:ring-1 focus:ring-red-500/50"
-            />
-          </label>
-        </div>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-[11px] font-medium uppercase tracking-wide text-white/45">Geburtsdatum</span>
-          <input
-            type="date"
-            value={form.birthdate || ""}
-            onChange={(e) => onFormChange({ birthdate: e.target.value })}
-            disabled={busy || !canManage}
-            className="min-h-[42px] rounded-lg border border-white/10 bg-black/40 px-3 text-[15px] text-white focus:outline-none focus:ring-1 focus:ring-red-500/50"
-          />
-        </label>
+        </section> : <div className="player-form-photo-hint"><Camera size={20} aria-hidden /><p><strong>Spielerfoto später ergänzen</strong><span>Nach dem Speichern kannst du Fotos im Bearbeiten-Dialog hochladen.</span></p></div>}
 
         {jerseyErrorMsg ? (
           <p className="text-[13px] text-red-300" role="alert">
