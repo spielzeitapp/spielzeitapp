@@ -11,6 +11,7 @@ import { PLAYER_STAT_TILES } from "./profile/profileStatIcons";
 import type { PlayerItem } from "../../hooks/usePlayers";
 import { updatePlayerMasterFlags } from "../../lib/rosterService";
 import { usePlayerStats, type PlayerStatsMode } from "../../hooks/usePlayerStats";
+import { trainingAttendanceLabel } from "../../lib/trainingAttendance";
 import { usePlayerTrainingStats } from "../../hooks/usePlayerTrainingStats";
 import { useTeamTrainingRanking } from "../../hooks/useTeamTrainingRanking";
 import { useTrainingParticipationAccess } from "../../hooks/useTrainingParticipationAccess";
@@ -612,6 +613,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   );
   const {
     stats: trainingStats,
+    sessions: trainingSessions,
     loading: trainingStatsLoading,
     error: trainingStatsError,
   } = usePlayerTrainingStats(player.id, statsSeasonId, canViewTrainingParticipation, {
@@ -693,8 +695,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   const trainingsSick = trainingStats.sick;
   const trainingsInjured = trainingStats.injured;
   const trainingsExternal = trainingStats.external;
-  const teamTrainingBasis = trainingsPresent + trainingsAbsent;
-  const activityTrainingNumerator = trainingsPresent + trainingsExternal;
+  const teamTrainingBasis = trainingsPresent + trainingsAbsent + trainingsExternal + (trainingStats.otherTeam ?? 0);
+  const activityTrainingNumerator = trainingsPresent + trainingsExternal + (trainingStats.otherTeam ?? 0);
   const activityTrainingBasis = activityTrainingNumerator + trainingsAbsent;
 
   useEffect(() => {
@@ -1308,6 +1310,44 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   </>
                 )}
               </div>
+              {!trainingStatsLoading && !trainingStatsError && canViewTrainingParticipation ? (
+                <div className={`mt-4 p-3 sm:p-3.5 ${PROFILE_GLASS_PANEL}`}>
+                  <h4 className="sz-club-profile-accent flex items-center gap-2 text-[12px] font-extrabold uppercase tracking-wide">
+                    <CalendarDays className="h-5 w-5" aria-hidden />
+                    Alle Trainings · {trainingSessions.length}
+                  </h4>
+                  <p className="mt-2 text-[12px] leading-relaxed text-white/50">
+                    Vergangene Trainings im gewählten Zeitraum. Ohne abweichenden Eintrag zählt ein Training als „Dabei“.
+                    „LAZ“ entspricht dem gespeicherten Status „externes Training“.
+                  </p>
+                  {trainingSessions.length === 0 ? (
+                    <p className="mt-3 text-[14px] text-white/60">Keine vergangenen Trainings in diesem Zeitraum.</p>
+                  ) : (
+                    <ul className="mt-3 space-y-2.5">
+                      {trainingSessions.map((session) => (
+                        <li key={session.eventId} className={`px-3 py-3 ${PROFILE_METRIC_TILE}`}>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <time dateTime={session.startsAt} className="text-[15px] font-bold text-white">
+                              {new Date(session.startsAt).toLocaleDateString("de-AT", { timeZone: "Europe/Vienna", weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" })}
+                            </time>
+                            <span className={`rounded-full border px-3 py-1 text-[13px] font-bold ${
+                              session.status === "present" ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-300"
+                                : session.status === "external" || session.status === "other_team" ? "border-violet-400/25 bg-violet-400/10 text-violet-300"
+                                : "border-amber-400/25 bg-amber-400/10 text-amber-300"
+                            }`}>
+                              {trainingAttendanceLabel(session.status)}
+                            </span>
+                          </div>
+                          <p className="mt-1.5 text-[13px] text-white/60">
+                            {new Date(session.startsAt).toLocaleTimeString("de-AT", { timeZone: "Europe/Vienna", hour: "2-digit", minute: "2-digit" })} Uhr
+                            {session.location ? ` · ${session.location}` : ""}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ) : null}
               <ProfileTrainingAwardsSection />
             </>
           ) : null}
