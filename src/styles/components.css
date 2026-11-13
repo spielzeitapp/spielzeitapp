@@ -1507,3 +1507,6 @@ html[data-club-theme="black-white"] .sz-club-placeholder-player {
 .tournamentWorkflowModal > .modalFooter button:only-child {
   grid-column: 1 / -1;
 }
+
+/* Keep the participant sheet header compact on phones. */
+.training-participant-modal .modalHeader { padding-top: 14px; }

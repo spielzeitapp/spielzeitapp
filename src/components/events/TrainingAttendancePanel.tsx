@@ -1,7 +1,7 @@
 import { MatchPlayerRow } from '../match/MatchPlayerRow';
 import { AttendanceThumbControls } from './AttendanceThumbControls';
 import React, { useMemo, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Users } from 'lucide-react';
 import type { PlayerItem } from '../../hooks/usePlayers';
 import {
   computeSessionParticipationPct,
@@ -168,7 +168,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
             return (
               <li key={player.id} className="w-full min-w-0">
                 <MatchPlayerRow player={player} layout="team-roster" hideSubline
-                  nameStatus={<><PremiumStatusBadge label={status === 'other_team' ? 'Anderes Team' : trainingAttendanceLabel(status)} tone={status === 'open' || status === 'legacy_unknown' ? 'open' : statusTone(status)} className={TRAINING_BADGE_CLASS} />{status === 'other_team' && getNote?.(player.id) ? <span className="block max-w-full truncate text-[11px] text-violet-200" title={getNote(player.id)}>{getNote(player.id)}</span> : null}
+                  nameStatus={<>{status === 'other_team' ? <span title={getNote?.(player.id) || 'Training bei anderer Mannschaft'} className="inline-flex max-w-full items-center gap-1 overflow-hidden rounded-full border border-violet-400/25 bg-violet-400/10 px-2 py-1 text-[10px] font-bold leading-none text-violet-200"><Users className="h-3 w-3 shrink-0" aria-hidden /><span className="truncate whitespace-nowrap">Training · {(getNote?.(player.id) || 'Anderes Team').split(' · ')[0].replace(/U[- ](\d+)/i, 'U$1')}</span></span> : <PremiumStatusBadge label={trainingAttendanceLabel(status)} tone={status === 'open' || status === 'legacy_unknown' ? 'open' : statusTone(status)} className={TRAINING_BADGE_CLASS} />}
                     {(player.status ?? 'active') === 'paused' ? <span className="ml-1 text-[10px] text-amber-200">Pausiert</span> : null}</>}
                   trailing={readOnly ? undefined : <AttendanceThumbControls allowOtherTeam name={playerName} status={status} isLaz={player.is_laz_player} onSelect={(next, note) => chooseStatus(player.id, next, note)} />}
                 />

@@ -244,7 +244,7 @@ export function TrainingDetailSections({
           { id: 'place', title: 'Platzbelegung prüfen', detail: 'Trainingsplatz und Zonen', optional: true, done: false, to: `${demo ? '/demo' : hasAssignment ? '/app' : '/manager'}/platzbelegung?date=${encodeURIComponent(dayKeyFromIso(startsAtIso))}&event=${encodeURIComponent(eventId)}` },
           ]),
         ]} />
-        <Modal open={attendanceOpen} onClose={() => setAttendanceOpen(false)} title="Teilnehmer">{trainerAttendanceSection}</Modal>
+        <Modal className="training-participant-modal" open={attendanceOpen} onClose={() => setAttendanceOpen(false)} title="Teilnehmer">{trainerAttendanceSection}</Modal>
       </> : null}
       {hall && canViewStaffReadouts ? <>
         {trainingPhase === 'after' ? <button type="button" onClick={() => setHallOpen(true)} className="sz-club-event-action min-h-14 rounded-2xl border p-4 text-left text-[18px] font-bold">Hallenspieltag · interne Ergebnisse ansehen</button> : null}
