@@ -94,16 +94,27 @@ export function hallPlayerTimes(day: HallDay, now = Date.now()) {
  day.games.forEach(g => Object.values(g.participation ?? {}).forEach(p => p.roster.forEach(id => ids.add(id))));
  const totals = new Map([...ids].map(id => [id, 0]));
  let untracked = 0;
+ const estimated = new Set<string>(), incomplete = new Set<string>();
  for (const g of day.games) {
   if (g.status === 'pending') continue;
-  if (!g.participation) { untracked++; continue; }
+  if (!g.participation) {
+   untracked++;
+   const duration = hallElapsed(g, hallGameSeconds(day, g), now);
+   for (const team of [g.home, g.away]) {
+    const roster = day.teams[team]?.playerIds ?? [];
+    if (roster.length === day.format && duration > 0) {
+     roster.forEach(id => { totals.set(id, (totals.get(id) ?? 0) + duration); estimated.add(id); });
+    } else roster.forEach(id => incomplete.add(id));
+   }
+   continue;
+  }
   const end = hallElapsed(g, hallGameSeconds(day, g), now);
   for (const p of Object.values(g.participation)) p.stints.forEach((stint, i) => {
    const duration = Math.max(0, Math.min(end, p.stints[i + 1]?.second ?? end) - stint.second);
    stint.on.forEach(id => totals.set(id, (totals.get(id) ?? 0) + duration));
   });
  }
- return { players: [...totals].map(([id, seconds]) => ({ id, seconds })).sort((a,b) => a.seconds-b.seconds || a.id.localeCompare(b.id)), untracked };
+ return { players: [...totals].map(([id, seconds]) => ({ id, seconds, estimated: estimated.has(id), incomplete: incomplete.has(id) })).sort((a,b) => a.seconds-b.seconds || a.id.localeCompare(b.id)), untracked };
 }
 export function prepareHallPlayers(day: HallDay, index: number): HallDay {
  const next = structuredClone(day), game = next.games[index];

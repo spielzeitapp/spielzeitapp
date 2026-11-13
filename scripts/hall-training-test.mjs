@@ -8,6 +8,9 @@ const require = createRequire(import.meta.url), tmp = mkdtempSync(join(tmpdir(),
 try {
  buildSync({ entryPoints:['src/lib/hallTraining.ts'],bundle:true,platform:'node',format:'cjs',outfile:join(tmp,'hall.cjs'),logLevel:'silent' });
  const h = require(join(tmp,'hall.cjs'));
+ const legacy=h.createHallDay(3,3);legacy.teams.forEach((t,i)=>t.playerIds=Array.from({length:3},(_,j)=>'legacy-'+i+'-'+j));legacy.games[0].status='finished';legacy.games[0].elapsed=180;
+ let legacyTimes=h.hallPlayerTimes(legacy);assert.equal(legacyTimes.players.find(p=>p.id==='legacy-0-0').seconds,180);assert.equal(legacyTimes.players.find(p=>p.id==='legacy-0-0').estimated,true);assert.equal(legacyTimes.players.find(p=>p.id==='legacy-2-0').seconds,0);
+ legacy.teams[0].playerIds.push('legacy-bench');legacyTimes=h.hallPlayerTimes(legacy);assert.equal(legacyTimes.players.find(p=>p.id==='legacy-0-0').incomplete,true);assert.equal(legacyTimes.players.find(p=>p.id==='legacy-0-0').seconds,0);assert.equal(legacyTimes.players.find(p=>p.id==='legacy-1-0').seconds,180);
  const three=h.calculateHallSchedule(3,3600,120);assert.equal(three.cycles,2);assert.equal(three.seconds,500);assert.equal(three.gamesPerTeam,4);assert.equal(three.playPerTeam,2000);assert.equal(three.buffer,0);
  for(const n of [2,3,4])for(const minutes of [15,30,45,60,75,90,120,180])for(const pause of [0,30,60,120,300]){
   if(minutes*60 < n*(n-1)/2*60+(n*(n-1)/2-1)*pause){assert.throws(()=>h.calculateHallSchedule(n,minutes*60,pause));continue;}
