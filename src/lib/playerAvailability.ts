@@ -67,6 +67,7 @@ export function resolveMatchEventRsvpStatus(
   if (s === 'no') return 'no';
   if (s === 'sick') return 'sick';
   if (s === 'injured') return 'injured';
+  if (s === 'other_team_training') return 'no';
   if (s === 'external_training') return 'external_training';
   return 'unset';
 }

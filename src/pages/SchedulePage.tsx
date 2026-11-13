@@ -168,6 +168,7 @@ function pastHeroLabelForEffectiveType(
 }
 
 function attendanceMergedToPillStatus(s: AttendanceStatus | null | undefined): AttendanceStatusKind {
+  if (s === 'other_team_training') return 'no';
   if (s === 'external_training') return 'laz';
   if (s === 'sick') return 'sick';
   if (s === 'injured') return 'injured';
@@ -2575,11 +2576,12 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                         : null;
 
                     const current = attendanceStatusByEventId[attendanceModalEvent.id] ?? myStatusFromDb ?? null;
+                    const isOtherTeam = current === 'other_team_training';
                     const isLaz = current === 'external_training';
                     const isSick = current === 'sick';
                     const isInjured = current === 'injured';
                     const canceled = current === 'no';
-                    const isUnavailable = canceled || isSick || isInjured || isLaz;
+                    const isUnavailable = canceled || isSick || isInjured || isLaz || isOtherTeam;
                     const cutoffPassed = isTrainingAbsenceDeadlinePassed(
                       attendanceModalEvent.starts_at,
                       attendanceModalEvent.training_absence_deadline_disabled,
@@ -2588,7 +2590,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                     return (
                       <>
                         <p className="text-sm text-[var(--text-main)] font-medium">
-                          Status: {isLaz
+                          Status: {isOtherTeam ? 'Andere Mannschaft' : isLaz
                             ? 'LAZ'
                             : isInjured
                               ? 'Verletzt'

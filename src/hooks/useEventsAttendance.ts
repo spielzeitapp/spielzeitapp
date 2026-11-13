@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useDemoMode } from "../demo/DemoContext";
 
-export type AttendanceStatus = "yes" | "no" | "sick" | "injured" | "external_training";
+export type AttendanceStatus = "yes" | "no" | "sick" | "injured" | "other_team_training" | "external_training";
 
 export type EventAttendanceData = {
   yes: number;
@@ -10,6 +10,7 @@ export type EventAttendanceData = {
   sick: number;
   injured: number;
   external: number;
+  otherTeam?: number;
   unavailable: number;
   /** Map player_id -> status. Offen = nicht in Map. */
   availabilityByPlayerId: Record<string, AttendanceStatus>;
@@ -100,6 +101,8 @@ export function useEventsAttendance(eventIds: string[]) {
               ? "sick"
               : st === "injured"
                 ? "injured"
+                : st === "other_team_training"
+                  ? "other_team_training"
                 : st === "external_training"
                   ? "external_training"
                   : null;
@@ -109,8 +112,9 @@ export function useEventsAttendance(eventIds: string[]) {
         else if (status === "no") out[eidKey].no += 1;
         else if (status === "sick") out[eidKey].sick += 1;
         else if (status === "injured") out[eidKey].injured += 1;
+        else if (status === "other_team_training") out[eidKey].otherTeam = (out[eidKey].otherTeam ?? 0) + 1;
         else out[eidKey].external += 1;
-        if (status === "no" || status === "sick" || status === "injured" || status === "external_training") {
+        if (status === "no" || status === "sick" || status === "injured" || status === "external_training" || status === "other_team_training") {
           out[eidKey].unavailable += 1;
         }
       }

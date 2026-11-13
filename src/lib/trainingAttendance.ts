@@ -9,6 +9,7 @@ export type TrainingAttendanceStatus =
   | 'absent'
   | 'sick'
   | 'injured'
+  | 'other_team'
   | 'external'
   | 'legacy_unknown';
 
@@ -17,6 +18,7 @@ export type TrainingAttendanceDbStatus =
   | 'no'
   | 'sick'
   | 'injured'
+  | 'other_team_training'
   | 'external_training';
 
 export type TrainingAttendanceStats = {
@@ -29,6 +31,7 @@ export type TrainingAttendanceStats = {
   sick: number;
   injured: number;
   external: number;
+  otherTeam?: number;
   open: number;
   legacyUnknown: number;
   sessionsCounted: number;
@@ -41,6 +44,7 @@ const TRAINING_STATUS_LABEL: Record<TrainingAttendanceStatus, string> = {
   sick: 'Krank',
   injured: 'Verletzt',
   external: 'LAZ',
+  other_team: 'Andere Mannschaft',
   legacy_unknown: 'Nicht erfasst',
 };
 
@@ -58,6 +62,7 @@ export function dbStatusToTrainingAttendance(
   if (s === 'no') return 'absent';
   if (s === 'sick') return 'sick';
   if (s === 'injured') return 'injured';
+  if (s === 'other_team_training') return 'other_team';
   if (s === 'external_training') return 'external';
   if (s === 'maybe') return 'present';
   return null;
@@ -116,6 +121,7 @@ export function trainingAttendanceToDb(status: TrainingAttendanceStatus): Traini
   if (status === 'present') return 'yes';
   if (status === 'absent') return 'no';
   if (status === 'sick') return 'sick';
+  if (status === 'other_team') return 'other_team_training';
   if (status === 'external') return 'external_training';
   return 'injured';
 }
@@ -124,7 +130,7 @@ export function trainingAttendanceBucketRank(status: TrainingAttendanceStatus): 
   if (status === 'open') return 0;
   if (status === 'legacy_unknown') return 1;
   if (status === 'present') return 2;
-  if (status === 'external') return 3;
+  if (status === 'external' || status === 'other_team') return 3;
   if (status === 'sick') return 4;
   if (status === 'injured') return 5;
   return 6;
@@ -141,14 +147,14 @@ function pct(num: number, denom: number): number {
 
 /** Exakte Session-Quote (ohne Rundung) für Durchschnittsbildung. */
 export function computeSessionParticipationPctExact(
-  counts: Pick<TrainingAttendanceCounts, 'present' | 'absent' | 'external'>,
+  counts: Pick<TrainingAttendanceCounts, 'present' | 'absent' | 'external' | 'otherTeam'>,
 ): number | null {
-  return pctExact(counts.present, counts.present + counts.absent + counts.external);
+  return pctExact(counts.present, counts.present + counts.absent + counts.external + (counts.otherTeam ?? 0));
 }
 
 /** Vereinstrainingsquote: Dabei / (Dabei + Abwesend + LAZ). Krank/Verletzt neutral. */
 export function computeSessionParticipationPct(
-  counts: Pick<TrainingAttendanceCounts, 'present' | 'absent' | 'external'>,
+  counts: Pick<TrainingAttendanceCounts, 'present' | 'absent' | 'external' | 'otherTeam'>,
 ): number | null {
   const exact = computeSessionParticipationPctExact(counts);
   return exact != null ? Math.round(exact) : null;
@@ -183,7 +189,7 @@ export function countTrainingOverviewFromStatuses(
   activePlayerCount: number,
 ): { present: number; notPresent: number } {
   const c = countTrainingAttendanceByStatus(statuses);
-  const notPresent = c.absent + c.sick + c.injured + c.external;
+  const notPresent = c.absent + c.sick + c.injured + c.external + (c.otherTeam ?? 0);
   return { present: Math.max(0, activePlayerCount - notPresent), notPresent };
 }
 
@@ -199,26 +205,29 @@ export function computeTrainingAttendanceStats(
   let sick = 0;
   let injured = 0;
   let external = 0;
+  let otherTeam = 0;
 
   for (const st of sessionStatuses) {
     if (st === 'present' || st === 'open' || st === 'legacy_unknown') present += 1;
     else if (st === 'absent') absent += 1;
     else if (st === 'sick') sick += 1;
     else if (st === 'injured') injured += 1;
+    else if (st === 'other_team') otherTeam += 1;
     else if (st === 'external') external += 1;
   }
 
-  const teamDenom = present + external + absent;
-  const activityDenom = present + external + absent;
+  const teamDenom = present + external + otherTeam + absent;
+  const activityDenom = present + external + otherTeam + absent;
 
   return {
     teamRatePct: pct(present, teamDenom),
-    activityRatePct: pct(present + external, activityDenom),
+    activityRatePct: pct(present + external + otherTeam, activityDenom),
     present,
     absent,
     sick,
     injured,
     external,
+    otherTeam,
     open: 0,
     legacyUnknown: 0,
     sessionsCounted: sessionStatuses.length,
@@ -227,7 +236,7 @@ export function computeTrainingAttendanceStats(
 
 export type TrainingAttendanceCounts = Pick<
   TrainingAttendanceStats,
-  'present' | 'absent' | 'sick' | 'injured' | 'external' | 'open' | 'legacyUnknown'
+  'present' | 'absent' | 'sick' | 'injured' | 'external' | 'otherTeam' | 'open' | 'legacyUnknown'
 >;
 
 export function countTrainingAttendanceByStatus(statuses: TrainingAttendanceStatus[]): TrainingAttendanceCounts {
@@ -238,6 +247,7 @@ export function countTrainingAttendanceByStatus(statuses: TrainingAttendanceStat
     sick: s.sick,
     injured: s.injured,
     external: s.external,
+    otherTeam: s.otherTeam,
     open: s.open,
     legacyUnknown: s.legacyUnknown,
   };
@@ -267,7 +277,7 @@ export function trainingScheduleCardCounts(params: {
   const c = countTrainingAttendanceByStatus(statuses);
   return {
     yes: c.present,
-    no: c.absent + c.sick + c.injured + c.external,
+    no: c.absent + c.sick + c.injured + c.external + (c.otherTeam ?? 0),
     open: 0,
   };
 }

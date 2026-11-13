@@ -5,13 +5,14 @@ const out='node_modules/.attendance-thumbs-test.mjs';
 try {
  await build({stdin:{resolveDir:process.cwd(),loader:'tsx',contents:`
  import React from 'react';import TestRenderer,{act} from 'react-test-renderer';import assert from 'node:assert/strict';import {AttendanceThumbControls} from './src/components/events/AttendanceThumbControls';
- let view;let calls=[];const props={name:'Theo Putz',status:'open',onSelect:s=>calls.push(s)};
+ let view;let calls=[];const props={allowOtherTeam:true,name:'Theo Putz',status:'open',onSelect:s=>calls.push(s)};
  act(()=>{view=TestRenderer.create(<AttendanceThumbControls {...props}/>)});
  const buttons=()=>view.root.findAllByType('button');
  act(()=>buttons()[1].props.onClick());assert.equal(calls.length,0);assert.equal(view.root.findAllByProps({role:'dialog'}).length,1);
  assert(!buttons().some(b=>b.children.includes('LAZ')));
  act(()=>buttons().find(b=>b.children.includes('Abbrechen')).props.onClick());assert.equal(calls.length,0);
  for(const [label,status] of [['Abwesend','absent'],['Krank','sick'],['Verletzt','injured']]){act(()=>buttons()[1].props.onClick());act(()=>buttons().find(b=>b.children.includes(label)).props.onClick());assert.equal(calls.at(-1),status);assert.equal(view.root.findAllByProps({role:'dialog'}).length,0);}
+ act(()=>buttons()[1].props.onClick());act(()=>buttons().find(b=>b.children.includes('Andere Mannschaft')).props.onClick());assert.equal(calls.length,3,'opening team choice does not save');const save=()=>buttons().find(b=>b.children.includes('Training bei anderer Mannschaft speichern'));assert(save().props.disabled);act(()=>view.root.findByType('input').props.onChange({target:{value:'U13 · Fahrgemeinschaft'}}));act(()=>save().props.onClick());assert.equal(calls.at(-1),'other_team');
  act(()=>view.update(<AttendanceThumbControls {...props} isLaz/>));act(()=>buttons()[1].props.onClick());act(()=>buttons().find(b=>b.children.includes('LAZ')).props.onClick());assert.equal(calls.at(-1),'external');
  act(()=>buttons()[0].props.onClick());assert.equal(calls.at(-1),'present');
  act(()=>view.update(<AttendanceThumbControls {...props} status="present"/>));act(()=>buttons()[0].props.onClick());assert.equal(calls.at(-1),'present');assert.equal(buttons()[0].props['aria-pressed'],true);

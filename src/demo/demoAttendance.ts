@@ -112,8 +112,9 @@ export function attendanceRowsToByEventId(
     else if (r.status === 'no') bucket.no += 1;
     else if (r.status === 'sick') bucket.sick += 1;
     else if (r.status === 'injured') bucket.injured += 1;
+    else if (r.status === 'other_team_training') bucket.otherTeam = (bucket.otherTeam ?? 0) + 1;
     else if (r.status === 'external_training') bucket.external += 1;
-    if (r.status === 'no' || r.status === 'sick' || r.status === 'injured' || r.status === 'external_training') {
+    if (r.status === 'no' || r.status === 'sick' || r.status === 'injured' || r.status === 'external_training' || r.status === 'other_team_training') {
       bucket.unavailable += 1;
     }
   }

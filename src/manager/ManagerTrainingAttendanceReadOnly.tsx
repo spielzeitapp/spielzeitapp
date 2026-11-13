@@ -26,6 +26,7 @@ const ORDER: TrainingAttendanceStatus[] = [
   'sick',
   'injured',
   'external',
+  'other_team',
 ];
 
 const DISPLAY_LABEL: Partial<Record<TrainingAttendanceStatus, string>> = {
@@ -35,6 +36,7 @@ const DISPLAY_LABEL: Partial<Record<TrainingAttendanceStatus, string>> = {
   sick: 'Krank',
   injured: 'Verletzt',
   external: 'LAZ',
+  other_team: 'Andere Mannschaft',
 };
 
 export function ManagerTrainingAttendanceReadOnly({
@@ -60,6 +62,7 @@ export function ManagerTrainingAttendanceReadOnly({
     sick: data?.sick ?? 0,
     injured: data?.injured ?? 0,
     external: data?.external ?? 0,
+    other_team: data?.otherTeam ?? 0,
   };
 
   const summary = ORDER.filter((k) => (counts[k] ?? 0) > 0)
