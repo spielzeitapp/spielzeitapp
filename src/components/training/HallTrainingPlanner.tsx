@@ -12,11 +12,11 @@ const input = 'min-h-11 w-full rounded-xl border border-white/15 bg-[#101014] px
 const button = 'sz-club-event-action min-h-12 rounded-full border px-4 py-2 text-[16px] font-bold text-white disabled:opacity-40 touch-manipulation';
 function playerName(p: Player) { return p.display_name || p.name || `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim() || 'Spieler'; }
 
-export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, open, onClose, onReadyChange, readOnly = false, defaultMinutes = 60 }: {
-  eventId: string; startsAt: string; players: Player[]; availableIds: string[]; open: boolean; onClose: () => void; onReadyChange: (ready: boolean) => void; readOnly?: boolean; defaultMinutes?: number;
+export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, open, onClose, onReadyChange, readOnly = false, defaultMinutes = 60, indoor = true }: {
+  eventId: string; startsAt: string; players: Player[]; availableIds: string[]; open: boolean; onClose: () => void; onReadyChange: (ready: boolean) => void; readOnly?: boolean; defaultMinutes?: number; indoor?: boolean;
 }) {
   const demo = useDemoMode();
-  const [day, setDay] = useState<HallDay>(() => createHallDay(3, 3, Math.max(15, Math.min(180, defaultMinutes)) * 60));
+  const [day, setDay] = useState<HallDay>(() => createHallDay(indoor ? 3 : 2, 3, Math.max(15, Math.min(180, defaultMinutes)) * 60));
   const [saved, setSaved] = useState<HallDay | null>(null);
   const [revision, setRevision] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -24,7 +24,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'teams' | 'games' | 'table'>('teams');
   const [now, setNow] = useState(Date.now());
-  const [count, setCount] = useState(3), [format, setFormat] = useState<2 | 3 | 4>(3), [minutes, setMinutes] = useState(defaultMinutes), [pause, setPause] = useState(2), [target, setTarget] = useState(8), [cycles, setCycles] = useState(0);
+  const [count, setCount] = useState(indoor ? 3 : 2), [format, setFormat] = useState<HallDay['format']>(3), [minutes, setMinutes] = useState(defaultMinutes), [pause, setPause] = useState(2), [target, setTarget] = useState(8), [cycles, setCycles] = useState(0);
   const saving = useRef(false);
   const scorerPanel = useRef<HTMLElement | null>(null);
   const [goalPicker, setGoalPicker] = useState<{ game: number; team: number; second: number; timeUnknown?: boolean; ownGoal?: boolean; goal?: number } | null>(null);
@@ -82,8 +82,8 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
   useEffect(() => {
     let active = true;
     setLoading(true); setError(null); setSaved(null); setRevision(0);
-    const empty = createHallDay(3, 3, Math.max(15, Math.min(180, defaultMinutes)) * 60);
-    setDay(empty); setCount(3); setFormat(3); setMinutes(empty.total / 60); setPause(2); setTarget(8); setCycles(0);
+    const empty = createHallDay(indoor ? 3 : 2, 3, Math.max(15, Math.min(180, defaultMinutes)) * 60);
+    setDay(empty); setCount(indoor ? 3 : 2); setFormat(3); setMinutes(empty.total / 60); setPause(2); setTarget(8); setCycles(0);
     if (demo) {
       try { const raw = sessionStorage.getItem(`hall-training-demo:${eventId}`); if (raw) init(JSON.parse(raw)); } catch { /* An unavailable demo store does not write to the backend. */ }
       setLoading(false); return;
@@ -115,7 +115,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
     if (await persist(next)) setTab('teams');
   };
   const changeTeamCount = (nextCount: number) => {
-    if (started || readOnly || busy || ![3, 4].includes(nextCount)) return;
+    if (started || readOnly || busy || ![2, 3, 4].includes(nextCount)) return;
     if (nextCount < day.teams.length && day.teams.slice(nextCount).some(team => team.playerIds.length) && !window.confirm('Die Spieler der entfernten Mannschaft werden wieder nicht zugeteilt. Fortfahren?')) return;
     setCount(nextCount);
     setDay(previous => ({ ...previous, teams: Array.from({ length: nextCount }, (_, i) => previous.teams[i] ?? { name: HALL_NAMES[i], playerIds: [] }) }));
@@ -237,7 +237,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
     } catch (e) { setError(e instanceof Error ? e.message : 'Spielzeit konnte nicht gespeichert werden.'); }
   };
   const gameTime = (index: number) => new Date(new Date(startsAt).getTime() + (day.games.slice(0, index).reduce((sum, game) => sum + hallGameSeconds(day, game), 0) + index * day.pause) * 1000).toLocaleTimeString('de-AT', { timeZone: 'Europe/Vienna', hour: '2-digit', minute: '2-digit', second: day.games.slice(0, index).every(game => (hallGameSeconds(day, game) + day.pause) % 60 === 0) ? undefined : '2-digit' });
-  return <Modal open={open} onClose={close} className="hall-training-modal" title="Hallenspieltag · Nur intern">
+  return <Modal open={open} onClose={close} className="hall-training-modal" title={indoor ? "Hallenspieltag · Nur intern" : "Trainingsmatch · Nur intern"}>
     {loading ? <p role="status">Hallenspieltag wird geladen…</p> : <div className="space-y-4">
       <p className="flex items-center gap-2 text-[15px] text-white/60"><Lock className="h-4 w-4" aria-hidden />Interne Trainingsspiele · nur für Trainer</p>
       {error ? <div role="alert" className="rounded-xl border border-red-400/30 p-3 text-[16px] text-red-200"><p>{error}</p><button type="button" className={`${button} mt-2`} onClick={async () => { if ((dirty || configDirty) && !window.confirm('Änderungen verwerfen und gespeicherten Stand laden?')) return; try { setLoading(true); const row = await loadHallDay(eventId); if (row) { init(row.day); setRevision(row.revision); } setError(null); } catch { setError('Laden fehlgeschlagen. Bitte erneut versuchen.'); } finally { setLoading(false); } }}>Gespeicherten Stand laden</button></div> : null}
@@ -247,8 +247,8 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
         <fieldset disabled={readOnly || busy || started} className={`${TC_CARD} space-y-3 p-4 disabled:opacity-65`}>
           <legend className="sr-only">Zeit und Spielform</legend>
           <div className="grid grid-cols-2 gap-3">
-            <label className="text-[15px] text-white/70">Mannschaften<select className={input} value={count} onChange={e => changeTeamCount(Number(e.target.value))}><option value={3}>3 Teams</option><option value={4}>4 Teams</option></select></label>
-            <label className="text-[15px] text-white/70">Spielform<select className={input} value={format} onChange={e => setFormat(Number(e.target.value) as 2 | 3 | 4)}><option value={2}>2 gegen 2</option><option value={3}>3 gegen 3</option><option value={4}>4 gegen 4</option></select></label>
+            <label className="text-[15px] text-white/70">Mannschaften<select className={input} value={count} onChange={e => changeTeamCount(Number(e.target.value))}><option value={2}>2 Teams</option><option value={3}>3 Teams</option><option value={4}>4 Teams</option></select></label>
+            <label className="text-[15px] text-white/70">Spielform<select className={input} value={format} onChange={e => setFormat(Number(e.target.value) as HallDay['format'])}>{Array.from({ length: indoor ? 3 : 10 }, (_, i) => i + 2).map(n => <option key={n} value={n}>{n} gegen {n}</option>)}</select></label>
             <label className="text-[15px] text-white/70">Gesamtzeit (Min.)<input className={input} type="number" min={15} max={180} value={minutes} onChange={e => setMinutes(Number(e.target.value))} /></label>
             <label className="text-[15px] text-white/70">Wechselpause (Min.)<input className={input} type="number" min={0} max={5} step={0.5} value={pause} onChange={e => setPause(Number(e.target.value))} /></label>
             <label className="text-[15px] text-white/70">Wunschspielzeit (Min.)<input className={input} type="number" min={2} max={20} value={target} onChange={e => setTarget(Number(e.target.value))} /></label>
