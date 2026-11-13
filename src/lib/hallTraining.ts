@@ -1,6 +1,6 @@
 /** Internal training only. No matches, feed posts or league statistics are created. */
 export type HallTeam = { name: string; playerIds: string[] };
-export type HallGoal = { team: number; second: number; ownGoal?: boolean; scorerId?: string; scorerName?: string };
+export type HallGoal = { team: number; second: number; ownGoal?: boolean; timeUnknown?: boolean; scorerId?: string; scorerName?: string };
 export type HallGame = { seconds?: number; home: number; away: number; status: 'pending' | 'running' | 'paused' | 'finished'; elapsed: number; runningSince: number | null; goals: HallGoal[] };
 export type HallDay = { version: 1; teams: HallTeam[]; format: 2 | 3 | 4; total: number; pause: number; target: number; cycles: number; seconds: number; buffer: number; games: HallGame[] };
 export const HALL_COLORS = ['#fb425c', '#419cff', '#facc15', '#4ade80'];

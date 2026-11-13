@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Lock, Play, Pause, Shirt, Undo2, Volume2, VolumeX, Goal, Trophy, Crown, Clock3 } from 'lucide-react';
+import { Lock, Play, Pause, Shirt, Undo2, Volume2, VolumeX, Goal, Trophy, Crown, Clock3, Trash2 } from 'lucide-react';
 import { Modal } from '../../app/ui/Modal';
 import { useDemoMode } from '../../demo/DemoContext';
 import { withHallFirstPairing, hallGameSeconds, hallPlanSeconds, withHallGameDuration, hallScorers, calculateHallSchedule, createHallDay, hallClock, hallElapsed, hallReady, hallScore, hallStandings, HALL_COLORS, HALL_NAMES, type HallDay } from '../../lib/hallTraining';
@@ -27,8 +27,9 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
   const [count, setCount] = useState(3), [format, setFormat] = useState<2 | 3 | 4>(3), [minutes, setMinutes] = useState(defaultMinutes), [pause, setPause] = useState(2), [target, setTarget] = useState(8), [cycles, setCycles] = useState(0);
   const saving = useRef(false);
   const scorerPanel = useRef<HTMLElement | null>(null);
-  const [goalPicker, setGoalPicker] = useState<{ game: number; team: number; second: number; ownGoal?: boolean; goal?: number } | null>(null);
-  useEffect(() => { setGoalPicker(null); }, [eventId, open]);
+  const [goalPicker, setGoalPicker] = useState<{ game: number; team: number; second: number; timeUnknown?: boolean; ownGoal?: boolean; goal?: number } | null>(null);
+  const [correctingGame, setCorrectingGame] = useState<number | null>(null);
+  useEffect(() => { setGoalPicker(null); setCorrectingGame(null); }, [eventId, open]);
   useEffect(() => {
     if (goalPicker) { scorerPanel.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); scorerPanel.current?.focus({ preventScroll: true }); }
   }, [goalPicker]);
@@ -190,15 +191,23 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
     if (!game || ![game.home, game.away].includes(goalPicker.team)) return;
     const scorerTeam = goalPicker.ownGoal ? (game.home === goalPicker.team ? game.away : game.home) : goalPicker.team;
     if (scorerId && !day.teams[scorerTeam].playerIds.includes(scorerId)) return;
-    const goal = { team: goalPicker.team, second: goalPicker.second, ...(goalPicker.ownGoal ? { ownGoal: true } : {}), ...(scorerId ? { scorerId, scorerName: names.get(scorerId) ?? 'Spieler' } : {}) };
+    const goal = { team: goalPicker.team, second: goalPicker.second, ...(goalPicker.timeUnknown ? { timeUnknown: true } : {}), ...(goalPicker.ownGoal ? { ownGoal: true } : {}), ...(scorerId ? { scorerId, scorerName: names.get(scorerId) ?? 'Spieler' } : {}) };
     if (goalPicker.goal !== undefined) {
       if (!game.goals[goalPicker.goal]) return;
       game.goals[goalPicker.goal] = goal;
     } else {
-      if (game.status !== 'running' && game.status !== 'paused') return;
+      if (game.status !== 'running' && game.status !== 'paused' && game.status !== 'finished') return;
       game.goals.push(goal);
     }
     if (await persist(next)) setGoalPicker(null);
+  };
+  const removeFinishedGoal = async (gameIndex: number, goalIndex: number) => {
+    if (readOnly || busy || saving.current || loading || dirty || configDirty || goalPicker || day.games[gameIndex]?.status !== 'finished') return;
+    if (!window.confirm('Dieses Tor entfernen? Spielstand, Tabelle und Torschützenliste werden neu berechnet.')) return;
+    const next = structuredClone(day);
+    if (!next.games[gameIndex].goals[goalIndex]) return;
+    next.games[gameIndex].goals.splice(goalIndex, 1);
+    await persist(next);
   };
   const goalHistory = (gameIndex: number) => {
     const game = day.games[gameIndex];
@@ -206,12 +215,13 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
       {game.goals.length ? [...game.goals].reverse().map((goal, reverseIndex) => {
         const goalIndex = game.goals.length - 1 - reverseIndex;
         return <li key={goalIndex}>
-          <span className="hall-goal-time">{hallClock(goal.second)}</span>
+          <span className="hall-goal-time">{goal.timeUnknown ? '–' : hallClock(goal.second)}</span>
           <Goal size={17} style={{ color: HALL_COLORS[goal.team] }} aria-hidden />
           <span className="hall-goal-player"><strong>{goal.ownGoal ? 'Eigentor · ' : ''}{goal.scorerName || (goal.scorerId ? names.get(goal.scorerId) : null) || (goal.ownGoal ? 'Ohne Spielerangabe' : 'Ohne Torschützen')}</strong><small>{day.teams[goal.team].name}</small></span>
-          {!readOnly ? <button type="button" className="hall-match-text-button" disabled={busy || Boolean(goalPicker) || dirty || configDirty} aria-label={`Torschütze für Tor ${goalIndex + 1} in Spiel ${gameIndex + 1} ändern`} onClick={() => setGoalPicker({ game: gameIndex, team: goal.team, second: goal.second, ownGoal: goal.ownGoal, goal: goalIndex })}>Ändern</button> : null}
+          {!readOnly ? <button type="button" className="hall-match-text-button" disabled={busy || Boolean(goalPicker) || dirty || configDirty} aria-label={`Torschütze für Tor ${goalIndex + 1} in Spiel ${gameIndex + 1} ändern`} onClick={() => setGoalPicker({ game: gameIndex, team: goal.team, second: goal.second, timeUnknown: goal.timeUnknown, ownGoal: goal.ownGoal, goal: goalIndex })}>Ändern</button> : null}
+          {!readOnly && game.status === 'finished' && correctingGame === gameIndex ? <button type="button" className="hall-match-text-button text-red-300" disabled={busy || Boolean(goalPicker) || dirty || configDirty} aria-label={`Tor ${goalIndex + 1} in Spiel ${gameIndex + 1} entfernen`} onClick={() => void removeFinishedGoal(gameIndex, goalIndex)}><Trash2 size={17} aria-hidden /></button> : null}
         </li>;
-      }) : <li className="hall-match-empty">Noch keine Tore · bereit für den Anpfiff.</li>}
+      }) : <li className="hall-match-empty">{game.status === 'finished' ? 'Keine Tore erfasst.' : 'Noch keine Tore · bereit für den Anpfiff.'}</li>}
     </ol>;
   };
   const saveDuration = async () => {
@@ -260,9 +270,9 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
       </> : null}
       {tab === 'games' ? <>
         {goalPicker && !readOnly ? <section ref={scorerPanel} tabIndex={-1} className="hall-scorer-picker" role="region" aria-label="Torschützen auswählen">
-          <div className="hall-scorer-heading"><span style={{ color: HALL_COLORS[goalPicker.team] }}><Goal size={22} aria-hidden /> {day.teams[goalPicker.team].name}</span><span>{hallClock(goalPicker.second)}</span></div>
+          <div className="hall-scorer-heading"><span style={{ color: HALL_COLORS[goalPicker.team] }}><Goal size={22} aria-hidden /> {day.teams[goalPicker.team].name}</span><span>{goalPicker.timeUnknown ? 'Nachgetragen' : hallClock(goalPicker.second)}</span></div>
           <h3>{goalPicker.goal === undefined ? 'Wer hat getroffen?' : 'Torschützen ergänzen'}</h3>
-          <p>{goalPicker.goal === undefined ? 'Torzeit ist vorgemerkt. Die Spieluhr läuft weiter.' : 'Spielstand und Torzeit bleiben erhalten.'}</p>
+          <p>{goalPicker.goal === undefined ? (day.games[goalPicker.game].status === 'finished' ? 'Tor nachtragen. Die ursprüngliche Torzeit ist nicht erfasst.' : 'Torzeit ist vorgemerkt. Die Spieluhr läuft weiter.') : 'Spielstand und Torzeit bleiben erhalten.'}</p>
           <button type="button" className="hall-match-button" aria-pressed={Boolean(goalPicker.ownGoal)} disabled={busy} onClick={() => setGoalPicker({ ...goalPicker, ownGoal: !goalPicker.ownGoal })}>Eigentor {goalPicker.ownGoal ? '✓' : ''}</button>
           {goalPicker.ownGoal ? <p>Eigentor des Gegners · zählt für {day.teams[goalPicker.team].name}. Kein Treffer in der Torschützenwertung.</p> : null}
           <div className="hall-scorer-options">{day.teams[goalPicker.ownGoal ? (day.games[goalPicker.game].home === goalPicker.team ? day.games[goalPicker.game].away : day.games[goalPicker.game].home) : goalPicker.team].playerIds.map(id => <button type="button" key={id} disabled={busy} onClick={() => void saveGoalScorer(id)}><span style={{ color: HALL_COLORS[goalPicker.team] }}><Shirt size={21} aria-hidden /></span>{names.get(id) ?? 'Spieler'}</button>)}</div>
@@ -331,6 +341,10 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
         <p className="text-[15px] text-white/60">Geplante Zeiten. Bei Verzögerungen startest du jedes Spiel selbst.</p>
         <div className="hall-match-fixtures">{day.games.map((g, i) => <details key={i} className="hall-match-fixture">
           <summary><span className="hall-fixture-number">{i + 1}</span><span className="hall-fixture-teams">{day.teams[g.home].name} – {day.teams[g.away].name}<small>{gameTime(i)} · {hallClock(hallGameSeconds(day, g))} Min. · {g.status === 'finished' ? 'Beendet' : g.status === 'running' ? 'Live' : g.status === 'paused' ? 'Pause' : 'Geplant'}</small></span><strong>{g.status !== 'pending' ? `${hallScore(g, g.home)}:${hallScore(g, g.away)}` : '–:–'}</strong></summary>
+          {!readOnly && g.status === 'finished' ? <div className="space-y-3 p-3">
+            <button type="button" className="hall-match-button w-full" aria-label={`Ergebnis von Spiel ${i + 1} korrigieren`} aria-expanded={correctingGame === i} disabled={busy || Boolean(goalPicker) || dirty || configDirty} onClick={() => setCorrectingGame(correctingGame === i ? null : i)}>{correctingGame === i ? 'Korrektur schließen' : 'Ergebnis korrigieren'}</button>
+            {correctingGame === i ? <><p className="text-[14px] text-white/60">Fehlendes Tor nachtragen oder ein falsches Tor unten entfernen. Tabelle und Torschützenliste passen sich automatisch an.</p><div className="flex flex-wrap gap-2">{[g.home, g.away].map(team => <button key={team} type="button" className="hall-match-button flex-1" disabled={busy || Boolean(goalPicker) || dirty || configDirty || g.goals.length >= 200} onClick={() => setGoalPicker({ game: i, team, second: 0, timeUnknown: true })}>+ Tor {day.teams[team].name}</button>)}</div></> : null}
+          </div> : null}
           {goalHistory(i)}
         </details>)}</div>
       </> : null}
