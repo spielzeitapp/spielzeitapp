@@ -48,4 +48,16 @@ const sessions = squad.buildSessionParticipations(rows, ['theo', 'healthy'], new
 assert.equal(sessions[0].counts.present, 2);
 assert.equal(sessions[1].counts.present, 1);
 assert.equal(sessions[1].counts.injured, 1);
+// Player history must expose the external session behind a 94% quote.
+const externalRows = Array.from({ length: 18 }, (_, i) => ({
+  id: `training-${i}`, starts_at: '2026-08-13T15:30:00Z', location: 'Sportplatz St.Veit', type: 'training',
+}));
+const externalHistory = loader.computeTrainingHistoryForPlayer(externalRows, new Map([['training-0', 'external_training']]), nowMs);
+assert.equal(externalHistory.stats.present, 17);
+assert.equal(externalHistory.stats.external, 1);
+assert.equal(externalHistory.stats.teamRatePct, 94);
+assert.equal(externalHistory.stats.activityRatePct, 100);
+assert.equal(externalHistory.sessions[0].status, 'external');
+assert.equal(externalHistory.sessions[0].location, 'Sportplatz St.Veit');
+assert.equal(externalHistory.sessions.length, 18);
 console.log('PASS: before/during/after training, stale yes, injury period, recovery, card counts, history, squad stats, data query');

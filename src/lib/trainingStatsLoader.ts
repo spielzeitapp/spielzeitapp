@@ -22,11 +22,13 @@ export async function fetchTrainingPlayerAvailability(
   }]));
 }
 
-export type PastTrainingEvent = { id: string; starts_at: string };
+export type PastTrainingEvent = { id: string; starts_at: string; location?: string | null; type?: string | null };
 
 export type PlayerTrainingSession = {
   eventId: string;
   startsAt: string;
+  location?: string | null;
+  trainingType?: string | null;
   status: TrainingAttendanceStatus;
 };
 
@@ -55,7 +57,7 @@ export async function fetchPastTrainingEvents(teamSeasonId: string): Promise<Pas
   const nowMs = Date.now();
   const { data: events, error } = await supabase
     .from('events')
-    .select('id, starts_at, kind, type, status')
+    .select('id, starts_at, kind, type, status, location')
     .eq('team_season_id', sid)
     .eq('kind', 'training')
     .lt('starts_at', nowIso)
@@ -68,6 +70,8 @@ export async function fetchPastTrainingEvents(teamSeasonId: string): Promise<Pas
     .map((row) => ({
       id: String((row as { id: string }).id),
       starts_at: String((row as { starts_at: string }).starts_at),
+      location: row.location,
+      type: row.type,
     }));
 }
 
@@ -98,6 +102,8 @@ export function computeTrainingHistoryForPlayer(
   const sessions = eventRows.map((ev) => ({
     eventId: ev.id,
     startsAt: ev.starts_at,
+    location: ev.location,
+    trainingType: ev.type,
     status: resolveTrainingAttendanceStatusForStats(
       attendanceByEventId.get(String(ev.id).toLowerCase()),
       ev.starts_at,
