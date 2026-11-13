@@ -1,4 +1,5 @@
 import { UscClubStart, USC_START_PHOTO } from "./UscClubStart";
+import { UscFanshop } from "./UscFanshop";
 import { UscClubLive } from "./UscClubLive";
 import { useUscLiveMatches } from "./uscLive";
 import { UscMainTeamFilter, useUscTeamSelection } from "./UscMainTeamFilter";
@@ -619,7 +620,15 @@ export function UscClubApp() {
     myTeams.seasons[0];
   const [menu, setMenu] = useState(false);
   const [install, setInstall] = useState(false);
-  const [clubSection, setClubSection] = useState("ueber");
+  const clubSection = params.get("section") || "ueber";
+  const setClubSection = (section: string) => setParams((previous) => {
+    const next = new URLSearchParams(previous);
+    next.set("tab", "verein");
+    next.set("section", section);
+    next.delete("event");
+    next.delete("liveMatch");
+    return next;
+  });
   const menuDialog = useRef<HTMLDialogElement>(null);
   const installDialog = useRef<HTMLDialogElement>(null);
   const setTab = (id: ClubTab) => {
@@ -646,7 +655,7 @@ export function UscClubApp() {
   }, [tab, season?.id]);
   const openClub = (section: string) => {
     setClubSection(section);
-    setTab("verein");
+    setMenu(false);
   };
   return (
     <div className="usc-app">
@@ -737,6 +746,7 @@ export function UscClubApp() {
           </>
         )}
         {tab === "verein" ? (
+          clubSection === "fanshop" ? <UscFanshop onBack={() => setClubSection("ueber")} /> :
           <section className="usc-club-section">
             <span className="usc-eyebrow">USC Rohrbach</span>
             <h1>Unser Verein.</h1>
