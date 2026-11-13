@@ -61,12 +61,12 @@ function formatActivityDetailLine(row: TrainingRankingRow): string {
   const { stats } = row;
   if (!hasTrainingActivityBasis(stats)) return 'Aktivität gesamt: Keine Trainingsbasis';
   const basis = getValuableTrainingCount(stats);
-  const numerator = stats.present + stats.external;
+  const numerator = stats.present + stats.external + (stats.otherTeam ?? 0);
   return `Aktivität gesamt: ${stats.activityRatePct} % · ${numerator} von ${basis}`;
 }
 
 function formatCompletedTrainings(row: TrainingRankingRow): string {
-  const completed = row.stats.present + row.stats.external;
+  const completed = row.stats.present + row.stats.external + (row.stats.otherTeam ?? 0);
   const basis = getValuableTrainingCount(row.stats);
   const unit = basis === 1 ? 'Training' : 'Trainings';
   return `${completed} von ${basis} ${unit} absolviert`;
@@ -279,7 +279,7 @@ function RankingCard({
       ) : (
         <>
           <p className="mt-2 whitespace-nowrap text-[12px] text-white/60">
-            Dabei {row.stats.present} · LAZ {row.stats.external} · Abwesend {row.stats.absent}
+            Dabei {row.stats.present} · LAZ {row.stats.external} · Andere Mannschaft {row.stats.otherTeam ?? 0} · Abwesend {row.stats.absent}
           </p>
           <p className="mt-1 text-[11px] leading-relaxed text-white/50">{formatTeamLine(row)}</p>
           <p className="text-[11px] leading-relaxed text-white/50">{formatActivityDetailLine(row)}</p>
@@ -341,7 +341,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({
             Trainingskaiser
           </SectionTitle>
           <p className="mt-1 text-[11px] leading-relaxed text-white/45">
-            Trainingskaiser bewertet Aktivität: Dabei + LAZ.
+            Trainingskaiser bewertet Aktivität: Dabei + LAZ + andere Mannschaft.
           </p>
           <TrainingStreakMetrics streak={EMPTY_TRAINING_STREAK} compact className="mt-3" />
         </>
@@ -405,7 +405,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({
                     </span>
                   </p>
                   <p className="mt-0.5 text-[11px] text-white/50">
-                    Auf Basis von {qualified.length} gewerteten Spielern (Dabei + LAZ + Abwesend)
+                    Auf Basis von {qualified.length} gewerteten Spielern (Dabei + LAZ + andere Mannschaft + Abwesend)
                   </p>
                   {seasonQuotePct != null ? (
                     <p className="mt-1.5 text-[12px] font-medium text-white/70">
@@ -540,7 +540,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({
             <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-2.5">
               <p className="text-[11px] leading-relaxed text-white/50">
                 {sessionsCount} vergangene Trainingseinheiten · Mindestbasis fürs Ranking: {minimumBasis} wertbare
-                Trainings (Dabei + LAZ + Abwesend). Krank und Verletzt zählen nicht in die Trainingsquoten.
+                Trainings (Dabei + LAZ + andere Mannschaft + Abwesend). Krank und Verletzt zählen nicht in die Trainingsquoten.
               </p>
             </GlassCard>
           ) : null}

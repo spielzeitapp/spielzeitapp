@@ -24,7 +24,8 @@ import { playerCardFamilyName, playerCardName, playerMedia } from '../team/TeamS
 type Props = {
   players: PlayerItem[];
   getStatus: (playerId: string) => TrainingAttendanceStatus;
-  onSetStatus: (playerId: string, status: TrainingAttendanceStatus) => void;
+  onSetStatus: (playerId: string, status: TrainingAttendanceStatus, note?: string) => void;
+  getNote?: (playerId: string) => string | undefined;
   loading?: boolean;
   className?: string;
   /** Archiv / Soft-Lock: Status anzeigen, keine Buttons. */
@@ -52,6 +53,7 @@ function statusTone(status: TrainingAttendanceStatus): PremiumStatusBadgeTone {
   if (status === 'sick') return 'sick';
   if (status === 'injured') return 'injured';
   if (status === 'external') return 'external';
+  if (status === 'other_team') return 'neutral';
   return 'present';
 }
 
@@ -65,6 +67,7 @@ const STAT_GRID_MAIN: {
   { key: 'sick', label: 'Krank', tone: 'sick' },
   { key: 'injured', label: 'Verletzt', tone: 'injured' },
   { key: 'external', label: 'LAZ', tone: 'external' },
+  { key: 'otherTeam', label: 'Andere Mannschaft', tone: 'neutral' },
   { key: 'participation', label: 'Beteiligung', tone: 'participation' },
 ];
 
@@ -108,13 +111,14 @@ const TRAINING_BADGE_CLASS =
 export const TrainingAttendancePanel: React.FC<Props> = ({
   players,
   getStatus,
+  getNote,
   onSetStatus,
   loading = false,
   className = '',
   readOnly = false,
 }) => {
-  const chooseStatus = (playerId: string, status: TrainingAttendanceStatus) => {
-    onSetStatus(playerId, status);
+  const chooseStatus = (playerId: string, status: TrainingAttendanceStatus, note?: string) => {
+    onSetStatus(playerId, status, note);
   };
   const counts = useMemo(() => {
     const statuses = players.map((p) => getStatus(p.id));
@@ -164,9 +168,9 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
             return (
               <li key={player.id} className="w-full min-w-0">
                 <MatchPlayerRow player={player} layout="team-roster" hideSubline
-                  nameStatus={<><PremiumStatusBadge label={trainingAttendanceLabel(status)} tone={status === 'open' || status === 'legacy_unknown' ? 'open' : statusTone(status)} className={TRAINING_BADGE_CLASS} />
+                  nameStatus={<><PremiumStatusBadge label={status === 'other_team' ? 'Anderes Team' : trainingAttendanceLabel(status)} tone={status === 'open' || status === 'legacy_unknown' ? 'open' : statusTone(status)} className={TRAINING_BADGE_CLASS} />{status === 'other_team' && getNote?.(player.id) ? <span className="block max-w-full truncate text-[11px] text-violet-200" title={getNote(player.id)}>{getNote(player.id)}</span> : null}
                     {(player.status ?? 'active') === 'paused' ? <span className="ml-1 text-[10px] text-amber-200">Pausiert</span> : null}</>}
-                  trailing={readOnly ? undefined : <AttendanceThumbControls name={playerName} status={status} isLaz={player.is_laz_player} onSelect={next => chooseStatus(player.id, next)} />}
+                  trailing={readOnly ? undefined : <AttendanceThumbControls allowOtherTeam name={playerName} status={status} isLaz={player.is_laz_player} onSelect={(next, note) => chooseStatus(player.id, next, note)} />}
                 />
               </li>
             );

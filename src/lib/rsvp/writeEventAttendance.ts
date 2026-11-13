@@ -1,11 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-type AttendanceStatus = 'yes' | 'no' | 'sick' | 'injured' | 'external_training';
+type AttendanceStatus = 'yes' | 'no' | 'sick' | 'injured' | 'other_team_training' | 'external_training';
 
 type EventAttendancePayload = {
   event_id: string;
   player_id: string;
   status: AttendanceStatus;
+  note?: string | null;
 };
 
 export async function upsertEventAttendanceMinimal(

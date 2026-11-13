@@ -87,6 +87,7 @@ import {
 import {
   resolveTrainingAttendanceStatus,
   trainingAttendanceToDb,
+  dbStatusToTrainingAttendance,
   type TrainingAttendanceStatus,
 } from '../lib/trainingAttendance';
 import { FinishedMatchAttendance } from '../components/match/FinishedMatchAttendance';
@@ -600,12 +601,12 @@ export const EventDetailPage: React.FC = () => {
   const [editCardType, setEditCardType] = useState<'yellow_card' | 'red_card'>('yellow_card');
   const [editCardPlayerId, setEditCardPlayerId] = useState('');
 
-  const [rsvpStatus, setRsvpStatus] = useState<'yes' | 'no' | 'sick' | 'injured' | 'external_training' | null>(null);
+  const [rsvpStatus, setRsvpStatus] = useState<'yes' | 'no' | 'sick' | 'injured' | 'other_team_training' | 'external_training' | null>(null);
   const [loadingRsvp, setLoadingRsvp] = useState(true);
   const [cancelReason, setCancelReason] = useState('');
   /** Für Trainer: alle Zu-/Absagen dieses Events aus event_attendance. */
   const [eventAttendanceByPlayerId, setEventAttendanceByPlayerId] = useState<
-    Record<string, 'yes' | 'no' | 'sick' | 'injured' | 'external_training'>
+    Record<string, 'yes' | 'no' | 'sick' | 'injured' | 'other_team_training' | 'external_training'>
   >({});
   const [eventAttendanceReasonByPlayerId, setEventAttendanceReasonByPlayerId] = useState<Record<string, string | null>>({});
   const [loadingEventAttendance, setLoadingEventAttendance] = useState(false);
@@ -1137,7 +1138,7 @@ export const EventDetailPage: React.FC = () => {
         const byPlayer =
           demo.getAttendanceByEventIds([eventId])[eventId]?.availabilityByPlayerId ?? {};
         const st = byPlayer[playerId.toLowerCase()] ?? byPlayer[playerId] ?? null;
-        if (st === 'yes' || st === 'no' || st === 'sick' || st === 'injured' || st === 'external_training') {
+        if (st === 'yes' || st === 'no' || st === 'sick' || st === 'injured' || st === 'other_team_training' || st === 'external_training') {
           setRsvpStatus(st);
         } else {
           setRsvpStatus(null);
@@ -1155,7 +1156,7 @@ export const EventDetailPage: React.FC = () => {
 
       if (!err && data) {
         const st = String(data.status ?? '').toLowerCase();
-        if (st === 'yes' || st === 'no' || st === 'sick' || st === 'injured' || st === 'external_training') {
+        if (st === 'yes' || st === 'no' || st === 'sick' || st === 'injured' || st === 'other_team_training' || st === 'external_training') {
           setRsvpStatus(st as 'yes' | 'no' | 'sick' | 'injured' | 'external_training');
         } else {
           setRsvpStatus(null);
@@ -1179,9 +1180,9 @@ export const EventDetailPage: React.FC = () => {
     if (isDemo && demo) {
       const byPlayer =
         demo.getAttendanceByEventIds([eventId])[eventId]?.availabilityByPlayerId ?? {};
-      const normalized: Record<string, 'yes' | 'no' | 'sick' | 'injured' | 'external_training'> = {};
+      const normalized: Record<string, 'yes' | 'no' | 'sick' | 'injured' | 'other_team_training' | 'external_training'> = {};
       for (const [pid, st] of Object.entries(byPlayer)) {
-        if (st === 'yes' || st === 'no' || st === 'sick' || st === 'injured' || st === 'external_training') {
+        if (st === 'yes' || st === 'no' || st === 'sick' || st === 'injured' || st === 'other_team_training' || st === 'external_training') {
           normalized[pid.toLowerCase()] = st;
         }
       }
@@ -1192,19 +1193,21 @@ export const EventDetailPage: React.FC = () => {
     }
     const { data, error: err } = await supabase
       .from('event_attendance')
-      .select('player_id, status')
+      .select('player_id, status, note')
       .eq('event_id', eventId);
     if (!err && data) {
-        const byPlayer: Record<string, 'yes' | 'no' | 'sick' | 'injured' | 'external_training'> = {};
-        for (const row of data as { player_id: string; status: string }[]) {
+        const notes: Record<string, string> = {};
+        const byPlayer: Record<string, 'yes' | 'no' | 'sick' | 'injured' | 'other_team_training' | 'external_training'> = {};
+        for (const row of data as { player_id: string; status: string; note?: string }[]) {
           const pid = (row.player_id ?? '').toLowerCase();
           const st = String(row.status ?? '').toLowerCase();
-          if (st === 'yes' || st === 'no' || st === 'sick' || st === 'injured' || st === 'external_training') {
-            byPlayer[pid] = st as 'yes' | 'no' | 'sick' | 'injured' | 'external_training';
+          if (row.note) notes[pid] = row.note;
+          if (st === 'yes' || st === 'no' || st === 'sick' || st === 'injured' || st === 'other_team_training' || st === 'external_training') {
+            byPlayer[pid] = st as 'yes' | 'no' | 'sick' | 'injured' | 'other_team_training' | 'external_training';
           }
         }
         setEventAttendanceByPlayerId(byPlayer);
-        setEventAttendanceReasonByPlayerId({});
+        setEventAttendanceReasonByPlayerId(notes);
       } else {
         setEventAttendanceByPlayerId({});
         setEventAttendanceReasonByPlayerId({});
@@ -1217,8 +1220,8 @@ export const EventDetailPage: React.FC = () => {
   }, [loadEventAttendance]);
 
   const handleRsvp = useCallback(
-    async (status: 'yes' | 'no' | 'sick' | 'injured' | 'external_training', _reason?: string) => {
-      const shouldResetToOpen = rsvpStatus === status;
+    async (status: 'yes' | 'no' | 'sick' | 'injured' | 'other_team_training' | 'external_training', _reason?: string) => {
+      const shouldResetToOpen = rsvpStatus === status && status !== 'other_team_training';
       console.log('[ATTENDANCE FLOW] handleRsvp invoked', {
         caller: 'EventDetailPage.handleRsvp',
         table: isDemo ? 'demo-local' : 'event_attendance',
@@ -1307,6 +1310,7 @@ export const EventDetailPage: React.FC = () => {
         event_id: eventId,
         player_id: resolvedPlayerId,
         status,
+        note: status === 'other_team_training' ? (_reason?.trim() || null) : null,
       };
       console.log('[ATTENDANCE FLOW] upsert request', {
         table: 'event_attendance',
@@ -1440,7 +1444,7 @@ export const EventDetailPage: React.FC = () => {
   );
 
   const handleTrainerTrainingStatus = useCallback(
-    async (targetPlayerId: string, next: TrainingAttendanceStatus) => {
+    async (targetPlayerId: string, next: TrainingAttendanceStatus, note?: string) => {
       if (!eventId || !canTrainerManageEvent) return;
       const pidKey = (targetPlayerId ?? '').toLowerCase();
       const dbStatus = trainingAttendanceToDb(next);
@@ -1477,6 +1481,7 @@ export const EventDetailPage: React.FC = () => {
           event_id: eventId,
           player_id: targetPlayerId,
           status: dbStatus,
+          note: next === 'other_team' ? (note ?? null) : null,
         });
         if (result.error) return;
         setEventAttendanceByPlayerId((prev) => ({ ...prev, [pidKey]: dbStatus }));
@@ -3954,9 +3959,10 @@ export const EventDetailPage: React.FC = () => {
       <TrainingAttendancePanel
         players={players}
         getStatus={getTrainingAttendanceStatus}
-        onSetStatus={(playerId, status) => {
+        getNote={playerId => eventAttendanceReasonByPlayerId[playerId.toLowerCase()] ?? undefined}
+        onSetStatus={(playerId, status, note) => {
           if (!canTrainerManageEvent) return;
-          void handleTrainerTrainingStatus(playerId, status);
+          void handleTrainerTrainingStatus(playerId, status, note);
         }}
         loading={playersLoading || loadingEventAttendance}
         readOnly={!canTrainerManageEvent}
@@ -4513,7 +4519,7 @@ export const EventDetailPage: React.FC = () => {
                   <TrainingAttendancePanel
                     players={players}
                     getStatus={getTrainingAttendanceStatus}
-                    onSetStatus={(playerId, status) => void handleTrainerTrainingStatus(playerId, status)}
+                    getNote={playerId => eventAttendanceReasonByPlayerId[playerId.toLowerCase()] ?? undefined} onSetStatus={(playerId, status, note) => void handleTrainerTrainingStatus(playerId, status, note)}
                     loading={playersLoading || loadingEventAttendance}
                     className="-mx-1 min-w-0 pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))] sm:-mx-1.5"
                   />
@@ -4624,10 +4630,18 @@ export const EventDetailPage: React.FC = () => {
                             ? 'Absage jederzeit möglich.'
                             : 'Absage bis 12:00 Uhr am Trainingstag möglich (Europe/Vienna).'}
                         </p>
+                        {rsvpStatus === 'other_team_training' ? <p className="text-[14px] text-violet-200">Training bei anderer Mannschaft · Einheit angerechnet</p> : null}
+                        <details className="rounded-xl border border-white/15 p-3">
+                          <summary className="min-h-11 cursor-pointer text-[15px] font-bold">Training bei anderer Mannschaft</summary>
+                          <label className="block text-[14px]">Mannschaft / Hinweis<input maxLength={80} placeholder="z. B. U13 · Fahrgemeinschaft" value={cancelReason} onChange={e => setCancelReason(e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/20 bg-black/40 px-3 text-white" /></label>
+                          <p className="my-2 text-[13px] text-white/65">Beim eigenen Team abwesend, Trainingseinheit wird wie LAZ angerechnet.</p>
+                          <button type="button" disabled={!trainingCancellationAllowed || !cancelReason.trim()} className="sz-club-event-action min-h-12 w-full rounded-full border disabled:opacity-40" onClick={() => void handleRsvp('other_team_training', cancelReason)}>Andere Mannschaft speichern</button>
+                        </details>
                         {!trainingCancellationAllowed &&
                         rsvpStatus !== 'no' &&
                         rsvpStatus !== 'sick' &&
                         rsvpStatus !== 'injured' &&
+                        rsvpStatus !== 'other_team_training' &&
                         rsvpStatus !== 'external_training' ? (
                           <p className="mt-1 text-[12px] text-amber-200/90">Absagefrist ist vorbei – Teilnahme gilt als „Dabei“.</p>
                         ) : null}

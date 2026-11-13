@@ -1287,14 +1287,14 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     </div>
                     <p className="mt-3 text-[11px] leading-snug text-white/45 [hyphens:none]">
                       {trainingsPresent} Dabei · {trainingsAbsent} Abwesend · {trainingsSick} Krank ·{" "}
-                      {trainingsInjured} Verletzt · {trainingsExternal} LAZ
+                      {trainingsInjured} Verletzt · {trainingsExternal} LAZ · {trainingStats.otherTeam ?? 0} Andere Mannschaft
                     </p>
                     <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                       <SeasonMiniCell label="Dabei" value={String(trainingsPresent)} />
                       <SeasonMiniCell label="Abwesend" value={String(trainingsAbsent)} />
                       <SeasonMiniCell label="Krank" value={String(trainingsSick)} />
                       <SeasonMiniCell label="Verletzt" value={String(trainingsInjured)} />
-                      <SeasonMiniCell label="LAZ" value={String(trainingsExternal)} />
+                      <SeasonMiniCell label="LAZ" value={String(trainingsExternal)} /><SeasonMiniCell label="Andere Mannschaft" value={String(trainingStats.otherTeam ?? 0)} />
                     </div>
                     <p className="mt-2.5 text-[11px] leading-relaxed text-white/45 [hyphens:none]">
                       Trainingsquote: Dabei / (Dabei + Abwesend). Krank, verletzt und LAZ zählen neutral.
