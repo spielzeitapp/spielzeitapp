@@ -87,13 +87,13 @@ function UploadSection({
     <div className="flex items-start gap-3 rounded-xl border border-white/[0.07] bg-white/[0.025] p-3">
       <RoundPreview src={preview} initials={initials} shape={previewShape} />
       <div className="min-w-0 flex-1 pt-0.5">
-        <p className="text-[13px] font-semibold text-white/88">{label}</p>
-        <p className="mt-0.5 text-[11px] leading-snug text-white/45">{hint}</p>
+        <p className="text-[15px] font-bold text-white/88">{label}</p>
+        <p className="mt-0.5 text-[12px] leading-snug text-white/45">{hint}</p>
         <AppButton
           type="button"
           variant="secondary"
           size="sm"
-          className="mt-2"
+          className="mt-2 !min-h-11 !rounded-full !px-4 !text-[14px]"
           disabled={disabled}
           onClick={onPick}
         >
@@ -158,15 +158,15 @@ export const ProfileImageUploadFields: React.FC<Props> = ({
   return (
     <div className="flex flex-col gap-2.5">
       {mode === "create" ? (
-        <p className="text-[11px] leading-snug text-white/40">
-          Profilbilder nach dem Anlegen im Bearbeiten-Dialog hochladen.
+        <p className="text-[12px] leading-snug text-white/40">
+          Fotos kannst du nach dem Speichern ergänzen.
         </p>
       ) : null}
 
       <UploadSection
-        label="Rundes Listenbild"
-        hint="JPG/PNG/WebP · max. 3 MB · Teamliste & Feed"
-        buttonLabel="Avatar hochladen"
+        label="Listenbild"
+        hint="Rundes Foto für Teamliste und Beiträge"
+        buttonLabel="Listenbild wählen"
         uploading={avatarUploading}
         disabled={uploadDisabled}
         preview={avatarPreviewSrc}
@@ -183,9 +183,9 @@ export const ProfileImageUploadFields: React.FC<Props> = ({
       />
 
       <UploadSection
-        label="Profil-Hero Bild"
-        hint="JPG/PNG/WebP · max. 3 MB · Freistellung für Stadion-Hero"
-        buttonLabel="Freigestelltes Bild hochladen"
+        label="Spielerfoto"
+        hint="Freigestelltes Foto für die Spielerkarte"
+        buttonLabel="Spielerfoto wählen"
         uploading={cutoutUploading}
         disabled={uploadDisabled}
         preview={cutoutPreviewSrc}
