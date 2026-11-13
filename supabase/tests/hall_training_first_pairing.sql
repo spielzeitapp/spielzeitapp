@@ -1,0 +1,72 @@
+-- Execute inside a transaction after the migration; no fixtures survive rollback.
+create temporary table hall_fixture(staff uuid, outsider uuid, parent_user uuid, season uuid, event uuid, normal_event uuid, state jsonb);
+grant select on hall_fixture to authenticated;
+do $$
+declare staff uuid:=gen_random_uuid(); outsider uuid:=gen_random_uuid(); parent_user uuid:=gen_random_uuid(); sid uuid:=gen_random_uuid(); eid uuid:=gen_random_uuid(); normal uuid:=gen_random_uuid(); s jsonb:= '{"version":1,"teams":[{"name":"Rot","playerIds":[]},{"name":"Blau","playerIds":[]},{"name":"Gelb","playerIds":[]}],"format":2,"total":3600,"pause":120,"target":480,"cycles":2,"seconds":500,"buffer":0,"games":[{"home":0,"away":1,"status":"pending","elapsed":0,"runningSince":null,"goals":[]},{"home":0,"away":2,"status":"pending","elapsed":0,"runningSince":null,"goals":[]},{"home":1,"away":2,"status":"pending","elapsed":0,"runningSince":null,"goals":[]},{"home":0,"away":1,"status":"pending","elapsed":0,"runningSince":null,"goals":[]},{"home":0,"away":2,"status":"pending","elapsed":0,"runningSince":null,"goals":[]},{"home":1,"away":2,"status":"pending","elapsed":0,"runningSince":null,"goals":[]}]}'::jsonb; ids uuid[]:=array[]::uuid[]; pid uuid; i integer;
+begin
+ insert into auth.users(id,email) values(staff,staff::text||'@hall-test.invalid'),(outsider,outsider::text||'@hall-test.invalid'),(parent_user,parent_user::text||'@hall-test.invalid');
+ insert into public.team_seasons(id,status) values(sid,'active');
+ insert into public.memberships(user_id,team_season_id,role) values(staff,sid,'trainer'),(parent_user,sid,'parent');
+ insert into public.events(id,team_season_id,kind,type,notes,starts_at) values(eid,sid,'training','training','Hallentraining',now()),(normal,sid,'training','training','Training',now());
+ for i in 0..5 loop pid:=gen_random_uuid();ids:=array_append(ids,pid);insert into public.players(id,team_season_id) values(pid,sid);end loop;
+ for i in 0..2 loop s:=jsonb_set(s,array['teams',i::text,'playerIds'],to_jsonb(ids[i*2+1:i*2+2]));end loop;
+ select jsonb_set(s,'{games}',jsonb_agg(jsonb_set(jsonb_set(g,'{home}',to_jsonb(case (g->>'home')::int when 1 then 2 when 2 then 1 else 0 end)),'{away}',to_jsonb(case (g->>'away')::int when 1 then 2 when 2 then 1 else 0 end)) order by ord)) into s from jsonb_array_elements(s->'games') with ordinality x(g,ord);
+ insert into hall_fixture values(staff,outsider,parent_user,sid,eid,normal,s);
+end $$;
+set local role authenticated;
+select set_config('request.jwt.claim.sub',(select staff::text from hall_fixture),true);
+do $$
+declare f record; v integer; bad jsonb;
+begin
+ select * into f from hall_fixture;
+ v:=public.save_hall_training_day(f.event,f.state,0);if v<>1 then raise exception 'initial save failed';end if;
+ v:=public.save_hall_training_day(f.event,f.state,1);if v<>2 then raise exception 'repeat save failed';end if;
+ begin perform public.save_hall_training_day(f.event,f.state,1);raise exception 'Expected rejection';exception when others then if sqlerrm='Expected rejection' or sqlerrm not like '%neu laden%' then raise;end if;end;
+ begin perform public.save_hall_training_day(f.normal_event,f.state,0);raise exception 'Expected rejection';exception when others then if sqlerrm='Expected rejection' then raise;end if;end;
+ bad:=jsonb_set(f.state,'{format}','1');
+ begin perform public.save_hall_training_day(f.event,bad,2);raise exception 'Expected rejection';exception when others then if sqlerrm='Expected rejection' then raise;end if;end;
+ bad:=jsonb_set(f.state,'{seconds}','2000');
+ begin perform public.save_hall_training_day(f.event,bad,2);raise exception 'Expected rejection';exception when others then if sqlerrm='Expected rejection' then raise;end if;end;
+ bad:=jsonb_set(f.state,'{teams,1,playerIds,0}',f.state#>'{teams,0,playerIds,0}');
+ begin perform public.save_hall_training_day(f.event,bad,2);raise exception 'Expected rejection';exception when others then if sqlerrm='Expected rejection' then raise;end if;end;
+ bad:=jsonb_set(f.state,'{teams,1,playerIds,0}',to_jsonb(gen_random_uuid()::text));
+ begin perform public.save_hall_training_day(f.event,bad,2);raise exception 'Expected rejection';exception when others then if sqlerrm='Expected rejection' then raise;end if;end;
+ bad:=jsonb_set(f.state,'{games,0,home}','2');
+ begin perform public.save_hall_training_day(f.event,bad,2);raise exception 'Expected rejection';exception when others then if sqlerrm='Expected rejection' then raise;end if;end;
+ bad:=jsonb_set(jsonb_set(f.state,'{games,0,status}','"running"'),'{games,0,runningSince}',to_jsonb(extract(epoch from clock_timestamp())*1000));
+ v:=public.save_hall_training_day(f.event,bad,2);if v<>3 then raise exception 'start failed';end if;
+ bad:=jsonb_set(jsonb_set(bad,'{games,1,status}','"running"'),'{games,1,runningSince}',to_jsonb(extract(epoch from clock_timestamp())*1000));
+ begin perform public.save_hall_training_day(f.event,bad,3);raise exception 'Expected rejection';exception when others then if sqlerrm='Expected rejection' then raise;end if;end;
+ bad:=jsonb_set(jsonb_set(jsonb_set(f.state,'{games,0,status}','"finished"'),'{games,0,elapsed}','500'),'{games,0,goals}','[{"team":0,"second":10}]');
+ v:=public.save_hall_training_day(f.event,bad,3);if v<>4 then raise exception 'finish failed';end if;
+ if (select count(*) from public.hall_training_days where event_id=f.event)<>1 then raise exception 'staff read failed';end if;
+end $$;
+select set_config('request.jwt.claim.sub',(select outsider::text from hall_fixture),true);
+do $$ declare f record;begin select * into f from hall_fixture;if exists(select 1 from public.hall_training_days where event_id=f.event) then raise exception 'outsider leaked';end if;
+ begin perform public.save_hall_training_day(f.event,f.state,0);raise exception 'Expected rejection';exception when others then if sqlerrm='Expected rejection' then raise;end if;end;
+end $$;
+select set_config('request.jwt.claim.sub',(select parent_user::text from hall_fixture),true);
+do $$ declare f record;begin select * into f from hall_fixture;if exists(select 1 from public.hall_training_days where event_id=f.event) then raise exception 'parent leaked';end if;
+ begin perform public.save_hall_training_day(f.event,f.state,0);raise exception 'Expected rejection';exception when others then if sqlerrm='Expected rejection' then raise;end if;end;
+end $$;
+select set_config('request.jwt.claim.sub',(select staff::text from hall_fixture),true);
+select set_config('request.jwt.claims','{"is_anonymous":true}',true);
+do $$ declare f record;begin select * into f from hall_fixture;
+ if exists(select 1 from public.hall_training_days where event_id=f.event) then raise exception 'anonymous Auth session leaked';end if;
+ begin perform public.save_hall_training_day(f.event,f.state,0);raise exception 'Expected rejection';exception when others then if sqlerrm='Expected rejection' then raise;end if;end;
+end $$;
+select set_config('request.jwt.claims','{"is_anonymous":false}',true);
+reset role;
+update public.team_seasons set status='archived' where id=(select season from hall_fixture);
+set local role authenticated;
+select set_config('request.jwt.claim.sub',(select staff::text from hall_fixture),true);
+do $$ declare f record;begin select * into f from hall_fixture;if (select count(*) from public.hall_training_days where event_id=f.event)<>1 then raise exception 'archive read failed';end if;
+ begin perform public.save_hall_training_day(f.event,f.state,4);raise exception 'Expected rejection';exception when others then if sqlerrm='Expected rejection' then raise;end if;end;
+end $$;
+reset role;
+set local role anon;
+do $$begin
+ begin perform count(*) from public.hall_training_days;raise exception 'Expected rejection';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+select 'PASS hall training: staff create/update/read, valid clock/finish, stale revision, invalid timing/pairings/roster, normal training blocked, outsider/parent/anon denied, archive write blocked' as result;

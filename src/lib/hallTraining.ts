@@ -73,3 +73,15 @@ export function hallScorers(day: HallDay) {
   const sorted = [...players.values()].sort((a, b) => b.goals - a.goals || a.name.localeCompare(b.name, 'de-AT'));
   return { unassigned, players: sorted.map((row, index) => ({ ...row, rank: sorted.findIndex(other => other.goals === row.goals) + 1 })) };
 }
+
+/** Relabel schedule slots before kickoff; teams, rosters and per-slot times stay intact. */
+export function withHallFirstPairing(day: HallDay, home: number, away: number): HallDay {
+  const n = day.teams.length;
+  if (day.games.some(game => game.status !== 'pending')) throw new Error('Erste Begegnung nur vor dem ersten Anpfiff ändern.');
+  if (!Number.isInteger(home) || !Number.isInteger(away) || home < 0 || away < 0 || home >= n || away >= n || home === away || !day.games.length) throw new Error('Bitte zwei verschiedene Teams wählen.');
+  const first = day.games[0];
+  const mapping = new Map<number, number>([[first.home, home], [first.away, away]]);
+  const remaining = Array.from({ length: n }, (_, i) => i).filter(i => i !== home && i !== away);
+  for (let i = 0; i < n; i++) if (!mapping.has(i)) mapping.set(i, remaining.shift()!);
+  return { ...day, games: day.games.map(game => ({ ...game, home: mapping.get(game.home)!, away: mapping.get(game.away)! })) };
+}

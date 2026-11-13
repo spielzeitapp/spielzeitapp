@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Lock, Play, Pause, Shirt, Undo2, Volume2, VolumeX, Goal, Trophy, Crown, Clock3 } from 'lucide-react';
 import { Modal } from '../../app/ui/Modal';
 import { useDemoMode } from '../../demo/DemoContext';
-import { hallGameSeconds, hallPlanSeconds, withHallGameDuration, hallScorers, calculateHallSchedule, createHallDay, hallClock, hallElapsed, hallReady, hallScore, hallStandings, HALL_COLORS, HALL_NAMES, type HallDay } from '../../lib/hallTraining';
+import { withHallFirstPairing, hallGameSeconds, hallPlanSeconds, withHallGameDuration, hallScorers, calculateHallSchedule, createHallDay, hallClock, hallElapsed, hallReady, hallScore, hallStandings, HALL_COLORS, HALL_NAMES, type HallDay } from '../../lib/hallTraining';
 import { loadHallDay, saveHallDay } from '../../lib/hallTrainingStore';
 import { TC_CARD } from '../tournament/tournamentCenterStyles';
 import './hallMatchScreen.css';
@@ -118,6 +118,19 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
     setCount(nextCount);
     setDay(previous => ({ ...previous, teams: Array.from({ length: nextCount }, (_, i) => previous.teams[i] ?? { name: HALL_NAMES[i], playerIds: [] }) }));
   };
+  const firstPairingControl = !started && !readOnly ? <div className="space-y-2 rounded-xl border border-white/10 p-3">
+    <label className="block text-[15px] font-semibold text-white/80">Erste Begegnung wählen
+      <select aria-label="Erste Begegnung wählen" className={`${input} mt-2`} value={`${day.games[0]?.home}-${day.games[0]?.away}`} disabled={busy || loading || dirty || configDirty || !saved} onChange={e => {
+        const [home, away] = e.target.value.split('-').map(Number);
+        if (busy || loading || dirty || configDirty || !saved || started) return;
+        void persist(withHallFirstPairing(day, home, away));
+      }}>{day.teams.flatMap((team, home) => day.teams.filter((_, away) => away !== home).map(other => {
+        const away = day.teams.indexOf(other);
+        return <option key={`${home}-${away}`} value={`${home}-${away}`}>{team.name} – {other.name}</option>;
+      }))}</select>
+    </label>
+    <p className="text-[13px] leading-relaxed text-white/55">Alle weiteren Paarungen werden automatisch angepasst. Teams und Spielzeiten bleiben erhalten.{!saved || dirty || configDirty ? ' Bitte zuerst Planung und Mannschaften speichern.' : ''}</p>
+  </div> : null;
   const assign = (id: string, team: number) => setDay(prev => ({ ...prev, teams: prev.teams.map((t, i) => ({ ...t, playerIds: [...t.playerIds.filter(x => x !== id), ...(i === team ? [id] : [])] })) }));
   const activeIndex = day.games.findIndex(g => g.status === 'running' || g.status === 'paused');
   const nextIndex = day.games.findIndex(g => g.status === 'pending');
@@ -230,6 +243,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
           {preview ? <p className="text-[16px] leading-relaxed text-white/80">{preview.count} Spiele à <strong>{hallClock(preview.seconds)} Min.</strong> · {preview.cycles} Durchgänge<br />Jedes Team: {preview.gamesPerTeam} Spiele · {hallClock(preview.playPerTeam)} Min. Spielzeit<br />{preview.count - 1} Wechselpausen à {hallClock(pause * 60)} Min.{preview.buffer ? ` · ${hallClock(preview.buffer)} Min. Restpuffer` : ''}</p> : <p role="alert" className="text-red-200">{calculationError}</p>}
           <button type="button" disabled={!preview} className={`${button} w-full`} onClick={() => void generate()}>{saved ? 'Zeitplanung übernehmen' : 'Spielplan erstellen & speichern'}</button>
         </fieldset>
+        {firstPairingControl}
         {day.games.some(game => game.seconds !== undefined) ? <p className="text-[15px] text-white/60">Individuelle Spielzeiten stehen im Spielplan. Dadurch kann die Gesamtspielzeit der Teams unterschiedlich sein.</p> : null}
         {started ? <p className="text-[15px] text-white/60">Zeitplanung und Teamanzahl bleiben fest. Spieler und Teamnamen kannst du zwischen den Spielen ändern; bisherige Ergebnisse bleiben bei den Teams.</p> : null}
         <div className="grid grid-cols-2 gap-2">{day.teams.map((team, i) => <div key={i} className={`${TC_CARD} p-3`}><label className="flex items-center gap-2"><Shirt className="h-6 w-6 shrink-0" style={{ color: HALL_COLORS[i] }} aria-hidden /><span className="sr-only">Name Team {i + 1}</span><input className={`${input} min-w-0 px-2 font-bold`} maxLength={32} disabled={readOnly || teamsLocked || busy} value={team.name} onChange={e => setDay(prev => ({ ...prev, teams: prev.teams.map((t, n) => n === i ? { ...t, name: e.target.value } : t) }))} /></label><p className="mt-2 text-[15px] text-white/65">{team.playerIds.length} Spieler {team.playerIds.length > day.format ? '· mit Wechselspielern' : ''}</p><p className="mt-1 break-words text-[15px] text-white/80">{team.playerIds.map(id => names.get(id) ?? 'Nicht mehr im Kader').join(' · ') || 'Noch keine Spieler'}</p></div>)}</div>
@@ -294,6 +308,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
         {nextIndex >= 0 && activeIndex < 0 ? <div className="hall-next-match">
           <span className="hall-match-eyebrow">NÄCHSTES SPIEL · {nextIndex + 1} / {day.games.length}</span>
           <h3>{day.teams[day.games[nextIndex].home].name} <span>–</span> {day.teams[day.games[nextIndex].away].name}</h3>
+          {firstPairingControl}
           {!readOnly ? <div className="hall-duration-editor">
             <label htmlFor="hall-game-minutes"><Clock3 size={16} aria-hidden />Spielzeit vor Anpfiff</label>
             <div className="hall-duration-fields">
