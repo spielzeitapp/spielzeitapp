@@ -25,6 +25,7 @@ try {
  const g=day.games[0];g.status='running';g.runningSince=10000;g.elapsed=15;assert.equal(h.hallElapsed(g,500,20000),25);assert.equal(h.hallElapsed(g,500,1e9),500);g.status='paused';assert.equal(h.hallElapsed(g,500,1e9),15);
  g.goals=[{team:0,second:4},{team:1,second:7},{team:0,second:9}];assert.equal(h.hallScore(g,0),2);assert(h.hallStandings(day).every(t=>t.played===0));g.status='finished';assert.equal(h.hallStandings(day)[0].points,3);g.goals.pop();assert.equal(h.hallStandings(day)[0].points,1);assert.equal(h.hallClock(500),'8:20');
 
+ const own=h.createHallDay();own.games[0].status='finished';own.games[0].goals=[{team:0,second:2,ownGoal:true,scorerId:'opponent',scorerName:'Own goal'}];assert.equal(h.hallScore(own.games[0],0),1);assert.equal(h.hallScorers(own).players.length,0);assert.equal(h.hallScorers(own).unassigned,0);
  const custom=h.createHallDay();const longer=h.withHallGameDuration(custom,0,620);assert.equal(h.hallGameSeconds(longer,longer.games[0]),620);assert.equal(h.hallGameSeconds(longer,longer.games[1]),500);assert.equal(h.hallPlanSeconds(longer),3720);assert.equal(longer.buffer,0);assert.equal(custom.games[0].seconds,undefined,'immutable duration update');
  const shorter=h.withHallGameDuration(custom,1,300);assert.equal(h.hallPlanSeconds(shorter),3400);assert.equal(shorter.buffer,200);
  for(const invalid of [0,59,1801,61.5,NaN])assert.throws(()=>h.withHallGameDuration(custom,0,invalid));

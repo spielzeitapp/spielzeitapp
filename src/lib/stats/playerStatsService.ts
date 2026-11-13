@@ -185,7 +185,7 @@ function goalsInMatchForPlayer(events: EventRow[], playerId: string): number {
   for (const e of events) {
     if (String(e.player_id ?? '').trim() !== playerId) continue;
     const t = String(e.type ?? '').toLowerCase();
-    if (t === 'goal' || t === 'goal_away') n += 1;
+    if ((t === 'goal' || t === 'goal_away') && !(e.payload as { own_goal?: boolean } | null)?.own_goal) n += 1;
   }
   return n;
 }

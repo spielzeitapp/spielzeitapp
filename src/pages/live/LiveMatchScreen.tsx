@@ -1879,7 +1879,7 @@ export const LiveMatchScreen: React.FC = () => {
       eventsSortedAsc
         .filter((ev) => ev.type === (sides.isOwnTeamHome ? 'goal' : 'goal_away'))
         .map((ev) => ({
-          name: ev.playerId ? rosterById.get(ev.playerId)?.name?.trim() || 'Ohne Torschütze' : 'Ohne Torschütze',
+          name: ev.ownGoal ? 'Eigentor des Gegners' : ev.playerId ? rosterById.get(ev.playerId)?.name?.trim() || 'Ohne Torschütze' : 'Ohne Torschütze',
           minute: `${displayMatchMinuteFromEffectiveSeconds(ev.timestamp)}′`,
         })),
     [eventsSortedAsc, rosterById, sides.isOwnTeamHome],
@@ -3957,7 +3957,7 @@ export const LiveMatchScreen: React.FC = () => {
   );
 
   const eventLabel = (ev: MatchEngineEvent): string => {
-    const name = ev.playerId ? rosterById.get(ev.playerId)?.name : undefined;
+    const name = ev.ownGoal ? 'Eigentor' : ev.playerId ? rosterById.get(ev.playerId)?.name : undefined;
     switch (ev.type) {
       case 'start':
         return 'Anpfiff';
@@ -4000,7 +4000,7 @@ export const LiveMatchScreen: React.FC = () => {
   };
 
   const parentLiveEventDescription = (ev: MatchEngineEvent): string => {
-    const name = ev.playerId ? rosterById.get(ev.playerId)?.name : undefined;
+    const name = ev.ownGoal ? 'Eigentor' : ev.playerId ? rosterById.get(ev.playerId)?.name : undefined;
     switch (ev.type) {
       case 'start':
         return ev.timestamp === 0 ? 'Anpfiff' : 'Weiter im Spiel';
@@ -4138,7 +4138,7 @@ export const LiveMatchScreen: React.FC = () => {
                   ) : null}
                 </p>
               ) : (
-                <p className="mt-0.5 text-xs font-medium text-gray-400">Ohne Torschütze</p>
+                <p className="mt-0.5 text-xs font-medium text-gray-400">{ev.ownGoal ? 'Eigentor' : 'Ohne Torschütze'}</p>
               )}
             </>
           ) : isAwayGoal ? (
@@ -4160,7 +4160,7 @@ export const LiveMatchScreen: React.FC = () => {
                   ) : null}
                 </p>
               ) : (
-                <p className="mt-0.5 text-xs font-medium text-gray-400">Ohne Torschütze</p>
+                <p className="mt-0.5 text-xs font-medium text-gray-400">{ev.ownGoal ? 'Eigentor' : 'Ohne Torschütze'}</p>
               )}
             </>
           ) : isPosSwap ? (
@@ -4320,13 +4320,13 @@ export const LiveMatchScreen: React.FC = () => {
     };
     const openGoalEdit = () => {
       setEditingGoalEvent(ev);
-      setEditingGoalScorerId(ev.playerId ?? '');
+      setEditingGoalScorerId(ev.ownGoal ? '__own_goal__' : ev.playerId ?? '');
       setEditingGoalSaving(false);
       setSaveError(null);
     };
     const openTickerEdit = canEditPositionSwap ? openPositionSwapEdit : openGoalEdit;
     const isTickerGoal = ev.type === 'goal' || ev.type === 'goal_away';
-    const scorer = ev.playerId ? rosterById.get(ev.playerId)?.name : null;
+    const scorer = ev.ownGoal ? 'Eigentor' : ev.playerId ? rosterById.get(ev.playerId)?.name : null;
     const score = isTickerGoal ? goalScoreBadgeByEventId.get(ev.id) : null;
     return (
       <div
@@ -4629,7 +4629,7 @@ export const LiveMatchScreen: React.FC = () => {
                         {rosterById.get(ev.playerId)?.name ?? '?'}
                       </p>
                     ) : (
-                      <p className="text-[11px] text-gray-500">Ohne Torschütze</p>
+                      <p className="text-[11px] text-gray-500">{ev.ownGoal ? 'Eigentor' : 'Ohne Torschütze'}</p>
                     )}
                   </>
                 ) : ev.type === 'goal_away' ? (
@@ -4642,7 +4642,7 @@ export const LiveMatchScreen: React.FC = () => {
                         {rosterById.get(ev.playerId)?.name ?? '?'}
                       </p>
                     ) : (
-                      <p className="text-[11px] text-gray-500">Ohne Torschütze</p>
+                      <p className="text-[11px] text-gray-500">{ev.ownGoal ? 'Eigentor' : 'Ohne Torschütze'}</p>
                     )}
                   </>
                 ) : ev.type === 'position_swap' ? (
@@ -4977,25 +4977,8 @@ export const LiveMatchScreen: React.FC = () => {
                                 setSaveError(goalBlockedMessage);
                                 return;
                               }
-                              if (sides.isOwnTeamHome) {
-                                setHomeGoalPickId('');
-                                setHomeGoalModalOpen(true);
-                                return;
-                              }
-                              void (async () => {
-                                const before = recomputeScoresFromEvents(events);
-                                const res = await persistSingle({
-                                  type: 'goal',
-                                  timestamp: currentMatchSeconds,
-                                });
-                                if (!res.ok || !res.savedId) return;
-                                offerGoalUndo({
-                                  eventId: res.savedId,
-                                  side: 'home',
-                                  prevHome: before.home,
-                                  prevAway: before.away,
-                                });
-                              })();
+                              setHomeGoalPickId('');
+                              setHomeGoalModalOpen(true);
                             }}
                           >
                             <span className="text-5xl font-black tabular-nums leading-none sm:text-6xl">
@@ -5027,23 +5010,6 @@ export const LiveMatchScreen: React.FC = () => {
                               }
                               if (!isClockRunning) {
                                 setSaveError(goalBlockedMessage);
-                                return;
-                              }
-                              if (sides.isOwnTeamHome) {
-                                void (async () => {
-                                  const before = recomputeScoresFromEvents(events);
-                                  const res = await persistSingle({
-                                    type: 'goal_away',
-                                    timestamp: currentMatchSeconds,
-                                  });
-                                  if (!res.ok || !res.savedId) return;
-                                  offerGoalUndo({
-                                    eventId: res.savedId,
-                                    side: 'away',
-                                    prevHome: before.home,
-                                    prevAway: before.away,
-                                  });
-                                })();
                                 return;
                               }
                               setAwayGoalPickId('');
@@ -7176,7 +7142,7 @@ export const LiveMatchScreen: React.FC = () => {
             <div className="mt-5">
               <p className="mb-2 text-xs font-bold uppercase text-emerald-400/90">Am Feld</p>
               <div className="flex flex-wrap gap-2">
-                {homeScorerCandidates.map((p) => (
+                {(sides.isOwnTeamHome ? homeScorerCandidates : []).map((p) => (
                   <button
                     key={p.id}
                     type="button"
@@ -7193,6 +7159,12 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
             </div>
 
+            <div className="mt-4 flex flex-col gap-2">
+              <button type="button" aria-pressed={homeGoalPickId === '__own_goal__'} onClick={() => setHomeGoalPickId('__own_goal__')} className="min-h-12 rounded-xl border border-amber-400/30 px-3 py-2 font-bold text-amber-200">Eigentor</button>
+              {!sides.isOwnTeamHome ? <button type="button" aria-pressed={homeGoalPickId === '__unknown__'} onClick={() => setHomeGoalPickId('__unknown__')} className="min-h-12 rounded-xl border border-white/20 px-3 py-2 font-bold">Tor ohne Torschützen</button> : null}
+              {homeGoalPickId === '__own_goal__' ? <p className="text-sm text-white/65">Zählt für {stadiumHomeDisplay} · kein persönlicher Torerfolg.</p> : null}
+            </div>
+
             <button
               type="button"
               disabled={!homeGoalPickId || !isClockRunning}
@@ -7206,7 +7178,8 @@ export const LiveMatchScreen: React.FC = () => {
                 const res = await persistSingle({
                   type: 'goal',
                   timestamp: currentMatchSeconds,
-                  playerId: homeGoalPickId,
+                  playerId: homeGoalPickId.startsWith('__') ? undefined : homeGoalPickId,
+                  ownGoal: homeGoalPickId === '__own_goal__',
                 });
                 if (!res.ok || !res.savedId) return;
                 offerGoalUndo({
@@ -7250,7 +7223,7 @@ export const LiveMatchScreen: React.FC = () => {
             <div className="mt-5">
               <p className="mb-2 text-xs font-bold uppercase text-red-400/90">Am Feld</p>
               <div className="flex flex-wrap gap-2">
-                {homeScorerCandidates.map((p) => (
+                {(!sides.isOwnTeamHome ? homeScorerCandidates : []).map((p) => (
                   <button
                     key={p.id}
                     type="button"
@@ -7267,6 +7240,12 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
             </div>
 
+            <div className="mt-4 flex flex-col gap-2">
+              <button type="button" aria-pressed={awayGoalPickId === '__own_goal__'} onClick={() => setAwayGoalPickId('__own_goal__')} className="min-h-12 rounded-xl border border-amber-400/30 px-3 py-2 font-bold text-amber-200">Eigentor</button>
+              {!!sides.isOwnTeamHome ? <button type="button" aria-pressed={awayGoalPickId === '__unknown__'} onClick={() => setAwayGoalPickId('__unknown__')} className="min-h-12 rounded-xl border border-white/20 px-3 py-2 font-bold">Tor ohne Torschützen</button> : null}
+              {awayGoalPickId === '__own_goal__' ? <p className="text-sm text-white/65">Zählt für {stadiumAwayDisplay} · kein persönlicher Torerfolg.</p> : null}
+            </div>
+
             <button
               type="button"
               disabled={!awayGoalPickId || !isClockRunning}
@@ -7280,7 +7259,8 @@ export const LiveMatchScreen: React.FC = () => {
                 const res = await persistSingle({
                   type: 'goal_away',
                   timestamp: currentMatchSeconds,
-                  playerId: awayGoalPickId,
+                  playerId: awayGoalPickId.startsWith('__') ? undefined : awayGoalPickId,
+                  ownGoal: awayGoalPickId === '__own_goal__',
                 });
                 if (!res.ok || !res.savedId) return;
                 offerGoalUndo({
@@ -7341,6 +7321,7 @@ export const LiveMatchScreen: React.FC = () => {
             </div>
 
             <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain px-4 pb-4 [-webkit-overflow-scrolling:touch]">
+              <button type="button" disabled={editingGoalSaving} aria-pressed={editingGoalScorerId === '__own_goal__'} onClick={() => setEditingGoalScorerId('__own_goal__')} className="mb-4 min-h-12 w-full rounded-xl border border-amber-400/30 px-3 py-2 font-bold text-amber-200">Eigentor</button>
               <p className="mb-2 text-xs font-bold uppercase text-red-400/90">Kader</p>
               <div className="flex flex-wrap gap-2">
                 {roster.map((player) => (
@@ -7374,7 +7355,7 @@ export const LiveMatchScreen: React.FC = () => {
                   if (!editingGoalScorerId || editingGoalSaving) return;
                   setEditingGoalSaving(true);
                   setSaveError(null);
-                  const { error } = await updateGoalScorer(editingGoalEvent.id, editingGoalScorerId);
+                  const { error } = await updateGoalScorer(editingGoalEvent.id, editingGoalScorerId === '__own_goal__' ? '' : editingGoalScorerId, editingGoalScorerId === '__own_goal__');
                   if (error) {
                     setSaveError(error);
                     setEditingGoalSaving(false);
@@ -7383,7 +7364,7 @@ export const LiveMatchScreen: React.FC = () => {
                   setEvents((previous) =>
                     previous.map((event) =>
                       event.id === editingGoalEvent.id
-                        ? { ...event, playerId: editingGoalScorerId }
+                        ? { ...event, playerId: editingGoalScorerId === '__own_goal__' ? undefined : editingGoalScorerId, ownGoal: editingGoalScorerId === '__own_goal__' }
                         : event,
                     ),
                   );

@@ -2282,7 +2282,7 @@ export const EventDetailPage: React.FC = () => {
     const finishedOwnScorers = !hasAnyGoalEvent && sourceOwnScorers.length ? sourceOwnScorers : timelineEvents
       .filter((r) => normalizeMatchEventGoalType(r.type) === (event.is_home === false ? 'goal_away' : 'goal'))
       .map((r) => ({
-        name: playerName(r.player_id) ?? 'Ohne Torschütze',
+        name: (r.payload as { own_goal?: boolean } | null)?.own_goal ? 'Eigentor des Gegners' : playerName(r.player_id) ?? 'Ohne Torschütze',
         minute: `${finishedReportMinuteDisplayFromDb(r.minute) ?? 0}′`,
       }));
 
@@ -2454,7 +2454,7 @@ export const EventDetailPage: React.FC = () => {
       if (!event.match_id) return;
       try {
         setMatchError(null);
-        if (!requireSquadPlayer(goalPlayerId, 'Torschütze')) return;
+        if (goalPlayerId !== '__own_goal__' && !requireSquadPlayer(goalPlayerId, 'Torschütze')) return;
         const dbMinute = finishedReportMinuteDbFromInput(goalMinute.trim());
         if (dbMinute < 0) {
           setMatchError(`Minute muss zwischen 1 und ${FINISHED_REPORT_MAX_MINUTE} liegen.`);
@@ -2467,7 +2467,8 @@ export const EventDetailPage: React.FC = () => {
           type: dbType,
           minute: dbMinute,
           period: null,
-          player_id: goalPlayerId.trim() || null,
+          player_id: goalPlayerId === '__own_goal__' ? null : goalPlayerId.trim() || null,
+          payload: { own_goal: goalPlayerId === '__own_goal__' },
         });
         if (insErr) {
           setMatchError(friendlyMatchEventWriteError(insErr.message));
@@ -2685,7 +2686,7 @@ export const EventDetailPage: React.FC = () => {
         if (gType === 'goal_away') setEditEventType('stadium_away');
         else if (gType === 'goal') setEditEventType('stadium_home');
         else setEditEventType('stadium_home');
-        setEditEventPlayerId(gType ? (r.player_id ?? '') : '');
+        setEditEventPlayerId(gType ? ((r.payload as { own_goal?: boolean } | null)?.own_goal ? '__own_goal__' : r.player_id ?? '') : '');
       }
     };
 
@@ -2756,7 +2757,7 @@ export const EventDetailPage: React.FC = () => {
           }
         }
       } else if (editEventType === 'stadium_home' || editEventType === 'stadium_away') {
-        if (!requireSquadPlayer(editEventPlayerId, 'Torschütze')) return;
+        if (editEventPlayerId !== '__own_goal__' && !requireSquadPlayer(editEventPlayerId, 'Torschütze')) return;
         didTouchGoals = true;
         const newDbType = mapUiGoalTypeToMatchEventDbType(editEventType);
         debugAssertMatchEventDbType('saveEventEdit goal', newDbType);
@@ -2765,7 +2766,8 @@ export const EventDetailPage: React.FC = () => {
           .update({
             minute: dbMinute,
             type: newDbType,
-            player_id: editEventPlayerId.trim() || null,
+            player_id: editEventPlayerId === '__own_goal__' ? null : editEventPlayerId.trim() || null,
+            payload: { ...((old?.payload as Record<string, unknown>) ?? {}), own_goal: editEventPlayerId === '__own_goal__' },
           })
           .eq('id', editingEventId)
           .select('id');
@@ -3283,7 +3285,7 @@ export const EventDetailPage: React.FC = () => {
                                     Team {stadiumGoal === 'goal_away' ? awayTeamName : homeTeamName}
                                   </p>
                                   <p className="mt-1 line-clamp-2 text-[12px] font-medium leading-snug text-white/65">
-                                    {name ? `Torschütze: ${name}` : 'Ohne Torschütze'}
+                                    {(r.payload as { own_goal?: boolean } | null)?.own_goal ? 'Eigentor' : name ? `Torschütze: ${name}` : 'Ohne Torschütze'}
                                   </p>
                                 </>
                               ) : isYellow ? (
@@ -3463,7 +3465,7 @@ export const EventDetailPage: React.FC = () => {
                         onChange={(e) => setEditEventPlayerId(e.target.value)}
                         className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                       >
-                        <option value="">—</option>
+                        <option value="">—</option><option value="__own_goal__">Eigentor des Gegners (für gewähltes Team)</option>
                         {renderEditorPlayerOptions()}
                       </select>
                     </label>
@@ -3551,7 +3553,7 @@ export const EventDetailPage: React.FC = () => {
                     onChange={(e) => setGoalPlayerId(e.target.value)}
                     className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                   >
-                    <option value="">—</option>
+                    <option value="">—</option><option value="__own_goal__">Eigentor des Gegners (für gewähltes Team)</option>
                     {renderEditorPlayerOptions()}
                   </select>
                 </label>

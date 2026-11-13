@@ -189,6 +189,7 @@ export function matchEventDbRowToEngine(row: MatchEventDbRow): MatchEngineEvent 
     return {
       id: row.id,
       type: 'goal_away',
+      ownGoal: (row.payload as Record<string, unknown> | null)?.own_goal === true,
       timestamp: row.minute ?? 0,
       playerId: row.player_id ?? undefined,
       createdAt,
@@ -274,6 +275,7 @@ export function matchEventDbRowToEngine(row: MatchEventDbRow): MatchEngineEvent 
   return {
     id: row.id,
     type: row.type as MatchEventType,
+    ownGoal: row.type === 'goal' && (row.payload as Record<string, unknown> | null)?.own_goal === true,
     timestamp: row.minute ?? 0,
     playerId: row.player_id ?? undefined,
     createdAt,
@@ -358,7 +360,8 @@ export function engineEventToInsertPayload(
     type: dbType,
     minute: safeMinute,
     period: period ?? null,
-    player_id: ev.playerId ?? null,
+    player_id: ev.ownGoal ? null : ev.playerId ?? null,
+    ...(ev.ownGoal ? { payload: { own_goal: true } } : {}),
   };
   return base;
 }
@@ -832,22 +835,23 @@ export async function deleteMatchEventById(eventId: string): Promise<{ error: st
 export async function updateGoalScorer(
   eventId: string,
   playerId: string,
+  ownGoal = false,
 ): Promise<{ error: string | null }> {
   const id = eventId.trim();
   const pid = playerId.trim();
   if (!id) return { error: 'Keine Ereignis-ID.' };
-  if (!pid) return { error: 'Bitte einen Torschützen auswählen.' };
+  if (!pid && !ownGoal) return { error: 'Bitte einen Torschützen auswählen.' };
   if (isDemoMatchEventId(id)) {
     return { error: 'Demo-Ereignisse können nicht nachträglich bearbeitet werden.' };
   }
 
   const { data: evRow, error: loadErr } = await supabase
     .from('match_events')
-    .select('match_id, type')
+    .select('match_id, type, payload')
     .eq('id', id)
     .maybeSingle();
   if (loadErr) return { error: loadErr.message };
-  const row = evRow as { match_id?: string; type?: string } | null;
+  const row = evRow as { match_id?: string; type?: string; payload?: Record<string, unknown> | null } | null;
   if (!row?.match_id) return { error: 'Tor-Ereignis wurde nicht gefunden.' };
   if (row.type !== 'goal' && row.type !== 'goal_away') {
     return { error: 'Nur bei Toren kann der Torschütze geändert werden.' };
@@ -855,7 +859,7 @@ export async function updateGoalScorer(
 
   const writable = await assertMatchTeamSeasonWritable(row.match_id);
   if (!writable.ok) return { error: writable.message };
-  const { error } = await supabase.from('match_events').update({ player_id: pid }).eq('id', id);
+  const { error } = await supabase.from('match_events').update({ player_id: ownGoal ? null : pid, payload: { ...(row.payload ?? {}), own_goal: ownGoal } }).eq('id', id);
   if (error) {
     console.error('[liveMatchService] updateGoalScorer', error);
     return { error: error.message };

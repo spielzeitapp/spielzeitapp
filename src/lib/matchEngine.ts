@@ -114,6 +114,8 @@ export type MatchEngineEvent = {
   type: MatchEventType;
   timestamp: number;
   playerId?: string;
+  /** Goal credited to this event side, without personal scorer credit. */
+  ownGoal?: boolean;
   /** DB `created_at` (ISO), für stabile Wechsel-Paarung bei gleicher Spielsekunde. */
   createdAt?: string;
   /** `position_swap`: zweiter Spieler (UUID), Tausch nur zwischen diesen beiden auf dem Feld. */
@@ -1400,6 +1402,7 @@ export function statsMatchEventRowToEngine(row: {
     return {
       id,
       type: type as MatchEventType,
+      ownGoal: (type === 'goal' || type === 'goal_away') && (row.payload as Record<string, unknown> | null)?.own_goal === true,
       timestamp: minute,
       playerId: row.player_id ?? undefined,
       createdAt,

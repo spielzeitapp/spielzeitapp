@@ -207,10 +207,10 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
   const location =
     formatFullLocation(locParsed.place, locParsed.address || '') || (match.location ?? '').trim() || '—';
 
-  let goalRows: { id?: string; type?: string; minute?: number | null; player_id?: string | null }[] = [];
+  let goalRows: { id?: string; type?: string; minute?: number | null; player_id?: string | null; payload?: { own_goal?: boolean } | null }[] = [];
   const { data: goalsData, error: gErr } = await supabase
     .from('match_events')
-    .select('id, type, minute, player_id')
+    .select('id, type, minute, player_id, payload')
     .eq('match_id', mid)
     .in('type', ['goal', 'goal_away'])
     .order('minute', { ascending: true, nullsFirst: true })
@@ -253,7 +253,7 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
   const scorers: ResultFeedScorer[] = ourGoals.map((r) => {
     const pid = r.player_id;
     const label = formatGoalMinuteLabel(r.minute);
-    const player_name = pid && nameByPlayer.has(pid) ? nameByPlayer.get(pid)! : '—';
+    const player_name = r.payload?.own_goal ? 'Eigentor des Gegners' : pid && nameByPlayer.has(pid) ? nameByPlayer.get(pid)! : '—';
     return { player_name, minute_label: label };
   });
 
