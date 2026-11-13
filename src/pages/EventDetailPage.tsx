@@ -1,3 +1,4 @@
+import { resolveEndAtFromNotes } from './calendar/calendarUtils';
 import { isHallTraining } from '../lib/hallTraining';
 import { AttendanceThumbControls } from '../components/events/AttendanceThumbControls';
 import { TeamReminderSettingsPanel } from '../components/TeamReminderSettingsPanel';
@@ -4228,6 +4229,7 @@ export const EventDetailPage: React.FC = () => {
                 eventId={event.id}
                 teamSeasonId={event.team_season_id}
                 startsAtIso={event.starts_at}
+                endsAtIso={resolveEndAtFromNotes({ startsAtIso: event.starts_at, eventType: 'training', notes: event.notes })}
                 status={event.status}
                 attendanceSummary={{ playerCount: players.length, yesCount: eventRsvpCounts.yes, openCount: eventRsvpCounts.open, loading: playersLoading || loadingEventAttendance }}
                 availablePlayerIds={players.filter(player => getTrainingAttendanceStatus(player.id) === 'present').map(player => player.id)}

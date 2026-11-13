@@ -112,3 +112,8 @@
 .hall-duration-fields > label > span { font-size: 10px; color: #7d8b9f; }
 .hall-duration-editor p { margin: 0; color: #8d9aaf; font-size: 11px; }
 @media(max-width:360px) { .hall-next-match { padding: 13px; } .hall-duration-fields input,.hall-duration-fields select { width: 51px; } .hall-standings th,.hall-standings td { padding: 11px 3px; } }
+
+.hall-team-options { display:flex; gap:6px; }
+.hall-team-option { flex:1; min-width:0; min-height:44px; padding:8px 4px; display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:5px; border-radius:12px; border:1px solid #ffffff18; color:#858c99; background:#ffffff04; font-size:13px; font-weight:700; overflow-wrap:anywhere; }
+.hall-team-option.is-selected { color:var(--team-color); border-color:var(--team-color); background:color-mix(in srgb,var(--team-color) 15%,#101116); }
+.hall-team-option:focus-visible { outline:2px solid white; outline-offset:2px; }

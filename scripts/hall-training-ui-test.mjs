@@ -26,11 +26,10 @@ await act(async()=>view.unmount());await act(async()=>{view=TestRenderer.create(
 const scorerEdit=view.root.findAllByType('button').find(b=>b.props['aria-label']==='Torschütze für Tor 2 in Spiel 1 ändern');await act(async()=>scorerEdit.props.onClick());await click('Spieler 1');assert.equal(globalThis.hallRow.day.games[0].goals[1].scorerId,ids[1]);assert.equal(globalThis.hallRow.day.games[0].goals.length,2,'editing scorer never adds a goal');await click('Spiel beenden');assert.equal(globalThis.hallRow.day.games[0].status,'finished');await click('Teams');
 let edits=view.root.findAllByType('input').filter(i=>i.props.maxLength===32);assert(edits.every(i=>!i.props.disabled),'teams editable between games');
 await act(async()=>edits[1].props.onChange({target:{value:'Blau neu'}}));
-let swaps=view.root.findAllByType('select').filter(s=>s.props.className.includes('!w-full'));
-await act(async()=>swaps[0].props.onChange({target:{value:'1'}}));
-swaps=view.root.findAllByType('select').filter(s=>s.props.className.includes('!w-full'));
-const swapBack=swaps.find(s=>text(s.parent).includes('Spieler 1'));assert(swapBack);
-await act(async()=>swapBack.props.onChange({target:{value:'0'}}));
+let groups=view.root.findAll(n=>n.props.role==='group' && String(n.props['aria-label']).startsWith('Team für '));
+await act(async()=>groups[0].findAllByType('button')[1].props.onClick());
+groups=view.root.findAll(n=>n.props.role==='group' && String(n.props['aria-label']).startsWith('Team für '));
+await act(async()=>groups[1].findAllByType('button')[0].props.onClick());
 await click('Mannschaften speichern');assert.equal(globalThis.hallRow.day.teams[1].name,'Blau neu');assert(globalThis.hallRow.day.teams[1].playerIds.includes(ids[0]));assert(globalThis.hallRow.day.teams[0].playerIds.includes(ids[1]));assert.equal(globalThis.hallRow.day.games[0].goals.length,2,'team edit preserves scores');assert.equal(globalThis.hallRow.day.games[0].goals[0].scorerName,'Spieler 0','scorer snapshot survives team changes');
 await click('Tabelle');assert(JSON.stringify(view.toJSON()).includes('Interne Trainingstabelle'));assert(JSON.stringify(view.toJSON()).includes('Torschützenkönige'),'tied scorers share the crown');await click('Spielplan');
 const minuteInput=()=>view.root.findByProps({'aria-label':'Spielzeit Minuten'});await act(async()=>minuteInput().props.onChange({target:{value:'0'}}));assert(button('Spielzeit übernehmen').props.disabled,'invalid duration blocked');
@@ -53,8 +52,8 @@ let nameInputs=view.root.findAllByType('input').filter(i=>i.props.maxLength===32
 for(let i=0;i<4;i++)await act(async()=>nameInputs[i].props.onChange({target:{value:['Barca','Milan','Ajax','Rapid'][i]}}));
 assert(button('Mannschaften speichern').props.disabled,'incompatible old schedule cannot be saved');
 await click('Spielplan erstellen & speichern');assert.deepEqual(globalThis.hallRow.day.teams.map(t=>t.name),['Barca','Milan','Ajax','Rapid']);
-let assignment=view.root.findAllByType('select').filter(s=>s.props.className.includes('!w-full'));assert.equal(assignment.length,12);assert(assignment[0].findAllByType('option').some(o=>o.props.value===3));
-await act(async()=>assignment[0].props.onChange({target:{value:'3'}}));await click('Mannschaften speichern');assert.deepEqual(globalThis.hallRow.day.teams[3].playerIds,[fourIds[0]],'fourth team can be assigned individually');
+let assignment=view.root.findAll(n=>n.props.role==='group' && String(n.props['aria-label']).startsWith('Team für '));assert.equal(assignment.length,12);assert.equal(assignment[0].findAllByType('button').length,4);
+await act(async()=>assignment[0].findAllByType('button')[3].props.onClick());await click('Mannschaften speichern');assert.deepEqual(globalThis.hallRow.day.teams[3].playerIds,[fourIds[0]],'fourth team can be assigned individually');
 await click('Zugesagte Spieler gleichmäßig verteilen');await click('Mannschaften speichern');assert(globalThis.hallRow.day.teams.every(t=>t.playerIds.length===3));assert.equal(ready.at(-1),true);
 await act(async()=>view.root.findAllByType('select')[0].props.onChange({target:{value:'3'}}));assert.equal(view.root.findAllByType('input').filter(i=>i.props.maxLength===32).length,3);assert(button('Mannschaften speichern').props.disabled);assert.equal(ready.at(-1),false);
 await act(async()=>view.unmount());
