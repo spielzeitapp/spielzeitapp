@@ -39,7 +39,10 @@ try {
   await db.exec(fs.readFileSync('supabase/migrations/20261113084232_exchange_revision_and_blocks.sql', 'utf8'));
   await db.exec(fs.readFileSync('supabase/migrations/20261113093424_exchange_explicit_privileges.sql', 'utf8'));
   await db.exec(fs.readFileSync('supabase/migrations/20261113094653_exchange_main_app_links.sql', 'utf8'));
-  await db.exec(`insert into public.exchange_partner_teams values('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002')`);
+  await db.exec(fs.readFileSync('supabase/migrations/20261113102805_exchange_partner_relationship_fix.sql', 'utf8'));
+  const key = await db.query(`select array_agg(a.attname order by k.ordinality) as columns from pg_constraint c cross join lateral unnest(c.conkey) with ordinality k(attnum,ordinality) join pg_attribute a on a.attrelid=c.conrelid and a.attnum=k.attnum where c.conrelid='public.exchange_partner_teams'::regclass and c.contype='p'`);
+  if (JSON.stringify(key.rows[0].columns)!=='["id"]') throw Error('Partner PK must not imply a teams/clubs many-to-many relationship');
+  await db.exec(`insert into public.exchange_partner_teams(club_id,team_id) values('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002')`);
   const results = await db.exec(fs.readFileSync('scripts/club-exchange-rls-test.sql','utf8'));
   console.log(results.at(-1).rows);
   const remaining = await db.query('select count(*)::int as users from auth.users');
