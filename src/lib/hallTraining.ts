@@ -139,3 +139,12 @@ export function changeHallPlayers(day: HallDay, index: number, team: number, on:
  else p.stints.push({second,on:[...on]});
  return next;
 }
+
+/** Late clock start: staff confirms that the finished match used its full planned duration. */
+export function creditHallFullDuration(day: HallDay, index: number): HallDay {
+ const game = day.games[index];
+ if (!game || game.status !== 'finished') throw new Error('Nur beendete Spiele können korrigiert werden.');
+ const next = structuredClone(day);
+ next.games[index].elapsed = hallGameSeconds(day, game);
+ return next;
+}
