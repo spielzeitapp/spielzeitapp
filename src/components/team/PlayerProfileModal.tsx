@@ -1297,8 +1297,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                       <SeasonMiniCell label="LAZ" value={String(trainingsExternal)} /><SeasonMiniCell label="Andere Mannschaft" value={String(trainingStats.otherTeam ?? 0)} />
                     </div>
                     <p className="mt-2.5 text-[11px] leading-relaxed text-white/45 [hyphens:none]">
-                      Trainingsquote: Dabei / (Dabei + Abwesend). Krank, verletzt und LAZ zählen neutral.
-                      Aktivität berücksichtigt LAZ zusätzlich.
+                      Teamquote: Dabei / (Dabei + Abwesend + LAZ + andere Mannschaft). Krank und verletzt zählen neutral.
+                      Aktivität berücksichtigt LAZ und Training bei anderen Mannschaften zusätzlich.
                     </p>
                     {!teamRankingLoading ? (
                       <ProfileTrainingKaiserStatus rank={trainingKaiserRank} />

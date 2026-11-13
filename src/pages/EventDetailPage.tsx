@@ -4651,6 +4651,7 @@ export const EventDetailPage: React.FC = () => {
                           {rsvpStatus === 'no' ||
                           rsvpStatus === 'sick' ||
                           rsvpStatus === 'injured' ||
+                          rsvpStatus === 'other_team_training' ||
                           rsvpStatus === 'external_training' ? (
                             <button
                               type="button"
