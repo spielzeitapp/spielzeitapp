@@ -248,14 +248,15 @@ export function TrainingDetailSections({
           { id: 'availability', title: 'Teilnehmer', detail: attendanceSummary ? `${availablePlayerIds.length} dabei · ${Math.max(0, attendanceSummary.playerCount - availablePlayerIds.length)} abwesend` : 'Teilnehmer werden geladen', done: Boolean(attendanceSummary && attendanceSummary.playerCount > 0 && !attendanceSummary.loading), onClick: () => setAttendanceOpen(true) },
           ...(hall ? [{ id: 'hall', title: 'Hallenspieltag planen', detail: 'Teams einteilen · Spielzeit berechnen · intern spielen', done: hallPrepared, onClick: () => setHallOpen(true) }] : [
           { id: 'plan', title: 'Trainingseinheit planen', detail: plan ? `${plan.title} · ${plan.planned_duration_minutes ?? 0} Min.` : 'Übungen und Ablauf auswählen', done: plan?.status === 'ready', to: demo ? '/demo/trainingsplanung' : trainingPlanManagerHref({ sessionId: plan?.id, eventId, teamSeasonId, startsAtIso }) },
+          { id: 'internal', title: 'Internes Trainingsmatch', detail: 'Teams · Wechselbank · Tore · Einsatzzeiten', optional: true, done: hallPrepared, onClick: () => setHallOpen(true) },
           { id: 'place', title: 'Platzbelegung prüfen', detail: 'Trainingsplatz und Zonen', optional: true, done: false, to: `${demo ? '/demo' : hasAssignment ? '/app' : '/manager'}/platzbelegung?date=${encodeURIComponent(dayKeyFromIso(startsAtIso))}&event=${encodeURIComponent(eventId)}` },
           ]),
         ]} />
         <Modal className="training-participant-modal" open={attendanceOpen} onClose={() => setAttendanceOpen(false)} title="Teilnehmer">{trainerAttendanceSection}</Modal>
       </> : null}
-      {hall && canViewStaffReadouts ? <>
-        {trainingPhase === 'after' ? <button type="button" onClick={() => setHallOpen(true)} className="sz-club-event-action min-h-14 rounded-2xl border p-4 text-left text-[18px] font-bold">Hallenspieltag · interne Ergebnisse ansehen</button> : null}
-        <HallTrainingPlanner eventId={eventId} startsAt={startsAtIso} players={players} availableIds={availablePlayerIds} open={hallOpen} onClose={() => setHallOpen(false)} onReadyChange={setHallPrepared} readOnly={!canManage || status === 'finished' || status === 'canceled'} />
+      {canViewStaffReadouts ? <>
+        {trainingPhase === 'after' ? <button type="button" onClick={() => setHallOpen(true)} className="sz-club-event-action min-h-14 rounded-2xl border p-4 text-left text-[18px] font-bold">{hall ? 'Hallenspieltag · interne Ergebnisse ansehen' : 'Trainingsmatch · interne Ergebnisse ansehen'}</button> : null}
+        <HallTrainingPlanner indoor={hall} eventId={eventId} startsAt={startsAtIso} players={players} availableIds={availablePlayerIds} open={hallOpen} onClose={() => setHallOpen(false)} onReadyChange={setHallPrepared} readOnly={!canManage || status === 'finished' || status === 'canceled'} />
       </> : null}
       {overviewSectionOrder.map((sectionKey) => renderSection(sectionKey))}
     </div>

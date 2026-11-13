@@ -2,7 +2,7 @@
 export type HallTeam = { name: string; playerIds: string[] };
 export type HallGoal = { team: number; second: number; ownGoal?: boolean; timeUnknown?: boolean; scorerId?: string; scorerName?: string };
 export type HallGame = { participation?: Record<string, HallParticipation>; seconds?: number; home: number; away: number; status: 'pending' | 'running' | 'paused' | 'finished'; elapsed: number; runningSince: number | null; goals: HallGoal[] };
-export type HallDay = { version: 1; teams: HallTeam[]; format: 2 | 3 | 4; total: number; pause: number; target: number; cycles: number; seconds: number; buffer: number; games: HallGame[] };
+export type HallDay = { version: 1; teams: HallTeam[]; format: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11; total: number; pause: number; target: number; cycles: number; seconds: number; buffer: number; games: HallGame[] };
 export const HALL_COLORS = ['#fb425c', '#419cff', '#facc15', '#4ade80'];
 export const HALL_NAMES = ['Rot', 'Blau', 'Gelb', 'Grün'];
 export function isHallTraining(title: string, location?: string | null) {
@@ -10,8 +10,8 @@ export function isHallTraining(title: string, location?: string | null) {
 }
 /** Complete round-robin cycles only; never truncate a cycle to fill the time. */
 export function calculateHallSchedule(count: number, total: number, pause: number, target = 480, requestedCycles?: number) {
-  if (![3, 4].includes(count) || !Number.isInteger(total) || total < 900 || total > 10800 || !Number.isInteger(pause) || pause < 0 || pause > 300 || !Number.isInteger(target) || target < 120 || target > 1200) throw new Error('Bitte 3 oder 4 Teams, 15–180 Minuten und gültige Pausen wählen.');
-  const pairs: [number, number][] = count === 3 ? [[0, 1], [0, 2], [1, 2]] : [[0, 1], [2, 3], [0, 2], [1, 3], [0, 3], [1, 2]];
+  if (![2, 3, 4].includes(count) || !Number.isInteger(total) || total < 900 || total > 10800 || !Number.isInteger(pause) || pause < 0 || pause > 300 || !Number.isInteger(target) || target < 120 || target > 1200) throw new Error('Bitte 2, 3 oder 4 Teams, 15–180 Minuten und gültige Pausen wählen.');
+  const pairs: [number, number][] = count === 2 ? [[0, 1]] : count === 3 ? [[0, 1], [0, 2], [1, 2]] : [[0, 1], [2, 3], [0, 2], [1, 3], [0, 3], [1, 2]];
   const options = Array.from({ length: 8 }, (_, i) => {
     const cycles = i + 1, n = pairs.length * cycles;
     const seconds = Math.floor((total - (n - 1) * pause) / n / 5) * 5;
@@ -22,7 +22,7 @@ export function calculateHallSchedule(count: number, total: number, pause: numbe
   const games: HallGame[] = Array.from({ length: selected.cycles }, () => pairs).flat().map(([home, away]) => ({ home, away, status: 'pending', elapsed: 0, runningSince: null, goals: [] }));
   return { ...selected, games, gamesPerTeam: selected.cycles * (count - 1), playPerTeam: selected.cycles * (count - 1) * selected.seconds };
 }
-export function createHallDay(count = 3, format: 2 | 3 | 4 = 3, total = 3600, pause = 120, target = 480, cycles?: number): HallDay {
+export function createHallDay(count = 3, format: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 = 3, total = 3600, pause = 120, target = 480, cycles?: number): HallDay {
   const plan = calculateHallSchedule(count, total, pause, target, cycles);
   return { version: 1, teams: HALL_NAMES.slice(0, count).map(name => ({ name, playerIds: [] })), format, total, pause, target, cycles: plan.cycles, seconds: plan.seconds, buffer: plan.buffer, games: plan.games };
 }

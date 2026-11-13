@@ -57,7 +57,8 @@
     "supabase/migrations/20261112221251_hall_training_reject_anonymous_sessions.sql": "b409bcfb12ebea90fd5b2cc5239ae329c9984c14",
     "supabase/migrations/20261112231741_hall_training_game_duration.sql": "997c389621090de2867654510506cc3edabe54e0",
     "supabase/migrations/20261113104103_training_other_team_attendance.sql": "d291f66cb1945c3e7c8f9d32b28f63480a87bf7c",
-    "supabase/migrations/20261113160743_hall_training_two_a_side.sql": "a228773538b1a133383d3cb4e7fa9d61a24aa795"
+    "supabase/migrations/20261113160743_hall_training_two_a_side.sql": "a228773538b1a133383d3cb4e7fa9d61a24aa795",
+    "supabase/migrations/20261113185405_internal_training_matches.sql": "6c2e2014edee367cd6d078f3d971cae4bf82d658"
   },
   "functions": {
     "supabase/functions/generate-club-communications/index.ts": "8f84887c9197b0bcc6c050e436b211dca44a01e8"
