@@ -1,15 +1,17 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Camera, ImagePlus, LockKeyhole, MessageCircle, Plus, Send, Shirt, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Camera, ImagePlus, LockKeyhole, MessageCircle, Plus, Search, Send, Shirt, SlidersHorizontal, Trash2, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import type { ClubSeason } from './uscClub';
 import { notifyNotificationsReadChanged } from '../../lib/notificationsReadState';
+import { ExchangeFilterSheet } from './ExchangeFilterSheet';
+import { EXCHANGE_CATEGORIES, exchangeSizeOptions, selectExchangeItems, type CatalogSort } from './exchangeCatalog';
 import './clubExchange.css';
 
 type Listing = { id: string; club_id: string; owner_id: string; owner_label: string; title: string; category: string; size: string; condition: string; offer: string; price: number | null; description: string; team_label: string; status: string; photo_paths: string[]; created_at: string; revision: number };
 type Thread = { id: string; listing_id: string; requester_id: string; requester_label: string; created_at: string };
 type Message = { id: string; thread_id: string; sender_id: string; body: string; created_at: string };
-const categories = ['T-Shirt', 'Hose', 'Pulli', 'Trainingsanzug', 'Jacke', 'Schuhe', 'Sonstiges'];
+const categories = EXCHANGE_CATEGORIES;
 const conditions = ['Wie neu', 'Sehr gut', 'Gut', 'Gebraucht'];
 const emptyForm = { title: '', category: 'Pulli', size: '', condition: 'Sehr gut', offer: 'Gratis', price: '', description: '', team_label: '' };
 const stamp = (value: string) => new Date(value).toLocaleString('de-AT', { dateStyle: 'short', timeStyle: 'short' });
@@ -54,6 +56,9 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   const [size, setSize] = useState('');
   const [team, setTeam] = useState('');
   const [offer, setOffer] = useState('');
+  const [search, setSearch] = useState('');
+  const [sort, setSort] = useState<CatalogSort>('newest');
+  const [filterOpen, setFilterOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [editingRevision, setEditingRevision] = useState(0);
@@ -251,8 +256,10 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
     await loadRef.current();
   });
 
-  const shown = items.filter(item => (view !== 'mine' ? item.status !== 'Entwurf' && item.status !== 'Vergeben' : item.owner_id === userId)
-    && (!category || item.category === category) && (!size || item.size === size) && (!team || item.team_label === team) && (!offer || item.offer === offer));
+  const filters = {category,size,team,offer};
+  const shown = selectExchangeItems(items,view === 'mine' ? 'mine' : 'all',userId,filters,search,sort);
+  const filterCount = Object.values(filters).filter(Boolean).length;
+  const clearFilters = () => { setCategory(''); setSize(''); setTeam(''); setOffer(''); };
   const previewFiles = files.map(file => ({ file, key: `${file.name}-${file.lastModified}-${file.size}` }));
   const teamLabels = [...new Set([...(ownTeamLabels || seasons.map(s => s.age_group || s.display_name || s.team.name)), ...(form.team_label ? [form.team_label] : [])])];
   return <section className="exchange" aria-label="Vereinsinterne Tauschbörse">
@@ -278,13 +285,20 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
         <div className="exchange-tabs">{([['all','Entdecken'],['mine','Meine Inserate'],['requests','Anfragen']] as const).map(([id,label]) => <button key={id} aria-pressed={view === id} onClick={() => setView(id)}>{label}{id === 'requests' && unread.length > 0 && <b>{unread.length}</b>}</button>)}</div>
         {threadId && !currentThread && <p className="exchange-hint">Diese Anfrage ist nicht verfügbar oder du hast keinen Zugriff mehr.</p>}
         {view === 'requests' ? <div>{threads.map(t => { const item = items.find(l => l.id === t.listing_id); return item ? <button key={t.id} className="exchange-thread" onClick={() => openThread(t.id)}><MessageCircle size={22} /><span>{item.title}<small>{item.owner_id === userId ? t.requester_label : item.owner_label} · {stamp(t.created_at)}</small></span>{unread.some(n => n.kind === `exchange:${t.id}`) && <b>Neu</b>}</button> : null; })}{!threads.length && <div className="exchange-empty"><MessageCircle /><h3>Noch keine Anfragen</h3><p>Deine Anfragen und Antworten erscheinen hier.</p></div>}</div> : <>
-          <div className="exchange-filters"><select aria-label="Mannschaft filtern" value={team} onChange={e => setTeam(e.target.value)}><option value="">Alle Mannschaften</option>{[...new Set(items.map(i => i.team_label).filter(Boolean))].sort().map(t => <option key={t}>{t}</option>)}</select><div><select aria-label="Artikel filtern" value={category} onChange={e => setCategory(e.target.value)}><option value="">Artikel</option>{categories.map(c => <option key={c}>{c}</option>)}</select><select aria-label="Größe filtern" value={size} onChange={e => setSize(e.target.value)}><option value="">Größe</option>{[...new Set(items.map(i => i.size))].sort((a,b) => a.localeCompare(b,'de',{numeric:true})).map(s => <option key={s}>{s}</option>)}</select><select aria-label="Angebotsart filtern" value={offer} onChange={e => setOffer(e.target.value)}><option value="">Alle Angebote</option>{['Gratis','Tauschen','Verkaufen'].map(o => <option key={o}>{o}</option>)}</select></div>{(team || category || size || offer) && <button className="exchange-back" onClick={() => { setTeam(''); setCategory(''); setSize(''); setOffer(''); }}>Filter zurücksetzen</button>}</div>
+          <div className="exchange-catalog-tools">
+            <div className="exchange-search"><Search size={20} aria-hidden/><input type="search" aria-label="Artikel suchen" placeholder="Artikel suchen" value={search} onChange={e=>setSearch(e.target.value)} />{search&&<button type="button" aria-label="Suche löschen" onClick={()=>setSearch('')}><X size={18}/></button>}</div>
+            <div className="exchange-active-filters"><button type="button" className="exchange-filter-trigger" aria-haspopup="dialog" aria-expanded={filterOpen} aria-label="Filter öffnen" onClick={()=>setFilterOpen(true)}><SlidersHorizontal size={19}/>Filter{filterCount>0&&<b>{filterCount}</b>}</button>
+              {Object.entries(filters).filter(([,value])=>value).map(([key,value])=><button type="button" key={key} aria-label={`${key==='size'?'Größe ':''}${value} entfernen`} onClick={()=>{if(key==='category')setCategory('');if(key==='size')setSize('');if(key==='team')setTeam('');if(key==='offer')setOffer('');}}>{key==='size'?'Größe ':''}{value}<X size={15}/></button>)}
+            </div>
+            <div className="exchange-result-row"><strong aria-live="polite">{shown.length} {shown.length===1?'Angebot':'Angebote'}</strong><label><span className="exchange-sr">Angebote sortieren</span><select aria-label="Angebote sortieren" value={sort} onChange={e=>setSort(e.target.value as CatalogSort)}><option value="newest">Neueste zuerst</option><option value="price-asc">Preis aufsteigend</option><option value="price-desc">Preis absteigend</option></select></label></div>
+          </div>
           <div className="exchange-grid">{shown.map(item => <button key={item.id} className="exchange-card" onClick={() => { setDetailId(item.id); setBody(''); setAdult(false); }}><div className="exchange-card-image">{photos[item.photo_paths[0]] ? <img src={photos[item.photo_paths[0]]} alt={item.title} loading="lazy" /> : <Shirt size={42} />}<span>{item.status}</span></div><div className="exchange-card-copy"><h3>{item.title}</h3><p>Größe {item.size} · {item.condition}</p><strong>{priceLabel(item)}</strong><small>{item.owner_label}{item.team_label ? ` · ${item.team_label}` : ''}</small></div></button>)}</div>
-          {!shown.length && <div className="exchange-empty"><Shirt size={36} /><h3>{items.length ? 'Keine passenden Angebote' : 'Zu klein? Gib es weiter.'}</h3><p>{items.length ? 'Ändere die Filter oder stelle selbst ein Inserat ein.' : 'Sei der Erste und stelle Trainingsgewand für andere Familien im Verein ein.'}</p></div>}
+          {!shown.length && <div className="exchange-empty"><Shirt size={36} /><h3>{items.length ? 'Keine passenden Angebote' : 'Zu klein? Gib es weiter.'}</h3><p>{items.length ? 'Ändere die Filter oder stelle selbst ein Inserat ein.' : 'Sei der Erste und stelle Trainingsgewand für andere Familien im Verein ein.'}</p>{(filterCount>0||search)&&<button className="exchange-back" onClick={()=>{clearFilters();setSearch('');}}>Suche und Filter zurücksetzen</button>}</div>}
         </>}
       </>}
       <p className="exchange-privacy"><LockKeyhole size={14} /> Nur für Vereinsmitglieder · Übergabe und Bezahlung direkt vereinbaren.</p>
     </>}
+    {filterOpen&&<ExchangeFilterSheet value={filters} items={items} view={view==='mine'?'mine':'all'} userId={userId} search={search} onClose={()=>setFilterOpen(false)} onApply={next=>{setCategory(next.category);setSize(next.size);setTeam(next.team);setOffer(next.offer);setFilterOpen(false);}}/>}
     <dialog ref={formDialog} className="exchange-dialog" aria-labelledby="exchange-editor-title" onCancel={e => { if (busy) e.preventDefault(); else closeEditor(); }}>
       <form onSubmit={save}><header className="exchange-heading"><h2 id="exchange-editor-title">{editing === 'new' ? 'Inserat erstellen' : 'Inserat bearbeiten'}</h2><button type="button" disabled={busy} onClick={closeEditor} aria-label="Schließen"><X size={21} /></button></header>
         {error && <p role="alert" className="exchange-alert">{error}</p>}
@@ -293,7 +307,8 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
         <input hidden type="file" accept="image/*" capture="environment" ref={camera} onChange={e => { addFiles(e.target.files); e.target.value=''; }} /><input hidden type="file" accept="image/*" multiple ref={gallery} onChange={e => { addFiles(e.target.files); e.target.value=''; }} />
         <div className="exchange-upload-list">{existingPaths.map((p,index) => <div key={p}><img src={photos[p]} alt={`Foto ${index+1}`} /><button type="button" disabled={busy} aria-label={`Foto ${index+1} entfernen`} onClick={() => setExistingPaths(old => old.filter(path => path !== p))}><X size={15}/></button></div>)}{previewFiles.map(({file,key},index) => <UploadPreview key={key} file={file} disabled={busy} onRemove={() => setFiles(old => old.filter((_,i) => i !== index))} />)}</div>
         <fieldset disabled={busy}><label>Bezeichnung<input required minLength={3} maxLength={80} value={form.title} placeholder="z. B. USC Trainingspulli" onChange={e => setForm({...form,title:e.target.value})} /></label>
-        <div className="exchange-form-row"><label>Artikel<select value={form.category} onChange={e => setForm({...form,category:e.target.value})}>{categories.map(c => <option key={c}>{c}</option>)}</select></label><label>Größe<input required maxLength={15} value={form.size} placeholder="z. B. 140 oder 35" onChange={e => setForm({...form,size:e.target.value})} /></label></div>
+        <div className="exchange-form-row"><label>Artikel<select value={form.category} onChange={e => setForm({...form,category:e.target.value})}>{categories.map(c => <option key={c}>{c}</option>)}</select></label><label>Größe<input required maxLength={15} list="exchange-listing-sizes" value={form.size} placeholder={form.category==='Schuhe'?'z. B. 35':'z. B. 140 oder M'} onChange={e => setForm({...form,size:e.target.value})} /></label></div>
+        <datalist id="exchange-listing-sizes">{exchangeSizeOptions(form.category,items).map(value=><option key={value} value={value}/>)}</datalist>
         <div className="exchange-form-row"><label>Zustand<select value={form.condition} onChange={e => setForm({...form,condition:e.target.value})}>{conditions.map(c => <option key={c}>{c}</option>)}</select></label><label>Angebot<select value={form.offer} onChange={e => setForm({...form,offer:e.target.value})}>{['Gratis','Tauschen','Verkaufen'].map(o => <option key={o}>{o}</option>)}</select></label></div>
         {form.offer === 'Verkaufen' && <label>Preis in Euro<input required inputMode="decimal" value={form.price} onChange={e => setForm({...form,price:e.target.value})} /></label>}
         {teamLabels.length === 1 && ownTeamLabels ? <p className="exchange-team-context">Deine Mannschaft <strong>{form.team_label || teamLabels[0]}</strong></p> : <label>Derzeitige Mannschaft<select value={form.team_label} onChange={e => setForm({...form,team_label:e.target.value})}><option value="">Ohne Mannschaftsangabe</option>{teamLabels.map(s => <option key={s}>{s}</option>)}</select></label>}

@@ -1,0 +1,38 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),React=require('react'),renderer=require('react-test-renderer'),Module=require('module');
+const compile=async file=>{const result=await build({entryPoints:[file],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,logLevel:'silent'});const m=new Module(file);m.paths=require.resolve.paths('react');m._compile(result.outputFiles[0].text,file);return m.exports;};
+const {selectExchangeItems,exchangeSizeOptions}=await compile('src/features/club/exchangeCatalog.ts');
+const {ExchangeFilterSheet}=await compile('src/features/club/ExchangeFilterSheet.tsx');
+const base={owner_id:'other',title:'Trainingspulli',description:'Guter Zustand',category:'Pulli',size:'140',team_label:'U11',offer:'Verkaufen',price:8,status:'Verfügbar',created_at:'2026-11-12T10:00:00Z'};
+const items=[{...base,id:'a'},{...base,id:'b',title:'Fußballschuhe',category:'Schuhe',size:'35',offer:'Gratis',price:null,created_at:'2026-11-13T10:00:00Z'},{...base,id:'c',owner_id:'me',status:'Vergeben'},{...base,id:'d',owner_id:'me',status:'Entwurf'},{...base,id:'e',offer:'Tauschen',price:null}];
+const empty={category:'',size:'',team:'',offer:''};
+assert.deepEqual(selectExchangeItems(items,'all','me',empty).map(i=>i.id),['b','a','e']);
+assert.deepEqual(selectExchangeItems(items,'all','me',{...empty,category:'Schuhe',size:'35',offer:'Gratis'}).map(i=>i.id),['b']);
+assert.equal(selectExchangeItems(items,'all','me',{...empty,size:' 140 '}).length,2);
+assert.equal(selectExchangeItems(items,'all','me',empty,'FUSSBALL').length,1);
+assert.equal(selectExchangeItems(items,'all','me',empty,'Pulli 140').length,2);
+assert.equal(selectExchangeItems(items,'all','me',empty,'fußball').length,1);
+assert.equal(selectExchangeItems(items,'all','me',empty,'35').length,1);
+assert.equal(selectExchangeItems(items,'mine','me',empty).length,2);
+assert.deepEqual(selectExchangeItems(items,'all','me',empty,'','price-asc').map(i=>i.id),['b','a','e']);
+assert.deepEqual(selectExchangeItems(items,'all','me',empty,'','price-desc').map(i=>i.id),['a','b','e']);
+assert.ok(exchangeSizeOptions('Schuhe',items).includes('35'));
+assert.ok(!exchangeSizeOptions('Schuhe',items).includes('140'));
+assert.ok(exchangeSizeOptions('Pulli',items).includes('XL'));
+assert.equal(items[0].id,'a','selector must not mutate source');
+let app,applied=null,closed=0;
+const click=async label=>{const b=app.root.findAllByType('button').find(n=>n.children.join('')===label||n.props['aria-label']===label);assert.ok(b,label);await renderer.act(async()=>b.props.onClick());};
+try{
+ await renderer.act(async()=>{app=renderer.create(React.createElement(ExchangeFilterSheet,{value:{...empty,size:'140'},items,view:'all',userId:'me',search:'',onApply:v=>{applied=v;},onClose:()=>closed++}),{createNodeMock:()=>({showModal(){},close(){}})});});
+ await click('Schuhe');
+ assert.ok(app.root.findAllByType('legend').some(n=>n.children.includes('Schuhgröße')));
+ assert.equal(applied,null,'draft stays local until applied');
+ await click('35');await click('Gratis');await click('1 Angebot anzeigen');
+ assert.deepEqual(applied,{category:'Schuhe',size:'35',team:'',offer:'Gratis'});
+ await click('Zurücksetzen');
+ assert.ok(app.root.findAllByType('button').some(n=>n.children.join('')==='3 Angebote anzeigen'));
+ await click('Filter schließen');assert.equal(closed,1);
+ console.log('PASS: combined filters, text/size search, own listings, stable price/date sorting, shoe/clothing sizes, draft-only changes, apply count, reset and close');
+}finally{if(app)await renderer.act(async()=>app.unmount());}
