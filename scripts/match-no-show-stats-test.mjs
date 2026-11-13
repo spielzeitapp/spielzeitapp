@@ -28,3 +28,5 @@ const withGoal=aggregate('p1',[match],[appearance,{match_id:'m1',player_id:'p1',
 console.log('PASS: source lineup without goals counts once, known goals preserved, missing minutes tracked separately.');
 
 const calculated=aggregate('p1',[match],[{...appearance,payload:{source:'oefb_attribution',starter:true,calculatedMinutes:80}}],[],new Map(),new Set());assert.equal(calculated.stats.minutes,80);assert.equal(calculated.stats.averageMinutesPerGame,80);assert.equal(calculated.stats.unknownMinutesGames,0);assert.equal(calculated.stats.calculatedMinutesGames,1);assert.equal(calculated.lastMatches[0].badgeLabel,'80 Min · berechnet');
+
+const ownGoal=aggregate('p1',[match],[{id:'own',match_id:'m1',player_id:'p1',type:'goal_away',minute:120,payload:{own_goal:true}}],snapshots,lineup,new Set());assert.equal(ownGoal.stats.goals,0,'own goal never credits personal goals');
