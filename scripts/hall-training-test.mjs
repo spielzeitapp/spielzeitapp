@@ -20,6 +20,7 @@ try {
  assert.throws(()=>h.calculateHallSchedule(2,3600,120));assert.throws(()=>h.calculateHallSchedule(3,600,120));assert.throws(()=>h.calculateHallSchedule(4,900,300,480,8));
  assert(h.isHallTraining('U12 Hallentraining'));assert(h.isHallTraining('Training','Turnsaal St. Veit'));assert(!h.isHallTraining('U12 Training','Sportplatz'));
  const day=h.createHallDay();day.teams.forEach((t,i)=>t.playerIds=[`${i}a`,`${i}b`,`${i}c`]);const ids=day.teams.flatMap(t=>t.playerIds);assert(h.hallReady(day,ids));assert(!h.hallReady(day,ids.slice(1)));assert(!h.hallReady(day,[...ids,'new-player']));day.teams[0].playerIds.push(ids[3]);assert(!h.hallReady(day,ids));day.teams[0].playerIds.pop();
+ for(const n of [3,4]){const two=h.createHallDay(n,2);two.teams.forEach((t,i)=>t.playerIds=[i+'a',i+'b']);const roster=two.teams.flatMap(t=>t.playerIds);assert(h.hallReady(two,roster));assert.equal(two.games.length,h.createHallDay(n,3).games.length);two.teams[0].playerIds.pop();assert(!h.hallReady(two,two.teams.flatMap(t=>t.playerIds)));}
  const g=day.games[0];g.status='running';g.runningSince=10000;g.elapsed=15;assert.equal(h.hallElapsed(g,500,20000),25);assert.equal(h.hallElapsed(g,500,1e9),500);g.status='paused';assert.equal(h.hallElapsed(g,500,1e9),15);
  g.goals=[{team:0,second:4},{team:1,second:7},{team:0,second:9}];assert.equal(h.hallScore(g,0),2);assert(h.hallStandings(day).every(t=>t.played===0));g.status='finished';assert.equal(h.hallStandings(day)[0].points,3);g.goals.pop();assert.equal(h.hallStandings(day)[0].points,1);assert.equal(h.hallClock(500),'8:20');
 

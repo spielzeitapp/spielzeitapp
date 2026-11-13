@@ -2,7 +2,7 @@
 export type HallTeam = { name: string; playerIds: string[] };
 export type HallGoal = { team: number; second: number; scorerId?: string; scorerName?: string };
 export type HallGame = { seconds?: number; home: number; away: number; status: 'pending' | 'running' | 'paused' | 'finished'; elapsed: number; runningSince: number | null; goals: HallGoal[] };
-export type HallDay = { version: 1; teams: HallTeam[]; format: 3 | 4; total: number; pause: number; target: number; cycles: number; seconds: number; buffer: number; games: HallGame[] };
+export type HallDay = { version: 1; teams: HallTeam[]; format: 2 | 3 | 4; total: number; pause: number; target: number; cycles: number; seconds: number; buffer: number; games: HallGame[] };
 export const HALL_COLORS = ['#fb425c', '#419cff', '#facc15', '#4ade80'];
 export const HALL_NAMES = ['Rot', 'Blau', 'Gelb', 'Grün'];
 export function isHallTraining(title: string, location?: string | null) {
@@ -22,7 +22,7 @@ export function calculateHallSchedule(count: number, total: number, pause: numbe
   const games: HallGame[] = Array.from({ length: selected.cycles }, () => pairs).flat().map(([home, away]) => ({ home, away, status: 'pending', elapsed: 0, runningSince: null, goals: [] }));
   return { ...selected, games, gamesPerTeam: selected.cycles * (count - 1), playPerTeam: selected.cycles * (count - 1) * selected.seconds };
 }
-export function createHallDay(count = 3, format: 3 | 4 = 3, total = 3600, pause = 120, target = 480, cycles?: number): HallDay {
+export function createHallDay(count = 3, format: 2 | 3 | 4 = 3, total = 3600, pause = 120, target = 480, cycles?: number): HallDay {
   const plan = calculateHallSchedule(count, total, pause, target, cycles);
   return { version: 1, teams: HALL_NAMES.slice(0, count).map(name => ({ name, playerIds: [] })), format, total, pause, target, cycles: plan.cycles, seconds: plan.seconds, buffer: plan.buffer, games: plan.games };
 }
