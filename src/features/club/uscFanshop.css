@@ -1,0 +1,62 @@
+.usc-shop { padding: 16px 18px 30px; }
+.usc-shop-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+.usc-shop-toolbar > span { font-size:12px; font-weight:850; letter-spacing:.07em; }
+.usc-shop-basket { position:relative; }
+.usc-shop-basket b { position:absolute; top:-4px; right:-4px; min-width:21px; height:21px; border-radius:20px; background:white; color:#15171a; font-size:11px; display:grid; place-items:center; padding:0 4px; }
+.usc-shop-demo { padding:10px 12px; border:1px solid #ffffff24; border-radius:12px; color:#c2c7ce; font-size:11px; line-height:1.6; margin-bottom:20px; }
+.usc-shop-demo > span { font-weight:850; color:white; margin-right:8px; letter-spacing:.08em; }
+.usc-shop h1 { font-size:clamp(30px,7vw,44px); line-height:1.1; letter-spacing:-.04em; font-weight:850; margin:0; }
+.usc-shop-subtitle { color:#b7bdc5; margin:8px 0 22px; font-size:15px; }
+.usc-shop-hero { display:flex; align-items:center; overflow:hidden; min-height:190px; padding:22px 0 22px 20px; border-radius:20px; background:linear-gradient(120deg,#363b43,#1d2025); border:1px solid #ffffff18; }
+.usc-shop-hero > div:first-child { flex:1; z-index:1; }
+.usc-shop-hero h2 { font-size:clamp(23px,5vw,36px); font-weight:850; line-height:1.12; letter-spacing:-.04em; margin:12px 0 18px; }
+.usc-shop-hero .usc-shop-art { flex:0 0 47%; background:transparent; margin:0 -5% 0 -3%; transform:rotate(-8deg); }
+.usc-shop-hero-tag { font-size:11px; padding:7px 10px; border:1px solid #ffffff40; border-radius:20px; }
+.usc-shop-categories,.usc-shop-sizes { display:flex; gap:8px; flex-wrap:wrap; }
+.usc-shop-categories { margin:22px 0 18px; }
+.usc-shop-categories button,.usc-shop-sizes button { min-height:44px; border:1px solid #ffffff28; border-radius:25px; padding:10px 20px; background:#262a30; color:#d6d9df; font-size:13px; font-weight:750; }
+.usc-shop button[aria-pressed=true] { background:#f4f5f6; color:#16181c; border-color:#f4f5f6; }
+.usc-shop-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.usc-shop-card { overflow:hidden; background:#22262b; border-radius:16px; border:1px solid #ffffff12; text-align:left; color:#fff; }
+.usc-shop-art { position:relative; background:radial-gradient(ellipse at 45% 30%,#f4f4f4,#bfc3c8); overflow:hidden; border-radius:16px; }
+.usc-shop-art svg { display:block; width:100%; max-height:370px; }
+.usc-shop .usc-shop-crest { position:absolute; width:9%; height:auto; top:33%; left:55%; object-fit:contain; }
+.usc-shop-card .usc-shop-art { border-radius:0; }
+.usc-shop-card-copy { display:grid; gap:4px; padding:12px; }
+.usc-shop-card-copy strong { font-size:15px; }
+.usc-shop-card-copy > span { font-size:14px; color:#e3e5e8; }
+.usc-shop-card-copy small { font-size:10px; color:#b9bec5; line-height:1.4; }
+.usc-shop-footnote { color:#aeb4be; font-size:11px; line-height:1.7; margin:18px 0 0; }
+.usc-shop-product-title { display:flex; align-items:start; justify-content:space-between; gap:14px; margin-top:22px; }
+.usc-shop-product-title h1 { font-size:28px; }
+.usc-shop-product-title > strong { font-size:23px; white-space:nowrap; }
+.usc-shop fieldset { padding:0; margin:24px 0; border:0; }
+.usc-shop legend { font-size:15px; font-weight:800; margin-bottom:12px; }
+.usc-shop-sizes button { border-radius:11px; min-width:50px; padding:10px 13px; }
+.usc-shop-personalize { display:grid; grid-template-columns:2fr 1fr; gap:12px; }
+.usc-shop label { display:grid; gap:7px; font-size:14px; font-weight:750; }
+.usc-shop label small { color:#aeb4be; font-size:11px; font-weight:400; }
+.usc-shop input { width:100%; min-height:46px; background:#25292f; color:white; border:1px solid #ffffff30; border-radius:11px; padding:12px; font-size:16px; }
+.usc-shop-info { display:flex; align-items:start; gap:12px; background:#24282e; border:1px solid #ffffff15; border-radius:15px; padding:16px; margin:22px 0; }
+.usc-shop-info > svg { flex-shrink:0; }
+.usc-shop-info strong { font-size:13px; }
+.usc-shop-info p { color:#b9bec6; font-size:12px; line-height:1.7; margin:5px 0 0; }
+.usc-shop-primary,.usc-shop-secondary { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; min-height:52px; border-radius:14px; background:#f4f5f6; color:#15171a; font-weight:850; font-size:15px; padding:14px; }
+.usc-shop-secondary { background:#272c33; color:white; border:1px solid #ffffff25; }
+.usc-shop button:disabled { opacity:.45; cursor:default; }
+.usc-shop-status { display:flex; gap:8px; align-items:center; font-size:12px; line-height:1.6; margin:12px 0; }
+.usc-shop-status svg { flex-shrink:0; }
+.usc-shop-empty { text-align:center; padding:34px 12px; display:grid; justify-items:center; gap:16px; }
+.usc-shop-empty h2 { font-size:20px; }.usc-shop-empty p { color:#b9bec6; }
+.usc-shop-cart-list { display:grid; gap:12px; }
+.usc-shop-cart-item { display:grid; grid-template-columns:100px 1fr; gap:14px; padding:12px; background:#22262b; border-radius:16px; align-items:start; }
+.usc-shop-cart-item h2 { font-size:16px; font-weight:800; margin:0 0 5px; }
+.usc-shop-cart-item p { font-size:12px; color:#b9bec6; overflow-wrap:anywhere; margin:4px 0; }
+.usc-shop-cart-item strong { display:block; font-size:15px; margin:8px 0; }
+.usc-shop-quantity { display:flex; gap:4px; align-items:center; }
+.usc-shop-quantity button { display:grid; place-items:center; min-width:40px; min-height:44px; color:white; background:#ffffff0c; border-radius:9px; }
+.usc-shop-quantity > span { min-width:26px; text-align:center; font-size:13px; }
+.usc-shop-quantity button:last-child { margin-left:auto; }
+.usc-shop-total { display:flex; justify-content:space-between; gap:12px; font-size:14px; padding:22px 0; border-bottom:1px solid #ffffff20; }.usc-shop-total strong { font-size:22px; }
+@media(min-width:650px) { .usc-shop { padding:26px 32px; }.usc-shop-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }.usc-shop-hero .usc-shop-art { max-width:270px; margin-right:25px; }.usc-shop-hero { min-height:220px; }.usc-shop > .usc-shop-art { max-width:550px; margin:auto; } }
+@media(prefers-reduced-motion:reduce) { .usc-shop * { scroll-behavior:auto; } }
