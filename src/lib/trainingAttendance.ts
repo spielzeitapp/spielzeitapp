@@ -160,6 +160,15 @@ export function computeSessionParticipationPct(
   return exact != null ? Math.round(exact) : null;
 }
 
+/** Training absolviert, einschließlich LAZ und anderer Mannschaft. Krank/Verletzt neutral. */
+export function computeSessionTrainingActivityPct(
+  counts: Pick<TrainingAttendanceCounts, 'present' | 'absent' | 'external' | 'otherTeam'>,
+): number | null {
+  const completed = counts.present + counts.external + (counts.otherTeam ?? 0);
+  const exact = pctExact(completed, completed + counts.absent);
+  return exact == null ? null : Math.round(exact);
+}
+
 /** Farbliche Bewertung Mannschafts-Beteiligung (Trainingszentrale). */
 export function participationPctColorClass(pct: number): string {
   if (pct >= 75) return 'text-emerald-400';
