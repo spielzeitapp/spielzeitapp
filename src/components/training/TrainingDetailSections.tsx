@@ -28,6 +28,7 @@ type Props = {
   eventId: string;
   teamSeasonId: string;
   startsAtIso: string;
+  endsAtIso?: string | null;
   status?: string | null;
   trainingTitle: string;
   trainingTopics?: string | null;
@@ -45,6 +46,7 @@ export function TrainingDetailSections({
   eventId,
   teamSeasonId,
   startsAtIso,
+  endsAtIso,
   status = null,
   trainingTitle,
   trainingTopics = null,
@@ -78,9 +80,11 @@ export function TrainingDetailSections({
   const canViewStaffReadouts = canManage || canViewHistory;
   /** Saisonweite Stats/Kaiser: immer active-only. Event-Teilnehmer kommen separat aus EventDetail. */
   const { players } = usePlayers(teamSeasonId, { mode: 'active' });
+  const [clockNow, setClockNow] = useState(() => new Date());
+  useEffect(() => { const timer = window.setInterval(() => setClockNow(new Date()), 30_000); return () => window.clearInterval(timer); }, []);
   const trainingPhase = useMemo(
-    (): TrainingCenterPhase => resolveTrainingCenterPhase({ startsAtIso, status }),
-    [startsAtIso, status],
+    (): TrainingCenterPhase => resolveTrainingCenterPhase({ startsAtIso, endsAtIso, status, now: clockNow }),
+    [startsAtIso, endsAtIso, status, clockNow],
   );
 
   const {
@@ -98,6 +102,7 @@ export function TrainingDetailSections({
   const overviewSectionOrder = useMemo((): string[] => {
     if (trainingPhase === 'after' || canViewHistory) {
       return [
+        'completed',
         'participants',
         'stats',
         'kaiser',
@@ -130,6 +135,8 @@ export function TrainingDetailSections({
 
   const renderSection = (key: string) => {
     switch (key) {
+      case 'completed':
+        return <section key={key} className={EC_CARD}><div className={EC_CARD_INNER}><p className={EC_SECTION_LABEL}>Trainingsstatus</p><p className="mt-1 font-bold text-emerald-300">Training abgeschlossen ✓</p><p className="text-sm text-white/55">Teilnehmer und Ergebnisse kannst du weiterhin korrigieren.</p></div></section>;
       case 'live':
         return (
           <section key={key} className={EC_CARD}>
