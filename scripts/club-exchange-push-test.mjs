@@ -3,7 +3,7 @@ import { build } from 'esbuild';
 import { createRequire } from 'node:module';
 const require=createRequire(import.meta.url);
 const Module=require('module');
-const output=await build({entryPoints:['api/exchange/push.ts'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,logLevel:'silent',plugins:[{name:'push-fixtures',setup(b){
+const output=await build({entryPoints:['api/exchange/push.js'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,logLevel:'silent',plugins:[{name:'push-fixtures',setup(b){
  b.onResolve({filter:/^@supabase\/supabase-js$/},()=>({path:'db',namespace:'fixture'}));
  b.onLoad({filter:/^db$/,namespace:'fixture'},()=>({contents:`
  class Query{
@@ -17,7 +17,7 @@ const output=await build({entryPoints:['api/exchange/push.ts'],bundle:true,platf
  b.onLoad({filter:/^push$/,namespace:'fixture'},()=>({contents:`module.exports={setVapidDetails(){},sendNotification:async(sub,payload)=>{global.__exchange.sent.push({sub,payload:JSON.parse(payload)});}};`}));
 }}]});
 const m=new Module('exchange-push-test.cjs');m.paths=require.resolve.paths('react');m._compile(output.outputFiles[0].text,'exchange-push-test.cjs');
-const handler=m.exports.default;
+const handler=m.exports;
 const keys=['SUPABASE_URL','VITE_SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','STAGING_DISABLE_OUTBOUND','VAPID_PUBLIC_KEY','VAPID_PRIVATE_KEY','VAPID_SUBJECT'];
 const previous=Object.fromEntries(keys.map(k=>[k,process.env[k]]));
 const call=async(req={})=>{const res={statusCode:200,setHeader(){},status(code){this.statusCode=code;return this;},json(body){this.body=body;return this;}};await handler({method:'POST',headers:{authorization:'Bearer valid'},...req},res);return res;};

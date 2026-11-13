@@ -1,13 +1,17 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@supabase/supabase-js';
-import webpush from 'web-push';
-import { buildWebPushJsonPayload } from '../../lib/webPushPayload';
+const { createClient } = require('@supabase/supabase-js');
+const webpush = require('web-push');
+// Self-contained CommonJS entry: avoid Vercel's extensionless TS/ESM import resolution.
+function buildWebPushJsonPayload(parts) {
+  return JSON.stringify({ ...parts, icon: '/icon-192.png', badge: '/badge-72.png',
+    vibrate: [200,100,200], requireInteraction: false,
+    data: { url: parts.url, kind: parts.kind } });
+}
 
 /** Dispatch only server-created queue entries belonging to the verified sender.
  * No recipient, title, URL or message text is accepted from the request body.
  * Entries remain pending on failure; another request retries them with a stable tag.
  */
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST erforderlich' });
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -61,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               url: job.link, tag: `exchange-${job.message_id}`, kind: 'exchange' }), { TTL: 3600 });
           sent++;
         } catch (e) {
-          const status = (e as { statusCode?: number }).statusCode;
+          const status = e?.statusCode;
           if (status === 410 || status === 404) {
             await db.from('notification_subscriptions').update({ is_active: false }).eq('id', sub.id);
           } else failed = true;
