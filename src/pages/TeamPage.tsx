@@ -1241,16 +1241,16 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
 
       {activeTab === "squad" ? (
       <PremiumCard variant="subtle" showAmbientGlow={false} className="!rounded-none !border-0 !bg-transparent !p-0 !shadow-none sm:!rounded-3xl sm:!border sm:!bg-inherit sm:!p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-3 sm:px-0">
-          <div className="min-w-0"><SectionTitle as="h2" className="!whitespace-nowrap !text-[20px] !font-black !uppercase !leading-tight !tracking-tight">Unser Team</SectionTitle></div>
+        <div className="flex min-w-0 items-center justify-between gap-2 px-3 sm:px-0">
+          <h2 className="min-w-0 flex-1 font-black uppercase text-white" style={{ margin: 0, fontSize: "clamp(16px, 4.6vw, 20px)", lineHeight: 1.1, letterSpacing: "-0.025em", whiteSpace: "nowrap" }}>Unser Team</h2>
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
             {!isDemo && archivedTeamSeasons.length > 0 ? (
-              <button type="button" aria-expanded={showSeasonArchive} aria-controls="team-season-archive" onClick={() => setShowSeasonArchive((open) => !open)} className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border ${showSeasonArchive ? "border-red-400/50 bg-red-500/15" : "border-white/15 bg-white/[0.06]"} text-white/85`} aria-label="Archiv: vergangene Saisonen ansehen" title="Archiv: vergangene Saisonen ansehen">
+              <button type="button" aria-expanded={showSeasonArchive} aria-controls="team-season-archive" onClick={() => setShowSeasonArchive((open) => !open)} className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${showSeasonArchive ? "border-red-400/50 bg-red-500/15" : "border-white/15 bg-white/[0.06]"} text-white/85`} aria-label="Archiv: vergangene Saisonen ansehen" title="Archiv: vergangene Saisonen ansehen">
                 <Archive className="h-5 w-5 text-red-400" aria-hidden />
               </button>
             ) : null}
             {!plLoading && canManagePlayers ? (
-              <label className="relative flex h-11 w-11 shrink-0 focus-within:outline focus-within:outline-2 focus-within:outline-white flex-col items-center justify-center gap-0.5 rounded-full border border-white/15 bg-white/[0.06] text-white/85" title={squadFilter === 'active' ? 'Aktive Spieler' : squadFilter === 'paused' ? 'Pausierte Spieler' : 'Alle Spieler'}>
+              <label className="relative flex h-10 w-10 shrink-0 focus-within:outline focus-within:outline-2 focus-within:outline-white flex-col items-center justify-center gap-0.5 rounded-full border border-white/15 bg-white/[0.06] text-white/85" title={squadFilter === 'active' ? 'Aktive Spieler' : squadFilter === 'paused' ? 'Pausierte Spieler' : 'Alle Spieler'}>
                 <span className="pointer-events-none text-[8px] font-bold uppercase leading-none">{squadFilter === 'active' ? 'Aktiv' : squadFilter === 'paused' ? 'Pause' : 'Alle'}</span>
                 <span className="pointer-events-none text-[14px] font-black leading-none">{squadFilter === 'active' ? activeCount : squadFilter === 'paused' ? pausedCount : players.length}</span>
                 <select value={squadFilter} onChange={event => setSquadFilter(event.target.value as typeof squadFilter)} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" aria-label="Kader filtern">
@@ -1265,7 +1265,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
               </span>
             ) : null}
             {teamSeasonId != null && canManagePlayers && !plLoading ? (
-              <PremiumButton type="button" variant="interactive" onClick={() => openCreateForm()} aria-label="Spieler hinzufügen" title="Spieler hinzufügen" className="!h-11 !min-h-11 !w-11 !min-w-11 shrink-0 !rounded-full !p-0">
+              <PremiumButton type="button" variant="interactive" onClick={() => openCreateForm()} aria-label="Spieler hinzufügen" title="Spieler hinzufügen" className="!h-10 !min-h-10 !w-10 !min-w-10 shrink-0 !rounded-full !p-0">
                 <UserPlus className="h-5 w-5" aria-hidden />
               </PremiumButton>
             ) : null}
