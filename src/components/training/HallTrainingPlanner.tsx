@@ -24,7 +24,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'teams' | 'games' | 'table'>('teams');
   const [now, setNow] = useState(Date.now());
-  const [count, setCount] = useState(3), [format, setFormat] = useState<3 | 4>(3), [minutes, setMinutes] = useState(defaultMinutes), [pause, setPause] = useState(2), [target, setTarget] = useState(8), [cycles, setCycles] = useState(0);
+  const [count, setCount] = useState(3), [format, setFormat] = useState<2 | 3 | 4>(3), [minutes, setMinutes] = useState(defaultMinutes), [pause, setPause] = useState(2), [target, setTarget] = useState(8), [cycles, setCycles] = useState(0);
   const saving = useRef(false);
   const scorerPanel = useRef<HTMLElement | null>(null);
   const [goalPicker, setGoalPicker] = useState<{ game: number; team: number; second: number; goal?: number } | null>(null);
@@ -221,7 +221,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
           <legend className="sr-only">Zeit und Spielform</legend>
           <div className="grid grid-cols-2 gap-3">
             <label className="text-[15px] text-white/70">Mannschaften<select className={input} value={count} onChange={e => changeTeamCount(Number(e.target.value))}><option value={3}>3 Teams</option><option value={4}>4 Teams</option></select></label>
-            <label className="text-[15px] text-white/70">Spielform<select className={input} value={format} onChange={e => setFormat(Number(e.target.value) as 3 | 4)}><option value={3}>3 gegen 3</option><option value={4}>4 gegen 4</option></select></label>
+            <label className="text-[15px] text-white/70">Spielform<select className={input} value={format} onChange={e => setFormat(Number(e.target.value) as 2 | 3 | 4)}><option value={2}>2 gegen 2</option><option value={3}>3 gegen 3</option><option value={4}>4 gegen 4</option></select></label>
             <label className="text-[15px] text-white/70">Gesamtzeit (Min.)<input className={input} type="number" min={15} max={180} value={minutes} onChange={e => setMinutes(Number(e.target.value))} /></label>
             <label className="text-[15px] text-white/70">Wechselpause (Min.)<input className={input} type="number" min={0} max={5} step={0.5} value={pause} onChange={e => setPause(Number(e.target.value))} /></label>
             <label className="text-[15px] text-white/70">Wunschspielzeit (Min.)<input className={input} type="number" min={2} max={20} value={target} onChange={e => setTarget(Number(e.target.value))} /></label>
