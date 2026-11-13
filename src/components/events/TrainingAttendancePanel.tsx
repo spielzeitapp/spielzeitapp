@@ -5,6 +5,7 @@ import { ChevronDown, Users } from 'lucide-react';
 import type { PlayerItem } from '../../hooks/usePlayers';
 import {
   computeSessionParticipationPct,
+  computeSessionTrainingActivityPct,
   countTrainingAttendanceByStatus,
   trainingAttendanceBucketRank,
   trainingAttendanceLabel,
@@ -58,7 +59,7 @@ function statusTone(status: TrainingAttendanceStatus): PremiumStatusBadgeTone {
 }
 
 const STAT_GRID_MAIN: {
-  key: keyof ReturnType<typeof countTrainingAttendanceByStatus> | 'participation';
+  key: keyof ReturnType<typeof countTrainingAttendanceByStatus>;
   label: string;
   tone: DsChipTone | 'participation';
 }[] = [
@@ -68,7 +69,6 @@ const STAT_GRID_MAIN: {
   { key: 'injured', label: 'Verletzt', tone: 'injured' },
   { key: 'external', label: 'LAZ', tone: 'external' },
   { key: 'otherTeam', label: 'Andere Mannschaft', tone: 'neutral' },
-  { key: 'participation', label: 'Beteiligung', tone: 'participation' },
 ];
 
 const STAT_BOX_BASE =
@@ -126,6 +126,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
   }, [players, getStatus]);
 
   const participationPct = useMemo(() => computeSessionParticipationPct(counts), [counts]);
+  const activityPct = useMemo(() => computeSessionTrainingActivityPct(counts), [counts]);
 
   const sorted = useMemo(
     () =>
@@ -145,14 +146,17 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
           <div key={key} className={trainingStatBoxClass(tone)}>
             <span className={STAT_LABEL_CLASS}>{label}</span>
             <span className={STAT_VALUE_CLASS}>
-              {key === 'participation'
-                ? participationPct != null
-                  ? `${participationPct} %`
-                  : '—'
-                : counts[key]}
+              {counts[key] ?? 0}
             </span>
           </div>
         ))}
+      </div>
+      <div className="grid w-full grid-cols-2 gap-2">
+        {[{ label: 'Beim eigenen Team', value: participationPct, hint: 'An diesem Training vor Ort' }, { label: 'Trainingsaktivität', value: activityPct, hint: 'Inkl. LAZ und anderer Mannschaft' }].map(({ label, value, hint }) => <div key={label} className={trainingStatBoxClass('participation')}>
+          <span className={STAT_LABEL_CLASS}>{label}</span>
+          <span className={STAT_VALUE_CLASS}>{value == null ? '—' : `${value} %`}</span>
+          <span className="mt-1 text-[10px] leading-snug text-white/50">{hint}</span>
+        </div>)}
       </div>
 
       {loading ? (

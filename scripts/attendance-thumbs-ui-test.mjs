@@ -4,7 +4,8 @@ import {unlinkSync} from 'node:fs';
 const out='node_modules/.attendance-thumbs-test.mjs';
 try {
  await build({stdin:{resolveDir:process.cwd(),loader:'tsx',contents:`
- import React from 'react';import TestRenderer,{act} from 'react-test-renderer';import assert from 'node:assert/strict';import {AttendanceThumbControls} from './src/components/events/AttendanceThumbControls';
+ import React from 'react';import TestRenderer,{act} from 'react-test-renderer';import assert from 'node:assert/strict';import {AttendanceThumbControls} from './src/components/events/AttendanceThumbControls';import {countTrainingAttendanceByStatus,computeSessionParticipationPct,computeSessionTrainingActivityPct} from './src/lib/trainingAttendance';
+const counts=countTrainingAttendanceByStatus([...Array(9).fill('present'),'absent','injured','other_team']);assert.equal(computeSessionParticipationPct(counts),82);assert.equal(computeSessionTrainingActivityPct(counts),91);assert.equal(computeSessionTrainingActivityPct(countTrainingAttendanceByStatus(['injured'])),null);
  let view;let calls=[];const props={allowOtherTeam:true,name:'Theo Putz',status:'open',onSelect:s=>calls.push(s)};
  act(()=>{view=TestRenderer.create(<AttendanceThumbControls {...props}/>)});
  const buttons=()=>view.root.findAllByType('button');
