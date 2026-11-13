@@ -17,7 +17,7 @@ import {
   PremiumTabTrack,
   SectionTitle,
 } from "../ui";
-import { ArrowLeft, Camera, Archive, ChevronDown } from "lucide-react";
+import { ArrowLeft, Camera, Archive, UserPlus } from "lucide-react";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
 import { normalizeRole, canManageRoster, canManageMatches } from "../lib/roles";
@@ -1224,33 +1224,32 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
 
       {activeTab === "squad" ? (
       <PremiumCard variant="subtle" showAmbientGlow={false} className="!rounded-none !border-0 !bg-transparent !p-0 !shadow-none sm:!rounded-3xl sm:!border sm:!bg-inherit sm:!p-5">
-        <div className="flex items-center justify-between gap-2 px-3 sm:px-0">
-          <div className="flex min-w-0 flex-1 items-center gap-2"><SectionTitle as="h2" className="[&>h2]:text-xl [&>h2]:font-black [&>h2]:uppercase [&>h2]:tracking-tight">Unser Team</SectionTitle></div>
-          <div className="flex shrink-0 items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-3 sm:px-0">
+          <div className="min-w-0"><SectionTitle as="h2" className="!whitespace-nowrap !text-[20px] !font-black !uppercase !leading-tight !tracking-tight">Unser Team</SectionTitle></div>
+          <div className="ml-auto flex shrink-0 items-center gap-1.5">
             {!isDemo && archivedTeamSeasons.length > 0 ? (
-              <button type="button" aria-expanded={showSeasonArchive} aria-controls="team-season-archive" onClick={() => setShowSeasonArchive((open) => !open)} className="flex min-h-9 items-center gap-1 rounded-full border border-white/15 bg-white/[0.06] px-2 text-[11px] font-bold text-white/85" title="Vergangene Saisonen ansehen">
-                <Archive className="h-4 w-4 text-red-400" aria-hidden /><span>Archiv</span><ChevronDown className={`h-3.5 w-3.5 transition-transform ${showSeasonArchive ? "rotate-180" : ""}`} aria-hidden />
+              <button type="button" aria-expanded={showSeasonArchive} aria-controls="team-season-archive" onClick={() => setShowSeasonArchive((open) => !open)} className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border ${showSeasonArchive ? "border-red-400/50 bg-red-500/15" : "border-white/15 bg-white/[0.06]"} text-white/85`} aria-label="Archiv: vergangene Saisonen ansehen" title="Archiv: vergangene Saisonen ansehen">
+                <Archive className="h-5 w-5 text-red-400" aria-hidden />
               </button>
             ) : null}
             {!plLoading && canManagePlayers ? (
-              <select
-                value={squadFilter}
-                onChange={(event) => setSquadFilter(event.target.value as typeof squadFilter)}
-                className="h-9 min-w-0 max-w-[112px] rounded-full border border-white/10 bg-white/[0.06] px-2.5 text-[11px] font-black text-white/80 outline-none"
-                aria-label="Kader filtern"
-              >
-                <option value="active">Aktiv ({activeCount})</option>
-                <option value="paused">Pausiert ({pausedCount})</option>
-                <option value="all">Alle ({players.length})</option>
-              </select>
+              <label className="relative flex h-11 w-11 shrink-0 focus-within:outline focus-within:outline-2 focus-within:outline-white flex-col items-center justify-center gap-0.5 rounded-full border border-white/15 bg-white/[0.06] text-white/85" title={squadFilter === 'active' ? 'Aktive Spieler' : squadFilter === 'paused' ? 'Pausierte Spieler' : 'Alle Spieler'}>
+                <span className="pointer-events-none text-[8px] font-bold uppercase leading-none">{squadFilter === 'active' ? 'Aktiv' : squadFilter === 'paused' ? 'Pause' : 'Alle'}</span>
+                <span className="pointer-events-none text-[14px] font-black leading-none">{squadFilter === 'active' ? activeCount : squadFilter === 'paused' ? pausedCount : players.length}</span>
+                <select value={squadFilter} onChange={event => setSquadFilter(event.target.value as typeof squadFilter)} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" aria-label="Kader filtern">
+                  <option value="active">Aktiv ({activeCount})</option>
+                  <option value="paused">Pausiert ({pausedCount})</option>
+                  <option value="all">Alle ({players.length})</option>
+                </select>
+              </label>
             ) : !plLoading ? (
               <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.08em] text-white/75">
                 {showcasePlayers.length} Spieler
               </span>
             ) : null}
             {teamSeasonId != null && canManagePlayers && !plLoading ? (
-              <PremiumButton type="button" variant="interactive" onClick={() => openCreateForm()} className="!min-h-[36px] shrink-0 !px-2.5 !py-1.5 !text-xs">
-                + Spieler
+              <PremiumButton type="button" variant="interactive" onClick={() => openCreateForm()} aria-label="Spieler hinzufügen" title="Spieler hinzufügen" className="!h-11 !min-h-11 !w-11 !min-w-11 shrink-0 !rounded-full !p-0">
+                <UserPlus className="h-5 w-5" aria-hidden />
               </PremiumButton>
             ) : null}
           </div>
