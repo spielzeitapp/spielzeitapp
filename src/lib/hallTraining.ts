@@ -2,7 +2,7 @@
 export type HallTeam = { name: string; playerIds: string[] };
 export type HallGoal = { team: number; second: number; ownGoal?: boolean; timeUnknown?: boolean; scorerId?: string; scorerName?: string };
 export type HallGame = { participation?: Record<string, HallParticipation>; seconds?: number; home: number; away: number; status: 'pending' | 'running' | 'paused' | 'finished'; elapsed: number; runningSince: number | null; goals: HallGoal[] };
-export type HallDay = { version: 1; teams: HallTeam[]; format: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11; total: number; pause: number; target: number; cycles: number; seconds: number; buffer: number; games: HallGame[] };
+export type HallDay = { plannedStartTime?: string; version: 1; teams: HallTeam[]; format: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11; total: number; pause: number; target: number; cycles: number; seconds: number; buffer: number; games: HallGame[] };
 export const HALL_COLORS = ['#fb425c', '#419cff', '#facc15', '#4ade80'];
 export const HALL_NAMES = ['Rot', 'Blau', 'Gelb', 'Grün'];
 export function isHallTraining(title: string, location?: string | null) {
@@ -167,4 +167,20 @@ export function calculateHallRotation(count: number, total: number, pause = 60, 
   });
  }
  return { ...plan, longestWaitSeconds };
+}
+
+export function hallTimeMinutes(value: string): number {
+ if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return NaN;
+ const [h, m] = value.split(':').map(Number); return h * 60 + m;
+}
+export function hallTimeAfter(start: string, minutes: number): string {
+ const first = hallTimeMinutes(start);
+ if (!Number.isFinite(first) || !Number.isFinite(minutes)) return '';
+ const end = ((first + minutes) % 1440 + 1440) % 1440;
+ return `${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}`;
+}
+export function hallWindowMinutes(start: string, end: string): number {
+ const first = hallTimeMinutes(start), last = hallTimeMinutes(end);
+ if (!Number.isFinite(first) || !Number.isFinite(last)) return NaN;
+ return (last - first + 1440) % 1440;
 }
