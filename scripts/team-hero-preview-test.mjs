@@ -14,10 +14,10 @@ await Test.act(async()=>{live=Test.create(React.createElement(TeamHeroFrame,{pho
 const livePhoto=live.root.findByProps({'data-team-hero-photo':true}),previewPhoto=preview.root.findByProps({'data-team-hero-photo':true});
 assert.equal(livePhoto.props.className,previewPhoto.props.className,'identical crop ratio');
 assert.equal(livePhoto.findByType('img').props.style,previewPhoto.findByType('img').props.style,'identical image transform');
-assert.match(livePhoto.props.className,/16\/9/);
+assert.match(livePhoto.props.className,/16\/10/);
 const liveDetails=live.root.findByProps({'data-team-hero-details':true}),previewDetails=preview.root.findByProps({'data-team-hero-details':true});
 assert.equal(liveDetails.props.className,previewDetails.props.className,'identical caption position');
-assert.match(liveDetails.props.className,/-mt-12/,'caption overlap reduced to leave heads clear');
+assert.match(liveDetails.props.className,/absolute inset-0/,'caption stays on the photo without a black footer');
 assert.equal(liveDetails.findByType('p').children[0],previewDetails.findByType('p').children[0]);
 assert.equal(preview.root.findByProps({'data-team-hero-preview':true}).props.style.height,288*330/390);
 assert.equal(preview.root.findByProps({className:'absolute left-0 top-0 origin-top-left'}).props.style.width,390,'preview keeps real app width before scaling');

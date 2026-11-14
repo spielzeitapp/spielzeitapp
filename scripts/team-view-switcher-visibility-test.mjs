@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),React=require('react'),Test=require('react-test-renderer');
+const mocks=`export const useSession=()=>globalThis.__session;export const useNavigate=()=>()=>{};export const useHiddenTeamFavoriteIds=()=>globalThis.__hidden;export const useSavedTeamFavorites=()=>globalThis.__favorites;export const ClubLogo=()=>null;export const Modal=()=>null;export const getClubLogo=()=>null;export const ensureFanTeamAccess=async()=>null;`;
+const bundle=await build({entryPoints:['src/components/team/TeamViewSwitcher.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,plugins:[{name:'mocks',setup(b){b.onResolve({filter:/(useSession|useSavedTeamFavorites|ClubLogo|\/Modal|teamLogos|teamFavorites)$|^react-router-dom$/},()=>({path:'mocks',namespace:'mocks'}));b.onLoad({filter:/.*/,namespace:'mocks'},()=>({contents:mocks,loader:'js'}));}}]});
+const module={exports:{}};new Function('require','module','exports',bundle.outputFiles[0].text)(require,module,module.exports);const {TeamViewSwitcher}=module.exports;
+const own=id=>({id,status:'active',team:{id,name:'Team '+id},season:{name:'2026/27'},age_group:'U12'});
+globalThis.__session={user:{id:'trainer'},teamSeasons:[own('a')],selectedTeamSeasonId:'a'};globalThis.__favorites=[];globalThis.__hidden=[];
+let tree;await Test.act(async()=>{tree=Test.create(React.createElement(TeamViewSwitcher))});assert.equal(tree.toJSON(),null,'one selected team needs no switcher');
+globalThis.__session.teamSeasons=[own('a'),own('b')];await Test.act(async()=>tree.update(React.createElement(TeamViewSwitcher)));assert.equal(tree.root.findAllByProps({'aria-label':'Mannschaft wechseln'}).length,1,'multiple selected teams show switcher');
+globalThis.__hidden=['b'];await Test.act(async()=>tree.update(React.createElement(TeamViewSwitcher)));assert.equal(tree.toJSON(),null,'unselected membership does not count');
+globalThis.__favorites=[{id:'a'},{id:'c'}];await Test.act(async()=>tree.update(React.createElement(TeamViewSwitcher)));assert.equal(tree.root.findAllByProps({'aria-label':'Mannschaft wechseln'}).length,1,'additional external favorite counts once');
+globalThis.__hidden=['b','c'];await Test.act(async()=>tree.update(React.createElement(TeamViewSwitcher)));assert.equal(tree.toJSON(),null,'hidden external favorite does not count');
+globalThis.__favorites=[];globalThis.__hidden=[];globalThis.__session.teamSeasons=[own('a'),{...own('b'),status:'archived'}];await Test.act(async()=>tree.update(React.createElement(TeamViewSwitcher)));assert.equal(tree.toJSON(),null,'archived team is excluded');await Test.act(async()=>tree.unmount());
+console.log('PASS team switcher visibility: one/multiple selected teams, hidden memberships, external favorites, deduplication and archive.');

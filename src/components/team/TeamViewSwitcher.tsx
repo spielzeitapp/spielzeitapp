@@ -19,8 +19,9 @@ export function TeamViewSwitcher() {
   const hiddenIds = useHiddenTeamFavoriteIds();
   const teams = [
     ...teamSeasons.filter(ts => ts.status !== 'archived' && !hiddenIds.includes(ts.id)).map(ts => ({ id: ts.id, name: ts.team?.name || ts.display_name || 'Team', ageGroup: ts.age_group, season: ts.season?.name, logo: getClubLogo(ts.team?.name || '', { teamId: ts.team?.id, logoUrl: ts.team?.logo_url }), own: true })),
-    ...favorites.filter(team => !teamSeasons.some(own => own.id === team.id)).map(team => ({ ...team, own: false })),
+    ...favorites.filter(team => !hiddenIds.includes(team.id) && !teamSeasons.some(own => own.id === team.id)).map(team => ({ ...team, own: false })),
   ];
+  if (new Set(teams.map(team => team.id)).size < 2) return null;
   return <>
     <button type="button" onClick={() => setOpen(true)} aria-label="Mannschaft wechseln" title="Mannschaft wechseln" aria-haspopup="dialog" aria-expanded={open}
       className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/20 bg-black/65 text-[rgb(var(--club-accent-text-rgb))] shadow-lg backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--club-accent-rgb))]">
