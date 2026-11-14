@@ -12,11 +12,11 @@ const input = 'min-h-11 w-full rounded-xl border border-white/15 bg-[#101014] px
 const button = 'sz-club-event-action min-h-12 rounded-full border px-4 py-2 text-[16px] font-bold text-white disabled:opacity-40 touch-manipulation';
 function playerName(p: Player) { return p.display_name || p.name || `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim() || 'Spieler'; }
 
-export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, open, onClose, onReadyChange, readOnly = false, defaultMinutes = 60, indoor = true }: {
+export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, open, onClose, onReadyChange, readOnly = false, defaultMinutes, indoor = true }: {
   eventId: string; startsAt: string; players: Player[]; availableIds: string[]; open: boolean; onClose: () => void; onReadyChange: (ready: boolean) => void; readOnly?: boolean; defaultMinutes?: number; indoor?: boolean;
 }) {
   const demo = useDemoMode();
-  const initialMinutes = indoor ? Math.max(15, Math.min(180, defaultMinutes)) : 20;
+  const initialMinutes = indoor ? Math.max(15, Math.min(180, defaultMinutes ?? 60)) : Math.max(15, Math.min(30, defaultMinutes ?? 20));
   const [day, setDay] = useState<HallDay>(() => createHallDay(indoor ? 3 : 2, 3, initialMinutes * 60, indoor ? 60 : 0, 360, indoor ? undefined : 1));
   const [saved, setSaved] = useState<HallDay | null>(null);
   const [revision, setRevision] = useState(0);
