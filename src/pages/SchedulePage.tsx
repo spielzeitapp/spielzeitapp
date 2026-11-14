@@ -246,8 +246,20 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
   } = useActiveTeamSeason();
   const { teamSeasonId: publicTeamId, teamLabel: publicLabel, loading: publicLoading } =
     usePublicTeamSeason();
-  const { selectedMembership, user, selectedTeamSeason, isViewOnlyPlayer, teamViewFilter, filteredTeamSeasonIds } = useSession();
-  const isMultiTeamView = !isDemo && !managerSimpleMode && teamViewFilter !== null;
+  const { selectedMembership, user, selectedTeamSeason, isViewOnlyPlayer, teamViewFilter, filteredTeamSeasonIds, memberships } = useSession();
+  const isMultiTeamView = !isDemo && !managerSimpleMode && teamViewFilter !== null && filteredTeamSeasonIds.length > 1;
+  const [teamAction, setTeamAction] = useState<'create' | 'calendar' | null>(null);
+  const [actionTeamSeasonId, setActionTeamSeasonId] = useState<string | null>(null);
+  const actionTeamSeason = teamSeasons.find(season => season.id === actionTeamSeasonId);
+  const actionTeams = teamSeasons.filter(season =>
+    filteredTeamSeasonIds.includes(season.id) &&
+    (teamAction !== 'create' || (!isSeasonArchived(season.status) && memberships.some(membership =>
+      membership.team_season_id === season.id && canManageMatches(normalizeRole(membership.role))))),
+  );
+  const canCreateInOverview = isMultiTeamView && teamSeasons.some(season =>
+    filteredTeamSeasonIds.includes(season.id) && !isSeasonArchived(season.status) && memberships.some(membership =>
+      membership.team_season_id === season.id && canManageMatches(normalizeRole(membership.role))),
+  );
   const userId = user?.id ?? null;
   const effectiveTeamSeasonId = isDemo
     ? demo!.data.teamSeasonId
@@ -353,20 +365,21 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
   /** Öffentliche Team-ICS-URL (Slug aus Teamname, sonst Team-UUID). */
   const teamCalendarSegment = useMemo(() => {
     if (isDemo) return null;
-    const nameFromSeason = selectedTeamSeason?.team?.name?.trim();
+    const calendarSeason = actionTeamSeason ?? teamSeasons.find(season => season.id === effectiveTeamSeasonId) ?? selectedTeamSeason;
+    const nameFromSeason = calendarSeason?.team?.name?.trim();
     const nameFromMembership = getTeamNameFromMembership(selectedMembership)?.trim();
     let fromPublic = publicLabel?.replace(/\s*\([^)]*\)\s*$/, '').trim() || null;
     if (fromPublic === 'Spielplan') fromPublic = null;
     const fromTeamLabel = teamLabel?.replace(/\s*\([^)]*\)\s*$/, '').trim() || null;
     const name = nameFromSeason || nameFromMembership || fromPublic || fromTeamLabel;
     if (name) return teamCalendarSlugFromTeamName(name);
-    return selectedTeamSeason?.team?.id ?? null;
-  }, [selectedTeamSeason, selectedMembership, publicLabel, teamLabel, isDemo]);
+    return calendarSeason?.team?.id ?? null;
+  }, [actionTeamSeason, teamSeasons, effectiveTeamSeasonId, selectedTeamSeason, selectedMembership, publicLabel, teamLabel, isDemo]);
 
   const teamIcsFeedUrl = useMemo(() => {
-    if (isMultiTeamView || !teamCalendarSegment) return null;
+    if ((isMultiTeamView && !actionTeamSeason) || !teamCalendarSegment) return null;
     return buildTeamIcsFeedUrl(window.location.origin, teamCalendarSegment);
-  }, [teamCalendarSegment, isMultiTeamView]);
+  }, [teamCalendarSegment, isMultiTeamView, actionTeamSeason]);
 
   // Public Mode: /schedule und /live = nur Anzeige, KEINE Navigation zu Event-Detail
   // /demo/* = interne App-Oberfläche (wie /app), nicht öffentlich.
@@ -1496,7 +1509,7 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
     (!isDemo && playersLoading) ||
     heroLineupLoading;
   const error = tsError ?? eError;
-  const canShowCalendarActions = Boolean(teamIcsFeedUrl && !pageLoading && displayEvents.length > 0);
+  const canShowCalendarActions = isMultiTeamView || Boolean(teamIcsFeedUrl);
 
   const copyTeamIcsUrl = useCallback(async () => {
     if (!teamIcsFeedUrl) return;
@@ -1549,17 +1562,22 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                     {eventKind === 'match' ? 'Spiele' : eventKind === 'tournament' ? 'Turniere' : normalizedUiRole === 'fan' && !managerSimpleMode ? 'Spielplan' : 'Termine'}
                   </h1>
                   
-                  {canMutateSchedule ? (
+                  {canMutateSchedule || (!forcePublicView && canCreateInOverview) ? (
                     <button
                       type="button"
                       onClick={() => {
-                        if (isHistoryReadOnly) {
+                        if (!isMultiTeamView && isHistoryReadOnly) {
                           window.alert(softLockMessage ?? 'Archivierte Saison: nur Lesen.');
                           return;
                         }
+                        if (isMultiTeamView) {
+                          setTeamAction('create');
+                          return;
+                        }
+                        setActionTeamSeasonId(effectiveTeamSeasonId);
                         setCreateModalOpen(true);
                       }}
-                      disabled={!activeTeamSeasonId || isHistoryReadOnly}
+                      disabled={isMultiTeamView ? false : !effectiveTeamSeasonId || isHistoryReadOnly}
                       data-ui-app-button={basePath === '/manager' ? 'primary' : undefined}
                       className={`${dsSchedulePlusButtonClass()} shrink-0 leading-none ${basePath === '/manager' ? 'min-h-11 gap-2 px-3 text-sm md:w-auto' : 'h-8 w-8 text-[16px]'}`}
                       aria-label="Termin anlegen"
@@ -1595,7 +1613,10 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
                     type="button"
                     className={toolbarActionClass}
                     title="Kalender abonnieren"
-                    onClick={() => setCalendarSheetOpen(true)}
+                    onClick={() => {
+                      if (isMultiTeamView) setTeamAction('calendar');
+                      else { setActionTeamSeasonId(null); setCalendarSheetOpen(true); }
+                    }}
                   >
                     <CalendarPlus className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
                     <span>Abo</span>
@@ -2196,10 +2217,21 @@ export const SchedulePage: React.FC<{ managerSimpleMode?: boolean; eventKind?: '
         </div>
       </div>
 
+      <Modal isOpen={teamAction !== null} title="Mannschaft wählen" onClose={() => setTeamAction(null)}>
+        <p className="mb-3 text-sm text-white/65">{teamAction === 'create' ? 'Für welche Mannschaft möchtest du einen Termin anlegen?' : 'Welchen Mannschaftskalender möchtest du abonnieren?'}</p>
+        <div className="space-y-2">
+          {actionTeams.map(season => <button key={season.id} type="button" className={`${dsScheduleGlassButtonClass()} min-h-12 w-full px-3 text-left`} onClick={() => {
+            setActionTeamSeasonId(season.id);
+            if (teamAction === 'create') setCreateModalOpen(true);
+            else setCalendarSheetOpen(true);
+            setTeamAction(null);
+          }}>{resolveTeamSeasonLabelParts({displayName: season.display_name, ageGroup: season.age_group, teamName: season.team?.name, seasonName: season.season?.name}).full}</button>)}
+        </div>
+      </Modal>
       <CreateEventModal
             isOpen={createModalOpen}
             onClose={() => setCreateModalOpen(false)}
-            teamSeasonId={activeTeamSeasonId}
+            teamSeasonId={actionTeamSeasonId ?? activeTeamSeasonId}
             onSuccess={refetch}
             eventType={eventKind === 'tournament' ? 'tournament' : 'match'}
           />
