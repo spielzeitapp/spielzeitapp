@@ -34,7 +34,14 @@
       (function() {
         var path = window.location.pathname;
         var next = ['/login','/register','/forgot-password','/app/set-password'].indexOf(path) !== -1 ? new URLSearchParams(window.location.search).get('next') : '';
-        if (path === '/app/usc-rohrbach' || path.indexOf('/app/usc-rohrbach/') === 0 || (next && (next.split(/[?#]/)[0] === '/app/usc-rohrbach'))) {
+        var marketplace = path.match(/^\/marktplatz\/([0-9a-f-]{36})(?:\/|$)/i);
+        if (marketplace) {
+          document.querySelector('link[rel="manifest"]').setAttribute('href', '/api/exchange/manifest?club=' + marketplace[1]);
+          document.querySelector('link[rel="apple-touch-icon"]').setAttribute('href', '/vereinsmarkt/icon-180.png');
+          document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', 'Vereinsmarkt');
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#08080b');
+          document.title = 'Vereinsmarkt';
+        } else if (path === '/app/usc-rohrbach' || path.indexOf('/app/usc-rohrbach/') === 0 || (next && (next.split(/[?#]/)[0] === '/app/usc-rohrbach'))) {
           document.querySelector('link[rel="manifest"]').setAttribute('href', '/clubs/usc-rohrbach/manifest.json');
           document.querySelector('link[rel="apple-touch-icon"]').setAttribute('href', '/clubs/usc-rohrbach/icon-180.png');
           document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', 'USC Rohrbach');

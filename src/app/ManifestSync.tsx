@@ -37,10 +37,11 @@ export function ManifestSync(): null {
   const { pathname, search } = useLocation();
 
   useEffect(() => {
+    const marketplace = pathname.match(/^\/marktplatz\/([0-9a-f-]{36})(?:\/|$)/i);
     const usc = isUscAppPath(pathname) || Boolean(uscAuthTarget(pathname,search));
     const demo = pathname === '/demo' || pathname.startsWith('/demo/');
     const manager = pathname.startsWith('/manager');
-    const href = usc ? USC_MANIFEST : demo
+    const href = marketplace ? `/api/exchange/manifest?club=${marketplace[1]}` : usc ? USC_MANIFEST : demo
       ? '/manifest-demo.json'
       : manager
       ? '/manifest-manager.json'
@@ -51,13 +52,14 @@ export function ManifestSync(): null {
         : '/manifest.json';
     ensureManifestLink(href);
     const icon = document.querySelector('head link[rel="apple-touch-icon"]') as HTMLLinkElement | null;
-    if (icon) icon.href = usc ? USC_APP_ICON : manager ? '/manager-apple-touch-icon.png' : '/apple-touch-icon.png';
+    if (icon) icon.href = marketplace ? '/vereinsmarkt/icon-180.png' : usc ? USC_APP_ICON : manager ? '/manager-apple-touch-icon.png' : '/apple-touch-icon.png';
     const title = document.querySelector('head meta[name="apple-mobile-web-app-title"]') as HTMLMetaElement | null;
-    if (title) title.content = usc ? 'USC Rohrbach' : demo ? 'Spielzeit Demo' : manager ? 'Spielzeit Manager' : 'SpielzeitApp';
-    if (usc) document.title = 'USC Rohrbach';
+    if (title) title.content = marketplace ? 'Vereinsmarkt' : usc ? 'USC Rohrbach' : demo ? 'Spielzeit Demo' : manager ? 'Spielzeit Manager' : 'SpielzeitApp';
+    if (marketplace) document.title = 'Vereinsmarkt';
+    else if (usc) document.title = 'USC Rohrbach';
     else if (demo) document.title = 'SpielzeitApp Demo';
     else if (manager) document.title = 'Spielzeit Manager';
-    else if (document.title === 'Spielzeit Manager' || document.title === 'SpielzeitApp Demo' || document.title === 'USC Rohrbach') document.title = 'SpielzeitApp';
+    else if (document.title === 'Spielzeit Manager' || document.title === 'SpielzeitApp Demo' || document.title === 'USC Rohrbach' || document.title === 'Vereinsmarkt') document.title = 'SpielzeitApp';
   }, [pathname, search]);
 
   return null;

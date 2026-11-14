@@ -55,3 +55,9 @@ The first two migrations were applied to TEST, followed by a TEST-only policy co
 - Verification: public API security tests, public guest navigation/login-return tests, existing exchange interaction/catalog tests, isolated SQL/RLS migration replay, scoped TypeScript and Vite production build. UI tests use renderer mocks; no native mobile or actual push delivery test.
 - Test URL: `https://app.spielzeitapp.at/marktplatz/3db6fce2-a4c1-44a5-a333-19d1d4d62e6a`.
 - No genuine or demo ads are automatically published. LIVE migration/release not included.
+
+### Marketplace home-screen installation
+- Dedicated manifest `/api/exchange/manifest?club=UUID`, separate per-club ID and public `start_url=/marktplatz/UUID`.
+- Early HTML metadata and React ManifestSync select the same marketplace manifest, new approved shield/jersey/exchange-arrow icon and name Vereinsmarkt.
+- Old iOS bookmarks may retain the previous `/app` start URL. Remove the old home-screen shortcut and re-add from the public club URL in Safari.
+- `scripts/club-exchange-manifest-test.mjs` checks the public start, metadata before React, image sizes and unchanged default/demo/USC entries.
