@@ -316,7 +316,7 @@ export const MoreHubPage: React.FC = () => {
       <SectionTitle subtitle="Einstellungen und weitere Bereiche">Mehr</SectionTitle>
 
       <nav className="grid gap-2 md:grid-cols-2 lg:grid-cols-3" aria-label="Mehr-Menü">
-        {!isDemo && isStagingApp() ? <Link to="/app/tauschboerse" className={dsPanelRowClass()}><span className="flex items-center gap-3"><Shirt className="h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden /><span><span className="block">Tauschbörse</span><span className="block text-[11px] text-white/60">Trainingsgewand · alle Mannschaften im Verein</span></span></span><ChevronRight className="h-5 w-5 text-white/40" aria-hidden /></Link> : null}
+        {!isDemo && isStagingApp() ? <Link to="/app/tauschboerse" className={dsPanelRowClass()}><span className="flex items-center gap-3"><Shirt className="h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden /><span><span className="block">Vereinsmarkt</span><span className="block text-[11px] text-white/60">Trainingsgewand · alle Mannschaften im Verein</span></span></span><ChevronRight className="h-5 w-5 text-white/40" aria-hidden /></Link> : null}
         {showPreviewLink&&<Link to={fotoboxHref} className={dsPanelRowClass()}><span className="flex items-center gap-3"><Camera className="h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden/><span><span className="block">Fotobox</span><span className="block text-[11px] text-white/60">Spielerfotos aufnehmen · Fernsteuerung verbinden</span></span></span><ChevronRight className="h-5 w-5 text-white/40" aria-hidden/></Link>}
         {showManagerLink ? (
           <Link to="/manager/musikstudio" className={dsPanelRowClass()}>

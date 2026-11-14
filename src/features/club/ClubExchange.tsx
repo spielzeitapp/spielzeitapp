@@ -99,7 +99,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   const load = useCallback(async () => {
     try {
       const permission = await supabase.rpc('exchange_access', { p_club_id: clubId });
-      if (permission.error) throw Error('Tauschbörse konnte nicht geladen werden. Bitte erneut versuchen.');
+      if (permission.error) throw Error('Vereinsmarkt konnte nicht geladen werden. Bitte erneut versuchen.');
       if (!alive.current) return;
       setAccess(Boolean(permission.data));
       if (!permission.data) { setLoading(false); return; }
@@ -254,7 +254,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   });
   const toggleBlock = () => act(async () => {
     if (!otherId) return;
-    if (!isBlocked && !window.confirm('Diese Person für weitere Nachrichten in der Tauschbörse blockieren?')) return;
+    if (!isBlocked && !window.confirm('Diese Person für weitere Nachrichten in dem Vereinsmarkt blockieren?')) return;
     const result = isBlocked
       ? await supabase.from('exchange_blocks').delete().eq('club_id', clubId).eq('blocker_id', userId).eq('blocked_id', otherId)
       : await supabase.from('exchange_blocks').insert({ club_id: clubId, blocker_id: userId, blocked_id: otherId });
@@ -268,12 +268,12 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   const clearFilters = () => { setCategory(''); setSize(''); setTeam(''); setOffer(''); };
   const previewFiles = files.map(file => ({ file, key: `${file.name}-${file.lastModified}-${file.size}` }));
   const teamLabels = [...new Set([...(ownTeamLabels || seasons.map(s => s.age_group || s.display_name || s.team.name)), ...(form.team_label ? [form.team_label] : [])])];
-  return <section className="exchange" aria-label="Vereinsinterne Tauschbörse">
-    <header className="exchange-heading"><div><span className="usc-eyebrow">Alle Mannschaften · Ein Verein</span><h2>Tauschbörse</h2><p>Trainingsgewand im Verein weitergeben.</p></div>{access && <button className="exchange-primary sz-club-primary" onClick={() => openEditor()}><Plus size={17} /> Inserat</button>}</header>
+  return <section className="exchange" aria-label="Vereinsinterner Vereinsmarkt">
+    <header className="exchange-heading"><div><span className="usc-eyebrow">Alle Mannschaften · Ein Verein</span><h2>Vereinsmarkt</h2><p>Tauschbörse · Trainingsgewand im Verein weitergeben.</p></div>{access && <button className="exchange-primary sz-club-primary" onClick={() => openEditor()}><Plus size={17} /> Inserat</button>}</header>
     {error && <div className="exchange-alert" role="alert">{error}<button onClick={() => { setError(''); void loadRef.current(); }}>Erneut versuchen</button></div>}
     {notice && <p role="status" className="exchange-hint">{notice}</p>}
     <Link className="exchange-back" to={`/marktplatz/${clubId}`}>Öffentliche Vereinsseite ansehen</Link>
-    {loading ? <p role="status">Tauschbörse wird geladen…</p> : access === false ? <div className="exchange-empty"><LockKeyhole /><h3>Nur für Vereinsmitglieder</h3><p>Für Inserate und Anfragen benötigst du einen zugeordneten Eltern-, Trainer- oder Vereinszugang. Ein Favorit allein reicht dafür nicht.</p></div> : access && <>
+    {loading ? <p role="status">Vereinsmarkt wird geladen…</p> : access === false ? <div className="exchange-empty"><LockKeyhole /><h3>Nur für Vereinsmitglieder</h3><p>Für Inserate und Anfragen benötigst du einen zugeordneten Eltern-, Trainer- oder Vereinszugang. Ein Favorit allein reicht dafür nicht.</p></div> : access && <>
       {detail ? <>
         <button className="exchange-back" onClick={() => { openThread(null); setDetailId(null); }}><ArrowLeft size={18} /> Zur Übersicht</button>
         <div className="exchange-gallery">{detail.photo_paths.map(path => <img key={path} src={photos[path]} alt={detail.title} />)}</div>
@@ -326,7 +326,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
         <label className="exchange-check"><input type="checkbox" required checked={adult} onChange={e => setAdult(e.target.checked)} />Ich verwalte dieses Inserat als erwachsene Person.</label>
         <label className="exchange-check"><input type="checkbox" checked={publicListing} onChange={e=>{setPublicListing(e.target.checked);setPublicationConfirmed(false);}}/>Auch öffentlich ohne Anmeldung anzeigen</label>
         {publicListing&&<p className="exchange-hint">Artikelangaben, Beschreibung und Fotos sind über den öffentlichen Vereinslink für jeden sichtbar. Anbietername, Mannschaft und Kontaktdaten werden dort nicht angezeigt. Bitte keine persönlichen Angaben im Text oder Foto veröffentlichen.</p>}
-        <section className="exchange-publication-info" aria-label="Sichtbarkeit vor der Veröffentlichung"><h3><LockKeyhole size={17} aria-hidden/>{publicListing?'Auch öffentlich sichtbar':'Sichtbar in deinem Verein'}</h3><p>Vereinsmitglieder sehen deinen Vornamen{showTeam&&form.team_label?', deine Mannschaft':''} sowie Artikelangaben, Beschreibung und Fotos. Telefonnummer und E-Mail werden nicht automatisch angezeigt.</p><details><summary>Datenschutzhinweise zur Tauschbörse</summary><p>Ohne öffentliche Freigabe sehen nur angemeldete Vereinsmitglieder das Inserat. Mit öffentlicher Freigabe sind Artikelangaben, Beschreibung und Fotos auch ohne Anmeldung sichtbar; Vorname und Mannschaft bleiben intern. Private Chats sehen nur die beiden Beteiligten. Eigene Kontaktdaten teilst du ausschließlich freiwillig im Chat. Du kannst dein Inserat bearbeiten oder löschen; beim Löschen werden auch die zugehörigen Chats entfernt. Fotos werden für die Anzeige über zeitlich begrenzte Links bereitgestellt.</p><p>Bitte veröffentliche keine Kontaktdaten oder Angaben über Kinder in Beschreibung oder Fotos. Die Bestätigung unten bezieht sich auf dieses Inserat.</p></details></section>
+        <section className="exchange-publication-info" aria-label="Sichtbarkeit vor der Veröffentlichung"><h3><LockKeyhole size={17} aria-hidden/>{publicListing?'Auch öffentlich sichtbar':'Sichtbar in deinem Verein'}</h3><p>Vereinsmitglieder sehen deinen Vornamen{showTeam&&form.team_label?', deine Mannschaft':''} sowie Artikelangaben, Beschreibung und Fotos. Telefonnummer und E-Mail werden nicht automatisch angezeigt.</p><details><summary>Datenschutzhinweise zum Vereinsmarkt</summary><p>Ohne öffentliche Freigabe sehen nur angemeldete Vereinsmitglieder das Inserat. Mit öffentlicher Freigabe sind Artikelangaben, Beschreibung und Fotos auch ohne Anmeldung sichtbar; Vorname und Mannschaft bleiben intern. Private Chats sehen nur die beiden Beteiligten. Eigene Kontaktdaten teilst du ausschließlich freiwillig im Chat. Du kannst dein Inserat bearbeiten oder löschen; beim Löschen werden auch die zugehörigen Chats entfernt. Fotos werden für die Anzeige über zeitlich begrenzte Links bereitgestellt.</p><p>Bitte veröffentliche keine Kontaktdaten oder Angaben über Kinder in Beschreibung oder Fotos. Die Bestätigung unten bezieht sich auf dieses Inserat.</p></details></section>
         <label className="exchange-check exchange-publication-check"><input type="checkbox" required checked={publicationConfirmed} onChange={e=>setPublicationConfirmed(e.target.checked)}/>Ich möchte dieses Inserat mit den genannten Angaben {publicListing?'auch öffentlich ohne Anmeldung':'nur vereinsintern'} veröffentlichen.</label>
         </fieldset></div>
         <footer className="exchange-editor-footer"><button type="submit" className="exchange-primary exchange-full sz-club-primary" disabled={busy||!adult||!publicationConfirmed}>{busy ? 'Fotos werden hochgeladen…' : editing==='new' ? 'Inserat veröffentlichen' : 'Änderungen speichern'}</button></footer>

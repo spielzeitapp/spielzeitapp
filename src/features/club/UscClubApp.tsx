@@ -754,7 +754,7 @@ export function UscClubApp() {
                 ["funktionaere", "Funktionäre"],
                 ["sponsoren", "Sponsoren"],
                 ["fanshop", "Fanshop"],
-                ...(isStagingApp() ? [["tauschboerse", "Tauschbörse"]] : []),
+                ...(isStagingApp() ? [["tauschboerse", "Vereinsmarkt"]] : []),
               ].map(([id, label]) => (
                 <button
                   key={id}
@@ -766,7 +766,7 @@ export function UscClubApp() {
                 </button>
               ))}
             </div></> : <button className="usc-install-link" onClick={() => openClub('ueber')}>← Zum Vereinsmenü</button>}
-            {clubSection === 'tauschboerse' && isStagingApp() ? (user ? <React.Suspense fallback={<p role="status">Tauschbörse wird geladen…</p>}><ClubExchange key={user.id} clubId={USC_CLUB_ID} userId={user.id} seasons={club.seasons} /></React.Suspense> : <p className="usc-note">Bitte melde dich an, um die vereinsinterne Tauschbörse zu öffnen.</p>) : <div className="usc-club-copy">
+            {clubSection === 'tauschboerse' && isStagingApp() ? (user ? <React.Suspense fallback={<p role="status">Vereinsmarkt wird geladen…</p>}><ClubExchange key={user.id} clubId={USC_CLUB_ID} userId={user.id} seasons={club.seasons} /></React.Suspense> : <p className="usc-note">Bitte melde dich an, um den vereinsinternen Vereinsmarkt zu öffnen.</p>) : <div className="usc-club-copy">
               {clubSection === "ueber" ? (
                 <>
                   <h2>Zu Hause in Rohrbach.</h2>
@@ -879,7 +879,7 @@ export function UscClubApp() {
           <button onClick={() => openClub("funktionaere")}>Funktionäre</button>
           <button onClick={() => openClub("sponsoren")}>Sponsoren</button>
           <button onClick={() => openClub("fanshop")}>Fanshop</button>
-          {isStagingApp() && user ? <button onClick={() => openClub("tauschboerse")}>Tauschbörse</button> : null}
+          {isStagingApp() && user ? <button onClick={() => openClub("tauschboerse")}>Vereinsmarkt</button> : null}
           {user ? (
             <button
               type="button"

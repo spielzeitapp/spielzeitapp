@@ -302,7 +302,7 @@ function InternalRoutes(): React.ReactElement {
         <Route element={<InternalLayout />}>
         <Route path="home" element={<AppHomePage />} />
         <Route path="platzbelegung" element={<AppPlatzbelegungPage />} />
-        <Route path="tauschboerse" element={<React.Suspense fallback={<p className="p-6 text-white/70">Tauschbörse wird geladen…</p>}><ClubExchangePage /></React.Suspense>} />
+        <Route path="tauschboerse" element={<React.Suspense fallback={<p className="p-6 text-white/70">Vereinsmarkt wird geladen…</p>}><ClubExchangePage /></React.Suspense>} />
         <Route path="termine" element={<TermineLayout />}>
           <Route index element={<SchedulePage />} />
           <Route path="calendar" element={<CalendarPage />} />
