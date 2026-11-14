@@ -1,0 +1,23 @@
+import {build} from 'esbuild';import {spawnSync} from 'node:child_process';import {unlinkSync} from 'node:fs';
+const out='node_modules/.training-run-ui-test.mjs';
+try {
+await build({stdin:{resolveDir:process.cwd(),loader:'tsx',contents:`
+import React from 'react';import Renderer,{act} from 'react-test-renderer';import assert from 'node:assert/strict';import {TrainingRunModal} from './src/components/training/TrainingRunModal';
+let clock=Date.parse('2026-11-14T17:00:00Z');Date.now=()=>clock;globalThis.row={run:null,revision:0};globalThis.match=0;globalThis.fail=false;let tick=()=>{};
+globalThis.window={confirm:()=>true,setInterval:f=>{tick=f;return 1;},clearInterval:()=>{}};
+const session={id:'session',title:'Passen & Spielen',planned_duration_minutes:75};let openMatch=0;const props={open:true,onClose:()=>{},session,eventId:'training',endsAt:'2026-11-14T18:15:00Z',canStart:true,readOnly:false,onOpenMatch:()=>openMatch++};let view;
+const text=n=>typeof n==='string'?n:n?.children?.map(text).join('')||'';
+const button=label=>{const b=view.root.findAllByType('button').find(b=>text(b)===label||b.props['aria-label']===label);assert(b,label);return b;};
+const click=async label=>{const b=button(label);assert(!b.props.disabled,label+' disabled');await act(async()=>b.props.onClick());};
+await act(async()=>{view=Renderer.create(<TrainingRunModal {...props}/>)});
+await click('Training starten');assert.equal(globalThis.row.run.phase,'explain');
+await click('Sirene ausschalten');clock+=120000;await click('Übung starten / fortsetzen');assert.equal(globalThis.row.run.explanation,120);clock+=300000;await click('Trinkpause');assert.equal(globalThis.row.run.exercises[0].active,300);clock+=60000;await click('Nächste Übung');assert.equal(globalThis.row.run.breaks,60);assert.equal(globalThis.row.run.index,1);
+clock+=30000;await click('Diese Übung als Trainingsmatch');assert.equal(openMatch,1);assert.equal(globalThis.row.run.phase,'match');
+await act(async()=>view.update(<TrainingRunModal {...props} open={false}/>));clock+=600000;globalThis.match=420;await act(async()=>view.update(<TrainingRunModal {...props}/>));assert.equal(globalThis.row.run.phase,'explain');assert.equal(globalThis.row.run.exercises[1].active,420);assert.equal(globalThis.row.run.breaks,240);
+await click('Trainingsbilanz');assert(text(view.toJSON()).includes('Erklärung & Aufbau'));await click('Ablauf');await click('Letzte Übung beenden');assert(globalThis.row.run.finishedAt);assert.equal(globalThis.row.run.phase,'finished');
+await act(async()=>view.update(<TrainingRunModal {...props} open={false}/>));await act(async()=>view.update(<TrainingRunModal {...props} readOnly={true}/>));assert.equal(view.root.findAllByType('button').filter(b=>text(b)==='Training starten').length,0);await act(async()=>view.unmount());
+globalThis.row={run:null,revision:0};await act(async()=>{view=Renderer.create(<TrainingRunModal {...props} readOnly={true}/>)});assert(button('Training starten').props.disabled);await act(async()=>view.unmount());
+console.log('PASS: start, explain, active, pause, next, persisted match handoff/import, completion, reload and read-only UI.');
+`},bundle:true,platform:'node',format:'esm',packages:'external',loader:{'.css':'empty'},outfile:out,plugins:[{name:'stubs',setup(b){b.onResolve({filter:/\/(Modal|DemoContext|trainingSessions|trainingRunStore|hallTrainingStore)$/},a=>({path:a.path.split('/').pop(),namespace:'stub'}));b.onLoad({filter:/.*/,namespace:'stub'},a=>({loader:'tsx',resolveDir:process.cwd(),contents:a.path==='Modal'?`import React from 'react';export const Modal=p=>p.open?<div>{p.children}</div>:null;`:a.path==='DemoContext'?`export const useDemoMode=()=>null;`:a.path==='trainingSessions'?`export const listSessionExercises=async()=>({data:[{id:'first',phase:'AW',sort_order:1,duration_minutes:15,exercise:{title:'Passen'}},{id:'second',phase:'HT1',sort_order:1,duration_minutes:20,exercise:{title:'Match'}}],error:null});`:a.path==='hallTrainingStore'?`export const loadHallDay=async()=>({day:{seconds:1000,games:[{status:'finished',elapsed:globalThis.match,runningSince:null}]}});`:`export const loadTrainingRun=async()=>structuredClone(globalThis.row);export const saveTrainingRun=async(id,run,revision)=>{if(globalThis.fail)throw new Error('Bitte neu laden');if(revision!==globalThis.row.revision)throw new Error('stale');globalThis.row={run:structuredClone(run),revision:revision+1};return revision+1;};`}));}}]});
+const result=spawnSync(process.execPath,[out],{stdio:'inherit'});if(result.status!==0)process.exitCode=1;
+}finally{try{unlinkSync(out)}catch{}}

@@ -1,3 +1,4 @@
+import { TrainingRunModal } from './TrainingRunModal';
 import { HallTrainingPlanner } from './HallTrainingPlanner';
 import { isHallTraining } from '../../lib/hallTraining';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -58,6 +59,9 @@ export function TrainingDetailSections({
   const location = useLocation();
   const hall = isHallTraining(trainingTitle, trainingLocation);
   const [hallOpen, setHallOpen] = useState(false);
+  const [runOpen, setRunOpen] = useState(false);
+  const [returnToRun, setReturnToRun] = useState(false);
+  const [matchContext, setMatchContext] = useState<{ startsAt: string; minutes: number } | null>(null);
   const [hallPrepared, setHallPrepared] = useState(false);
   const demo = useDemoMode();
   const [hasAssignment, setHasAssignment] = useState(false);
@@ -67,10 +71,10 @@ export function TrainingDetailSections({
   const [planError, setPlanError] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
-    setPlanError(null);
-    if (demo || !canManage || hall) { setPlanLoading(false); return; }
+    setPlanError(null); setPlan(null); setHasAssignment(false);
+    if (demo || !canManage) { setPlanLoading(false); return; }
     setPlanLoading(true);
-    Promise.all([getTrainingSessionByEvent(eventId), getAssignmentForEvent(eventId)]).then(([result, assignment]) => {
+    Promise.all([getTrainingSessionByEvent(eventId), hall ? Promise.resolve({ data: null }) : getAssignmentForEvent(eventId)]).then(([result, assignment]) => {
       if (!active) return;
       setHasAssignment(Boolean(assignment.data));
       setPlan(result.data); setPlanError(result.error ? 'Trainingsplanung konnte nicht geladen werden.' : null); setPlanLoading(false);
@@ -244,19 +248,20 @@ export function TrainingDetailSections({
   return (
     <div className={`flex min-w-0 flex-col overflow-x-hidden ${EC_STACK_GAP}`}>
       {canManage && trainingPhase !== 'after' ? <>
-        <CenterPreparationAssistant title="Trainings-Assistent" readyLabel="Training vorbereitet" loading={planLoading || attendanceSummary?.loading} error={planError} steps={[
+        <CenterPreparationAssistant title="Trainingszentrale" readyLabel="Training vorbereitet" loading={planLoading || attendanceSummary?.loading} error={planError} steps={[
           { id: 'availability', title: 'Teilnehmer', detail: attendanceSummary ? `${availablePlayerIds.length} dabei · ${Math.max(0, attendanceSummary.playerCount - availablePlayerIds.length)} abwesend` : 'Teilnehmer werden geladen', done: Boolean(attendanceSummary && attendanceSummary.playerCount > 0 && !attendanceSummary.loading), onClick: () => setAttendanceOpen(true) },
-          ...(hall ? [{ id: 'hall', title: 'Hallenspieltag planen', detail: 'Teams einteilen · Spielzeit berechnen · intern spielen', done: hallPrepared, onClick: () => setHallOpen(true) }] : [
-          { id: 'plan', title: 'Trainingseinheit planen', detail: plan ? `${plan.title} · ${plan.planned_duration_minutes ?? 0} Min.` : 'Übungen und Ablauf auswählen', done: plan?.status === 'ready', to: demo ? '/demo/trainingsplanung' : trainingPlanManagerHref({ sessionId: plan?.id, eventId, teamSeasonId, startsAtIso }) },
-          { id: 'internal', title: 'Internes Trainingsmatch', detail: 'Teams · Wechselbank · Tore · Einsatzzeiten', optional: true, done: hallPrepared, onClick: () => setHallOpen(true) },
-          { id: 'place', title: 'Platzbelegung prüfen', detail: 'Trainingsplatz und Zonen', optional: true, done: false, to: `${demo ? '/demo' : hasAssignment ? '/app' : '/manager'}/platzbelegung?date=${encodeURIComponent(dayKeyFromIso(startsAtIso))}&event=${encodeURIComponent(eventId)}` },
-          ]),
+          { id: 'plan', title: hall ? 'Übungen + Trainingsmatches' : 'Trainingseinheit planen', detail: plan ? `${plan.title} · ${plan.planned_duration_minutes ?? 0} Min.` : hall ? 'Optional: Aufwärmen und Übungen vor den Matches' : 'Übungen und Ablauf auswählen', optional: hall, done: plan?.status === 'ready', to: demo ? '/demo/trainingsplanung' : trainingPlanManagerHref({ sessionId: plan?.id, eventId, teamSeasonId, startsAtIso }) },
+          { id: 'run', title: 'Trainingsablauf starten / fortsetzen', detail: 'Erklären · Üben · Pause · aktive Trainingszeit', optional: true, done: false, onClick: () => setRunOpen(true) },
+          { id: 'internal', title: hall ? 'Nur Trainingsmatches · Hallenspieltag' : 'Internes Trainingsmatch', detail: 'Teams · Spielplan · Wechselbank · Einsatzzeiten', optional: !hall, done: hallPrepared, onClick: () => { setMatchContext(null); setReturnToRun(false); setHallOpen(true); } },
+          ...(!hall ? [{ id: 'place', title: 'Platzbelegung prüfen', detail: 'Trainingsplatz und Zonen', optional: true, done: false, to: `${demo ? '/demo' : hasAssignment ? '/app' : '/manager'}/platzbelegung?date=${encodeURIComponent(dayKeyFromIso(startsAtIso))}&event=${encodeURIComponent(eventId)}` }] : []),
         ]} />
         <Modal className="training-participant-modal" open={attendanceOpen} onClose={() => setAttendanceOpen(false)} title="Teilnehmer">{trainerAttendanceSection}</Modal>
       </> : null}
       {canViewStaffReadouts ? <>
+        {trainingPhase === 'after' && plan ? <button type="button" onClick={() => setRunOpen(true)} className="sz-club-event-action min-h-14 rounded-2xl border p-4 text-left text-[18px] font-bold">Trainingszentrale · Ablauf & Bilanz</button> : null}
+        <TrainingRunModal open={runOpen} onClose={() => setRunOpen(false)} session={plan} eventId={eventId} endsAt={endsAtIso} canStart={trainingPhase !== 'after'} readOnly={!canManage || status === 'canceled'} onOpenMatch={(minutes) => { setMatchContext({ startsAt: new Date().toISOString(), minutes }); setRunOpen(false); setReturnToRun(true); setHallOpen(true); }} />
         {trainingPhase === 'after' ? <button type="button" onClick={() => setHallOpen(true)} className="sz-club-event-action min-h-14 rounded-2xl border p-4 text-left text-[18px] font-bold">{hall ? 'Hallenspieltag · interne Ergebnisse ansehen' : 'Trainingsmatch · interne Ergebnisse ansehen'}</button> : null}
-        <HallTrainingPlanner indoor={hall} eventId={eventId} startsAt={startsAtIso} players={players} availableIds={availablePlayerIds} open={hallOpen} onClose={() => setHallOpen(false)} onReadyChange={setHallPrepared} readOnly={!canManage || status === 'finished' || status === 'canceled'} />
+        {hallOpen ? <HallTrainingPlanner defaultMinutes={matchContext?.minutes} indoor={hall} eventId={eventId} startsAt={matchContext?.startsAt ?? startsAtIso} players={players} availableIds={availablePlayerIds} open={hallOpen} onClose={() => { setHallOpen(false); if (returnToRun) { setReturnToRun(false); setRunOpen(true); } }} onReadyChange={setHallPrepared} readOnly={!canManage || status === 'finished' || status === 'canceled'} /> : null}
       </> : null}
       {overviewSectionOrder.map((sectionKey) => renderSection(sectionKey))}
     </div>
