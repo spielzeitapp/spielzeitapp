@@ -1,3 +1,4 @@
+import { MarketLegalLinks } from '../features/club/MarketLegalLinks';
 import { uscAuthTarget, uscAuthPath } from '../features/club/uscAuth';
 import { UscAuthBrand, UscAuthFooter } from '../features/club/UscAuthBrand';
 import React, { useEffect, useState } from 'react';
@@ -498,6 +499,7 @@ export const RegisterPage: React.FC = () => {
         </p>
 
         <form onSubmit={handleRegister} className="mt-6 space-y-4">
+          {(searchParams.get('context')==='vereinsmarkt'||nextRaw.includes('/app/tauschboerse'))&&<MarketLegalLinks/>}
           <div>
             <label htmlFor="reg-first-name" className="mb-1 block text-sm font-medium text-white/80">
               Vorname

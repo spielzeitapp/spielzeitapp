@@ -1,3 +1,4 @@
+import { MarketLegalLinks } from '../features/club/MarketLegalLinks';
 import { authErrorMessage } from '../lib/authErrorMessage';
 import { managerComparisonHref } from '../lib/managerComparison';
 import { uscAuthTarget, uscAuthPath } from '../features/club/uscAuth';
@@ -351,6 +352,7 @@ export const LoginPage: React.FC = () => {
         ) : null}
 
         <form onSubmit={handleSubmit} className="relative mt-5 space-y-4">
+          {(searchParams.get('context')==='vereinsmarkt'||nextRaw.includes('/app/tauschboerse'))&&<MarketLegalLinks/>}
           <div>
             <label
               htmlFor={inviteEmailLocked ? 'login-email-display' : 'login-email'}
