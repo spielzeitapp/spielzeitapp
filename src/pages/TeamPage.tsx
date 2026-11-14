@@ -1064,7 +1064,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
             <p className="mt-1 text-sm text-slate-500">Saison {heroSeason} · {players.length} Spieler{isHistoryReadOnly ? " · Archiv" : ""}</p>
           </div>
         </div>
-        {canManagePlayers ? <button type="button" disabled={teamPhotoUploading} onClick={() => teamPhotoInputRef.current?.click()}
+        {canManagePlayers ? <button type="button" disabled={teamPhotoUploading || !activeTeamSeasonId || isHistoryReadOnly} onClick={() => teamPhotoInputRef.current?.click()}
           className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
           <Camera className="h-4 w-4" aria-hidden />Mannschaftsfoto
         </button> : null}
@@ -1088,40 +1088,6 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
         />
         <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[rgb(var(--club-primary-rgb)/0.2)] blur-3xl" aria-hidden />
         <div className="relative z-10 flex h-full min-h-[220px] flex-col justify-end p-4 sm:min-h-[280px] sm:p-6">
-          {canManagePlayers ? (
-            <div className="absolute right-3 top-3 flex items-center gap-1.5 sm:right-4 sm:top-4">
-              <input
-                ref={teamPhotoInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  void handleTeamPhotoPick(file);
-                  if (teamPhotoInputRef.current) teamPhotoInputRef.current.value = "";
-                }}
-              />
-              <AppButton
-                type="button"
-                variant="secondary"
-                size="sm"
-                disabled={teamPhotoUploading || !activeTeamSeasonId || isHistoryReadOnly}
-                onClick={() => {
-                  if (isHistoryReadOnly) {
-                    window.alert(softLockMessage ?? "Archivierte Saison: nur Lesen.");
-                    return;
-                  }
-                  teamPhotoInputRef.current?.click();
-                }}
-                title={isHistoryReadOnly ? softLockMessage ?? "Archiv: nur Lesen" : "Mannschaftsfoto"}
-                className="h-9 gap-1 px-2.5 backdrop-blur-sm hover:border-[rgb(var(--club-accent-rgb)/0.4)] hover:bg-black/60 sm:h-8"
-              >
-                <Camera className="h-4 w-4 shrink-0 text-[rgb(var(--club-accent-rgb)/0.95)]" aria-hidden />
-                <span className="text-[11px] font-medium text-white/85">Foto</span>
-              </AppButton>
-            </div>
-          ) : null}
           <div className="flex items-end gap-3 sm:gap-4">
             <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center sm:h-[82px] sm:w-[82px]">
               <ClubLogo src={teamLogo} alt="Vereinswappen" className="h-full w-full object-contain drop-shadow-[0_5px_16px_rgba(0,0,0,0.75)]" />
@@ -1195,6 +1161,40 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
         </div>
       </div>
       </PremiumCard>
+          {canManagePlayers ? (
+            <div className={`flex flex-wrap items-center justify-end gap-2 px-3 ${basePath === "/manager" ? "manager-team-mobile-hero" : ""}`}>
+              <input
+                ref={teamPhotoInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  void handleTeamPhotoPick(file);
+                  if (teamPhotoInputRef.current) teamPhotoInputRef.current.value = "";
+                }}
+              />
+              <AppButton
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={teamPhotoUploading || !activeTeamSeasonId || isHistoryReadOnly}
+                onClick={() => {
+                  if (isHistoryReadOnly) {
+                    window.alert(softLockMessage ?? "Archivierte Saison: nur Lesen.");
+                    return;
+                  }
+                  teamPhotoInputRef.current?.click();
+                }}
+                title={isHistoryReadOnly ? softLockMessage ?? "Archiv: nur Lesen" : "Mannschaftsfoto"}
+                className="min-h-11 gap-2 px-4 hover:border-[rgb(var(--club-accent-rgb)/0.4)] hover:bg-black/60"
+              >
+                <Camera className="h-4 w-4 shrink-0 text-[rgb(var(--club-accent-rgb)/0.95)]" aria-hidden />
+                <span className="text-sm font-medium text-white/85">{teamPhotoUploading ? "Foto wird hochgeladen…" : heroPhotoSrc ? "Foto ändern" : "Foto hochladen"}</span>
+              </AppButton>
+            </div>
+          ) : null}
       {teamPhotoError ? (
         <p className="text-sm text-red-600" role="alert">
           {teamPhotoError}
