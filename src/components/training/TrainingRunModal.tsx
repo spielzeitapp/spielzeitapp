@@ -31,10 +31,13 @@ export function TrainingRunModal({ open, onClose, session, eventId, endsAt, canS
   if (!session) { setLoading(false); return; }
   (async () => {
    const [stored, exercises] = await Promise.all([demo ? Promise.resolve(JSON.parse(sessionStorage.getItem(`training-run:${session.id}`) ?? '{"run":null,"revision":0}')) : loadTrainingRun(session.id), listSessionExercises(session.id)]);
+   if (!active || token !== generation.current) return;
    if (exercises.error && !stored.run) throw new Error('Übungen konnten nicht geladen werden.');
    let restored = stored.run as TrainingRun | null, rev = Number(stored.revision);
    if (restored?.phase === 'match' && !readOnly && !demo) {
-    restored = importRunMatch(restored, await matchSeconds());
+    const seconds = await matchSeconds();
+    if (!active || token !== generation.current) return;
+    restored = importRunMatch(restored, seconds);
     rev = await saveTrainingRun(session.id, restored, rev);
    }
    if (!active || token !== generation.current) return;
