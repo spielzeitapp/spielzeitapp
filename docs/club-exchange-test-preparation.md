@@ -57,7 +57,7 @@ The first two migrations were applied to TEST, followed by a TEST-only policy co
 - No genuine or demo ads are automatically published. LIVE migration/release not included.
 
 ### Marketplace home-screen installation
-- Dedicated manifest `/api/exchange/manifest?club=UUID`, separate per-club ID and public `start_url=/marktplatz/UUID`.
+- Dedicated manifest `/api/exchange/public?manifest=1&club=UUID`, separate per-club ID and public `start_url=/marktplatz/UUID`.
 - Early HTML metadata and React ManifestSync select the same marketplace manifest, new approved shield/jersey/exchange-arrow icon and name Vereinsmarkt.
 - Old iOS bookmarks may retain the previous `/app` start URL. Remove the old home-screen shortcut and re-add from the public club URL in Safari.
 - `scripts/club-exchange-manifest-test.mjs` checks the public start, metadata before React, image sizes and unchanged default/demo/USC entries.

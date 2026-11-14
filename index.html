@@ -36,7 +36,7 @@
         var next = ['/login','/register','/forgot-password','/app/set-password'].indexOf(path) !== -1 ? new URLSearchParams(window.location.search).get('next') : '';
         var marketplace = path.match(/^\/marktplatz\/([0-9a-f-]{36})(?:\/|$)/i);
         if (marketplace) {
-          document.querySelector('link[rel="manifest"]').setAttribute('href', '/api/exchange/manifest?club=' + marketplace[1]);
+          document.querySelector('link[rel="manifest"]').setAttribute('href', '/api/exchange/public?manifest=1&club=' + marketplace[1]);
           document.querySelector('link[rel="apple-touch-icon"]').setAttribute('href', '/vereinsmarkt/icon-180.png');
           document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', 'Vereinsmarkt');
           document.querySelector('meta[name="theme-color"]').setAttribute('content', '#08080b');

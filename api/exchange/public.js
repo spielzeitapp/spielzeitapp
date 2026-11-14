@@ -8,6 +8,10 @@ module.exports=async function(req,res){
  if(!key)return res.status(503).json({error:'Marktplatz derzeit nicht verfügbar'});
  const club=String(req.query.club||''),listing=String(req.query.listing||'');
  if(!UUID.test(club)||(listing&&!UUID.test(listing)))return res.status(400).json({error:'Ungültiger Link'});
+ if(req.query.manifest==='1'){
+  res.setHeader('Content-Type','application/manifest+json');
+  return res.status(200).json({id:`/marktplatz/${club}`,name:'Vereinsmarkt · SpielzeitApp',short_name:'Vereinsmarkt',start_url:`/marktplatz/${club}`,scope:'/marktplatz/',display:'standalone',background_color:'#08080b',theme_color:'#08080b',icons:[{src:'/vereinsmarkt/icon-192.png',sizes:'192x192',type:'image/png'},{src:'/vereinsmarkt/icon-512.png',sizes:'512x512',type:'image/png'}]});
+ }
  const db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
  try{
   const c=await db.from('clubs').select('id,name').eq('id',club).eq('status','active').maybeSingle();
