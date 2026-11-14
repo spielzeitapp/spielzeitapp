@@ -1,5 +1,4 @@
 import React from 'react';
-import { PremiumCard } from '../../ui/primitives/PremiumCard';
 
 /** Shared by the team page and editor, including the crop and lower caption. */
 export function TeamHeroFrame({ photoSrc, photoStyle, className = '', children, onPhotoLoad, onPhotoError }: {
@@ -10,12 +9,12 @@ export function TeamHeroFrame({ photoSrc, photoStyle, className = '', children, 
   onPhotoLoad?: () => void;
   onPhotoError?: () => void;
 }) {
-  return <PremiumCard matchday showAmbientGlow className={`${className} !rounded-none !border-x-0 !p-0 overflow-hidden shadow-[0_12px_48px_rgba(0,0,0,0.5)] sm:!rounded-3xl sm:!border-x`}>
-    <div data-team-hero-photo className="relative aspect-[16/9] w-full overflow-hidden">
+  return <div className={`${className} relative w-full overflow-hidden`}>
+    <div data-team-hero-photo className="relative aspect-[16/10] w-full overflow-hidden">
       {photoSrc ? <img key={photoSrc} src={photoSrc} style={photoStyle} alt="Mannschaftsfoto" draggable={false} onLoad={onPhotoLoad} onError={onPhotoError} className="absolute inset-0 h-full w-full select-none object-cover" /> : <div className="absolute inset-0 bg-[linear-gradient(135deg,rgb(var(--club-primary-rgb)/0.65),#09090b)]" aria-hidden />}
     </div>
-    <div data-team-hero-details className="relative z-10 -mt-12 bg-[linear-gradient(180deg,transparent_0%,rgba(3,4,7,0.85)_50%,#08090d_100%)] px-4 pb-3 pt-6 sm:px-5 sm:pb-4">{children}</div>
-  </PremiumCard>;
+    <div data-team-hero-details className="absolute inset-0 z-10 flex flex-col justify-end bg-[linear-gradient(180deg,transparent_42%,rgba(3,4,7,0.12)_58%,rgba(3,4,7,0.8)_100%)] px-4 pb-3 pt-6 sm:px-5 sm:pb-4">{children}</div>
+  </div>;
 }
 
 /** Render at the page's real width, then scale the entire frame into the editor. */
@@ -29,7 +28,7 @@ export function TeamHeroEditorPreview({ referenceWidth, children, ...photo }: {
 }) {
   const container = React.useRef<HTMLDivElement>(null);
   const natural = React.useRef<HTMLDivElement>(null);
-  const [size, setSize] = React.useState({ width: referenceWidth, height: referenceWidth * 9 / 16 + 64 });
+  const [size, setSize] = React.useState({ width: referenceWidth, height: referenceWidth * 10 / 16 });
   React.useLayoutEffect(() => {
     const outer = container.current, inner = natural.current;
     if (!outer || !inner) return;

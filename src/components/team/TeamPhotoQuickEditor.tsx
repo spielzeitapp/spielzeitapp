@@ -105,7 +105,7 @@ export function TeamPhotoQuickEditor({ seasonId, photo, onSaved, onClose, previe
   </>}>
     <div className="space-y-3 text-white" data-manager-artwork>
       <p className="text-sm text-white/65">Vorschau wie in der App – mit Logo und Beschriftung. Bild mit dem Finger verschieben oder die Regler verwenden.</p>
-      <div className="relative mx-auto w-full overflow-hidden rounded-2xl border border-white/20 bg-black" style={{ touchAction: src ? 'none' : 'auto' }}
+      <div className="relative mx-auto w-full overflow-hidden rounded-xl bg-black" style={{ touchAction: src ? 'none' : 'auto' }}
         onPointerDown={event => {
           if (!src || !imageReady || imageFailed || busy) return;
           event.currentTarget.setPointerCapture(event.pointerId);

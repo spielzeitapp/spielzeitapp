@@ -926,7 +926,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
     return () => observer.disconnect();
   }, []);
   const heroDetails = <>
-          <div className="flex items-end gap-3 sm:gap-4">
+          <div className="flex items-end gap-3 pr-14 sm:gap-4">
             <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center sm:h-[82px] sm:w-[82px]">
               <ClubLogo removeDarkBackground src={teamLogo} alt="Vereinswappen" className="h-full w-full object-contain drop-shadow-[0_5px_16px_rgba(0,0,0,0.75)]" />
             </div>
@@ -935,7 +935,6 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
                 <p className="min-w-0 flex-1 break-words text-[24px] font-black uppercase leading-tight tracking-tight text-white drop-shadow-lg sm:text-[34px]">
                   {tsLoading ? "Lade Team…" : heroDisplayName}
                 </p>
-                {!isDemo && basePath !== "/manager" ? <TeamViewSwitcher /> : null}
               </div>
               <p className="mt-2 text-[13px] font-black uppercase tracking-[0.1em] text-white/78 sm:text-[15px]">
                 <span className="sz-club-accent-text">{heroAgeGroup}</span> · Saison {heroSeason}
@@ -996,6 +995,16 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
               {softLockMessage ?? "Archivierte Saison — nur Lesen. Aktive Saison bleibt unverändert."}
             </p>
           ) : null}
+    <div className="absolute bottom-3 right-4 flex flex-col items-center gap-2 sm:bottom-4 sm:right-5">
+      {!isDemo && basePath !== "/manager" ? <TeamViewSwitcher /> : null}
+      {canManagePlayers ? (
+          <button type="button" disabled={teamPhotoLoadedSeasonId !== readTeamSeasonId || !activeTeamSeasonId || isHistoryReadOnly}
+            onClick={() => setPhotoEditorSeasonId(readTeamSeasonId)} aria-label="Mannschaftsfoto bearbeiten" title="Mannschaftsfoto bearbeiten" aria-haspopup="dialog" aria-expanded={photoEditorSeasonId === readTeamSeasonId}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/20 bg-black/65 text-[rgb(var(--club-accent-text-rgb))] shadow-lg backdrop-blur-md disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--club-accent-rgb))]">
+            <Camera className="h-5 w-5" aria-hidden />
+          </button>
+      ) : null}
+    </div>
   </>;
 
   return (
@@ -1119,15 +1128,6 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
       <div ref={heroFrameRef} className={basePath === "/manager" ? "manager-team-mobile-hero" : ""}>
         <TeamHeroFrame photoSrc={heroPhotoSrc} photoStyle={teamPhotoImageStyle(teamPhoto?.team_season_id === readTeamSeasonId ? teamPhoto : null)}>{heroDetails}</TeamHeroFrame>
       </div>
-      {canManagePlayers ? (
-        <div className={`flex justify-end px-4 ${basePath === "/manager" ? "manager-team-mobile-hero" : ""}`}>
-          <button type="button" disabled={teamPhotoLoadedSeasonId !== readTeamSeasonId || !activeTeamSeasonId || isHistoryReadOnly}
-            onClick={() => setPhotoEditorSeasonId(readTeamSeasonId)} aria-label="Mannschaftsfoto bearbeiten" title="Mannschaftsfoto bearbeiten" aria-haspopup="dialog" aria-expanded={photoEditorSeasonId === readTeamSeasonId}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/20 bg-black/65 text-[rgb(var(--club-accent-text-rgb))] shadow-lg backdrop-blur-md disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--club-accent-rgb))]">
-            <Camera className="h-5 w-5" aria-hidden />
-          </button>
-        </div>
-      ) : null}
       {canManagePlayers && photoEditorSeasonId && photoEditorSeasonId === readTeamSeasonId ? (
         <TeamPhotoQuickEditor key={photoEditorSeasonId} previewWidth={heroPreviewWidth} previewContent={heroDetails} seasonId={photoEditorSeasonId} photo={teamPhoto?.team_season_id === photoEditorSeasonId ? teamPhoto : null}
           onClose={() => setPhotoEditorSeasonId(null)} onSaved={saved => {
