@@ -62,7 +62,7 @@ try{
  await mount('requester');
  const card=app.root.findAllByType('button').find(b=>b.props.className==='exchange-card');
  assert.ok(card);await act(async()=>{card.props.onClick();await flush();});
- await act(async()=>{app.root.findAllByType('input').find(i=>i.props.type==='checkbox').props.onChange({target:{checked:true}});});
+ await act(async()=>{app.root.findAllByType('label').find(l=>text(l).includes('erwachsene Person')).findByType('input').props.onChange({target:{checked:true}});});
  await click('Interesse senden');
  assert.equal(window.exchangeFixture.tables.exchange_threads.length,1);
  assert.equal(window.exchangeFixture.tables.exchange_messages.length,1);
@@ -94,7 +94,13 @@ try{
  await choose('Angebot','Gratis');
 
  await act(async()=>{app.root.findAllByType('input').find(i=>i.props.multiple).props.onChange({target:{files:[new File(['png-fixture'],'shirt.png',{type:'image/png'})],value:''}});});
- await act(async()=>{app.root.findAllByType('input').find(i=>i.props.type==='checkbox').props.onChange({target:{checked:true}});});
+ await act(async()=>{app.root.findAllByType('label').find(l=>text(l).includes('erwachsene Person')).findByType('input').props.onChange({target:{checked:true}});});
+ await act(async()=>{app.root.findByType('dialog').findByType('form').props.onSubmit({preventDefault(){}});await flush();});
+ assert.equal(window.exchangeFixture.uploads.length,0,'no upload before publication confirmation');
+ assert.ok(!window.exchangeFixture.tables.exchange_listings.some(l=>l.title==='USC Trainingsshirt'),'no draft written before confirmation');
+ const publicationInput=()=>app.root.findAllByType('label').find(l=>text(l).includes('Ich möchte dieses Inserat')).findByType('input');
+ await act(async()=>{publicationInput().props.onChange({target:{checked:true}});});
+ await act(async()=>{app.root.findAllByType('label').find(l=>text(l).includes('Mannschaft anzeigen')).findByType('input').props.onChange({target:{checked:false}});});
  await act(async()=>{app.root.findByType('dialog').findByType('form').props.onSubmit({preventDefault(){}});await flush();});
  assert.equal(window.exchangeFixture.tables.exchange_listings.find(l=>l.title==='USC Trainingsshirt').category,'T-Shirt');
  assert.equal(window.exchangeFixture.tables.exchange_listings.find(l=>l.title==='USC Trainingsshirt').condition,'Gut');
@@ -102,7 +108,8 @@ try{
  assert.equal(window.exchangeFixture.uploads[0].type,'image/jpeg');
  assert.match(window.exchangeFixture.uploads[0].path,/^club\/owner\//);
  assert.equal(window.exchangeFixture.tables.exchange_listings.find(l=>l.title==='USC Trainingsshirt').status,'Verfügbar');
- assert.equal(window.exchangeFixture.tables.exchange_listings.find(l=>l.title==='USC Trainingsshirt').team_label,'U11','own team prefilled and saved');
+ assert.equal(window.exchangeFixture.tables.exchange_listings.find(l=>l.title==='USC Trainingsshirt').team_label,'','optional team excluded from stored listing');
+ await click('Inserat');assert.equal(publicationInput().props.checked,false,'confirmation resets for every new listing');await click('Schließen');
  const ownerCard=app.root.findAllByType('button').find(b=>b.props.className==='exchange-card'&&text(b).includes('USC Trainingspulli'));
  await act(async()=>ownerCard.props.onClick());
  await act(async()=>{app.root.findByProps({'aria-label':'Status des Inserats'}).props.onChange({target:{value:'Reserviert'}});await flush();});
