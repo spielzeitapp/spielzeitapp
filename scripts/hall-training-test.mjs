@@ -8,6 +8,17 @@ const require = createRequire(import.meta.url), tmp = mkdtempSync(join(tmpdir(),
 try {
  buildSync({ entryPoints:['src/lib/hallTraining.ts'],bundle:true,platform:'node',format:'cjs',outfile:join(tmp,'hall.cjs'),logLevel:'silent' });
  const h = require(join(tmp,'hall.cjs'));
+ const start=Date.parse('2026-11-14T17:00:00Z');
+ const delayed=h.createHallDay(3,3,4500,60,360,4);
+ delayed.games[0].status='finished';delayed.games[0].elapsed=320;delayed.games[0].finishedAt=start+320000;delayed.games[0].goals=[{team:0,second:10}];
+ delayed.games[1].status='paused';delayed.games[1].elapsed=100;
+ let timing=h.hallTiming(delayed,start,start+1000000);assert(timing.delay>0);assert(timing.canFit);
+ const fitted=h.fitHallRemaining(delayed,start,start+1000000);
+ assert.deepEqual(fitted.games.slice(0,2),delayed.games.slice(0,2),'played and active snapshots preserved');assert.equal(fitted.games.length,delayed.games.length);assert(h.hallTiming(fitted,start,start+1000000).projectedEnd<=timing.deadline);assert(fitted.games.slice(2).every(g=>g.seconds>=60&&g.seconds<320&&g.originalSeconds===320));assert.equal(delayed.games[2].seconds,undefined,'original immutable');
+ assert.throws(()=>h.fitHallRemaining(delayed,start,start+4400000),/einer Minute/);
+ const between=h.createHallDay(3,3,4500,60,360,4);between.games[0].status='finished';between.games[0].elapsed=320;between.games[0].finishedAt=start+320000;
+ assert.equal(h.hallTiming(between,start,start+330000).budget,4500-330-50-10*60);assert.equal(h.hallTiming(between,start,start+400000).budget,4500-400-10*60);
+ const early=h.hallTiming(h.createHallDay(3,3,4500,60,360,4),start,start-300000);assert.equal(early.delay,0);assert.equal(early.projectedEnd,start+4500000);
  const legacy=h.createHallDay(3,3);legacy.teams.forEach((t,i)=>t.playerIds=Array.from({length:3},(_,j)=>'legacy-'+i+'-'+j));legacy.games[0].status='finished';legacy.games[0].elapsed=180;
  let legacyTimes=h.hallPlayerTimes(legacy);assert.equal(legacyTimes.players.find(p=>p.id==='legacy-0-0').seconds,180);assert.equal(legacyTimes.players.find(p=>p.id==='legacy-0-0').estimated,true);assert.equal(legacyTimes.players.find(p=>p.id==='legacy-2-0').seconds,0);
  legacy.teams[0].playerIds.push('legacy-bench');legacyTimes=h.hallPlayerTimes(legacy);assert.equal(legacyTimes.players.find(p=>p.id==='legacy-0-0').incomplete,true);assert.equal(legacyTimes.players.find(p=>p.id==='legacy-0-0').seconds,0);assert.equal(legacyTimes.players.find(p=>p.id==='legacy-1-0').seconds,180);
