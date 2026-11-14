@@ -1,3 +1,4 @@
+import { ProfilePhotoQuickAccess } from '../components/team/ProfilePhotoQuickAccess';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
@@ -56,13 +57,14 @@ export const TrainerProfilePage: React.FC = () => {
     seasonLine: sessionSeasonLine,
     role: sessionRole,
     loading: tsLoadingRaw,
+    isHistoryReadOnly,
   } = useActiveTeamSeason();
   const teamSeasonId = isDemo ? demo!.data.teamSeasonId : sessionTeamSeasonId;
   const teamLine = isDemo ? demo!.data.teamName : sessionTeamLine;
   const seasonLine = isDemo ? demo!.data.seasonLabel : sessionSeasonLine;
   const role = isDemo ? "trainer" : sessionRole;
   const tsLoading = isDemo ? false : tsLoadingRaw;
-  const canManage = !isDemo && canManageRoster(normalizeRole(role));
+  const canManage = !isDemo && !isHistoryReadOnly && canManageRoster(normalizeRole(role));
 
   useEffect(() => lockAppMainScroll(), []);
 
@@ -319,6 +321,7 @@ export const TrainerProfilePage: React.FC = () => {
                 cutoutUrl={member.cutout_url ?? null}
                 initials={initials}
               />
+              {canManage && teamSeasonId ? <ProfilePhotoQuickAccess key={`photo:${teamSeasonId}:${member.user_id}`} seasonId={teamSeasonId} staff={member} canEdit={canManage} onReplacePhoto={() => trainerEditor.openEditTrainerForm(member)} onStaffSaved={layout => { setMember(current => current ? {...current, photo_layout: layout} : current); }} /> : null}
               {previousTrainer || previousPlayer ? (
                 <button
                   type="button"

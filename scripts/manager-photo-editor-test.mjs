@@ -3,7 +3,7 @@ import {createRequire} from 'node:module';
 import {build} from 'esbuild';
 const require=createRequire(import.meta.url),React=require('react'),{create,act}=require('react-test-renderer');
 let calls=[],fail=false;globalThis.__photoRpc=async(name,args)=>{calls.push({name,args});return {error:fail?{message:'Konflikt'}:null};};
-const b=await build({entryPoints:['src/manager/ManagerPlayerPhotoEditor.tsx'],bundle:true,platform:'node',define:{'import.meta.env.BASE_URL':'"/"'},format:'cjs',packages:'external',write:false,plugins:[{name:'fixture',setup(b){b.onResolve({filter:/supabaseClient$/},()=>({path:'fixture',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const supabase={rpc:(...a)=>globalThis.__photoRpc(...a)}',loader:'js'}));}}]});
+const b=await build({entryPoints:['src/manager/ManagerPlayerPhotoEditor.tsx'],bundle:true,platform:'node',define:{'import.meta.env.BASE_URL':'"/"'},format:'cjs',packages:'external',write:false,plugins:[{name:'fixture',setup(b){b.onResolve({filter:/removePortraitBackground$/},()=>({path:'remove',namespace:'remove'}));b.onLoad({filter:/.*/,namespace:'remove'},()=>({contents:'export const removePortraitBackground=async()=>new Blob(["cutout"],{type:"image/png"});',loader:'js'}));b.onResolve({filter:/playerPhotoMotifs$/},()=>({path:'motif',namespace:'motif'}));b.onLoad({filter:/.*/,namespace:'motif'},()=>({contents:'export const savePlayerPhotoMotif=async(v,e)=>{globalThis.__motifWrites.push({v,e});return {...v,revision:"new"};};export const uploadPlayerMotif=async()=>"/motif-cutout.png";',loader:'js'}));b.onResolve({filter:/supabaseClient$/},()=>({path:'fixture',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const supabase={rpc:(...a)=>globalThis.__photoRpc(...a)}',loader:'js'}));}}]});
 const m={exports:{}};new Function('require','module','exports',b.outputFiles[0].text)(require,m,m.exports);const Editor=m.exports.ManagerPlayerPhotoEditor;
 const player={id:'fixture',display_name:'Synthetic Player',first_name:'Synthetic',last_name:'Player',avatar_url:'https://vereine.oefb.at/netzwerk/imagedownload/fixture-80-80.jpeg',jersey_number:9};let root,saved=0,closed=0;
 await act(async()=>{root=create(React.createElement(Editor,{player,seasonId:'season-fixture',onSaved:()=>saved++,onClose:()=>closed++}));});
@@ -48,3 +48,71 @@ await act(async()=>button('Gestaltung speichern').props.onClick());
 assert.equal(calls.at(-1).args.p_layout.profileDesign,undefined,'Return to club inheritance removes individual design');
 await act(async()=>root.unmount());
 console.log('PASS individual elements: scoped save and return to inherited club design.');
+
+for (const global of [false,true]) {
+ const before=calls.length;
+ await act(async()=>{root=create(React.createElement(Editor,{player:{...player,cutout_url:'https://example.test/cutout.png'},seasonId:'season-fixture',global,onSaved:()=>{},onClose:()=>{}}));});
+ const background=root.root.findAllByType('select')[0];
+ assert.ok(background.findAllByType('option').some(n=>n.props.value==='rohrbach-silver'));
+ await act(async()=>background.props.onChange({target:{value:'rohrbach-silver'}}));
+ assert.equal(calls.length,before,'Rohrbach selection is preview only');
+ assert.ok(root.root.findAllByType('div').some(n=>n.props.style?.background?.includes('/backgrounds/rohrbach-silver.webp')),'real portrait renders shared asset');
+ await act(async()=>button('Gestaltung speichern').props.onClick());
+ assert.equal(calls.at(-1).args.p_layout.background,'rohrbach-silver');
+ assert.equal(calls.at(-1).name,global?'admin_save_global_photo_layout':'admin_save_player_photo_layout');
+ if(global)assert.equal(calls.at(-1).args.p_replace_individual,false);
+ await act(async()=>root.unmount());
+}
+console.log('PASS: Rohrbach background previews in real portrait and saves in both scopes without replacing individual exceptions.');
+await act(async()=>{root=create(React.createElement(Editor,{player,seasonId:'season-fixture',onSaved(){},onClose(){}}));});
+const beforeBrightness=calls.length;
+assert.equal(root.root.findByProps({'aria-label':'Spielerfoto-Helligkeit'}).props.value,100);
+await act(async()=>button('Foto aufhellen').props.onClick());
+assert.equal(root.root.findByType('img').props.style.filter,'brightness(120%)');
+assert.equal(calls.length,beforeBrightness);
+await act(async()=>button('Gestaltung speichern').props.onClick());
+assert.equal(calls.at(-1).args.p_layout.brightness,120);
+await act(async()=>button('Originalhelligkeit').props.onClick());
+assert.equal(root.root.findByType('img').props.style.filter,'brightness(100%)');
+await act(async()=>root.unmount());
+console.log('PASS brightness: neutral old layouts, brighten preview only, explicit per-player save, original reset.');
+
+globalThis.__motifWrites=[];const profileCallsBefore=calls.length;
+const motif={team_season_id:'season-fixture',player_id:player.id,purpose:'matchday',original_url:'/motif.jpg',cutout_url:null,layout:null,revision:'version-1'};
+await act(async()=>{root=create(React.createElement(Editor,{player:{...player,avatar_url:motif.original_url},motif,seasonId:'season-fixture',onSaved:()=>saved++,onClose:()=>closed++}));});
+await act(async()=>root.root.findByProps({'aria-label':'Spielerfoto-Helligkeit'}).props.onChange({target:{value:'125'}}));
+await act(async()=>button('Gestaltung speichern').props.onClick());
+assert.equal(calls.length,profileCallsBefore,'Additional-photo edits never call profile RPCs');
+assert.equal(globalThis.__motifWrites[0].e,'version-1');assert.equal(globalThis.__motifWrites[0].v.layout.brightness,125);assert.equal(globalThis.__motifWrites[0].v.original_url,'/motif.jpg');
+await act(async()=>button('Hintergrund entfernen').props.onClick());
+await act(async()=>button('Freisteller & Gestaltung speichern').props.onClick());
+assert.equal(globalThis.__motifWrites.at(-1).v.cutout_url,'/motif-cutout.png');
+assert.equal(globalThis.__motifWrites.at(-1).v.layout.source,'cutout');assert.equal(calls.length,profileCallsBefore);
+await act(async()=>root.unmount());console.log('PASS motif editor: brightness and local cutout save to versioned motif without touching profile.');
+
+// Mobile entry points reuse the exact RPC contract and keep writes individual.
+for (const trainer of [false,true]) {
+ let applied;
+ await act(async()=>{root=create(React.createElement(Editor,{quick:true,imageOnly:true,trainer,player:{...player,cutout_url:'/portrait.png',photo_layout:null,photo_layout_default:{background:'black',source:'cutout',zoom:110,x:45,y:50,nameX:28,nameY:85,numberX:88,numberY:8}},seasonId:'season-fixture',onSaved:value=>{applied=value},onClose:()=>closed++}));});
+ const before=calls.length;
+ const guides=()=>root.root.findByProps({'aria-label':'Hilfslinien'});
+ assert.equal(guides().props['aria-pressed'],false);
+ await act(async()=>guides().props.onClick());
+ assert.equal(root.root.findByProps({'data-portrait-guides':true}).props['aria-hidden'],'true');
+ assert.equal(calls.length,before,'guides never save or change the layout');
+ await act(async()=>guides().props.onClick());
+ assert.equal(root.root.findAllByProps({'data-portrait-guides':true}).length,0);
+ await act(async()=>guides().props.onClick());
+ await act(async()=>root.root.findByProps({'aria-label':'Zoom'}).props.onChange({target:{value:'135'}}));
+ await act(async()=>root.root.findByProps({'aria-label':'Helligkeit'}).props.onChange({target:{value:'115'}}));
+ assert.equal(calls.length,before,'quick changes stay in preview');
+ await act(async()=>button('Speichern & zurück').props.onClick());
+ assert.equal(calls.at(-1).name,trainer?'save_staff_photo_layout':'admin_save_player_photo_layout');
+ assert.equal(calls.at(-1).args.p_layout.showGuides,undefined);assert.equal(calls.at(-1).args.p_layout.zoom,135);assert.equal(applied.brightness,115);
+ assert.equal(calls.at(-1).args.p_replace_individual,undefined,'individual entry cannot overwrite whole team');
+ assert.equal(calls.at(-1).args[trainer?'p_user_id':'p_player_id'],player.id);
+ await act(async()=>root.root.findByProps({'aria-label':'Vorlage / Hintergrund'}).props.onChange({target:{value:'team'}}));
+ await act(async()=>button('Speichern & zurück').props.onClick());assert.equal(calls.at(-1).args.p_layout,null);assert.equal(applied,null,'reset removes override instead of copying a stale standard');
+ await act(async()=>root.unmount());
+}
+console.log('PASS mobile portrait editor: quick preview, brightness/zoom, player/staff RPC routing, individual scope, inherited standard and saved result.');

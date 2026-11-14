@@ -1,3 +1,5 @@
+import {isManagerComparison} from '../../../lib/managerComparison';
+import {portraitBrightness} from '../../../lib/playerPhotoLayout';
 import {DEFAULT_PHOTO_LAYOUT, photoBackground, type PlayerPhotoLayout} from '../../../lib/playerPhotoLayout';
 import {playerPhotoDisplayUrl,preparedPlayerPortrait} from '../../../lib/playerPhotoDisplay';
 import React from "react";
@@ -75,7 +77,7 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
           ? "text-[22px] sm:text-[25px]"
           : "text-[28px] sm:text-[32px]";
   return (
-    <div className="sz-club-profile-hero relative mb-3 aspect-[4/3] min-h-[17rem] max-h-[20rem] w-full overflow-hidden rounded-[22px] border" data-profile-artwork="premium" style={photoLayout?{background:photoBackground(layout.background)}:undefined}>
+    <div className="sz-club-profile-hero relative mb-3 aspect-[4/3] min-h-[17rem] max-h-[20rem] w-full overflow-hidden rounded-[22px] border" data-manager-artwork={isManagerComparison()||undefined} data-profile-artwork="premium" style={photoLayout?{background:photoBackground(layout.background,layout.backgroundImageUrl)}:undefined}>
       <div className="sz-club-diagonal-lines absolute inset-0" aria-hidden />
 
       <p hidden={hideDecorations}
@@ -92,7 +94,7 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
             src={playerPhotoDisplayUrl(heroImageSrc)}
             alt=""
             className="h-full w-[72%] origin-bottom translate-x-[16%] translate-y-[2%] object-contain object-bottom sm:w-[70%] sm:translate-x-[13%]"
-            style={photoLayout?{transform:`translate(${16+(layout.x-50)}%, ${2+(layout.y-50)}%) scale(${layout.zoom/100})`}:undefined}
+            style={photoLayout?{filter:`brightness(${portraitBrightness(layout.brightness)}%)`,transform:`translate(${16+(layout.x-50)}%, ${2+(layout.y-50)}%) scale(${layout.zoom/100}) rotate(${layout.rotation??0}deg)`,transformOrigin:layout.rotation?'center':undefined}:undefined}
             onError={() => setImageOk(false)}
           />
         ) : (

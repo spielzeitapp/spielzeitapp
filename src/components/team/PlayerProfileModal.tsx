@@ -1,3 +1,4 @@
+import { ProfilePhotoQuickAccess } from './ProfilePhotoQuickAccess';
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { lockAppMainScroll } from "../../lib/bodyScrollLock";
@@ -69,6 +70,7 @@ export type PlayerProfileModalProps = {
   canManage: boolean;
   onClose: () => void;
   onEdit: () => void;
+  onPhotoSaved?: (player: PlayerItem) => void;
   /** Nach LAZ-Flag-Änderung Kader + Profil-State aktualisieren. */
   onPlayerUpdated?: (
     patch: Pick<PlayerItem, "is_laz_player" | "is_injured" | "injured_since" | "injured_until">,
@@ -512,6 +514,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   canManage,
   onClose,
   onEdit,
+  onPhotoSaved,
   onPlayerUpdated,
   initialTab = "overview",
   squadPlayers = [],
@@ -521,6 +524,9 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   onGuardiansChanged,
 }) => {
   const demo = useDemoMode();
+  const [photoOverride, setPhotoOverride] = useState<PlayerItem | null>(null);
+  useEffect(() => setPhotoOverride(null), [player]);
+  const portrait = photoOverride?.id === player.id && photoOverride.team_season_id === player.team_season_id ? photoOverride : player;
   const [profileTab, setProfileTab] = useState<ProfileTab>(initialTab);
   const [guardianToast, setGuardianToast] = useState<string | null>(null);
   const [isLazPlayer, setIsLazPlayer] = useState(player.is_laz_player);
@@ -848,9 +854,9 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
           >
             <ProfileHeroCard
               variant="player"
-              clubTemplate={player.club_photo_template}
-              clubDesign={player.club_profile_design}
-              photoLayout={player.photo_layout??player.photo_layout_default}
+              clubTemplate={portrait.club_photo_template}
+              clubDesign={portrait.club_profile_design}
+              photoLayout={portrait.photo_layout??portrait.photo_layout_default}
               watermark={jerseyWatermark}
               firstNameLine={firstNameLine}
               lastNameLine={lastNameLine}
@@ -859,13 +865,15 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
               teamLogoUrl={teamLogoUrl ?? getOurTeamLogoUrl()}
               roleLabel={positionHeroLabel !== "—" ? positionHeroLabel : undefined}
               photoUrl={(photoUrl ?? "").trim() || avatarSrc}
-              cutoutUrl={player.cutout_url}
+              cutoutUrl={portrait.cutout_url}
               initials={initials(player)}
               positionBadge={profilePositionBadge}
               statusSlot={
                 <PlayerStatusBadgesRow isLaz={lazToggleChecked} isInjured={injuredToggleChecked} />
               }
             />
+
+            {canManage && !demo && (teamSeasonId || player.team_season_id) ? <ProfilePhotoQuickAccess key={`photo:${teamSeasonId}:${player.id}`} seasonId={teamSeasonId || player.team_season_id} player={portrait} canEdit={canManage} onReplacePhoto={onEdit} onPlayerSaved={updated => { setPhotoOverride(updated); onPhotoSaved?.(updated); }} /> : null}
 
             {previousProfilePlayer && onPlayerChange ? (
               <button
