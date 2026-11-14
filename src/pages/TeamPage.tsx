@@ -399,7 +399,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
         }
         setTeamPhoto((data as TeamPhotoRow | null) ?? null);
         setTeamPhotoLoadedSeasonId(readTeamSeasonId);
-      }).catch(() => {
+      }, () => {
         if (!cancelled) setTeamPhotoError("Mannschaftsfoto konnte nicht geladen werden.");
       });
     return () => {
@@ -1038,6 +1038,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
         } : undefined}
         onClose={closePlayerProfile}
         onEdit={handleEditFromProfile}
+        onPhotoSaved={updated => { setSelectedProfilePlayer(updated); void refetchPlayers(); }}
         onPlayerUpdated={(patch) => {
           setSelectedProfilePlayer((prev) => (prev ? { ...prev, ...patch } : prev));
           void refetchPlayers();

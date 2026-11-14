@@ -15,8 +15,8 @@ import {preparedPlayerPortrait} from '../lib/playerPhotoDisplay';
 import {removePortraitBackground} from '../lib/removePortraitBackground';
 import {uploadStaffProfileCutout,uploadPlayerProfileCutout} from '../lib/profileCutoutUpload';
 import {supabase} from '../lib/supabaseClient';
-export function ManagerPlayerPhotoEditor({player,seasonId,onSaved,onClose,global=false,trainer=false,clubTemplate,clubDesign,imageOnly=false,onDirtyChange,unified=false,onBusyChange,motif}:{motif?:PlayerPhotoMotif;player:RosterPlayer;seasonId:string;global?:boolean;trainer?:boolean;onSaved:()=>void;onClose:()=>void;clubTemplate?:'wide'|'square';clubDesign?:ClubProfileDesign|null;imageOnly?:boolean;onDirtyChange?:(dirty:boolean)=>void;unified?:boolean;onBusyChange?:(busy:boolean)=>void}) {
- const [baseline]=useState<PlayerPhotoLayout>(()=>({...DEFAULT_PHOTO_LAYOUT,...(global?player.photo_layout_default:player.photo_layout??player.photo_layout_default)}));
+export function ManagerPlayerPhotoEditor({player,seasonId,onSaved,onClose,global=false,trainer=false,clubTemplate,clubDesign,imageOnly=false,onDirtyChange,unified=false,onBusyChange,motif,quick=false,onReplacePhoto}:{motif?:PlayerPhotoMotif;player:RosterPlayer;seasonId:string;global?:boolean;trainer?:boolean;onSaved:(layout?:PlayerPhotoLayout|null)=>void;quick?:boolean;onReplacePhoto?:()=>void;onClose:()=>void;clubTemplate?:'wide'|'square';clubDesign?:ClubProfileDesign|null;imageOnly?:boolean;onDirtyChange?:(dirty:boolean)=>void;unified?:boolean;onBusyChange?:(busy:boolean)=>void}) {
+ const [baseline]=useState<PlayerPhotoLayout>(()=>({...DEFAULT_PHOTO_LAYOUT,...(quick&&player.cutout_url?{source:'cutout' as const}:{}),...(global?player.photo_layout_default:player.photo_layout??player.photo_layout_default)}));
  const history=useDraftHistory(baseline);
  const layout=history.value;
  const [inherit,setInherit]=useState(false);
@@ -60,8 +60,9 @@ export function ManagerPlayerPhotoEditor({player,seasonId,onSaved,onClose,global
   catch(e){if(version===generation.current)setError(e instanceof Error?e.message:'Hintergrund konnte nicht entfernt werden. Bitte erneut versuchen.');}
   finally{if(version===generation.current)setGenerating(false);}
  };
+ const saveLock=useRef(false);
  const save=async(reset=false)=>{
-  if(busy||generating||readingBackground||retouching)return;setBusy(true);setError('');
+  if(saveLock.current||busy||generating||readingBackground||retouching)return;saveLock.current=true;setBusy(true);setError('');
   try{
    let savedLayout=layout;
    if(!reset&&!inherit&&layout.background==='custom'){
@@ -79,10 +80,42 @@ export function ManagerPlayerPhotoEditor({player,seasonId,onSaved,onClose,global
     if(!trainer&&!motif){setStoredCutout(uploaded.cutoutUrl);setPending(null);}
    }
    const {error}=motif?(await savePlayerPhotoMotif({...motif,cutout_url:trainerCutout??motif.cutout_url,layout:reset||inherit?null:savedLayout},motif.revision),{error:null}):await supabase.rpc(trainer?'save_staff_photo_layout':global?'admin_save_global_photo_layout':'admin_save_player_photo_layout',{p_team_season_id:seasonId,...(trainer?{p_user_id:player.id,p_cutout_url:trainerCutout}:global?{p_replace_individual:replaceAll}:{p_player_id:player.id}),p_layout:reset||inherit?null:savedLayout,p_expected:(global?player.photo_layout_default:player.photo_layout)??null});
-   if(error)throw error;if(motif&&trainerCutout){setStoredCutout(trainerCutout);setPending(null);}initialLayout.current=savedLayout;history.reset(savedLayout);setBackgroundFile(null);setInherit(false);onDirtyChange?.(false);onSaved();
-  }catch(e){setError(e instanceof Error?e.message:(e as {message?:string}).message||'Speichern fehlgeschlagen.');}finally{setBusy(false);}
+   if(error)throw error;if(motif&&trainerCutout){setStoredCutout(trainerCutout);setPending(null);}initialLayout.current=savedLayout;history.reset(savedLayout);setBackgroundFile(null);setInherit(false);onDirtyChange?.(false);onSaved(reset||inherit?null:savedLayout);
+  }catch(e){setError(e instanceof Error?e.message:(e as {message?:string}).message||'Speichern fehlgeschlagen.');}finally{saveLock.current=false;setBusy(false);}
  };
  const slider=(key:Exclude<keyof PlayerPhotoLayout,'profileDesign'|'background'|'backgroundImageUrl'|'source'|'rotation'>,label:string,min=0,max=100)=><label className="block text-sm" key={key}>{label}: {layout[key]??(key==='brightness'?100:'')}<input aria-label={label} type="range" min={min} max={max} value={layout[key]??(key==='brightness'?100:0)} disabled={busy||generating||readingBackground||retouching} onChange={e=>patch(key,Number(e.target.value))} className="block w-full"/></label>;
+ if(quick) return <section aria-label={`Foto gestalten: ${player.display_name}`} className="space-y-4 text-white" data-manager-artwork>
+  <p className="text-sm text-white/65">Nur dieses {trainer?'Trainerprofil':'Spielerprofil'} · {player.display_name}</p>
+  <div className="overflow-hidden rounded-2xl" style={{touchAction:'none'}}
+    onPointerDown={event=>{if(busy)return;event.currentTarget.setPointerCapture(event.pointerId);event.currentTarget.dataset.dragX=String(event.clientX);event.currentTarget.dataset.dragY=String(event.clientY);history.begin();}}
+    onPointerMove={event=>{const element=event.currentTarget;if(!element.hasPointerCapture(event.pointerId)||busy)return;const bounds=element.getBoundingClientRect();const dx=event.clientX-Number(element.dataset.dragX),dy=event.clientY-Number(element.dataset.dragY);element.dataset.dragX=String(event.clientX);element.dataset.dragY=String(event.clientY);setLayout(old=>({...old,x:Math.max(0,Math.min(100,old.x+dx/bounds.width*100)),y:Math.max(0,Math.min(100,old.y+dy/bounds.height*100))}));}}
+    onPointerUp={history.end} onPointerCancel={history.end}>
+    <ManagerProfilePhotoPreview seasonId={seasonId} layout={layout.background==='custom'&&backgroundPreview?{...layout,backgroundImageUrl:backgroundPreview}:layout} photoUrl={player.avatar_url} cutoutUrl={cutout} firstName={player.first_name||''} lastName={player.last_name||''} number={player.jersey_number} trainer={trainer} clubTemplate={clubTemplate??player.club_photo_template} clubDesign={clubDesign??player.club_profile_design}/>
+  </div>
+  <p className="text-xs text-white/60">Person mit dem Finger verschieben oder die Regler verwenden.</p>
+  <fieldset disabled={busy||readingBackground} className="space-y-3">
+    <label className="block text-sm font-semibold">Vorlage / Hintergrund<select aria-label="Vorlage / Hintergrund" className="mt-1 block min-h-11 w-full rounded-xl border border-white/20 bg-[#111218] p-2" value={inherit?'team':layout.background} onChange={event=>{
+      if(event.target.value==='team'){setBackgroundFile(null);history.change({...DEFAULT_PHOTO_LAYOUT,...(player.cutout_url?{source:'cutout' as const}:{}),...(trainer?{}:player.photo_layout_default??{})});setInherit(true);}
+      else patch('background',event.target.value);
+    }}>
+      <option value="team">{trainer?'Standardgestaltung übernehmen':'Mannschaftsvorlage übernehmen'}</option>
+      <option value="blue-left">Vereinsfarbe links</option><option value="blue-right">Vereinsfarbe rechts</option><option value="black">Schwarz</option><option value="nsg-art">NSG · Rot-Schwarz</option><option value="rohrbach-silver">Rohrbach · Anthrazit/Silber</option><option value="custom">Eigenes Hintergrundbild</option>
+    </select></label>
+    {layout.background==='custom'&&<label className="block text-sm">Hintergrundbild auswählen<input aria-label="Hintergrundbild aus Datei" type="file" accept="image/jpeg,image/png,image/webp" className="mt-2 block w-full text-sm" onChange={event=>{const file=event.target.files?.[0];event.target.value='';void chooseBackground(file);}}/></label>}
+    <label className="block text-sm">Bildquelle<select aria-label="Bildquelle" className="mt-1 block min-h-11 w-full rounded-xl border border-white/20 bg-[#111218] p-2" value={layout.source} onChange={event=>patch('source',event.target.value)}><option value="original">Originalfoto</option><option value="cutout" disabled={!cutout&&!preparedPlayerPortrait(player.avatar_url)}>Freigestellte Person</option></select></label>
+    {layout.source==='original'&&<p className="text-xs text-white/60">Ein Originalfoto behält seinen Fotohintergrund. Für eine sichtbare Hintergrundvorlage „Freigestellte Person“ wählen.</p>}
+    <div className="grid grid-cols-2 gap-4">{slider('zoom','Zoom',50,180)}{slider('brightness','Helligkeit',50,150)}{slider('x','Links / rechts')}{slider('y','Oben / unten')}</div>
+    {!trainer&&<details className="rounded-xl border border-white/15 p-3"><summary className="min-h-8 cursor-pointer text-sm font-semibold">Name, Nummer und Logo anpassen</summary><div className="text-slate-900"><IndividualProfileElements unified disabled={busy||readingBackground} design={layout.profileDesign} base={clubDesign??player.club_profile_design} template={clubTemplate??player.club_photo_template??'wide'} onChange={value=>setLayout(old=>({...old,profileDesign:value}))}/></div></details>}
+    {onReplacePhoto&&<button type="button" onClick={onReplacePhoto} className="min-h-11 rounded-full border border-white/20 px-4 text-sm font-semibold">Foto ersetzen</button>}
+  </fieldset>
+  {!trainer&&<p className="text-xs text-white/60">Gemeinsamer Hintergrund für alle Spieler: Im Desktopmanager „Gesamte Mannschaft · diese Saison“ wählen. Individuelle Ausnahmen bleiben erhalten.</p>}
+  {readingBackground&&<p role="status" className="text-sm">Hintergrund wird geprüft…</p>}
+  {error&&<p role="alert" className="text-sm text-red-300">{error}</p>}
+  <div className="sticky bottom-0 z-30 -mx-4 flex items-center justify-between gap-2 border-t border-white/10 bg-[#0b0c12] p-3">
+    <button type="button" disabled={busy||readingBackground} onClick={onClose} className="min-h-11 rounded-full border border-white/20 px-4 text-sm font-semibold">Zurück</button>
+    <button type="button" disabled={busy||readingBackground} onClick={()=>void save()} className="min-h-11 rounded-full bg-[rgb(var(--club-primary-rgb))] px-4 text-sm font-semibold text-white">{busy?'Speichern…':'Speichern & zurück'}</button>
+  </div>
+ </section>;
  return <section onPointerDownCapture={history.begin} onPointerUpCapture={history.end} onPointerCancelCapture={history.end} className="w-full rounded-xl border border-slate-200 bg-slate-50 p-4" aria-label={`Foto gestalten: ${player.display_name}`}>
  {!unified&&<><h3 className="font-semibold">{global?"Globale Foto-Gestaltung · gesamte Mannschaft/Saison":`Foto gestalten · ${player.display_name}`}</h3><p className="my-2 text-sm">Gilt für Teamansicht und {trainer?'Trainerprofil':'Spielerprofil'} dieser Mannschaft/Saison. Das Originalfoto bleibt erhalten.</p></>}
  {imageOnly&&!unified&&<p className="mb-3 text-sm text-slate-600">{global?'Die Bildgestaltung wird als Standard für alle bestehenden und künftig zugeordneten Spieler dieser Mannschaft/Saison gespeichert. Individuelle Ausnahmen bleiben erhalten, sofern du sie unten nicht ausdrücklich ersetzt.':'Nur das Bild dieses Spielers in dieser Mannschaft/Saison wird geändert.'} Bei einem gestalteten Originalfoto bewegen sich Person, Hintergrund und enthaltene Schrift gemeinsam. Name, Nummer und Logo stellst du oben in der Vereinsvorlage ein.</p>}

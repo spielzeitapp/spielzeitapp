@@ -17,7 +17,8 @@ async function bundle(entry,mocks){
  const player={id:'user',first_name:'Wolfgang',last_name:'Semellechner',display_name:'Wolfgang Semellechner',avatar_url:'https://photo.test/avatar.jpg',cutout_url:null,photo_layout:null};
  let tree;await act(async()=>tree=create(React.createElement(ManagerPlayerPhotoEditor,{trainer:true,seasonId:'season',player,onSaved:()=>closed++,onClose:()=>closed++})));
  const button=t=>tree.root.findAllByType('button').find(n=>n.children.join('')===t);
- assert.equal(tree.root.findAllByProps({type:'range'}).length,8);
+ assert.equal(tree.root.findAllByProps({type:'range'}).length,9);
+ assert.equal(tree.root.findByProps({'aria-label':'Spielerfoto-Helligkeit'}).props.type,'range');
  await act(async()=>tree.root.findByProps({'aria-label':'Bildgröße'}).props.onChange({target:{value:'125'}}));
  await act(async()=>tree.root.findByProps({'aria-label':'TR horizontal'}).props.onChange({target:{value:'80'}}));
  await act(async()=>tree.root.findAllByType('select')[0].props.onChange({target:{value:'nsg-art'}}));
@@ -48,5 +49,5 @@ async function bundle(entry,mocks){
   await act(async()=>tree.unmount());
  }
  console.log('PASS: player and trainer profiles share the premium 4:3 template, logo, team header and watermark with and without saved photo settings.');
- console.log('PASS: trainer has all eight shared controls; preview makes no writes; staff cutout and layout save together; trainer card renders saved layout.');
+ console.log('PASS: trainer has all nine shared controls; preview makes no writes; staff cutout and layout save together; trainer card renders saved layout.');
 })().catch(e=>{console.error(e);process.exit(1)});

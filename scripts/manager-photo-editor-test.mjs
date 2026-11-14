@@ -89,3 +89,22 @@ await act(async()=>button('Freisteller & Gestaltung speichern').props.onClick())
 assert.equal(globalThis.__motifWrites.at(-1).v.cutout_url,'/motif-cutout.png');
 assert.equal(globalThis.__motifWrites.at(-1).v.layout.source,'cutout');assert.equal(calls.length,profileCallsBefore);
 await act(async()=>root.unmount());console.log('PASS motif editor: brightness and local cutout save to versioned motif without touching profile.');
+
+// Mobile entry points reuse the exact RPC contract and keep writes individual.
+for (const trainer of [false,true]) {
+ let applied;
+ await act(async()=>{root=create(React.createElement(Editor,{quick:true,imageOnly:true,trainer,player:{...player,cutout_url:'/portrait.png',photo_layout:null,photo_layout_default:{background:'black',source:'cutout',zoom:110,x:45,y:50,nameX:28,nameY:85,numberX:88,numberY:8}},seasonId:'season-fixture',onSaved:value=>{applied=value},onClose:()=>closed++}));});
+ const before=calls.length;
+ await act(async()=>root.root.findByProps({'aria-label':'Zoom'}).props.onChange({target:{value:'135'}}));
+ await act(async()=>root.root.findByProps({'aria-label':'Helligkeit'}).props.onChange({target:{value:'115'}}));
+ assert.equal(calls.length,before,'quick changes stay in preview');
+ await act(async()=>button('Speichern & zurück').props.onClick());
+ assert.equal(calls.at(-1).name,trainer?'save_staff_photo_layout':'admin_save_player_photo_layout');
+ assert.equal(calls.at(-1).args.p_layout.zoom,135);assert.equal(applied.brightness,115);
+ assert.equal(calls.at(-1).args.p_replace_individual,undefined,'individual entry cannot overwrite whole team');
+ assert.equal(calls.at(-1).args[trainer?'p_user_id':'p_player_id'],player.id);
+ await act(async()=>root.root.findByProps({'aria-label':'Vorlage / Hintergrund'}).props.onChange({target:{value:'team'}}));
+ await act(async()=>button('Speichern & zurück').props.onClick());assert.equal(calls.at(-1).args.p_layout,null);assert.equal(applied,null,'reset removes override instead of copying a stale standard');
+ await act(async()=>root.unmount());
+}
+console.log('PASS mobile portrait editor: quick preview, brightness/zoom, player/staff RPC routing, individual scope, inherited standard and saved result.');
