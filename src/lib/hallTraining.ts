@@ -148,3 +148,23 @@ export function creditHallFullDuration(day: HallDay, index: number): HallDay {
  next.games[index].elapsed = hallGameSeconds(day, game);
  return next;
 }
+
+/** Indoor rotation: maximize playing time within a short-game limit, using complete rounds. */
+export function calculateHallRotation(count: number, total: number, pause = 60, maxGameSeconds = 360) {
+ const plans = Array.from({ length: 8 }, (_, i) => {
+  try { return calculateHallSchedule(count, total, pause, maxGameSeconds, i + 1); }
+  catch { return null; }
+ }).filter((p): p is NonNullable<typeof p> => p !== null && p.seconds <= maxGameSeconds);
+ const plan = plans.sort((a, b) => b.playPerTeam - a.playPerTeam || a.cycles - b.cycles)[0];
+ if (!plan) throw new Error('Für diese Zeitbegrenzung passt keine vollständige Runde. Bitte mehr Spielzeit pro Match erlauben oder die Gesamtzeit verkürzen.');
+ let longestWaitSeconds = 0;
+ for (let team = 0; team < count; team++) {
+  let previous = -1;
+  plan.games.forEach((game, index) => {
+   if (game.home !== team && game.away !== team) return;
+   if (previous >= 0) longestWaitSeconds = Math.max(longestWaitSeconds, (index - previous - 1) * plan.seconds + (index - previous) * pause);
+   previous = index;
+  });
+ }
+ return { ...plan, longestWaitSeconds };
+}

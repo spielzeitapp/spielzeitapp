@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Lock, Play, Pause, Shirt, Undo2, Volume2, VolumeX, Goal, Trophy, Crown, Clock3, Trash2 } from 'lucide-react';
 import { Modal } from '../../app/ui/Modal';
 import { useDemoMode } from '../../demo/DemoContext';
-import { creditHallFullDuration, hallPlayerTimes, prepareHallPlayers, changeHallPlayers, withHallFirstPairing, hallGameSeconds, hallPlanSeconds, withHallGameDuration, hallScorers, calculateHallSchedule, createHallDay, hallClock, hallElapsed, hallReady, hallScore, hallStandings, HALL_COLORS, HALL_NAMES, type HallDay } from '../../lib/hallTraining';
+import { calculateHallRotation, creditHallFullDuration, hallPlayerTimes, prepareHallPlayers, changeHallPlayers, withHallFirstPairing, hallGameSeconds, hallPlanSeconds, withHallGameDuration, hallScorers, calculateHallSchedule, createHallDay, hallClock, hallElapsed, hallReady, hallScore, hallStandings, HALL_COLORS, HALL_NAMES, type HallDay } from '../../lib/hallTraining';
 import { loadHallDay, saveHallDay } from '../../lib/hallTrainingStore';
 import { TC_CARD } from '../tournament/tournamentCenterStyles';
 import './hallMatchScreen.css';
@@ -16,7 +16,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
   eventId: string; startsAt: string; players: Player[]; availableIds: string[]; open: boolean; onClose: () => void; onReadyChange: (ready: boolean) => void; readOnly?: boolean; defaultMinutes?: number; indoor?: boolean;
 }) {
   const demo = useDemoMode();
-  const [day, setDay] = useState<HallDay>(() => createHallDay(indoor ? 3 : 2, 3, Math.max(15, Math.min(180, defaultMinutes)) * 60));
+  const [day, setDay] = useState<HallDay>(() => createHallDay(indoor ? 3 : 2, 3, Math.max(15, Math.min(180, defaultMinutes)) * 60, indoor ? 60 : 120, indoor ? 360 : 480));
   const [saved, setSaved] = useState<HallDay | null>(null);
   const [revision, setRevision] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -24,7 +24,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'teams' | 'games' | 'table' | 'times'>('teams');
   const [now, setNow] = useState(Date.now());
-  const [count, setCount] = useState(indoor ? 3 : 2), [format, setFormat] = useState<HallDay['format']>(3), [minutes, setMinutes] = useState(defaultMinutes), [pause, setPause] = useState(2), [target, setTarget] = useState(8), [cycles, setCycles] = useState(0);
+  const [count, setCount] = useState(indoor ? 3 : 2), [format, setFormat] = useState<HallDay['format']>(3), [minutes, setMinutes] = useState(defaultMinutes), [pause, setPause] = useState(indoor ? 1 : 2), [target, setTarget] = useState(indoor ? 6 : 8), [cycles, setCycles] = useState(0);
   const saving = useRef(false);
   const scorerPanel = useRef<HTMLElement | null>(null);
   const [goalPicker, setGoalPicker] = useState<{ game: number; team: number; second: number; timeUnknown?: boolean; ownGoal?: boolean; goal?: number } | null>(null);
@@ -82,8 +82,9 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
   useEffect(() => {
     let active = true;
     setLoading(true); setError(null); setSaved(null); setRevision(0);
-    const empty = createHallDay(indoor ? 3 : 2, 3, Math.max(15, Math.min(180, defaultMinutes)) * 60);
-    setDay(empty); setCount(indoor ? 3 : 2); setFormat(3); setMinutes(empty.total / 60); setPause(2); setTarget(8); setCycles(0);
+    const total = Math.max(15, Math.min(180, defaultMinutes)) * 60;
+    const empty = createHallDay(indoor ? 3 : 2, 3, total, indoor ? 60 : 120, indoor ? 360 : 480);
+    setDay(empty); setCount(indoor ? 3 : 2); setFormat(3); setMinutes(empty.total / 60); setPause(indoor ? 1 : 2); setTarget(indoor ? 6 : 8); setCycles(0);
     if (demo) {
       try { const raw = sessionStorage.getItem(`hall-training-demo:${eventId}`); if (raw) init(JSON.parse(raw)); } catch { /* An unavailable demo store does not write to the backend. */ }
       setLoading(false); return;
@@ -106,10 +107,10 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
   const close = () => { if (busy) return; if ((dirty || configDirty || goalPicker || (activeIndex < 0 && durationDirty)) && !window.confirm('Ungespeicherte Änderungen verwerfen?')) return; if (saved) init(structuredClone(saved)); setGoalPicker(null); onClose(); };
   let preview: ReturnType<typeof calculateHallSchedule> | null = null;
   let calculationError = '';
-  try { preview = calculateHallSchedule(count, minutes * 60, pause * 60, target * 60, cycles || undefined); } catch (e) { calculationError = e instanceof Error ? e.message : 'Zeitplanung prüfen'; }
+  try { preview = indoor && cycles === 0 ? calculateHallRotation(count, minutes * 60, pause * 60, target * 60) : calculateHallSchedule(count, minutes * 60, pause * 60, target * 60, cycles || undefined); } catch (e) { calculationError = e instanceof Error ? e.message : 'Zeitplanung prüfen'; }
   const generate = async () => {
     if (started || !preview) return;
-    const next = createHallDay(count, format, minutes * 60, pause * 60, target * 60, cycles || undefined);
+    const next = createHallDay(count, format, minutes * 60, pause * 60, target * 60, preview.cycles);
     if (count === day.teams.length) next.teams = structuredClone(day.teams);
     else availableIds.forEach((id, i) => next.teams[i % count].playerIds.push(id));
     if (await persist(next)) setTab('teams');
@@ -253,10 +254,11 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
             <label className="text-[15px] text-white/70">Spielform<select className={input} value={format} onChange={e => setFormat(Number(e.target.value) as HallDay['format'])}>{Array.from({ length: indoor ? 3 : 10 }, (_, i) => i + 2).map(n => <option key={n} value={n}>{n} gegen {n}</option>)}</select></label>
             <label className="text-[15px] text-white/70">Gesamtzeit (Min.)<input className={input} type="number" min={15} max={180} value={minutes} onChange={e => setMinutes(Number(e.target.value))} /></label>
             <label className="text-[15px] text-white/70">Wechselpause (Min.)<input className={input} type="number" min={0} max={5} step={0.5} value={pause} onChange={e => setPause(Number(e.target.value))} /></label>
-            <label className="text-[15px] text-white/70">Wunschspielzeit (Min.)<input className={input} type="number" min={2} max={20} value={target} onChange={e => setTarget(Number(e.target.value))} /></label>
-            <label className="text-[15px] text-white/70">Jeder gegen jeden<select className={input} value={cycles} onChange={e => setCycles(Number(e.target.value))}><option value={0}>Automatisch</option>{Array.from({ length: 8 }, (_, i) => <option value={i + 1} key={i}>{i + 1} Durchgänge</option>)}</select></label>
+            <label className="text-[15px] text-white/70">{indoor && cycles === 0 ? "Max. Spielzeit je Match (Min.)" : "Wunschspielzeit (Min.)"}<input className={input} type="number" min={2} max={20} value={target} onChange={e => setTarget(Number(e.target.value))} /></label>
+            <label className="text-[15px] text-white/70">Jeder gegen jeden<select className={input} value={cycles} onChange={e => setCycles(Number(e.target.value))}><option value={0}>{indoor ? "Automatisch · kurze Wartezeiten" : "Automatisch"}</option>{Array.from({ length: 8 }, (_, i) => <option value={i + 1} key={i}>{i + 1} Durchgänge</option>)}</select></label>
           </div>
           {preview ? <p className="text-[16px] leading-relaxed text-white/80">{preview.count} Spiele à <strong>{hallClock(preview.seconds)} Min.</strong> · {preview.cycles} Durchgänge<br />Jedes Team: {preview.gamesPerTeam} Spiele · {hallClock(preview.playPerTeam)} Min. Spielzeit<br />{preview.count - 1} Wechselpausen à {hallClock(pause * 60)} Min.{preview.buffer ? ` · ${hallClock(preview.buffer)} Min. Restpuffer` : ''}</p> : <p role="alert" className="text-red-200">{calculationError}</p>}
+          {indoor && cycles === 0 && preview ? <p className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-[14px] leading-relaxed text-white/75">Kurze Hallenspiele · gleiche Spielanzahl pro Team. {count === 3 ? 'Kein Team wartet zwei Spiele hintereinander. ' : ''}{'longestWaitSeconds' in preview ? `Längste Wartephase zwischen Einsätzen: ${hallClock(Number(preview.longestWaitSeconds))} Min. inklusive Wechselpausen.` : ''}</p> : null}
           <button type="button" disabled={!preview} className={`${button} w-full`} onClick={() => void generate()}>{saved ? 'Zeitplanung übernehmen' : 'Spielplan erstellen & speichern'}</button>
         </fieldset>
         </details>
