@@ -61,3 +61,6 @@ The first two migrations were applied to TEST, followed by a TEST-only policy co
 - Early HTML metadata and React ManifestSync select the same marketplace manifest, new approved shield/jersey/exchange-arrow icon and name Vereinsmarkt.
 - Old iOS bookmarks may retain the previous `/app` start URL. Remove the old home-screen shortcut and re-add from the public club URL in Safari.
 - `scripts/club-exchange-manifest-test.mjs` checks the public start, metadata before React, image sizes and unchanged default/demo/USC entries.
+
+### iPhone installation metadata follow-up
+USC marketplace now serves built `markt.html` through the first exact club-route rewrite, with literal Vereinsmarkt title, apple-mobile-web-app-title, icon and static manifest. This removes dependence on JavaScript switching the initial trainer manifest. Static manifest retains the public club start URL. The generated entry is checked by club-exchange-static-install-test.mjs; physical iOS installation still needs device confirmation.

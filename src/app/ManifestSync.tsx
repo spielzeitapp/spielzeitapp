@@ -41,7 +41,7 @@ export function ManifestSync(): null {
     const usc = isUscAppPath(pathname) || Boolean(uscAuthTarget(pathname,search));
     const demo = pathname === '/demo' || pathname.startsWith('/demo/');
     const manager = pathname.startsWith('/manager');
-    const href = marketplace ? `/api/exchange/public?manifest=1&club=${marketplace[1]}` : usc ? USC_MANIFEST : demo
+    const href = marketplace ? (marketplace[1]==='3db6fce2-a4c1-44a5-a333-19d1d4d62e6a' ? '/vereinsmarkt/rohrbach-v2.webmanifest' : `/api/exchange/public?manifest=1&club=${marketplace[1]}`) : usc ? USC_MANIFEST : demo
       ? '/manifest-demo.json'
       : manager
       ? '/manifest-manager.json'
