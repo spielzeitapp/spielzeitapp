@@ -1,6 +1,7 @@
+import { TeamPhotoQuickEditor } from '../components/team/TeamPhotoQuickEditor';
 import {TeamHeroFrame} from '../components/team/TeamHeroFrame';
 import {clubNameForTeam, formatClubTeamHeading} from '../lib/teamDisplayName';
-import { DEFAULT_TEAM_PHOTO_LAYOUT, teamPhotoImageStyle, type TeamPhotoLayout } from '../lib/teamPhotoLayout';
+import { teamPhotoImageStyle, type TeamPhotoLayout } from '../lib/teamPhotoLayout';
 import { ClubBrandingOverrideContext } from '../theme/ClubThemeProvider';
 import { ClubLogo } from "../components/branding/ClubLogo";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -32,7 +33,6 @@ import {
 } from "../lib/rosterService";
 import { supabase } from "../lib/supabaseClient";
 import { uploadPlayerProfileAvatar, uploadPlayerProfileCutout, logProfileHeroUpload } from "../lib/profileCutoutUpload";
-import { uploadStorageObject } from "../lib/storageUpload";
 import { prepareCutoutGeneration } from "../lib/profileImagePipeline";
 import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
 import { PlayerSquadFormModal } from "../components/team/PlayerSquadFormModal";
@@ -322,9 +322,12 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
   const seasonMatchesLoading = isDemo ? false : seasonMatchesLoadingLive;
   const seasonMatchesError = isDemo ? null : seasonMatchesErrorLive;
   const [teamPhoto, setTeamPhoto] = useState<TeamPhotoRow | null>(null);
-  const [teamPhotoUploading, setTeamPhotoUploading] = useState(false);
+  const [photoEditorSeasonId, setPhotoEditorSeasonId] = useState<string | null>(null);
+  const [teamPhotoLoadedSeasonId, setTeamPhotoLoadedSeasonId] = useState<string | null>(null);
+  const [teamPhotoRevision, setTeamPhotoRevision] = useState(0);
+  const viewedPhotoSeasonRef = useRef(readTeamSeasonId);
+  viewedPhotoSeasonRef.current = readTeamSeasonId;
   const [teamPhotoError, setTeamPhotoError] = useState<string | null>(null);
-  const teamPhotoInputRef = useRef<HTMLInputElement | null>(null);
 
   const heroTeamName = useMemo(() => {
     if (isDemo) return demo!.data.teamName;
@@ -369,10 +372,8 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
   );
 
   const teamPhotoUrl = teamPhoto?.team_season_id === readTeamSeasonId ? readTeamPhotoUrl(teamPhoto) : null;
-  const heroPhotoSrc = useMemo(
-    () => (teamPhotoUrl && teamPhotoUrl.length > 0 ? teamPhotoUrl : (isDemo || selectedTeamSeason?.team?.name?.includes("Rohrbach") ? TEAM_HERO_PLACEHOLDER : null)),
-    [teamPhotoUrl, isDemo, selectedTeamSeason],
-  );
+  // Real teams never show a demo photo while their saved photo is loading.
+  const heroPhotoSrc = isDemo ? TEAM_HERO_PLACEHOLDER : teamPhotoUrl;
   useEffect(() => {
     if (isDemo || !readTeamSeasonId) {
       setTeamPhoto(null);
@@ -381,6 +382,9 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
     }
     let cancelled = false;
     setTeamPhoto(null);
+    setTeamPhotoLoadedSeasonId(null);
+    setTeamPhotoError(null);
+    setPhotoEditorSeasonId(null);
     void supabase
       .from("team_photos")
       .select("team_season_id,photo_url,updated_at,photo_zoom,photo_position_x,photo_position_y,photo_brightness")
@@ -390,14 +394,18 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
         if (cancelled) return;
         if (error) {
           setTeamPhoto(null);
+          setTeamPhotoError("Mannschaftsfoto konnte nicht geladen werden.");
           return;
         }
         setTeamPhoto((data as TeamPhotoRow | null) ?? null);
+        setTeamPhotoLoadedSeasonId(readTeamSeasonId);
+      }).catch(() => {
+        if (!cancelled) setTeamPhotoError("Mannschaftsfoto konnte nicht geladen werden.");
       });
     return () => {
       cancelled = true;
     };
-  }, [readTeamSeasonId, isDemo]);
+  }, [readTeamSeasonId, isDemo, teamPhotoRevision]);
 
   /** Deep-Link / Reload: ?player=p08 oder /demo/players/:id → Profil öffnen. */
   useEffect(() => {
@@ -438,57 +446,6 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
     const next = new URLSearchParams(searchParams);
     next.set("player", player.id);
     setSearchParams(next, { replace: true });
-  };
-
-  const handleTeamPhotoPick = async (file: File) => {
-    if (isDemo || !teamSeasonId || !canManagePlayers) return;
-    const allowed = ["image/jpeg", "image/png", "image/webp"];
-    if (!allowed.includes(file.type)) {
-      setTeamPhotoError("Bitte nur JPG, PNG oder WebP hochladen.");
-      return;
-    }
-    if (file.size > 4 * 1024 * 1024) {
-      setTeamPhotoError("Datei ist zu groß (max. 4 MB).");
-      return;
-    }
-    setTeamPhotoError(null);
-    setTeamPhotoUploading(true);
-    const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-    const uploadPath = `${teamSeasonId}/hero.${ext}`;
-    const { error: uploadError } = await uploadStorageObject("team-photos", uploadPath, file, {
-      upsert: true,
-      contentType: file.type,
-    });
-    if (uploadError) {
-      setTeamPhotoUploading(false);
-      setTeamPhotoError(`Upload fehlgeschlagen: ${uploadError.message}`);
-      return;
-    }
-    const { data: publicData } = supabase.storage.from("team-photos").getPublicUrl(uploadPath);
-    const publicUrl = (publicData?.publicUrl ?? "").trim();
-    if (!publicUrl) {
-      setTeamPhotoUploading(false);
-      setTeamPhotoError("Öffentliche URL für das Mannschaftsfoto konnte nicht ermittelt werden.");
-      return;
-    }
-    const { data: upserted, error: upsertError } = await supabase
-      .from("team_photos")
-      .upsert(
-        { team_season_id: teamSeasonId, photo_url: publicUrl, ...DEFAULT_TEAM_PHOTO_LAYOUT, updated_at: new Date().toISOString() },
-        { onConflict: "team_season_id" }
-      )
-      .select("team_season_id,photo_url,updated_at,photo_zoom,photo_position_x,photo_position_y,photo_brightness")
-      .maybeSingle();
-    setTeamPhotoUploading(false);
-    if (upsertError) {
-      setTeamPhotoError(`Mannschaftsfoto: ${upsertError.message}`);
-      return;
-    }
-    if (!upserted) {
-      setTeamPhotoError("Mannschaftsfoto: Eintrag in team_photos wurde nicht zurückgegeben (RLS oder Berechtigung prüfen).");
-      return;
-    }
-    setTeamPhoto(upserted as TeamPhotoRow);
   };
 
   const clearImageLocalPreviews = () => {
@@ -1067,7 +1024,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
             <p className="mt-1 text-sm text-slate-500">Saison {heroSeason} · {players.length} Spieler{isHistoryReadOnly ? " · Archiv" : ""}</p>
           </div>
         </div>
-        {canManagePlayers ? <button type="button" disabled={teamPhotoUploading || !activeTeamSeasonId || isHistoryReadOnly} onClick={() => teamPhotoInputRef.current?.click()}
+        {canManagePlayers ? <button type="button" disabled={teamPhotoLoadedSeasonId !== readTeamSeasonId || !activeTeamSeasonId || isHistoryReadOnly} onClick={() => setPhotoEditorSeasonId(readTeamSeasonId)}
           className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
           <Camera className="h-4 w-4" aria-hidden />Mannschaftsfoto
         </button> : null}
@@ -1144,43 +1101,25 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
             </p>
           ) : null}
       </TeamHeroFrame>
-          {canManagePlayers ? (
-            <div className={`flex flex-wrap items-center justify-end gap-2 px-3 ${basePath === "/manager" ? "manager-team-mobile-hero" : ""}`}>
-              <input
-                ref={teamPhotoInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  void handleTeamPhotoPick(file);
-                  if (teamPhotoInputRef.current) teamPhotoInputRef.current.value = "";
-                }}
-              />
-              <AppButton
-                type="button"
-                variant="secondary"
-                size="sm"
-                disabled={teamPhotoUploading || !activeTeamSeasonId || isHistoryReadOnly}
-                onClick={() => {
-                  if (isHistoryReadOnly) {
-                    window.alert(softLockMessage ?? "Archivierte Saison: nur Lesen.");
-                    return;
-                  }
-                  teamPhotoInputRef.current?.click();
-                }}
-                title={isHistoryReadOnly ? softLockMessage ?? "Archiv: nur Lesen" : "Mannschaftsfoto"}
-                className="min-h-11 gap-2 px-4 hover:border-[rgb(var(--club-accent-rgb)/0.4)] hover:bg-black/60"
-              >
-                <Camera className="h-4 w-4 shrink-0 text-[rgb(var(--club-accent-rgb)/0.95)]" aria-hidden />
-                <span className="text-sm font-medium text-white/85">{teamPhotoUploading ? "Foto wird hochgeladen…" : heroPhotoSrc ? "Foto ändern" : "Foto hochladen"}</span>
-              </AppButton>
-            </div>
-          ) : null}
+      {canManagePlayers ? (
+        <div className={`flex justify-end px-4 ${basePath === "/manager" ? "manager-team-mobile-hero" : ""}`}>
+          <button type="button" disabled={teamPhotoLoadedSeasonId !== readTeamSeasonId || !activeTeamSeasonId || isHistoryReadOnly}
+            onClick={() => setPhotoEditorSeasonId(readTeamSeasonId)} aria-label="Mannschaftsfoto bearbeiten" title="Mannschaftsfoto bearbeiten" aria-haspopup="dialog" aria-expanded={photoEditorSeasonId === readTeamSeasonId}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/20 bg-black/65 text-[rgb(var(--club-accent-text-rgb))] shadow-lg backdrop-blur-md disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--club-accent-rgb))]">
+            <Camera className="h-5 w-5" aria-hidden />
+          </button>
+        </div>
+      ) : null}
+      {canManagePlayers && photoEditorSeasonId && photoEditorSeasonId === readTeamSeasonId ? (
+        <TeamPhotoQuickEditor key={photoEditorSeasonId} seasonId={photoEditorSeasonId} photo={teamPhoto?.team_season_id === photoEditorSeasonId ? teamPhoto : null}
+          onClose={() => setPhotoEditorSeasonId(null)} onSaved={saved => {
+            if (viewedPhotoSeasonRef.current !== saved.team_season_id) return;
+            setTeamPhoto(saved); setPhotoEditorSeasonId(null); setTeamPhotoError(null);
+          }} />
+      ) : null}
       {teamPhotoError ? (
         <p className="text-sm text-red-600" role="alert">
-          {teamPhotoError}
+          {teamPhotoError} <button type="button" className="min-h-11 px-2 underline" onClick={() => setTeamPhotoRevision(value => value + 1)}>Erneut laden</button>
         </p>
       ) : null}
 
