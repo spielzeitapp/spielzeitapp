@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Camera, ImagePlus, LockKeyhole, MessageCircle, Plus, Search, Send, Shirt, SlidersHorizontal, Trash2, Users, X } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import type { ClubSeason } from './uscClub';
 import { notifyNotificationsReadChanged } from '../../lib/notificationsReadState';
@@ -9,7 +9,7 @@ import { ExchangeFilterSheet } from './ExchangeFilterSheet';
 import { EXCHANGE_CATEGORIES, exchangeSizeOptions, selectExchangeItems, type CatalogSort } from './exchangeCatalog';
 import './clubExchange.css';
 
-type Listing = { id: string; club_id: string; owner_id: string; owner_label: string; title: string; category: string; size: string; condition: string; offer: string; price: number | null; description: string; team_label: string; status: string; photo_paths: string[]; created_at: string; revision: number };
+type Listing = { id: string; club_id: string; owner_id: string; owner_label: string; title: string; category: string; size: string; condition: string; offer: string; price: number | null; description: string; team_label: string; status: string; photo_paths: string[]; created_at: string; is_public?: boolean; revision: number };
 type Thread = { id: string; listing_id: string; requester_id: string; requester_label: string; created_at: string };
 type Message = { id: string; thread_id: string; sender_id: string; body: string; created_at: string };
 const categories = EXCHANGE_CATEGORIES;
@@ -52,7 +52,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
-  const [view, setView] = useState<'all' | 'mine' | 'requests'>('all');
+  const [view, setView] = useState<'all' | 'mine' | 'requests'>(params.get('view')==='requests'?'requests':'all');
   const [category, setCategory] = useState('');
   const [size, setSize] = useState('');
   const [team, setTeam] = useState('');
@@ -68,6 +68,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   const [existingPaths, setExistingPaths] = useState<string[]>([]);
   const [adult, setAdult] = useState(false);
   const [publicationConfirmed,setPublicationConfirmed] = useState(false);
+  const [publicListing,setPublicListing] = useState(false);
   const [showTeam,setShowTeam] = useState(true);
   const [body, setBody] = useState('');
   const [contact, setContact] = useState('');
@@ -80,7 +81,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   const threadId = params.get('thread');
   const currentThread = threads.find(t => t.id === threadId);
-  const detail = items.find(item => item.id === (currentThread?.listing_id || detailId));
+  const detail = items.find(item => item.id === (currentThread?.listing_id || detailId || params.get('listing')));
   const myItem = detail?.owner_id === userId;
   const otherId = currentThread && detail ? (myItem ? currentThread.requester_id : detail.owner_id) : null;
   const isBlocked = Boolean(otherId && blocked.includes(otherId));
@@ -148,7 +149,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   }, [threadId, currentThread?.id, userId]);
   const openThread = (id: string | null) => {
     setBody(''); setShare(false); setContact('');
-    setParams(old => { const next = new URLSearchParams(old); if (id) next.set('thread', id); else next.delete('thread'); return next; });
+    setParams(old => { const next = new URLSearchParams(old); if (id) next.set('thread', id); else { next.delete('thread'); next.delete('listing'); } return next; });
   };
   const act = async (work: () => Promise<void>) => {
     if (busy) return; setBusy(true); setError(''); setNotice('');
@@ -187,7 +188,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
     setShare(false); setContact(''); setNotice('Deine Kontaktdaten wurden nur in diesem Chat geteilt.'); await dispatchPush();
   });
   const openEditor = (item?: Listing) => {
-    setPublicationConfirmed(false); setShowTeam(Boolean(item ? item.team_label : defaultTeamLabel));
+    setPublicListing(Boolean(item?.is_public)); setPublicationConfirmed(false); setShowTeam(Boolean(item ? item.team_label : defaultTeamLabel));
     setEditingRevision(item?.revision ?? 0);
     setEditing(item?.id || 'new'); setFiles([]); setAdult(false); setExistingPaths(item?.photo_paths || []);
     setForm(item ? { title: item.title, category: item.category, size: item.size, condition: item.condition, offer: item.offer, price: String(item.price ?? ''), description: item.description, team_label: item.team_label } : {...emptyForm,team_label:defaultTeamLabel});
@@ -198,10 +199,10 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
     event.preventDefault();
     void act(async () => {
       if (!adult) throw Error('Bitte bestätige die Verwaltung als erwachsene Person.');
-      if (!publicationConfirmed) throw Error('Bitte bestätige die vereinsinterne Veröffentlichung der genannten Angaben.');
+      if (!publicationConfirmed) throw Error('Bitte bestätige die Veröffentlichung der genannten Angaben.');
       if (!existingPaths.length && !files.length) throw Error('Bitte mindestens ein Foto vom Gewand hinzufügen.');
       const id = editing === 'new' ? crypto.randomUUID() : editing!;
-      const values = { ...form, team_label: showTeam ? form.team_label : '', title: form.title.trim(), size: form.size.trim(), price: form.offer === 'Verkaufen' ? Number(form.price.replace(',', '.')) : null };
+      const values = { ...form, is_public: publicListing, team_label: showTeam ? form.team_label : '', title: form.title.trim(), size: form.size.trim(), price: form.offer === 'Verkaufen' ? Number(form.price.replace(',', '.')) : null };
       if (form.offer === 'Verkaufen' && (!form.price.trim() || !Number.isFinite(values.price) || Number(values.price) < 0 || Number(values.price) > 9999)) throw Error('Bitte einen gültigen Preis eingeben.');
       const paths = [...existingPaths]; const uploaded: string[] = [];
       let published = false;
@@ -271,6 +272,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
     <header className="exchange-heading"><div><span className="usc-eyebrow">Alle Mannschaften · Ein Verein</span><h2>Tauschbörse</h2><p>Trainingsgewand im Verein weitergeben.</p></div>{access && <button className="exchange-primary sz-club-primary" onClick={() => openEditor()}><Plus size={17} /> Inserat</button>}</header>
     {error && <div className="exchange-alert" role="alert">{error}<button onClick={() => { setError(''); void loadRef.current(); }}>Erneut versuchen</button></div>}
     {notice && <p role="status" className="exchange-hint">{notice}</p>}
+    <Link className="exchange-back" to={`/marktplatz/${clubId}`}>Öffentliche Vereinsseite ansehen</Link>
     {loading ? <p role="status">Tauschbörse wird geladen…</p> : access === false ? <div className="exchange-empty"><LockKeyhole /><h3>Nur für Vereinsmitglieder</h3><p>Für Inserate und Anfragen benötigst du einen zugeordneten Eltern-, Trainer- oder Vereinszugang. Ein Favorit allein reicht dafür nicht.</p></div> : access && <>
       {detail ? <>
         <button className="exchange-back" onClick={() => { openThread(null); setDetailId(null); }}><ArrowLeft size={18} /> Zur Übersicht</button>
@@ -322,8 +324,10 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
         <div className="exchange-provider-context"><label className="exchange-check"><input type="checkbox" checked={showTeam} onChange={e=>setShowTeam(e.target.checked)}/>Mannschaft anzeigen (optional)</label>{showTeam&&<>{teamLabels.length===1&&ownTeamLabels?<span className="exchange-provider-chip"><Users size={16} aria-hidden/>Anbieter aus der {form.team_label||teamLabels[0]}</span>:<ExchangeChoiceGroup label="Mannschaft als Orientierung" value={form.team_label} options={teamLabels} onChange={team_label=>setForm(previous=>({...previous,team_label}))}/>}<p>Nur zur Orientierung für die Übergabe – dein Angebot sehen alle Mannschaften im Verein.</p></>}</div>
         <label>Beschreibung / Tauschwunsch<textarea maxLength={1500} value={form.description} placeholder="Zustand, Tauschwunsch, mögliche Übergabe…" onChange={e => setForm({...form,description:e.target.value})} /></label>
         <label className="exchange-check"><input type="checkbox" required checked={adult} onChange={e => setAdult(e.target.checked)} />Ich verwalte dieses Inserat als erwachsene Person.</label>
-        <section className="exchange-publication-info" aria-label="Sichtbarkeit vor der Veröffentlichung"><h3><LockKeyhole size={17} aria-hidden/>Sichtbar in deinem Verein</h3><p>Vereinsmitglieder sehen deinen Vornamen{showTeam&&form.team_label?', deine Mannschaft':''} sowie Artikelangaben, Beschreibung und Fotos. Telefonnummer und E-Mail werden nicht automatisch angezeigt.</p><details><summary>Datenschutzhinweise zur Tauschbörse</summary><p>Inserate sind für angemeldete Mitglieder des zugeordneten Vereins sichtbar. Private Chats sehen nur die beiden Beteiligten. Eigene Kontaktdaten teilst du ausschließlich freiwillig im Chat. Du kannst dein Inserat bearbeiten oder löschen; beim Löschen werden auch die zugehörigen Chats entfernt. Fotos werden für die Anzeige über zeitlich begrenzte Links bereitgestellt.</p><p>Bitte veröffentliche keine Kontaktdaten oder Angaben über Kinder in Beschreibung oder Fotos. Die Bestätigung unten bezieht sich auf dieses Inserat.</p></details></section>
-        <label className="exchange-check exchange-publication-check"><input type="checkbox" required checked={publicationConfirmed} onChange={e=>setPublicationConfirmed(e.target.checked)}/>Ich möchte dieses Inserat mit den genannten Angaben vereinsintern veröffentlichen.</label>
+        <label className="exchange-check"><input type="checkbox" checked={publicListing} onChange={e=>{setPublicListing(e.target.checked);setPublicationConfirmed(false);}}/>Auch öffentlich ohne Anmeldung anzeigen</label>
+        {publicListing&&<p className="exchange-hint">Artikelangaben, Beschreibung und Fotos sind über den öffentlichen Vereinslink für jeden sichtbar. Anbietername, Mannschaft und Kontaktdaten werden dort nicht angezeigt. Bitte keine persönlichen Angaben im Text oder Foto veröffentlichen.</p>}
+        <section className="exchange-publication-info" aria-label="Sichtbarkeit vor der Veröffentlichung"><h3><LockKeyhole size={17} aria-hidden/>{publicListing?'Auch öffentlich sichtbar':'Sichtbar in deinem Verein'}</h3><p>Vereinsmitglieder sehen deinen Vornamen{showTeam&&form.team_label?', deine Mannschaft':''} sowie Artikelangaben, Beschreibung und Fotos. Telefonnummer und E-Mail werden nicht automatisch angezeigt.</p><details><summary>Datenschutzhinweise zur Tauschbörse</summary><p>Ohne öffentliche Freigabe sehen nur angemeldete Vereinsmitglieder das Inserat. Mit öffentlicher Freigabe sind Artikelangaben, Beschreibung und Fotos auch ohne Anmeldung sichtbar; Vorname und Mannschaft bleiben intern. Private Chats sehen nur die beiden Beteiligten. Eigene Kontaktdaten teilst du ausschließlich freiwillig im Chat. Du kannst dein Inserat bearbeiten oder löschen; beim Löschen werden auch die zugehörigen Chats entfernt. Fotos werden für die Anzeige über zeitlich begrenzte Links bereitgestellt.</p><p>Bitte veröffentliche keine Kontaktdaten oder Angaben über Kinder in Beschreibung oder Fotos. Die Bestätigung unten bezieht sich auf dieses Inserat.</p></details></section>
+        <label className="exchange-check exchange-publication-check"><input type="checkbox" required checked={publicationConfirmed} onChange={e=>setPublicationConfirmed(e.target.checked)}/>Ich möchte dieses Inserat mit den genannten Angaben {publicListing?'auch öffentlich ohne Anmeldung':'nur vereinsintern'} veröffentlichen.</label>
         </fieldset></div>
         <footer className="exchange-editor-footer"><button type="submit" className="exchange-primary exchange-full sz-club-primary" disabled={busy||!adult||!publicationConfirmed}>{busy ? 'Fotos werden hochgeladen…' : editing==='new' ? 'Inserat veröffentlichen' : 'Änderungen speichern'}</button></footer>
       </form>

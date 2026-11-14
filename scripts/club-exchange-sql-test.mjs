@@ -40,6 +40,7 @@ try {
   await db.exec(fs.readFileSync('supabase/migrations/20261113093424_exchange_explicit_privileges.sql', 'utf8'));
   await db.exec(fs.readFileSync('supabase/migrations/20261113094653_exchange_main_app_links.sql', 'utf8'));
   await db.exec(fs.readFileSync('supabase/migrations/20261113102805_exchange_partner_relationship_fix.sql', 'utf8'));
+  await db.exec(fs.readFileSync('supabase/migrations/20261114195022_exchange_public_opt_in.sql','utf8'));
   const key = await db.query(`select array_agg(a.attname order by k.ordinality) as columns from pg_constraint c cross join lateral unnest(c.conkey) with ordinality k(attnum,ordinality) join pg_attribute a on a.attrelid=c.conrelid and a.attnum=k.attnum where c.conrelid='public.exchange_partner_teams'::regclass and c.contype='p'`);
   if (JSON.stringify(key.rows[0].columns)!=='["id"]') throw Error('Partner PK must not imply a teams/clubs many-to-many relationship');
   await db.exec(`insert into public.exchange_partner_teams(club_id,team_id) values('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002')`);
@@ -47,5 +48,16 @@ try {
   console.log(results.at(-1).rows);
   const remaining = await db.query('select count(*)::int as users from auth.users');
   if (remaining.rows[0].users !== 0) throw Error('Fixture rollback failed');
-  console.log('PASS: no synthetic users remain');
+  await db.exec(`insert into auth.users(id) values('40000000-0000-0000-0000-000000000001');
+  insert into exchange_listings(id,club_id,owner_id,title,category,size,condition,offer,photo_paths) values('50000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','Pulli','Pulli','140','Gut','Gratis',array['10000000-0000-0000-0000-000000000001/40000000-0000-0000-0000-000000000001/50000000-0000-0000-0000-000000000001/x.jpg'])`);
+  const state=async()=> (await db.query('select is_public, public_confirmed_at from exchange_listings')).rows[0];
+  if((await state()).is_public || (await state()).public_confirmed_at)throw Error('Default must be private');
+  await db.exec('update exchange_listings set is_public=true');const first=await state();
+  if(!first.public_confirmed_at)throw Error('Missing server confirmation');
+  await db.exec("update exchange_listings set public_confirmed_at='2000-01-01'");
+  if(String((await state()).public_confirmed_at)!==String(first.public_confirmed_at))throw Error('Timestamp spoof');
+  await db.exec('update exchange_listings set is_public=false');
+  if((await state()).public_confirmed_at)throw Error('Revocation failed');
+  await db.exec('set role anon');let denied=false;try{await db.query('select * from exchange_listings');}catch{denied=true;}await db.exec('reset role');if(!denied)throw Error('Anonymous table access');
+  console.log('PASS: private default, opt-in, repeat timestamp protection, revoke, anonymous denial; no synthetic users left by RLS fixture');
 } finally { await db.close(); }

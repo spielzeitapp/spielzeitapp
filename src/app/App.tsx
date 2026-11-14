@@ -95,6 +95,7 @@ import { DemoEventPage } from '../demo/pages/DemoEventPage';
 import { DemoTournamentPage } from '../demo/pages/DemoTournamentPage';
 import { DEMO_MATCH_ID_LIVE } from '../demo/demoDataSource';
 
+const PublicExchangePage = React.lazy(() => import('../features/club/PublicExchangePage'));
 const UscClubApp = React.lazy(() => import('../features/club/UscClubApp').then(m => ({default:m.UscClubApp})));
 const ClubExchangePage = React.lazy(() => import('../pages/ClubExchangePage').then(m => ({default:m.ClubExchangePage})));
 
@@ -235,6 +236,7 @@ class AppErrorBoundary extends Component<
 function InternalRoutes(): React.ReactElement {
   return (
     <Routes>
+      <Route path="marktplatz/:clubId" element={<React.Suspense fallback={<p className="p-6">Marktplatz wird geladen…</p>}><PublicExchangePage /></React.Suspense>} />
       <Route path="app/usc-rohrbach/anmelden" element={<LoginPage />} />
       <Route path="app/usc-rohrbach/registrieren" element={<RegisterPage />} />
       <Route path="app/usc-rohrbach/passwort-vergessen" element={<ForgotPasswordPage />} />
@@ -448,6 +450,7 @@ function InternalRoutes(): React.ReactElement {
 function PublicRoutes(): React.ReactElement {
   return (
     <Routes>
+      <Route path="marktplatz/:clubId" element={<React.Suspense fallback={<p className="p-6">Marktplatz wird geladen…</p>}><PublicExchangePage /></React.Suspense>} />
       <Route path="app/usc-rohrbach/anmelden" element={<LoginPage />} />
       <Route path="app/usc-rohrbach/registrieren" element={<RegisterPage />} />
       <Route path="app/usc-rohrbach/passwort-vergessen" element={<ForgotPasswordPage />} />

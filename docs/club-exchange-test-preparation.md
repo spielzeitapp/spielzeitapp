@@ -45,3 +45,13 @@ Run `node scripts/club-exchange-ui-test.mjs` and `node scripts/club-exchange-pus
 For the isolated SQL test install `@electric-sql/pglite@0.3.14` in a temporary prefix and set `EXCHANGE_PGLITE_PATH` to its package directory before running `node scripts/club-exchange-sql-test.mjs`.
 
 The first two migrations were applied to TEST, followed by a TEST-only policy correction for owner cleanup and the explicit privilege migration. The checked-in second migration includes that cleanup correction so a fresh replay produces the same final schema. No already-LIVE migration was modified.
+
+## Public club marketplace (TEST only, 2026-11-14)
+
+- `/marktplatz/:clubId` has standalone guest navigation and safe public listing/photo API.
+- Existing ads default `is_public=false`. Explicit editor opt-in and publication acknowledgment required; server stamps confirmation. Withdrawn/unavailable/deleted listings disappear from guest API, including photo downloads.
+- Guest JSON excludes owner IDs/names, team labels and private storage paths. Private DB/storage RLS remains unchanged; server projects approved fields.
+- Browse/search/filter without login; enquiries and publishing currently require existing club-associated accounts. Self-registration alone does not establish membership. Shop is a clearly marked placeholder.
+- Verification: public API security tests, public guest navigation/login-return tests, existing exchange interaction/catalog tests, isolated SQL/RLS migration replay, scoped TypeScript and Vite production build. UI tests use renderer mocks; no native mobile or actual push delivery test.
+- Test URL: `https://app.spielzeitapp.at/marktplatz/3db6fce2-a4c1-44a5-a333-19d1d4d62e6a`.
+- No genuine or demo ads are automatically published. LIVE migration/release not included.

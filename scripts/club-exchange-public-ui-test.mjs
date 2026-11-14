@@ -1,0 +1,13 @@
+import fs from 'node:fs/promises';import os from 'node:os';import path from 'node:path';import assert from 'node:assert/strict';import {build} from 'esbuild';import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),React=require('react'),renderer=require('react-test-renderer'),{MemoryRouter,Routes,Route}=require('react-router-dom');
+const tmp=await fs.mkdtemp(path.join(os.tmpdir(),'public-exchange-'));const file=path.join(tmp,'ui.cjs');
+await build({entryPoints:['src/features/club/PublicExchangePage.tsx'],outfile:file,bundle:true,platform:'node',format:'cjs',external:['react','react-router-dom','lucide-react'],loader:{'.css':'empty'},plugins:[{name:'environment',setup(b){b.onLoad({filter:/appEnvironment\.ts$/},()=>({contents:'export const isStagingApp=()=>true;',loader:'ts'}));}}]});
+const {createRequire:cr}=await import('node:module');const local=cr(path.resolve('package.json'));const Module=local('node:module');const mod=new Module(file);mod.filename=file;mod.paths=Module._nodeModulePaths(process.cwd());mod._compile(await fs.readFile(file,'utf8'),file);const Page=mod.exports.default;
+const id='example';globalThis.fetch=async()=>({ok:true,json:async()=>({club:{name:'Testverein'},items:[{id,title:'Trainingspulli',category:'Pulli',size:'140',condition:'Gut',offer:'Gratis',price:null,description:'Übergabe am Platz',status:'Verfügbar',created_at:'2026-11-14',photos:[]}]})});
+let app;await renderer.act(async()=>{app=renderer.create(React.createElement(MemoryRouter,{initialEntries:['/marktplatz/club']},React.createElement(Routes,null,React.createElement(Route,{path:'/marktplatz/:clubId',element:React.createElement(Page)}))));});
+const text=()=>JSON.stringify(app.toJSON());assert.ok(text().includes('Trainingspulli'));assert.ok(text().includes('Testverein'));
+const card=app.root.findAllByType('button').find(b=>b.props.className==='exchange-card');await renderer.act(async()=>card.props.onClick());
+let interest=app.root.findAllByType('a').find(a=>a.children.includes('Interesse senden'));assert.ok(interest.props.href.startsWith('/login?next='));assert.ok(decodeURIComponent(interest.props.href).includes('listing=example'));
+const start=app.root.findAllByType('button').find(b=>b.children.includes('Start'));await renderer.act(async()=>start.props.onClick());
+const shop=app.root.findAllByType('button').find(b=>b.children.includes('Neu im Shop'));await renderer.act(async()=>shop.props.onClick());assert.ok(text().includes('Noch kein Shop freigeschaltet'));
+await renderer.act(async()=>app.unmount());await fs.rm(tmp,{recursive:true,force:true});console.log('PASS: guest browse/details, login return to listing, standalone navigation, honest shop placeholder');
