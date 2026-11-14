@@ -2,7 +2,7 @@
 export type HallTeam = { name: string; playerIds: string[] };
 export type HallGoal = { team: number; second: number; ownGoal?: boolean; timeUnknown?: boolean; scorerId?: string; scorerName?: string };
 export type HallGame = { participation?: Record<string, HallParticipation>; seconds?: number; home: number; away: number; status: 'pending' | 'running' | 'paused' | 'finished'; elapsed: number; runningSince: number | null; goals: HallGoal[] };
-export type HallDay = { version: 1; teams: HallTeam[]; format: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11; total: number; pause: number; target: number; cycles: number; seconds: number; buffer: number; games: HallGame[] };
+export type HallDay = { plannedStartTime?: string; version: 1; teams: HallTeam[]; format: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11; total: number; pause: number; target: number; cycles: number; seconds: number; buffer: number; games: HallGame[] };
 export const HALL_COLORS = ['#fb425c', '#419cff', '#facc15', '#4ade80'];
 export const HALL_NAMES = ['Rot', 'Blau', 'Gelb', 'Grün'];
 export function isHallTraining(title: string, location?: string | null) {
@@ -94,16 +94,27 @@ export function hallPlayerTimes(day: HallDay, now = Date.now()) {
  day.games.forEach(g => Object.values(g.participation ?? {}).forEach(p => p.roster.forEach(id => ids.add(id))));
  const totals = new Map([...ids].map(id => [id, 0]));
  let untracked = 0;
+ const estimated = new Set<string>(), incomplete = new Set<string>();
  for (const g of day.games) {
   if (g.status === 'pending') continue;
-  if (!g.participation) { untracked++; continue; }
+  if (!g.participation) {
+   untracked++;
+   const duration = hallElapsed(g, hallGameSeconds(day, g), now);
+   for (const team of [g.home, g.away]) {
+    const roster = day.teams[team]?.playerIds ?? [];
+    if (roster.length === day.format && duration > 0) {
+     roster.forEach(id => { totals.set(id, (totals.get(id) ?? 0) + duration); estimated.add(id); });
+    } else roster.forEach(id => incomplete.add(id));
+   }
+   continue;
+  }
   const end = hallElapsed(g, hallGameSeconds(day, g), now);
   for (const p of Object.values(g.participation)) p.stints.forEach((stint, i) => {
    const duration = Math.max(0, Math.min(end, p.stints[i + 1]?.second ?? end) - stint.second);
    stint.on.forEach(id => totals.set(id, (totals.get(id) ?? 0) + duration));
   });
  }
- return { players: [...totals].map(([id, seconds]) => ({ id, seconds })).sort((a,b) => a.seconds-b.seconds || a.id.localeCompare(b.id)), untracked };
+ return { players: [...totals].map(([id, seconds]) => ({ id, seconds, estimated: estimated.has(id), incomplete: incomplete.has(id) })).sort((a,b) => a.seconds-b.seconds || a.id.localeCompare(b.id)), untracked };
 }
 export function prepareHallPlayers(day: HallDay, index: number): HallDay {
  const next = structuredClone(day), game = next.games[index];
@@ -127,4 +138,57 @@ export function changeHallPlayers(day: HallDay, index: number, team: number, on:
  if (p.stints.at(-1)!.second === second) p.stints[p.stints.length-1] = {second,on:[...on]};
  else p.stints.push({second,on:[...on]});
  return next;
+}
+
+/** Late clock start: staff confirms that the finished match used its full planned duration. */
+export function creditHallFullDuration(day: HallDay, index: number): HallDay {
+ const game = day.games[index];
+ if (!game || game.status !== 'finished') throw new Error('Nur beendete Spiele können korrigiert werden.');
+ const next = structuredClone(day);
+ next.games[index].elapsed = hallGameSeconds(day, game);
+ return next;
+}
+
+/** Indoor rotation: maximize playing time within a short-game limit, using complete rounds. */
+export function calculateHallRotation(count: number, total: number, pause = 60, maxGameSeconds = 360) {
+ const plans = Array.from({ length: 8 }, (_, i) => {
+  try { return calculateHallSchedule(count, total, pause, maxGameSeconds, i + 1); }
+  catch { return null; }
+ }).filter((p): p is NonNullable<typeof p> => p !== null && p.seconds <= maxGameSeconds);
+ const plan = plans.sort((a, b) => b.playPerTeam - a.playPerTeam || a.cycles - b.cycles)[0];
+ if (!plan) throw new Error('Für diese Zeitbegrenzung passt keine vollständige Runde. Bitte mehr Spielzeit pro Match erlauben oder die Gesamtzeit verkürzen.');
+ let longestWaitSeconds = 0;
+ for (let team = 0; team < count; team++) {
+  let previous = -1;
+  plan.games.forEach((game, index) => {
+   if (game.home !== team && game.away !== team) return;
+   if (previous >= 0) longestWaitSeconds = Math.max(longestWaitSeconds, (index - previous - 1) * plan.seconds + (index - previous) * pause);
+   previous = index;
+  });
+ }
+ return { ...plan, longestWaitSeconds };
+}
+
+export function hallTimeMinutes(value: string): number {
+ if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return NaN;
+ const [h, m] = value.split(':').map(Number); return h * 60 + m;
+}
+export function hallTimeAfter(start: string, minutes: number): string {
+ const first = hallTimeMinutes(start);
+ if (!Number.isFinite(first) || !Number.isFinite(minutes)) return '';
+ const end = ((first + minutes) % 1440 + 1440) % 1440;
+ return `${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}`;
+}
+export function hallWindowMinutes(start: string, end: string): number {
+ const first = hallTimeMinutes(start), last = hallTimeMinutes(end);
+ if (!Number.isFinite(first) || !Number.isFinite(last)) return NaN;
+ return (last - first + 1440) % 1440;
+}
+
+export function calculateTrainingPlan(count: number, total: number, pause: number, target: number, cycles?: number) {
+ if (count === 2) {
+  if (total > 1800) throw new Error('Ein Einzelmatch dauert höchstens 30 Minuten. Bitte kürzer planen oder 3 bzw. 4 Teams wählen.');
+  return calculateHallSchedule(2, total, 0, Math.min(1200, total), 1);
+ }
+ return cycles === undefined ? calculateHallRotation(count, total, pause, target) : calculateHallSchedule(count, total, pause, target, cycles);
 }
