@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Lock, Play, Pause, Shirt, Undo2, Volume2, VolumeX, Goal, Trophy, Crown, Clock3, Trash2, ChevronDown } from 'lucide-react';
+import { Lock, Play, Pause, Shirt, Undo2, Volume2, VolumeX, Goal, Trophy, Crown, Clock3, Trash2, ChevronDown, BarChart3 } from 'lucide-react';
 import { Modal } from '../../app/ui/Modal';
 import { useDemoMode } from '../../demo/DemoContext';
 import { calculateTrainingPlan, hallTimeMinutes, hallTimeAfter, hallWindowMinutes, creditHallFullDuration, hallPlayerTimes, prepareHallPlayers, changeHallPlayers, withHallFirstPairing, hallGameSeconds, hallPlanSeconds, withHallGameDuration, hallScorers, calculateHallSchedule, createHallDay, hallClock, hallElapsed, hallReady, hallScore, hallStandings, HALL_COLORS, HALL_NAMES, type HallDay } from '../../lib/hallTraining';
@@ -30,10 +30,13 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
   const [startTime, setStartTime] = useState(eventClock);
   const [endTime, setEndTime] = useState(() => hallTimeAfter(eventClock, initialMinutes));
   const setDuration = (value: number) => { setMinutes(value); setEndTime(hallTimeAfter(startTime, value)); };
-  const [customDuration, setCustomDuration] = useState(false);
-  const durationInput = useRef<HTMLInputElement | null>(null);
+  const [durationPickerOpen, setDurationPickerOpen] = useState(false);
+  const [draftDuration, setDraftDuration] = useState(String(initialMinutes));
   const durationPresets = count === 2 ? [15, 20, 25, 30] : [45, 60, 75, 90];
-  const customDurationActive = customDuration || !durationPresets.includes(minutes);
+  const durationMaximum = count === 2 ? 30 : 180;
+  const validDraftDuration = /^\d+$/.test(draftDuration) && Number(draftDuration) >= 15 && Number(draftDuration) <= durationMaximum;
+  const stepDraftDuration = (step: number) => setDraftDuration(String(Math.max(15, Math.min(durationMaximum, (Number(draftDuration) || 15) + step))));
+  useEffect(() => { setDurationPickerOpen(false); }, [eventId, open]);
   const saving = useRef(false);
   const scorerPanel = useRef<HTMLElement | null>(null);
   const [goalPicker, setGoalPicker] = useState<{ game: number; team: number; second: number; timeUnknown?: boolean; ownGoal?: boolean; goal?: number } | null>(null);
@@ -87,13 +90,13 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
   const ready = hallReady(day, availableIds);
   const names = new Map(players.map(p => [p.id, playerName(p)]));
   const unavailable = day.teams.flatMap(t => t.playerIds).filter(id => !availableIds.includes(id));
-  const init = (loaded: HallDay) => { setCustomDuration(false); const start = loaded.plannedStartTime ?? eventClock; setStartTime(start); setEndTime(hallTimeAfter(start, loaded.total / 60)); setDay(loaded); setSaved(structuredClone(loaded)); setCount(loaded.teams.length); setFormat(loaded.format); setMinutes(loaded.total / 60); setPause(loaded.pause / 60); setTarget(loaded.target / 60); setCycles(0); };
+  const init = (loaded: HallDay) => { const start = loaded.plannedStartTime ?? eventClock; setStartTime(start); setEndTime(hallTimeAfter(start, loaded.total / 60)); setDay(loaded); setSaved(structuredClone(loaded)); setCount(loaded.teams.length); setFormat(loaded.format); setMinutes(loaded.total / 60); setPause(loaded.pause / 60); setTarget(loaded.target / 60); setCycles(0); };
   useEffect(() => {
     let active = true;
     setLoading(true); setError(null); setSaved(null); setRevision(0);
     const total = initialMinutes * 60;
     const empty = createHallDay(indoor ? 3 : 2, 3, total, indoor ? 60 : 0, 360, indoor ? undefined : 1);
-    setCustomDuration(false); setStartTime(eventClock); setEndTime(hallTimeAfter(eventClock, empty.total / 60));
+    setStartTime(eventClock); setEndTime(hallTimeAfter(eventClock, empty.total / 60));
     setDay(empty); setCount(indoor ? 3 : 2); setFormat(3); setMinutes(empty.total / 60); setPause(indoor ? 1 : 0); setTarget(6); setCycles(0);
     if (demo) {
       try { const raw = sessionStorage.getItem(`hall-training-demo:${eventId}`); if (raw) init(JSON.parse(raw)); } catch { /* An unavailable demo store does not write to the backend. */ }
@@ -257,19 +260,28 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
     const seconds = (start + offset) % 86400;
     return `${String(Math.floor(seconds / 3600)).padStart(2, '0')}:${String(Math.floor(seconds / 60) % 60).padStart(2, '0')}${seconds % 60 ? `:${String(seconds % 60).padStart(2, '0')}` : ''}`;
   };
-  return <Modal open={open} onClose={close} className="hall-training-modal" title={indoor ? "Hallenspieltag · Nur intern" : "Trainingsmatch · Nur intern"}>
-    {loading ? <p role="status">Hallenspieltag wird geladen…</p> : <div className="space-y-4">
+  return <Modal open={open} onClose={durationPickerOpen ? () => setDurationPickerOpen(false) : close} className="hall-training-modal" title={durationPickerOpen ? "Dauer einstellen" : indoor ? "Hallenspieltag · Nur intern" : "Trainingsmatch · Nur intern"}
+    footer={durationPickerOpen ? <div className="hall-picker-actions"><button type="button" className={button} onClick={() => setDurationPickerOpen(false)}>Abbrechen</button><button type="button" className={`${button} sz-club-tab-active`} disabled={!validDraftDuration || readOnly || busy || started} onClick={() => { setDuration(Number(draftDuration)); setDurationPickerOpen(false); }}>Minuten übernehmen</button></div> : undefined}>
+    {durationPickerOpen ? <section className="hall-duration-picker">
+      <p>Wie lange wollt ihr spielen?</p>
+      <div className="hall-duration-stepper">
+        <button type="button" aria-label="Gesamtzeit um eine Minute verkürzen" disabled={Number(draftDuration) <= 15} onClick={() => stepDraftDuration(-1)}>−</button>
+        <label>Gesamtdauer<input aria-label="Individuelle Gesamtzeit Minuten" inputMode="numeric" type="number" min={15} max={durationMaximum} step={1} value={draftDuration} onChange={e => setDraftDuration(e.target.value)} /><span>Minuten</span></label>
+        <button type="button" aria-label="Gesamtzeit um eine Minute verlängern" disabled={Number(draftDuration) >= durationMaximum} onClick={() => stepDraftDuration(1)}>+</button>
+      </div>
+      <div className="hall-duration-presets" role="group" aria-label="Trainingsdauer wählen">{durationPresets.map(value => <button key={value} type="button" aria-label={`${value} Minuten Gesamtzeit`} aria-pressed={Number(draftDuration) === value} onClick={() => setDraftDuration(String(value))}>{value}<small>Min.</small></button>)}</div>
+      <p>{validDraftDuration ? 'Minuten direkt eingeben oder mit − / + einstellen. Ende und Spielplan-Vorschau werden nach dem Übernehmen angepasst.' : `Bitte ganze Minuten zwischen 15 und ${durationMaximum} wählen.`}</p>
+    </section> : loading ? <p role="status">Hallenspieltag wird geladen…</p> : <div className="space-y-4">
       <p className="flex items-center gap-2 text-[15px] text-white/60"><Lock className="h-4 w-4" aria-hidden />Interne Trainingsspiele · nur für Trainer</p>
       {error ? <div role="alert" className="rounded-xl border border-red-400/30 p-3 text-[16px] text-red-200"><p>{error}</p><button type="button" className={`${button} mt-2`} onClick={async () => { if ((dirty || configDirty) && !window.confirm('Änderungen verwerfen und gespeicherten Stand laden?')) return; try { setLoading(true); const row = await loadHallDay(eventId); if (row) { init(row.day); setRevision(row.revision); } setError(null); } catch { setError('Laden fehlgeschlagen. Bitte erneut versuchen.'); } finally { setLoading(false); } }}>Gespeicherten Stand laden</button></div> : null}
       {unavailable.length ? <p className="text-[16px] text-amber-200">{unavailable.length} eingeteilte Spieler sind nicht mehr als dabei markiert. Bitte Einteilung prüfen.</p> : null}
-      <div className="hall-section-tabs" role="group" aria-label="Hallenspieltag Bereiche">{(['teams', 'games', 'table', 'times'] as const).map((key, i) => <button key={key} type="button" aria-pressed={tab === key} onClick={() => setTab(key)} className={`${button} flex-1 px-2 ${tab === key ? 'sz-club-tab-active' : ''}`}>{['Teams', 'Spielplan', 'Tabelle', 'Zeiten'][i]}</button>)}</div>
+      <div className="hall-section-tabs" role="group" aria-label="Hallenspieltag Bereiche">{(['teams', 'games', 'table', 'times'] as const).map((key, i) => <button key={key} type="button" aria-pressed={tab === key} onClick={() => setTab(key)} className={`${button} flex-1 px-2 ${tab === key ? 'sz-club-tab-active' : ''}`}>{['Teams', 'Spielplan', 'Tabelle', 'Statistik'][i]}</button>)}</div>
       {tab === 'teams' ? <>
         <details className="hall-settings" open={!started && !saved}>
           <summary><Clock3 size={20} aria-hidden /><span>Zeit & Spielform<small>{count} Teams · {format} gegen {format} · {minutes} Min.</small></span><span className="hall-expand">⌄</span></summary>
         <fieldset disabled={readOnly || busy || started} className={`${TC_CARD} space-y-3 p-4 disabled:opacity-65`}>
           <legend className="sr-only">Zeit und Spielform</legend>
-          {<div className="hall-duration-presets" role="group" aria-label="Trainingsdauer wählen">{durationPresets.map(value => <button key={value} type="button" aria-label={`${value} Minuten Gesamtzeit`} aria-pressed={!customDurationActive && minutes === value} className={!customDurationActive && minutes === value ? 'sz-club-tab-active' : ''} onClick={() => { setCustomDuration(false); setDuration(value); }}>{value}<small>Min.</small></button>)}</div>}
-          <button type="button" aria-label="Individuelle Minuten einstellen" aria-pressed={customDurationActive} aria-controls="training-custom-minutes" className={`hall-custom-duration ${customDurationActive ? 'is-active' : ''}`} onClick={() => { setCustomDuration(true); durationInput.current?.focus(); durationInput.current?.select(); }}><Clock3 size={18} aria-hidden /><span>Individuell{customDurationActive && Number.isFinite(minutes) ? ` · ${minutes} Min.` : ''}</span><span aria-hidden>✎</span></button>
+          <button type="button" aria-label="Dauer einstellen" aria-haspopup="dialog" className="hall-custom-duration is-active" onClick={() => { setDraftDuration(String(minutes)); setDurationPickerOpen(true); }}><Clock3 size={20} aria-hidden /><span>Dauer · {minutes} Min.<small>Antippen zum Einstellen</small></span><span aria-hidden>✎</span></button>
           {<div className="grid grid-cols-2 gap-3">
             <label className="text-[15px] text-white/70">Beginn<input aria-label="Hallenspieltag Beginn" className={input} type="time" value={startTime} onChange={e => { setStartTime(e.target.value); setMinutes(hallWindowMinutes(e.target.value, endTime)); }} /></label>
             <label className="text-[15px] text-white/70">Ende<input aria-label="Hallenspieltag Ende" className={input} type="time" value={endTime} onChange={e => { setEndTime(e.target.value); setMinutes(hallWindowMinutes(startTime, e.target.value)); }} /></label>
@@ -278,7 +290,6 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
           <div className="grid grid-cols-2 gap-3">
             <label className="text-[15px] text-white/70">Mannschaften<select className={input} value={count} onChange={e => changeTeamCount(Number(e.target.value))}><option value={2}>2 Teams</option><option value={3}>3 Teams</option><option value={4}>4 Teams</option></select></label>
             <label className="text-[15px] text-white/70">Spielform<select className={input} value={format} onChange={e => setFormat(Number(e.target.value) as HallDay['format'])}>{Array.from({ length: indoor ? 3 : 10 }, (_, i) => i + 2).map(n => <option key={n} value={n}>{n} gegen {n}</option>)}</select></label>
-            <label className="text-[15px] text-white/70">Gesamtzeit (Min.)<input id="training-custom-minutes" aria-label="Individuelle Gesamtzeit Minuten" ref={durationInput} className={input} type="number" min={15} max={count === 2 ? 30 : 180} value={Number.isFinite(minutes) ? minutes : ""} onChange={e => { setCustomDuration(true); setDuration(e.target.value === "" ? NaN : Number(e.target.value)); }} /></label>
             {count > 2 ? <><label className="text-[15px] text-white/70">Wechselpause (Min.)<input className={input} type="number" min={0} max={5} step={0.5} value={pause} onChange={e => setPause(Number(e.target.value))} /></label>
             <label className="text-[15px] text-white/70">{cycles === 0 ? "Max. Spielzeit je Match (Min.)" : "Wunschspielzeit (Min.)"}<input className={input} type="number" min={2} max={20} value={target} onChange={e => setTarget(Number(e.target.value))} /></label>
             <label className="text-[15px] text-white/70">Jeder gegen jeden<select className={input} value={cycles} onChange={e => setCycles(Number(e.target.value))}><option value={0}>Automatisch · kurze Wartezeiten</option>{Array.from({ length: 8 }, (_, i) => <option value={i + 1} key={i}>{i + 1} Durchgänge</option>)}</select></label></> : <p className="col-span-2 text-[14px] text-white/65">Ein Match · zwei Teams · ohne Wechselpause. Spieler einteilen und Anpfiff starten.</p>}
@@ -375,7 +386,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
         </details>)}</div>
       </> : null}
       {tab === 'times' ? <section className="hall-player-panel">
-        <h3>Spielzeiten · Spieler</h3><p>Aus den Trainingsmatches · geringste Einsatzzeit zuerst</p>
+        <h3 className="hall-stats-title"><BarChart3 size={22} aria-hidden />Statistik · Einsatzzeiten</h3><p>Spieler · aus den Trainingsmatches · geringste Einsatzzeit zuerst</p>
         {hallPlayerTimes(day, now).untracked > 0 ? <p className="hall-time-note">Ältere Spiele: Bei Teams ohne Bank wird die gespielte Matchzeit anhand der aktuellen Einteilung zugeordnet (≈). Frühere Wechsel sind nicht gespeichert. Bei Teams mit Bank bleibt die individuelle Zeit unvollständig (—).</p> : null}
         {hallPlayerTimes(day, now).players.map(p => <div className="hall-player-time" key={p.id}><span>{names.get(p.id) ?? 'Spieler'}<small>{p.incomplete ? 'Unvollständig · frühere Wechsel fehlen' : p.estimated ? 'Aus Matchdauer · aktuelle Teameinteilung' : 'Mit Wechseln erfasst'}</small></span><strong>{p.incomplete ? (p.seconds > 0 ? `≥ ${hallClock(p.seconds)}` : '—') : `${p.estimated ? '≈ ' : ''}${hallClock(p.seconds)}`}<small>Min.</small></strong></div>)}
         <details className="hall-settings mt-3"><summary><Clock3 size={20} aria-hidden /><span>Spielzeiten je Match<small>Gespielte Dauer aus dem Trainingsmatch</small></span><span className="hall-expand">⌄</span></summary>{day.games.map((game, i) => game.status !== 'pending' ? <div key={i} className="hall-player-time px-3"><span>{day.teams[game.home].name} – {day.teams[game.away].name}<small>Spiel {i + 1}</small></span><strong>{hallClock(hallElapsed(game, hallGameSeconds(day, game), now))}<small>Min.</small></strong></div> : null)}</details>
