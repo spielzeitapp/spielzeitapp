@@ -184,3 +184,11 @@ export function hallWindowMinutes(start: string, end: string): number {
  if (!Number.isFinite(first) || !Number.isFinite(last)) return NaN;
  return (last - first + 1440) % 1440;
 }
+
+export function calculateTrainingPlan(count: number, total: number, pause: number, target: number, cycles?: number) {
+ if (count === 2) {
+  if (total > 1800) throw new Error('Ein Einzelmatch dauert höchstens 30 Minuten. Bitte kürzer planen oder 3 bzw. 4 Teams wählen.');
+  return calculateHallSchedule(2, total, 0, Math.min(1200, total), 1);
+ }
+ return cycles === undefined ? calculateHallRotation(count, total, pause, target) : calculateHallSchedule(count, total, pause, target, cycles);
+}
