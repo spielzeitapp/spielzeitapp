@@ -84,10 +84,21 @@ try{
  await click('Inserat');
  const labelInput=label=>app.root.findAllByType('label').find(l=>text(l).startsWith(label)).findByType('input');
  await act(async()=>{labelInput('Bezeichnung').props.onChange({target:{value:'USC Trainingsshirt'}});});
- await act(async()=>{labelInput('Größe').props.onChange({target:{value:'128'}});});
+ assert.equal(app.root.findByType('dialog').findAllByType('select').length,0,'editor uses buttons, no dropdown arrows');
+ const choose=async(label,value)=>{const group=app.root.findAllByType('fieldset').find(f=>f.props.className?.includes('exchange-editor-choices')&&text(f.findByType('legend'))===label);assert.ok(group,label);const option=group.findAllByType('button').find(b=>text(b)===value);assert.ok(option,value);await act(async()=>option.props.onClick());};
+ await choose('Artikel','Schuhe');await choose('Schuhgröße','35');
+ assert.equal(labelInput('Größe').props.value,'35');
+ await choose('Artikel','T-Shirt');assert.equal(labelInput('Größe').props.value,'','switching size systems clears incompatible size');
+ await choose('Größe','128');await choose('Zustand','Gut');
+ await choose('Angebot','Verkaufen');assert.ok(labelInput('Preis in Euro'));
+ await choose('Angebot','Gratis');
+
  await act(async()=>{app.root.findAllByType('input').find(i=>i.props.multiple).props.onChange({target:{files:[new File(['png-fixture'],'shirt.png',{type:'image/png'})],value:''}});});
  await act(async()=>{app.root.findAllByType('input').find(i=>i.props.type==='checkbox').props.onChange({target:{checked:true}});});
  await act(async()=>{app.root.findByType('dialog').findByType('form').props.onSubmit({preventDefault(){}});await flush();});
+ assert.equal(window.exchangeFixture.tables.exchange_listings.find(l=>l.title==='USC Trainingsshirt').category,'T-Shirt');
+ assert.equal(window.exchangeFixture.tables.exchange_listings.find(l=>l.title==='USC Trainingsshirt').condition,'Gut');
+ assert.equal(window.exchangeFixture.tables.exchange_listings.find(l=>l.title==='USC Trainingsshirt').size,'128');
  assert.equal(window.exchangeFixture.uploads[0].type,'image/jpeg');
  assert.match(window.exchangeFixture.uploads[0].path,/^club\/owner\//);
  assert.equal(window.exchangeFixture.tables.exchange_listings.find(l=>l.title==='USC Trainingsshirt').status,'Verfügbar');

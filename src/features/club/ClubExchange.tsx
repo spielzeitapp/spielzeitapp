@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import type { ClubSeason } from './uscClub';
 import { notifyNotificationsReadChanged } from '../../lib/notificationsReadState';
+import { ExchangeChoiceGroup } from './ExchangeChoiceGroup';
 import { ExchangeFilterSheet } from './ExchangeFilterSheet';
 import { EXCHANGE_CATEGORIES, exchangeSizeOptions, selectExchangeItems, type CatalogSort } from './exchangeCatalog';
 import './clubExchange.css';
@@ -307,11 +308,13 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
         <input hidden type="file" accept="image/*" capture="environment" ref={camera} onChange={e => { addFiles(e.target.files); e.target.value=''; }} /><input hidden type="file" accept="image/*" multiple ref={gallery} onChange={e => { addFiles(e.target.files); e.target.value=''; }} />
         <div className="exchange-upload-list">{existingPaths.map((p,index) => <div key={p}><img src={photos[p]} alt={`Foto ${index+1}`} /><button type="button" disabled={busy} aria-label={`Foto ${index+1} entfernen`} onClick={() => setExistingPaths(old => old.filter(path => path !== p))}><X size={15}/></button></div>)}{previewFiles.map(({file,key},index) => <UploadPreview key={key} file={file} disabled={busy} onRemove={() => setFiles(old => old.filter((_,i) => i !== index))} />)}</div>
         <fieldset disabled={busy}><label>Bezeichnung<input required minLength={3} maxLength={80} value={form.title} placeholder="z. B. USC Trainingspulli" onChange={e => setForm({...form,title:e.target.value})} /></label>
-        <div className="exchange-form-row"><label>Artikel<select value={form.category} onChange={e => setForm({...form,category:e.target.value})}>{categories.map(c => <option key={c}>{c}</option>)}</select></label><label>Größe<input required maxLength={15} list="exchange-listing-sizes" value={form.size} placeholder={form.category==='Schuhe'?'z. B. 35':'z. B. 140 oder M'} onChange={e => setForm({...form,size:e.target.value})} /></label></div>
-        <datalist id="exchange-listing-sizes">{exchangeSizeOptions(form.category,items).map(value=><option key={value} value={value}/>)}</datalist>
-        <div className="exchange-form-row"><label>Zustand<select value={form.condition} onChange={e => setForm({...form,condition:e.target.value})}>{conditions.map(c => <option key={c}>{c}</option>)}</select></label><label>Angebot<select value={form.offer} onChange={e => setForm({...form,offer:e.target.value})}>{['Gratis','Tauschen','Verkaufen'].map(o => <option key={o}>{o}</option>)}</select></label></div>
+        <ExchangeChoiceGroup label="Artikel" value={form.category} options={categories} onChange={category=>setForm(previous=>({...previous,category,size:(category==='Schuhe')!==(previous.category==='Schuhe')?'':previous.size}))}/>
+        <ExchangeChoiceGroup label={form.category==='Schuhe'?'Schuhgröße':'Größe'} value={form.size} options={exchangeSizeOptions(form.category,items)} compact onChange={size=>setForm(previous=>({...previous,size}))}/>
+        <label>Größe direkt eingeben<input required maxLength={15} value={form.size} placeholder={form.category==='Schuhe'?'Andere Schuhgröße, z. B. 35,5':'Andere Größe, z. B. 128/134'} onChange={e=>setForm(previous=>({...previous,size:e.target.value}))}/></label>
+        <ExchangeChoiceGroup label="Zustand" value={form.condition} options={conditions} onChange={condition=>setForm(previous=>({...previous,condition}))}/>
+        <ExchangeChoiceGroup label="Angebot" value={form.offer} options={['Gratis','Tauschen','Verkaufen']} onChange={offer=>setForm(previous=>({...previous,offer}))}/>
         {form.offer === 'Verkaufen' && <label>Preis in Euro<input required inputMode="decimal" value={form.price} onChange={e => setForm({...form,price:e.target.value})} /></label>}
-        {teamLabels.length === 1 && ownTeamLabels ? <p className="exchange-team-context">Deine Mannschaft <strong>{form.team_label || teamLabels[0]}</strong></p> : <label>Derzeitige Mannschaft<select value={form.team_label} onChange={e => setForm({...form,team_label:e.target.value})}><option value="">Ohne Mannschaftsangabe</option>{teamLabels.map(s => <option key={s}>{s}</option>)}</select></label>}
+        {teamLabels.length === 1 && ownTeamLabels ? <p className="exchange-team-context">Deine Mannschaft <strong>{form.team_label || teamLabels[0]}</strong></p> : <ExchangeChoiceGroup label="Deine Mannschaft" value={form.team_label} options={teamLabels} onChange={team_label=>setForm(previous=>({...previous,team_label}))}/>}
         <label>Beschreibung / Tauschwunsch<textarea maxLength={1500} value={form.description} placeholder="Zustand, Tauschwunsch, mögliche Übergabe…" onChange={e => setForm({...form,description:e.target.value})} /></label>
         <label className="exchange-check"><input type="checkbox" required checked={adult} onChange={e => setAdult(e.target.checked)} />Ich verwalte dieses Inserat als erwachsene Person.</label>
         <p className="exchange-hint">Dein Vorname ist sichtbar. Telefonnummer und E-Mail werden nicht veröffentlicht.</p>
