@@ -1,3 +1,4 @@
+import {TeamHeroFrame} from '../components/team/TeamHeroFrame';
 import { TeamPhotoQuickEditor } from '../components/team/TeamPhotoQuickEditor';
 import { teamPhotoImageStyle, type TeamPhotoLayout } from '../lib/teamPhotoLayout';
 import { ClubBrandingOverrideContext } from '../theme/ClubThemeProvider';
@@ -900,6 +901,21 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
     });
   }, [sortedPlayers, ownPlayerIds, isDemo, roleNormalized]);
 
+  const heroFrameRef = useRef<HTMLDivElement>(null);
+  const [heroPreviewWidth, setHeroPreviewWidth] = useState(390);
+  useEffect(() => {
+    const element = heroFrameRef.current;
+    if (!element) return;
+    const measure = () => {
+      const width = element.getBoundingClientRect().width;
+      if (width > 0) setHeroPreviewWidth(width);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [readTeamSeasonId, requestedSeasonId, searchParams]);
+
   if (searchParams.get("tab") === "parents") {
     return <Navigate to={isDemo ? `${basePath}/team` : `${basePath}/mehr/parent-access`} replace />;
   }
@@ -907,6 +923,79 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
   if (!isDemo && requestedSeasonId && /^[0-9a-f-]{36}$/i.test(requestedSeasonId) && requestedSeasonId !== readTeamSeasonId) {
     return <p className="px-4 py-8 text-sm text-white/60">Lade Mannschaft…</p>;
   }
+
+  const heroDetails = <>
+          <div className="flex items-end gap-3 sm:gap-4">
+            <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center sm:h-[82px] sm:w-[82px]">
+              <ClubLogo src={teamLogo} alt="Vereinswappen" className="h-full w-full object-contain drop-shadow-[0_5px_16px_rgba(0,0,0,0.75)]" />
+            </div>
+            <div className="min-w-0 flex-1 pb-1">
+              <div className="flex min-w-0 items-center gap-2">
+                <p className="min-w-0 flex-1 break-words text-[24px] font-black uppercase leading-tight tracking-tight text-white drop-shadow-lg sm:text-[34px]">
+                  {tsLoading ? "Lade Team…" : heroDisplayName}
+                </p>
+                {!isDemo && basePath !== "/manager" ? <TeamViewSwitcher /> : null}
+              </div>
+              <p className="mt-2 text-[13px] font-black uppercase tracking-[0.1em] text-white/78 sm:text-[15px]">
+                <span className="sz-club-accent-text">{heroAgeGroup}</span> · Saison {heroSeason}
+                {isHistoryReadOnly ? " · Archiv" : ""}
+              </p>
+            </div>
+          </div>
+          <div>
+            {!isDemo && teamSeasons.length > 1 ? (
+              <label className="mt-3 hidden min-w-0 pl-[80px] sm:block sm:pl-[98px]">
+                <span className="sr-only">Saison anzeigen</span>
+                <select
+                  value={readTeamSeasonId ?? ""}
+                  onChange={(e) => {
+                    const id = e.target.value || null;
+                    if (!id) {
+                      setViewTeamSeasonId(null);
+                      return;
+                    }
+                    const ts = teamSeasons.find((row) => row.id === id);
+                    if (!ts) return;
+                    setSearchParams({ teamSeason: id });
+                    const action = resolveTeamSeasonSwitcherAction(ts.status);
+                    if (action === "select-work") {
+                      setSelectedTeamSeasonId(id);
+                      return;
+                    }
+                    setViewTeamSeasonId(id);
+                  }}
+                  className="w-full max-w-full rounded-lg border border-white/15 bg-black/45 px-2.5 py-1.5 text-xs text-white/90 sm:text-sm"
+                  aria-label="Saison für Mannschaft wählen"
+                >
+                  {teamSeasons.map((ts) => (
+                    <option key={ts.id} value={ts.id}>
+                      {formatTeamSeasonCompactSwitcherLabel(
+                        {
+                          displayName: ts.display_name,
+                          ageGroup: ts.age_group,
+                          teamName: ts.team?.name,
+                          seasonName: ts.season?.name,
+                          status: ts.status,
+                        },
+                        {
+                          markArchived: true,
+                          markCurrent: ts.id === activeTeamSeasonId,
+                        },
+                      )}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              null
+            )}
+          </div>
+          {isHistoryReadOnly ? (
+            <p className="mt-2 rounded-lg border border-amber-400/30 bg-amber-500/10 px-2.5 py-1.5 text-[12px] text-amber-100/95">
+              {softLockMessage ?? "Archivierte Saison — nur Lesen. Aktive Saison bleibt unverändert."}
+            </p>
+          ) : null}
+  </>;
 
   return (
     <>
@@ -1026,98 +1115,9 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
           <Camera className="h-4 w-4" aria-hidden />Mannschaftsfoto
         </button> : null}
       </section> : null}
-      <PremiumCard matchday showAmbientGlow className={`${basePath === "/manager" ? "manager-team-mobile-hero " : ""}!rounded-none !border-x-0 !p-0 overflow-hidden shadow-[0_12px_48px_rgba(0,0,0,0.5)] sm:!rounded-3xl sm:!border-x`}>
-      <div className="relative w-full overflow-hidden h-[220px] sm:h-auto sm:aspect-[16/9] sm:min-h-[280px] sm:max-h-[390px]">
-        {heroPhotoSrc ? <img
-          src={heroPhotoSrc}
-          style={teamPhotoImageStyle(teamPhoto?.team_season_id === readTeamSeasonId ? teamPhoto : null)}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover"
-        /> : <div className="absolute inset-0 bg-[linear-gradient(135deg,rgb(var(--club-primary-rgb)/0.65),#09090b)]" aria-hidden />}
-        <div
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.06)_0%,rgba(0,0,0,0.18)_38%,rgba(0,0,0,0.94)_100%)]"
-          aria-hidden
-        />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.48)_0%,transparent_62%)]" aria-hidden />
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.14] bg-[repeating-linear-gradient(90deg,transparent,transparent_14px,rgba(255,255,255,0.04)_14px,rgba(255,255,255,0.04)_16px)]"
-          aria-hidden
-        />
-        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[rgb(var(--club-primary-rgb)/0.2)] blur-3xl" aria-hidden />
-        <div className="relative z-10 flex h-full min-h-[220px] flex-col justify-end p-4 sm:min-h-[280px] sm:p-6">
-          <div className="flex items-end gap-3 sm:gap-4">
-            <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center sm:h-[82px] sm:w-[82px]">
-              <ClubLogo src={teamLogo} alt="Vereinswappen" className="h-full w-full object-contain drop-shadow-[0_5px_16px_rgba(0,0,0,0.75)]" />
-            </div>
-            <div className="min-w-0 flex-1 pb-1">
-              <div className="flex min-w-0 items-center gap-2">
-                <p className="min-w-0 flex-1 break-words text-[24px] font-black uppercase leading-tight tracking-tight text-white drop-shadow-lg sm:text-[34px]">
-                  {tsLoading ? "Lade Team…" : heroDisplayName}
-                </p>
-                {!isDemo && basePath !== "/manager" ? <TeamViewSwitcher /> : null}
-              </div>
-              <p className="mt-2 text-[13px] font-black uppercase tracking-[0.1em] text-white/78 sm:text-[15px]">
-                <span className="sz-club-accent-text">{heroAgeGroup}</span> · Saison {heroSeason}
-                {isHistoryReadOnly ? " · Archiv" : ""}
-              </p>
-            </div>
-          </div>
-          <div>
-            {!isDemo && teamSeasons.length > 1 ? (
-              <label className="mt-3 hidden min-w-0 pl-[80px] sm:block sm:pl-[98px]">
-                <span className="sr-only">Saison anzeigen</span>
-                <select
-                  value={readTeamSeasonId ?? ""}
-                  onChange={(e) => {
-                    const id = e.target.value || null;
-                    if (!id) {
-                      setViewTeamSeasonId(null);
-                      return;
-                    }
-                    const ts = teamSeasons.find((row) => row.id === id);
-                    if (!ts) return;
-                    setSearchParams({ teamSeason: id });
-                    const action = resolveTeamSeasonSwitcherAction(ts.status);
-                    if (action === "select-work") {
-                      setSelectedTeamSeasonId(id);
-                      return;
-                    }
-                    setViewTeamSeasonId(id);
-                  }}
-                  className="w-full max-w-full rounded-lg border border-white/15 bg-black/45 px-2.5 py-1.5 text-xs text-white/90 sm:text-sm"
-                  aria-label="Saison für Mannschaft wählen"
-                >
-                  {teamSeasons.map((ts) => (
-                    <option key={ts.id} value={ts.id}>
-                      {formatTeamSeasonCompactSwitcherLabel(
-                        {
-                          displayName: ts.display_name,
-                          ageGroup: ts.age_group,
-                          teamName: ts.team?.name,
-                          seasonName: ts.season?.name,
-                          status: ts.status,
-                        },
-                        {
-                          markArchived: true,
-                          markCurrent: ts.id === activeTeamSeasonId,
-                        },
-                      )}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : (
-              null
-            )}
-          </div>
-          {isHistoryReadOnly ? (
-            <p className="mt-2 rounded-lg border border-amber-400/30 bg-amber-500/10 px-2.5 py-1.5 text-[12px] text-amber-100/95">
-              {softLockMessage ?? "Archivierte Saison — nur Lesen. Aktive Saison bleibt unverändert."}
-            </p>
-          ) : null}
-        </div>
+      <div ref={heroFrameRef} className={basePath === "/manager" ? "manager-team-mobile-hero" : ""}>
+        <TeamHeroFrame photoSrc={heroPhotoSrc} photoStyle={teamPhotoImageStyle(teamPhoto?.team_season_id === readTeamSeasonId ? teamPhoto : null)}>{heroDetails}</TeamHeroFrame>
       </div>
-      </PremiumCard>
       {canManagePlayers ? (
         <div className={`flex justify-end px-4 ${basePath === "/manager" ? "manager-team-mobile-hero" : ""}`}>
           <button type="button" disabled={teamPhotoLoadedSeasonId !== readTeamSeasonId || !activeTeamSeasonId || isHistoryReadOnly}
@@ -1128,7 +1128,7 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
         </div>
       ) : null}
       {canManagePlayers && photoEditorSeasonId && photoEditorSeasonId === readTeamSeasonId ? (
-        <TeamPhotoQuickEditor key={photoEditorSeasonId} seasonId={photoEditorSeasonId} photo={teamPhoto?.team_season_id === photoEditorSeasonId ? teamPhoto : null}
+        <TeamPhotoQuickEditor key={photoEditorSeasonId} previewWidth={heroPreviewWidth} previewContent={heroDetails} seasonId={photoEditorSeasonId} photo={teamPhoto?.team_season_id === photoEditorSeasonId ? teamPhoto : null}
           onClose={() => setPhotoEditorSeasonId(null)} onSaved={saved => {
             if (viewedPhotoSeasonRef.current !== saved.team_season_id) return;
             setTeamPhoto(saved); setPhotoEditorSeasonId(null); setTeamPhotoError(null);

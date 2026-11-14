@@ -1,3 +1,4 @@
+import { TeamHeroEditorPreview } from './TeamHeroFrame';
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Camera, RotateCcw, Save } from 'lucide-react';
 import { Modal } from '../../app/ui/Modal';
@@ -15,7 +16,9 @@ const PHOTO_COLUMNS = 'team_season_id,photo_url,updated_at,photo_zoom,photo_posi
 const KEYS = Object.keys(DEFAULT_TEAM_PHOTO_LAYOUT) as (keyof TeamPhotoLayout)[];
 
 /** A single mobile workflow: choose, adjust, save and return to the team. */
-export function TeamPhotoQuickEditor({ seasonId, photo, onSaved, onClose }: {
+export function TeamPhotoQuickEditor({ seasonId, photo, onSaved, onClose, previewContent, previewWidth = 390 }: {
+  previewContent?: React.ReactNode;
+  previewWidth?: number;
   seasonId: string;
   photo: EditableTeamPhoto | null;
   onSaved: (photo: EditableTeamPhoto) => void;
@@ -101,8 +104,8 @@ export function TeamPhotoQuickEditor({ seasonId, photo, onSaved, onClose }: {
     <button type="button" disabled={busy || !src || !imageReady || imageFailed} onClick={() => void save()} className={`${actionClass} bg-[rgb(var(--club-primary-rgb))] text-white`}><Save className="h-4 w-4" aria-hidden />{busy ? 'Speichern…' : 'Speichern & zurück'}</button>
   </>}>
     <div className="space-y-3 text-white" data-manager-artwork>
-      <p className="text-sm text-white/65">Bild mit dem Finger verschieben oder die Regler verwenden.</p>
-      <div className="relative mx-auto h-[220px] w-full max-w-[390px] overflow-hidden rounded-2xl bg-black" style={{ touchAction: src ? 'none' : 'auto' }}
+      <p className="text-sm text-white/65">Vorschau wie in der App – mit Logo und Beschriftung. Bild mit dem Finger verschieben oder die Regler verwenden.</p>
+      <div className="relative mx-auto w-full overflow-hidden rounded-2xl border border-white/20 bg-black" style={{ touchAction: src ? 'none' : 'auto' }}
         onPointerDown={event => {
           if (!src || !imageReady || imageFailed || busy) return;
           event.currentTarget.setPointerCapture(event.pointerId);
@@ -116,7 +119,9 @@ export function TeamPhotoQuickEditor({ seasonId, photo, onSaved, onClose }: {
           setLayout(old => ({ ...old, photo_position_x: clamp(start.horizontal - (event.clientX - start.x) / bounds.width * 100), photo_position_y: clamp(start.vertical - (event.clientY - start.y) / bounds.height * 100) }));
         }}
         onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }} onLostPointerCapture={() => { drag.current = null; }}>
-        {src ? <img key={src} src={src} alt="Vorschau Mannschaftsfoto" draggable={false} onLoad={() => { setImageReady(true); setImageFailed(false); }} onError={() => { setImageFailed(true); setImageReady(false); }} style={teamPhotoImageStyle(layout)} className="absolute inset-0 h-full w-full select-none object-cover" /> : <span className="absolute inset-0 flex items-center justify-center text-sm text-white/60">Noch kein Mannschaftsfoto</span>}
+        <TeamHeroEditorPreview referenceWidth={previewWidth} photoSrc={src} photoStyle={teamPhotoImageStyle(layout)} onPhotoLoad={() => { setImageReady(true); setImageFailed(false); }} onPhotoError={() => { setImageFailed(true); setImageReady(false); }}>
+          {previewContent ?? <p className="text-sm text-white/60">Noch kein Mannschaftsfoto</p>}
+        </TeamHeroEditorPreview>
       </div>
       {imageFailed ? <p role="alert" className="text-sm text-red-300">Foto konnte nicht geladen werden. Bitte ein anderes Foto auswählen.</p> : null}
       <fieldset disabled={busy || !src || !imageReady || imageFailed} className="grid grid-cols-2 gap-x-4 gap-y-1">
