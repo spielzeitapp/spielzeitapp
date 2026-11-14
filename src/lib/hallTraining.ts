@@ -1,7 +1,7 @@
 /** Internal training only. No matches, feed posts or league statistics are created. */
 export type HallTeam = { name: string; playerIds: string[] };
 export type HallGoal = { team: number; second: number; ownGoal?: boolean; timeUnknown?: boolean; scorerId?: string; scorerName?: string };
-export type HallGame = { participation?: Record<string, HallParticipation>; seconds?: number; home: number; away: number; status: 'pending' | 'running' | 'paused' | 'finished'; elapsed: number; runningSince: number | null; goals: HallGoal[] };
+export type HallGame = { startedAt?: number; finishedAt?: number; originalSeconds?: number; participation?: Record<string, HallParticipation>; seconds?: number; home: number; away: number; status: 'pending' | 'running' | 'paused' | 'finished'; elapsed: number; runningSince: number | null; goals: HallGoal[] };
 export type HallDay = { plannedStartTime?: string; version: 1; teams: HallTeam[]; format: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11; total: number; pause: number; target: number; cycles: number; seconds: number; buffer: number; games: HallGame[] };
 export const HALL_COLORS = ['#fb425c', '#419cff', '#facc15', '#4ade80'];
 export const HALL_NAMES = ['Rot', 'Blau', 'Gelb', 'Grün'];
@@ -191,4 +191,38 @@ export function calculateTrainingPlan(count: number, total: number, pause: numbe
   return calculateHallSchedule(2, total, 0, Math.min(1200, total), 1);
  }
  return cycles === undefined ? calculateHallRotation(count, total, pause, target) : calculateHallSchedule(count, total, pause, target, cycles);
+}
+
+/** Forecast assumes the active/paused game resumes now; elapsed wall-clock pauses are not playing time. */
+export function hallTiming(day: HallDay, start: number, now = Date.now()) {
+ const deadline = start + day.total * 1000;
+ const pending = day.games.filter(g => g.status === 'pending');
+ const active = day.games.find(g => g.status === 'running' || g.status === 'paused');
+ const finished = day.games.filter(g => g.status === 'finished');
+ const lastFinish = finished.reduce((latest, g) => Math.max(latest, g.finishedAt ?? 0), 0);
+ const activeRemaining = active ? Math.max(0, hallGameSeconds(day, active) - hallElapsed(active, hallGameSeconds(day, active), now)) : 0;
+ const wait = !active && pending.length && finished.length ? Math.max(0, day.pause - (lastFinish ? (now - lastFinish) / 1000 : 0)) : 0;
+ const pauses = Math.max(0, pending.length - 1) * day.pause + (active && pending.length ? day.pause : wait);
+ const base = Math.max(now, start);
+ const remaining = activeRemaining + pauses + pending.reduce((sum, g) => sum + hallGameSeconds(day, g), 0);
+ const projectedEnd = active || pending.length ? base + remaining * 1000 : lastFinish || null;
+ const budget = Math.floor((deadline - base) / 1000 - activeRemaining - pauses);
+ return { deadline, projectedEnd, delay: projectedEnd ? Math.max(0, Math.ceil((projectedEnd - deadline) / 1000)) : 0, pending: pending.length, budget, canFit: pending.length > 0 && budget >= pending.length * 60 };
+}
+/** Shorten pending slots with a common ceiling. Never extend slots or change played data. */
+export function fitHallRemaining(day: HallDay, start: number, now = Date.now()): HallDay {
+ const timing = hallTiming(day, start, now);
+ if (!timing.canFit) throw new Error('Die verbleibenden Spiele passen selbst mit einer Minute Spielzeit nicht mehr bis zur Endzeit. Bitte Endzeit oder Ablauf manuell anpassen.');
+ const pending = day.games.filter(g => g.status === 'pending');
+ const budget = timing.budget - Math.min(15, timing.budget - pending.length * 60); // Small handoff buffer after saving.
+ let low = 60, high = Math.max(...pending.map(g => hallGameSeconds(day, g)));
+ while (low < high) {
+  const cap = Math.ceil((low + high) / 2);
+  if (pending.reduce((sum, g) => sum + Math.min(cap, hallGameSeconds(day, g)), 0) <= budget) low = cap;
+  else high = cap - 1;
+ }
+ const next = structuredClone(day);
+ next.games.forEach(g => { if (g.status === 'pending') { const previous = hallGameSeconds(day, g); const seconds = Math.min(previous, low); if (seconds < previous) { g.originalSeconds ??= previous; g.seconds = seconds; } } });
+ next.buffer = Math.max(0, next.total - hallPlanSeconds(next));
+ return next;
 }
