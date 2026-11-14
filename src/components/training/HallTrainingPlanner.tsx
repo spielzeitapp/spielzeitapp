@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Lock, Play, Pause, Shirt, Undo2, Volume2, VolumeX, Goal, Trophy, Crown, Clock3, Trash2, ChevronDown, BarChart3 } from 'lucide-react';
 import { Modal } from '../../app/ui/Modal';
 import { useDemoMode } from '../../demo/DemoContext';
-import { calculateTrainingPlan, hallTimeMinutes, hallTimeAfter, hallWindowMinutes, creditHallFullDuration, hallPlayerTimes, prepareHallPlayers, changeHallPlayers, withHallFirstPairing, hallGameSeconds, hallPlanSeconds, withHallGameDuration, hallScorers, calculateHallSchedule, createHallDay, hallClock, hallElapsed, hallReady, hallScore, hallStandings, HALL_COLORS, HALL_NAMES, type HallDay } from '../../lib/hallTraining';
+import { hallTiming, fitHallRemaining, calculateTrainingPlan, hallTimeMinutes, hallTimeAfter, hallWindowMinutes, creditHallFullDuration, hallPlayerTimes, prepareHallPlayers, changeHallPlayers, withHallFirstPairing, hallGameSeconds, hallPlanSeconds, withHallGameDuration, hallScorers, calculateHallSchedule, createHallDay, hallClock, hallElapsed, hallReady, hallScore, hallStandings, HALL_COLORS, HALL_NAMES, type HallDay } from '../../lib/hallTraining';
 import { loadHallDay, saveHallDay } from '../../lib/hallTrainingStore';
 import { TC_CARD } from '../tournament/tournamentCenterStyles';
 import './hallMatchScreen.css';
@@ -164,6 +164,23 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
   const plannedSeconds = hallPlanSeconds(day);
   const standings = hallStandings(day), scorers = hallScorers(day);
   const finishedCount = day.games.filter(g => g.status === 'finished').length;
+  const plannedStart = new Date(startsAt).getTime() + (hallTimeMinutes(day.plannedStartTime ?? eventClock) - hallTimeMinutes(eventClock)) * 60000;
+  const timing = hallTiming(day, plannedStart, now);
+  const clockLabel = (stamp: number) => new Date(stamp).toLocaleTimeString('de-AT', { timeZone: 'Europe/Vienna', hour: '2-digit', minute: '2-digit' });
+  const playerTimes = hallPlayerTimes(day, now);
+  const reliableTimes = playerTimes.players.filter(p => !p.estimated && !p.incomplete);
+  const spread = reliableTimes.length > 1 ? Math.max(...reliableTimes.map(p => p.seconds)) - Math.min(...reliableTimes.map(p => p.seconds)) : 0;
+  const completed = day.games.length > 0 && finishedCount === day.games.length;
+  const shortenRemaining = async () => {
+    if (readOnly || busy || loading || dirty || configDirty || goalPicker || durationDirty) return;
+    try {
+      const next = fitHallRemaining(day, plannedStart, Date.now());
+      const changed = next.games.filter((g, i) => hallGameSeconds(next, g) !== hallGameSeconds(day, day.games[i]));
+      if (!changed.length) return;
+      if (!window.confirm(`${changed.length} verbleibende Spiele auf höchstens ${hallClock(Math.max(...changed.map(g => hallGameSeconds(next, g))))} Minuten kürzen? Laufende und beendete Spiele bleiben erhalten.`)) return;
+      await persist(next);
+    } catch (e) { setError(e instanceof Error ? e.message : 'Zeitplan konnte nicht angepasst werden.'); }
+  };
   const teamsLocked = activeIndex >= 0;
   const gameKey = activeIndex >= 0 ? `${eventId}:${activeIndex}` : null;
   useEffect(() => {
@@ -194,9 +211,9 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
           if (context) armedGame.current = `${eventId}:${index}`;
         });
       }
-      game.status = 'running'; game.runningSince = Date.now();
+      game.startedAt ??= Date.now(); game.status = 'running'; game.runningSince = Date.now();
     } else if (action === 'pause') { game.elapsed = time; game.runningSince = null; game.status = 'paused'; }
-    else if (action === 'finish') { if (!window.confirm('Spiel beenden und Ergebnis übernehmen?')) return; game.elapsed = time; game.runningSince = null; game.status = 'finished'; }
+    else if (action === 'finish') { if (!window.confirm('Spiel beenden und Ergebnis übernehmen?')) return; game.elapsed = time; game.runningSince = null; game.status = 'finished'; game.finishedAt = Date.now(); }
     else if (action === 'undo') game.goals.pop();
     else if (action === 'goal') {
       if (team !== undefined && [game.home, game.away].includes(team) && game.status === 'running' && time < seconds) setGoalPicker({ game: index, team, second: Math.floor(time) });
@@ -276,6 +293,11 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
       {error ? <div role="alert" className="rounded-xl border border-red-400/30 p-3 text-[16px] text-red-200"><p>{error}</p><button type="button" className={`${button} mt-2`} onClick={async () => { if ((dirty || configDirty) && !window.confirm('Änderungen verwerfen und gespeicherten Stand laden?')) return; try { setLoading(true); const row = await loadHallDay(eventId); if (row) { init(row.day); setRevision(row.revision); } setError(null); } catch { setError('Laden fehlgeschlagen. Bitte erneut versuchen.'); } finally { setLoading(false); } }}>Gespeicherten Stand laden</button></div> : null}
       {unavailable.length ? <p className="text-[16px] text-amber-200">{unavailable.length} eingeteilte Spieler sind nicht mehr als dabei markiert. Bitte Einteilung prüfen.</p> : null}
       <div className="hall-section-tabs" role="group" aria-label="Hallenspieltag Bereiche">{(['teams', 'games', 'table', 'times'] as const).map((key, i) => <button key={key} type="button" aria-pressed={tab === key} onClick={() => setTab(key)} className={`${button} flex-1 px-2 ${tab === key ? 'sz-club-tab-active' : ''}`}>{['Teams', 'Spielplan', 'Tabelle', 'Statistik'][i]}</button>)}</div>
+      {saved && timing.projectedEnd && !completed ? <section className={`hall-timing-notice ${timing.delay > 0 ? 'is-delayed' : ''}`} role="status">
+        <strong><Clock3 size={18} aria-hidden />{timing.delay > 0 ? `${Math.ceil(timing.delay / 60)} Min. über der Endzeit` : 'Im Zeitplan'}</strong>
+        <p>Geplantes Ende {clockLabel(timing.deadline)} · voraussichtlich {clockLabel(timing.projectedEnd)} Uhr</p>
+        {timing.delay > 0 ? <><p>Die Prognose rechnet ab jetzt mit den gespeicherten Spielzeiten und Wechselpausen.{current?.status === 'paused' ? ' Das pausierte Spiel müsste jetzt fortgesetzt werden.' : ''}</p>{timing.pending > 0 ? <>{timing.canFit ? <button type="button" className={button} disabled={readOnly || busy || dirty || configDirty || Boolean(goalPicker) || durationDirty} onClick={() => void shortenRemaining()}>Verbleibende Spiele kürzen</button> : <p>Alle verbleibenden Spiele passen auch mit je 1 Minute nicht mehr hinein. Bitte den Ablauf oder die verfügbare Endzeit manuell anpassen.</p>}<p>Spielzeiten beibehalten: einfach weiterspielen. Es wird kein Spiel automatisch gestrichen.</p></> : <p>Das laufende Spiel wird nicht automatisch gekürzt.</p>}</> : null}
+      </section> : null}
       {tab === 'teams' ? <>
         <details className="hall-settings" open={!started && !saved}>
           <summary><Clock3 size={20} aria-hidden /><span>Zeit & Spielform<small>{count} Teams · {format} gegen {format} · {minutes} Min.</small></span><span className="hall-expand">⌄</span></summary>
@@ -387,8 +409,15 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
       </> : null}
       {tab === 'times' ? <section className="hall-player-panel">
         <h3 className="hall-stats-title"><BarChart3 size={22} aria-hidden />Statistik · Einsatzzeiten</h3><p>Spieler · aus den Trainingsmatches · geringste Einsatzzeit zuerst</p>
-        {hallPlayerTimes(day, now).untracked > 0 ? <p className="hall-time-note">Ältere Spiele: Bei Teams ohne Bank wird die gespielte Matchzeit anhand der aktuellen Einteilung zugeordnet (≈). Frühere Wechsel sind nicht gespeichert. Bei Teams mit Bank bleibt die individuelle Zeit unvollständig (—).</p> : null}
-        {hallPlayerTimes(day, now).players.map(p => <div className="hall-player-time" key={p.id}><span>{names.get(p.id) ?? 'Spieler'}<small>{p.incomplete ? 'Unvollständig · frühere Wechsel fehlen' : p.estimated ? 'Aus Matchdauer · aktuelle Teameinteilung' : 'Mit Wechseln erfasst'}</small></span><strong>{p.incomplete ? (p.seconds > 0 ? `≥ ${hallClock(p.seconds)}` : '—') : `${p.estimated ? '≈ ' : ''}${hallClock(p.seconds)}`}<small>Min.</small></strong></div>)}
+        <section className="hall-plan-summary" aria-label="Trainingsbilanz">
+          <header><Clock3 size={18} aria-hidden /><strong>{completed ? 'Abschlussübersicht' : 'Zwischenstand'}</strong><span>{finishedCount} / {day.games.length} Spiele beendet</span></header>
+          <div className="hall-plan-metrics"><div><small>Geplante Matchzeit · ohne Pausen</small><strong>{hallClock(day.games.reduce((sum, g) => sum + (g.originalSeconds ?? hallGameSeconds(day, g)), 0))} Min.</strong></div><div><small>Tatsächlich gespielt · ohne Pausen</small><strong>{hallClock(day.games.reduce((sum, g) => sum + hallElapsed(g, hallGameSeconds(day, g), now), 0))} Min.</strong></div></div>
+          {completed && timing.projectedEnd ? <p>Letzter Abpfiff {clockLabel(timing.projectedEnd)} Uhr · geplantes Ende {clockLabel(timing.deadline)} Uhr</p> : null}
+          {reliableTimes.length < 2 ? <p>Für einen verlässlichen Spielzeitvergleich fehlen noch erfasste Einsatzzeiten.</p> : spread > 0 ? <p>Spielzeitunterschied: {hallClock(spread)} Min. zwischen den zuverlässig erfassten Spielern. Spieler mit der geringsten Einsatzzeit stehen oben.</p> : <p>Die erfassten Einsatzzeiten sind derzeit ausgeglichen.</p>}
+          <p>Bei unterschiedlich großen Teams können Spieler trotz gleicher Teamspielzeit unterschiedlich lange am Feld stehen. Geschätzte oder unvollständige Zeiten zählen nicht zum Vergleich.</p>
+        </section>
+        {playerTimes.untracked > 0 ? <p className="hall-time-note">Ältere Spiele: Bei Teams ohne Bank wird die gespielte Matchzeit anhand der aktuellen Einteilung zugeordnet (≈). Frühere Wechsel sind nicht gespeichert. Bei Teams mit Bank bleibt die individuelle Zeit unvollständig (—).</p> : null}
+        {playerTimes.players.map(p => <div className="hall-player-time" key={p.id}><span>{names.get(p.id) ?? 'Spieler'}<small>{p.incomplete ? 'Unvollständig · frühere Wechsel fehlen' : p.estimated ? 'Aus Matchdauer · aktuelle Teameinteilung' : 'Mit Wechseln erfasst'}</small></span><strong>{p.incomplete ? (p.seconds > 0 ? `≥ ${hallClock(p.seconds)}` : '—') : `${p.estimated ? '≈ ' : ''}${hallClock(p.seconds)}`}<small>Min.</small></strong></div>)}
         <details className="hall-settings mt-3"><summary><Clock3 size={20} aria-hidden /><span>Spielzeiten je Match<small>Gespielte Dauer aus dem Trainingsmatch</small></span><span className="hall-expand">⌄</span></summary>{day.games.map((game, i) => game.status !== 'pending' ? <div key={i} className="hall-player-time px-3"><span>{day.teams[game.home].name} – {day.teams[game.away].name}<small>Spiel {i + 1}</small></span><strong>{hallClock(hallElapsed(game, hallGameSeconds(day, game), now))}<small>Min.</small></strong></div> : null)}</details>
       </section> : null}
       {tab === 'table' ? <div className="hall-results">
