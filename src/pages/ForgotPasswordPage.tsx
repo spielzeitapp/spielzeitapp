@@ -1,3 +1,6 @@
+import { MarketLegalLinks } from '../features/club/MarketLegalLinks';
+import { marketAuthContext, marketAuthPath } from '../features/club/marketAuth';
+import { MarketAuthBrand } from '../features/club/MarketAuthBrand';
 import { uscAuthTarget, uscAuthPath } from '../features/club/uscAuth';
 import { UscAuthBrand, UscAuthFooter } from '../features/club/UscAuthBrand';
 import React, { useState } from 'react';
@@ -25,6 +28,7 @@ const inputClass =
 export const ForgotPasswordPage: React.FC = () => {
   const location=useLocation();
   const clubReturnTo=uscAuthTarget(location.pathname,location.search);
+  const market=marketAuthContext(location.search);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -45,7 +49,7 @@ export const ForgotPasswordPage: React.FC = () => {
     }
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
-      redirectTo: getAuthRedirectUrl(clubReturnTo ? `${AUTH_PASSWORD_RECOVERY_PATH}?next=${encodeURIComponent(clubReturnTo)}` : AUTH_PASSWORD_RECOVERY_PATH),
+      redirectTo: getAuthRedirectUrl(market ? `${AUTH_PASSWORD_RECOVERY_PATH}?${new URLSearchParams({context:'vereinsmarkt',marketClub:market.club,next:market.next})}` : clubReturnTo ? `${AUTH_PASSWORD_RECOVERY_PATH}?next=${encodeURIComponent(clubReturnTo)}` : AUTH_PASSWORD_RECOVERY_PATH),
       captchaToken: captchaToken ?? undefined,
     });
     setCaptchaToken(null);
@@ -62,15 +66,15 @@ export const ForgotPasswordPage: React.FC = () => {
   };
 
   return (
-    <div className={`${AUTH_PAGE_SHELL_CLASS} ${clubReturnTo ? 'usc-auth-page' : ''}`}>
-      <div className={`${AUTH_PAGE_CARD_CLASS} ${clubReturnTo ? 'usc-auth-card' : ''}`}>
-        {clubReturnTo ? <UscAuthBrand/> : null}
+    <div className={`${AUTH_PAGE_SHELL_CLASS} ${market ? 'market-auth-page' : clubReturnTo ? 'usc-auth-page' : ''}`}>
+      <div className={`${AUTH_PAGE_CARD_CLASS} ${market ? 'market-auth-card' : clubReturnTo ? 'usc-auth-card' : ''}`}>
+        {market ? <MarketAuthBrand back={market.back}/> : clubReturnTo ? <UscAuthBrand/> : null}
         <h1 className="text-xl font-semibold text-white">Passwort zurücksetzen</h1>
         <p className="mt-1 text-sm text-white/60">
           E-Mail eingeben – wir schicken dir einen Link zum Festlegen eines neuen Passworts.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">{market&&<MarketLegalLinks/>}
           <div>
             <label htmlFor="forgot-email" className="mb-1 block text-sm font-medium text-white/80">
               E-Mail
@@ -109,10 +113,11 @@ export const ForgotPasswordPage: React.FC = () => {
         </form>
 
         <p className="mt-6 border-t border-white/10 pt-4 text-center text-sm text-white/60">
-          <Link to={clubReturnTo ? uscAuthPath('anmelden',clubReturnTo) : '/login'} className="text-white/80 hover:text-white hover:underline">
+          <Link to={market ? marketAuthPath('login',location.search) : clubReturnTo ? uscAuthPath('anmelden',clubReturnTo) : '/login'} className="text-white/80 hover:text-white hover:underline">
             Zurück zur Anmeldung
           </Link>
         </p>
+        {market&&<div className="market-auth-footer"><MarketLegalLinks/><p>Stöbern geht auch ohne Anmeldung.</p></div>}
         {clubReturnTo ? <UscAuthFooter/> : null}
       </div>
     </div>

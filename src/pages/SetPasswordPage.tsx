@@ -1,3 +1,5 @@
+import { marketAuthContext } from '../features/club/marketAuth';
+import { MarketAuthBrand } from '../features/club/MarketAuthBrand';
 import {uscAuthTarget} from '../features/club/uscAuth';
 import {UscAuthBrand,UscAuthFooter} from '../features/club/UscAuthBrand';
 import React, { useEffect, useRef, useState } from 'react';
@@ -23,7 +25,8 @@ export const SetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
   const location=useLocation();
   const clubReturnTo=uscAuthTarget(location.pathname,location.search);
-  const destination=clubReturnTo ?? '/app';
+  const market=marketAuthContext(location.search);
+  const destination=market?.next ?? clubReturnTo ?? '/app';
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -107,7 +110,7 @@ export const SetPasswordPage: React.FC = () => {
     return (
       <div className={`py-2 ${clubReturnTo ? 'usc-auth-page usc-auth-recovery' : ''}`}>
         <Card>
-        {clubReturnTo ? <UscAuthBrand/> : null}
+        {market ? <MarketAuthBrand back={market.back}/> : clubReturnTo ? <UscAuthBrand/> : null}
           <CardTitle>Weiterleitung…</CardTitle>
           <p className="mt-1 text-sm text-[var(--text-sub)]">Einen Moment bitte.</p>
         </Card>
@@ -118,7 +121,7 @@ export const SetPasswordPage: React.FC = () => {
   return (
     <div className={`py-2 ${clubReturnTo ? 'usc-auth-page usc-auth-recovery' : ''}`}>
       <Card>
-        {clubReturnTo ? <UscAuthBrand/> : null}
+        {market ? <MarketAuthBrand back={market.back}/> : clubReturnTo ? <UscAuthBrand/> : null}
         <CardTitle>Passwort festlegen</CardTitle>
         <p className="mt-1 text-sm text-[var(--text-sub)]">
           Lege ein neues Passwort für die Anmeldung fest. Danach kannst du dich mit E-Mail und

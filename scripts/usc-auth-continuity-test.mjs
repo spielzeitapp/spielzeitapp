@@ -66,6 +66,7 @@ const entries = [
   "src/features/club/uscAuth.ts",
   "src/features/club/uscEventLink.ts",
   "src/auth/RequireAuth.tsx",
+  "src/features/club/marketAuth.ts",
 ];
 const b = await build({
   entryPoints: entries,
@@ -258,3 +259,25 @@ window.location.hash = "";
 console.log(
   "PASS USC auth: original sign-in used, return to club/team retained, signup/reset/login branding and links, recovery callback preserved, signed-in return, generic login/demo unchanged, external/foreign game targets rejected.",
 );
+// Vereinsmarkt reuses the same auth while preserving club, listing and recovery context.
+const marketClub='3db6fce2-a4c1-44a5-a333-19d1d4d62e6a';
+const marketNext='/app/tauschboerse?club='+marketClub+'&listing=fixture';
+const marketQuery=new URLSearchParams({context:'vereinsmarkt',marketClub,next:marketNext}).toString();
+globalThis.__uscAuthUser=null;
+await mount(login.LoginPage,'/login?'+marketQuery);
+assert.match(json(),/Willkommen im Vereinsmarkt/);assert.match(json(),/market-auth-brand/);
+assert.doesNotMatch(json(),/Demo ohne Login|Spieler-Login/);
+assert.ok(hrefs().includes('/marktplatz/'+marketClub));
+assert.ok(hrefs().includes('/register?'+marketQuery));assert.ok(hrefs().includes('/forgot-password?'+marketQuery));
+await change('login-email','market@example.test');await change('login-password','fixture-password');
+await act(async()=>tree.root.findByType('form').props.onSubmit({preventDefault(){}}));
+assert.equal(tree.root.findByType('output').children.join(''),marketNext);await act(async()=>tree.unmount());
+await mount(register.RegisterPage,'/register?'+marketQuery);assert.match(json(),/Für den Vereinsmarkt registrieren/);assert.ok(hrefs().includes('/login?'+marketQuery));await act(async()=>tree.unmount());
+await mount(forgot.ForgotPasswordPage,'/forgot-password?'+marketQuery);assert.match(json(),/market-auth-brand/);assert.ok(hrefs().includes('/login?'+marketQuery));await change('forgot-email','market@example.test');await act(async()=>tree.root.findByType('form').props.onSubmit({preventDefault(){}}));
+const marketReset=globalThis.__uscAuthCalls.filter(c=>c[0]==='reset').at(-1);assert.equal(new URL(marketReset[2].redirectTo).searchParams.get('next'),marketNext);await act(async()=>tree.unmount());
+console.log('PASS Vereinsmarkt: own auth brand, no player/demo controls, safe market back link, signup/reset continuity, original sign-in and selected listing retained.');
+
+const marketHelpers=mods.at(-1);
+for(const target of ['https://evil.test/app/tauschboerse','//evil.test/app/tauschboerse','/app/tauschboerse/../../manager','/manager']){const c=marketHelpers.marketAuthContext('?context=vereinsmarkt&next='+encodeURIComponent(target));assert.ok(c.next.startsWith('/app/tauschboerse?club='));}
+assert.equal(marketHelpers.marketAuthContext('?next=/manager'),null);
+console.log('PASS: marketplace presentation helper rejects external, traversal and unrelated return paths');

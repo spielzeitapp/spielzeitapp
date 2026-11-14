@@ -64,3 +64,6 @@ The first two migrations were applied to TEST, followed by a TEST-only policy co
 
 ### iPhone installation metadata follow-up
 USC marketplace now serves built `markt.html` through the first exact club-route rewrite, with literal Vereinsmarkt title, apple-mobile-web-app-title, icon and static manifest. This removes dependence on JavaScript switching the initial trainer manifest. Static manifest retains the public club start URL. The generated entry is checked by club-exchange-static-install-test.mjs; physical iOS installation still needs device confirmation.
+
+### Vereinsmarkt auth presentation
+Own shield/jersey wordmark on login, registration and password reset. Original password auth and Turnstile remain intact; player login and demo controls are hidden only for marketplace context. Club identity and safe listing return path are carried across sign-in/register/forgot links, with market-back link. Password recovery callback carries market context; generic/USC flows retain their behavior. Profile hides duplicate header sign-in. Tests exercise original sign-in, selected-listing return, registration/reset links, generic/USC behavior and hostile return targets. No real account, password reset email or push was sent by tests.

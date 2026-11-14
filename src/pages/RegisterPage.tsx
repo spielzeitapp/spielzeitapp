@@ -1,3 +1,5 @@
+import { marketAuthContext, marketAuthPath } from '../features/club/marketAuth';
+import { MarketAuthBrand } from '../features/club/MarketAuthBrand';
 import { MarketLegalLinks } from '../features/club/MarketLegalLinks';
 import { uscAuthTarget, uscAuthPath } from '../features/club/uscAuth';
 import { UscAuthBrand, UscAuthFooter } from '../features/club/UscAuthBrand';
@@ -105,6 +107,7 @@ export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const clubReturnTo=uscAuthTarget(location.pathname,location.search);
+  const market=marketAuthContext(location.search);
   const [searchParams] = useSearchParams();
   const { user, session, loading: authLoading } = useAuth();
   const [firstName, setFirstName] = useState('');
@@ -381,11 +384,11 @@ export const RegisterPage: React.FC = () => {
 
   if (needsEmailConfirmation) {
     return (
-      <div className={`${AUTH_PAGE_SHELL_CLASS} ${clubReturnTo ? 'usc-auth-page' : ''}`}>
+      <div className={`${AUTH_PAGE_SHELL_CLASS} ${market ? 'market-auth-page' : clubReturnTo ? 'usc-auth-page' : ''}`}>
         <div className="mx-auto w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(155deg,rgba(30,30,33,0.98),rgba(8,8,10,0.98))] shadow-[0_24px_70px_rgba(0,0,0,0.5)]">
           <div className={`h-1 bg-gradient-to-r from-red-800 via-red-500 to-red-800 ${clubReturnTo ? 'usc-auth-accent' : ''}`} aria-hidden />
           <div className="px-5 py-6 sm:px-7 sm:py-8">
-            {clubReturnTo ? <UscAuthBrand/> : null}
+            {market ? <MarketAuthBrand back={market.back}/> : clubReturnTo ? <UscAuthBrand/> : null}
             <div className="usc-confirm-icon grid h-14 w-14 place-items-center rounded-2xl border border-red-400/20 bg-red-500/10 text-red-300 shadow-[0_0_28px_rgba(220,38,38,0.16)]">
               <MailCheck className="h-7 w-7" aria-hidden />
             </div>
@@ -450,7 +453,7 @@ export const RegisterPage: React.FC = () => {
             </button>
 
             <p className="mt-4 text-center text-[12px] leading-5 text-white/45">
-              {isParentInviteFlow
+              {market ? 'Dein Konto gilt auch für SpielzeitApp. Zum Inserieren brauchst du anschließend eine Vereinszuordnung.' : isParentInviteFlow
                 ? 'Nach der Bestätigung öffnet sich deine persönliche Einladung.'
                 : 'Nach der Bestätigung geht es automatisch zur Rollenwahl.'}
               {' '}Dein Passwort bleibt gespeichert.
@@ -459,7 +462,7 @@ export const RegisterPage: React.FC = () => {
             <div className="mt-5 border-t border-white/10 pt-4 text-center text-sm">
             <Link
               to={
-                clubReturnTo ? uscAuthPath('anmelden',clubReturnTo) : nextSafe
+                clubReturnTo ? uscAuthPath('anmelden',clubReturnTo) : market ? marketAuthPath('login',location.search) : nextSafe
                   ? `/login?${buildParentInviteAuthQuery({ next: nextSafe, email })}`
                   : '/login'
               }
@@ -477,21 +480,21 @@ export const RegisterPage: React.FC = () => {
 
   if (authLoading) {
     return (
-      <div className={`${AUTH_PAGE_SHELL_CLASS} ${clubReturnTo ? 'usc-auth-page' : ''}`}>
+      <div className={`${AUTH_PAGE_SHELL_CLASS} ${market ? 'market-auth-page' : clubReturnTo ? 'usc-auth-page' : ''}`}>
         <p className="text-sm text-white/60">Laden…</p>
       </div>
     );
   }
 
   return (
-    <div className={`${AUTH_PAGE_SHELL_CLASS} ${clubReturnTo ? 'usc-auth-page' : ''}`}>
-      <div className={`${AUTH_PAGE_CARD_CLASS} ${clubReturnTo ? 'usc-auth-card' : ''}`}>
-        {clubReturnTo ? <UscAuthBrand/> : null}
+    <div className={`${AUTH_PAGE_SHELL_CLASS} ${market ? 'market-auth-page' : clubReturnTo ? 'usc-auth-page' : ''}`}>
+      <div className={`${AUTH_PAGE_CARD_CLASS} ${market ? 'market-auth-card' : clubReturnTo ? 'usc-auth-card' : ''}`}>
+        {market ? <MarketAuthBrand back={market.back}/> : clubReturnTo ? <UscAuthBrand/> : null}
         <h1 className="text-xl font-semibold text-white">
-          {hasInviteSession ? 'Konto vervollständigen' : clubReturnTo ? 'Für USC Rohrbach registrieren' : 'Registrieren'}
+          {market ? 'Für den Vereinsmarkt registrieren' : hasInviteSession ? 'Konto vervollständigen' : clubReturnTo ? 'Für USC Rohrbach registrieren' : 'Registrieren'}
         </h1>
         <p className="mt-1 text-sm text-white/60">
-          {isParentInviteFlow
+          {market ? 'Dein Konto gilt auch für SpielzeitApp. Zum Inserieren brauchst du anschließend eine Vereinszuordnung.' : isParentInviteFlow
             ? hasInviteSession
               ? 'Name und Passwort setzen. Danach geht es direkt zur Einladung — ohne Rollen- oder Mannschaftswahl.'
               : 'Konto mit der eingeladenen E-Mail anlegen. Nach der Bestätigung kannst du die Einladung annehmen — ohne Vereins- oder Kindauswahl.'
@@ -652,7 +655,7 @@ export const RegisterPage: React.FC = () => {
           Bereits registriert?{' '}
           <Link
             to={
-              clubReturnTo ? uscAuthPath('anmelden',clubReturnTo) : nextSafe || pendingInvitePath
+              clubReturnTo ? uscAuthPath('anmelden',clubReturnTo) : market ? marketAuthPath('login',location.search) : nextSafe || pendingInvitePath
                 ? `/login?${buildParentInviteAuthQuery({
                     next: nextSafe || pendingInvitePath || '',
                     email,
@@ -664,6 +667,7 @@ export const RegisterPage: React.FC = () => {
             Anmelden
           </Link>
         </p>
+        {market&&<div className="market-auth-footer"><MarketLegalLinks/><p>Stöbern geht auch ohne Anmeldung.</p></div>}
         {clubReturnTo ? <UscAuthFooter/> : null}
       </div>
     </div>
