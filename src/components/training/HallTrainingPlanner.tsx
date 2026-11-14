@@ -249,6 +249,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
           <summary><Clock3 size={20} aria-hidden /><span>Zeit & Spielform<small>{count} Teams · {format} gegen {format} · {minutes} Min.</small></span><span className="hall-expand">⌄</span></summary>
         <fieldset disabled={readOnly || busy || started} className={`${TC_CARD} space-y-3 p-4 disabled:opacity-65`}>
           <legend className="sr-only">Zeit und Spielform</legend>
+          {indoor ? <div className="hall-duration-presets" role="group" aria-label="Trainingsdauer wählen">{[45, 60, 75, 90].map(value => <button key={value} type="button" aria-label={`${value} Minuten Gesamtzeit`} aria-pressed={minutes === value} className={minutes === value ? 'sz-club-tab-active' : ''} onClick={() => setMinutes(value)}>{value}<small>Min.</small></button>)}</div> : null}
           <div className="grid grid-cols-2 gap-3">
             <label className="text-[15px] text-white/70">Mannschaften<select className={input} value={count} onChange={e => changeTeamCount(Number(e.target.value))}><option value={2}>2 Teams</option><option value={3}>3 Teams</option><option value={4}>4 Teams</option></select></label>
             <label className="text-[15px] text-white/70">Spielform<select className={input} value={format} onChange={e => setFormat(Number(e.target.value) as HallDay['format'])}>{Array.from({ length: indoor ? 3 : 10 }, (_, i) => i + 2).map(n => <option key={n} value={n}>{n} gegen {n}</option>)}</select></label>
@@ -257,8 +258,18 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
             <label className="text-[15px] text-white/70">{indoor && cycles === 0 ? "Max. Spielzeit je Match (Min.)" : "Wunschspielzeit (Min.)"}<input className={input} type="number" min={2} max={20} value={target} onChange={e => setTarget(Number(e.target.value))} /></label>
             <label className="text-[15px] text-white/70">Jeder gegen jeden<select className={input} value={cycles} onChange={e => setCycles(Number(e.target.value))}><option value={0}>{indoor ? "Automatisch · kurze Wartezeiten" : "Automatisch"}</option>{Array.from({ length: 8 }, (_, i) => <option value={i + 1} key={i}>{i + 1} Durchgänge</option>)}</select></label>
           </div>
-          {preview ? <p className="text-[16px] leading-relaxed text-white/80">{preview.count} Spiele à <strong>{hallClock(preview.seconds)} Min.</strong> · {preview.cycles} Durchgänge<br />Jedes Team: {preview.gamesPerTeam} Spiele · {hallClock(preview.playPerTeam)} Min. Spielzeit<br />{preview.count - 1} Wechselpausen à {hallClock(pause * 60)} Min.{preview.buffer ? ` · ${hallClock(preview.buffer)} Min. Restpuffer` : ''}</p> : <p role="alert" className="text-red-200">{calculationError}</p>}
-          {indoor && cycles === 0 && preview ? <p className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-[14px] leading-relaxed text-white/75">Kurze Hallenspiele · gleiche Spielanzahl pro Team. {count === 3 ? 'Kein Team wartet zwei Spiele hintereinander. ' : ''}{'longestWaitSeconds' in preview ? `Längste Wartephase zwischen Einsätzen: ${hallClock(Number(preview.longestWaitSeconds))} Min. inklusive Wechselpausen.` : ''}</p> : null}
+          {preview ? <section className="hall-plan-summary" aria-label="Berechnete Zeitplanung" aria-live="polite">
+            <header><Clock3 size={18} aria-hidden /><strong>{minutes} Minuten · {count} Teams</strong><span>{indoor && cycles === 0 ? 'Automatisch' : 'Zeitvorschlag'}</span></header>
+            <div className="hall-plan-metrics">
+              <div><small>Spiele</small><strong>{preview.count} × {hallClock(preview.seconds)}</strong><small>{preview.cycles} Durchgänge</small></div>
+              <div><small>Einsatzzeit je Team</small><strong>{hallClock(preview.playPerTeam)} Min.</strong><small>{preview.gamesPerTeam} Spiele pro Team</small></div>
+              <div><small>Wechselpause</small><strong>{hallClock(pause * 60)} Min.</strong><small>{preview.count - 1} Pausen insgesamt</small></div>
+              <div><small>{'longestWaitSeconds' in preview ? 'Längste Wartephase' : 'Restpuffer'}</small><strong>{hallClock('longestWaitSeconds' in preview ? Number(preview.longestWaitSeconds) : preview.buffer)} Min.</strong><small>{'longestWaitSeconds' in preview ? 'inklusive Wechselpausen' : 'nicht verplant'}</small></div>
+            </div>
+            <p>{hallClock(preview.count * preview.seconds)} Min. Spielen + {hallClock((preview.count - 1) * pause * 60)} Min. Wechselpausen{preview.buffer > 0 ? ` + ${hallClock(preview.buffer)} Min. Restpuffer` : ''} = {hallClock(minutes * 60)} Min.</p>
+            {indoor && cycles === 0 ? <p>{count === 3 ? 'Kein Team wartet zwei Spiele hintereinander. ' : ''}Alle Teams haben gleich viele Spiele. Änderungen werden sofort neu berechnet.</p> : null}
+          </section> : <p role="alert" className="text-red-200">{calculationError}</p>}
+          {indoor && !started ? <p className="text-[13px] leading-relaxed text-white/55">Vorschau · Erst „Zeitplanung übernehmen“ bzw. „Spielplan erstellen & speichern“ speichert den neuen Plan.</p> : null}
           <button type="button" disabled={!preview} className={`${button} w-full`} onClick={() => void generate()}>{saved ? 'Zeitplanung übernehmen' : 'Spielplan erstellen & speichern'}</button>
         </fieldset>
         </details>
