@@ -11,6 +11,7 @@ import { PLAYER_STAT_TILES } from "./profile/profileStatIcons";
 import type { PlayerItem } from "../../hooks/usePlayers";
 import { updatePlayerMasterFlags } from "../../lib/rosterService";
 import { usePlayerStats, type PlayerStatsMode } from "../../hooks/usePlayerStats";
+import { TrainingHistoryEditor } from "./TrainingHistoryEditor";
 import { trainingAttendanceLabel } from "../../lib/trainingAttendance";
 import { usePlayerTrainingStats } from "../../hooks/usePlayerTrainingStats";
 import { useTeamTrainingRanking } from "../../hooks/useTeamTrainingRanking";
@@ -614,6 +615,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   const {
     stats: trainingStats,
     sessions: trainingSessions,
+    refetch: refetchTraining,
     loading: trainingStatsLoading,
     error: trainingStatsError,
   } = usePlayerTrainingStats(player.id, statsSeasonId, canViewTrainingParticipation, {
@@ -624,7 +626,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
   const rankingSeasonId =
     statsMode === "season" ? statsFilterId ?? teamSeasonId ?? player.team_season_id : teamSeasonId ?? player.team_season_id;
-  const { sessionsCount, teamParticipationPct, qualified, loading: teamRankingLoading } = useTeamTrainingRanking(
+  const { sessionsCount, teamParticipationPct, qualified, loading: teamRankingLoading, refetch: refetchRanking } = useTeamTrainingRanking(
     squadPlayers,
     rankingSeasonId,
     canViewTrainingParticipation && statsMode === "season",
@@ -1342,6 +1344,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                             {new Date(session.startsAt).toLocaleTimeString("de-AT", { timeZone: "Europe/Vienna", hour: "2-digit", minute: "2-digit" })} Uhr
                             {session.location ? ` · ${session.location}` : ""}
                           </p>
+                          {canManage && !demo ? <TrainingHistoryEditor key={`${player.id}:${session.eventId}`} eventId={session.eventId} player={player} status={session.status} onSaved={async () => { await Promise.all([refetchTraining(), refetchRanking()]); }} /> : null}
                         </li>
                       ))}
                     </ul>
