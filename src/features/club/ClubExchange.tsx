@@ -301,7 +301,8 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
     </>}
     {filterOpen&&<ExchangeFilterSheet value={filters} items={items} view={view==='mine'?'mine':'all'} userId={userId} search={search} onClose={()=>setFilterOpen(false)} onApply={next=>{setCategory(next.category);setSize(next.size);setTeam(next.team);setOffer(next.offer);setFilterOpen(false);}}/>}
     <dialog ref={formDialog} className="exchange-dialog" aria-labelledby="exchange-editor-title" onCancel={e => { if (busy) e.preventDefault(); else closeEditor(); }}>
-      <form onSubmit={save}><header className="exchange-heading"><h2 id="exchange-editor-title">{editing === 'new' ? 'Inserat erstellen' : 'Inserat bearbeiten'}</h2><button type="button" disabled={busy} onClick={closeEditor} aria-label="Schließen"><X size={21} /></button></header>
+      <form onSubmit={save} className="exchange-editor-form"><header className="exchange-heading"><h2 id="exchange-editor-title">{editing === 'new' ? 'Inserat erstellen' : 'Inserat bearbeiten'}</h2><button type="button" disabled={busy} onClick={closeEditor} aria-label="Schließen"><X size={21} /></button></header>
+        <div className="exchange-editor-body">
         {error && <p role="alert" className="exchange-alert">{error}</p>}
         <p className="exchange-editor-intro">Foto hinzufügen, Größe angeben und im Verein weitergeben.</p><p className="exchange-photo-note">Bis zu 5 Fotos · Bitte nur das Gewand fotografieren</p>
         <div className="exchange-photo-actions"><button type="button" disabled={busy} onClick={() => camera.current?.click()}><Camera size={19} /> Fotografieren</button><button type="button" disabled={busy} onClick={() => gallery.current?.click()}><ImagePlus size={19} /> Galerie</button></div>
@@ -318,7 +319,8 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
         <label>Beschreibung / Tauschwunsch<textarea maxLength={1500} value={form.description} placeholder="Zustand, Tauschwunsch, mögliche Übergabe…" onChange={e => setForm({...form,description:e.target.value})} /></label>
         <label className="exchange-check"><input type="checkbox" required checked={adult} onChange={e => setAdult(e.target.checked)} />Ich verwalte dieses Inserat als erwachsene Person.</label>
         <p className="exchange-hint">Dein Vorname ist sichtbar. Telefonnummer und E-Mail werden nicht veröffentlicht.</p>
-        <button className="exchange-primary exchange-full sz-club-primary" disabled={busy}>{busy ? 'Fotos werden hochgeladen…' : 'Inserat speichern'}</button></fieldset>
+        </fieldset></div>
+        <footer className="exchange-editor-footer"><button type="submit" className="exchange-primary exchange-full sz-club-primary" disabled={busy}>{busy ? 'Fotos werden hochgeladen…' : 'Inserat speichern'}</button></footer>
       </form>
     </dialog>
   </section>;
