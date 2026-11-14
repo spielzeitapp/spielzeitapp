@@ -1,3 +1,4 @@
+import { Grid2X2 } from 'lucide-react';
 import {savePlayerPhotoMotif,uploadPlayerMotif,type PlayerPhotoMotif} from '../lib/playerPhotoMotifs';
 import {PortraitCutoutRetouch} from './PortraitCutoutRetouch';
 import {rohrbachPortraitLayout} from '../lib/rohrbachPortraitLayout';
@@ -20,6 +21,7 @@ export function ManagerPlayerPhotoEditor({player,seasonId,onSaved,onClose,global
  const history=useDraftHistory(baseline);
  const layout=history.value;
  const [inherit,setInherit]=useState(false);
+ const [showGuides,setShowGuides]=useState(false);
  const setLayout=(update:PlayerPhotoLayout|((old:PlayerPhotoLayout)=>PlayerPhotoLayout))=>{setInherit(false);history.change(update);};
  const initialLayout=useRef(baseline);
  const generation=useRef(0);
@@ -86,12 +88,19 @@ export function ManagerPlayerPhotoEditor({player,seasonId,onSaved,onClose,global
  const slider=(key:Exclude<keyof PlayerPhotoLayout,'profileDesign'|'background'|'backgroundImageUrl'|'source'|'rotation'>,label:string,min=0,max=100)=><label className="block text-sm" key={key}>{label}: {layout[key]??(key==='brightness'?100:'')}<input aria-label={label} type="range" min={min} max={max} value={layout[key]??(key==='brightness'?100:0)} disabled={busy||generating||readingBackground||retouching} onChange={e=>patch(key,Number(e.target.value))} className="block w-full"/></label>;
  if(quick) return <section aria-label={`Foto gestalten: ${player.display_name}`} className="space-y-4 text-white" data-manager-artwork>
   <p className="text-sm text-white/65">Nur dieses {trainer?'Trainerprofil':'Spielerprofil'} · {player.display_name}</p>
-  <div className="overflow-hidden rounded-2xl" style={{touchAction:'none'}}
+  <button type="button" aria-pressed={showGuides} aria-label="Hilfslinien" onClick={()=>setShowGuides(value=>!value)} className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold ${showGuides?'border-[rgb(var(--club-accent-rgb))] bg-[rgb(var(--club-primary-rgb)/0.3)]':'border-white/20 bg-white/5'}`}><Grid2X2 className="h-4 w-4" aria-hidden/>Hilfslinien {showGuides?'an':'aus'}</button>
+  <div className="relative overflow-hidden rounded-2xl [&_.sz-club-profile-hero]:!mb-0" style={{touchAction:'none'}}
     onPointerDown={event=>{if(busy)return;event.currentTarget.setPointerCapture(event.pointerId);event.currentTarget.dataset.dragX=String(event.clientX);event.currentTarget.dataset.dragY=String(event.clientY);history.begin();}}
     onPointerMove={event=>{const element=event.currentTarget;if(!element.hasPointerCapture(event.pointerId)||busy)return;const bounds=element.getBoundingClientRect();const dx=event.clientX-Number(element.dataset.dragX),dy=event.clientY-Number(element.dataset.dragY);element.dataset.dragX=String(event.clientX);element.dataset.dragY=String(event.clientY);setLayout(old=>({...old,x:Math.max(0,Math.min(100,old.x+dx/bounds.width*100)),y:Math.max(0,Math.min(100,old.y+dy/bounds.height*100))}));}}
     onPointerUp={history.end} onPointerCancel={history.end}>
     <ManagerProfilePhotoPreview seasonId={seasonId} layout={layout.background==='custom'&&backgroundPreview?{...layout,backgroundImageUrl:backgroundPreview}:layout} photoUrl={player.avatar_url} cutoutUrl={cutout} firstName={player.first_name||''} lastName={player.last_name||''} number={player.jersey_number} trainer={trainer} clubTemplate={clubTemplate??player.club_photo_template} clubDesign={clubDesign??player.club_profile_design}/>
+    {showGuides&&<div data-portrait-guides aria-hidden="true" className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-2xl">
+      {[25,50,75].map(at=><React.Fragment key={at}><span className={`absolute inset-y-0 border-l border-dashed ${at===50?'border-white/75':'border-white/30'}`} style={{left:`${at}%`}}/><span className="absolute inset-x-0 border-t border-dashed border-white/30" style={{top:`${at}%`}}/></React.Fragment>)}
+      <span className="absolute inset-[5%] rounded-lg border border-dashed border-amber-300/65"/>
+      <span className="absolute inset-x-0 top-[15%] border-t border-dashed border-amber-300/90"><span className="absolute left-2 -top-5 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-amber-200">Kopfhöhe</span></span>
+    </div>}
   </div>
+  {showGuides&&<p className="text-xs text-white/60">Mitte · Kopfhöhe · 5 % Randabstand. Nur zur Orientierung, wird nicht gespeichert.</p>}
   <p className="text-xs text-white/60">Person mit dem Finger verschieben oder die Regler verwenden.</p>
   <fieldset disabled={busy||readingBackground} className="space-y-3">
     <label className="block text-sm font-semibold">Vorlage / Hintergrund<select aria-label="Vorlage / Hintergrund" className="mt-1 block min-h-11 w-full rounded-xl border border-white/20 bg-[#111218] p-2" value={inherit?'team':layout.background} onChange={event=>{
