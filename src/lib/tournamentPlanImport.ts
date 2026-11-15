@@ -46,6 +46,7 @@ export type TournamentMatchPhase = 'group' | 'placement' | 'semifinal' | 'final'
 
 export type TournamentPlanImportTeam = {
   teamName: string;
+  logoUrl?: string | null;
   groupLabel: string | null;
 };
 

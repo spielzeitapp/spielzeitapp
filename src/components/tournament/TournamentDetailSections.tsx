@@ -1,3 +1,5 @@
+import { tournamentTeamLogos } from '../../../server/lib/tournamentTeamLogos.js';
+import { TournamentLogoContext } from './TournamentClubLogo';
 import { fetchTournamentLineupTemplate } from '../../lib/tournamentLineupTemplates';
 import { tournamentTemplateReady } from '../../lib/tournamentLineupTemplate';
 import { fetchTournamentSquadPlayerIds } from '../../lib/tournamentSquad';
@@ -1123,6 +1125,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   };
 
   return (
+    <TournamentLogoContext.Provider value={tournamentTeamLogos(connectedPlan?.analysis)}>
     <div className={`tournament-center-flow flex min-w-0 flex-col overflow-x-hidden ${TC_STACK_GAP}`}>
       {toastMessage ? (
         <div
@@ -1199,7 +1202,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
           awaitingFurtherPhase={awaitingFurtherPhase}
           refreshingPlan={planSyncBusy}
           ownMatchCount={ownSlots.length}
-          totalMatchCount={slots.length}
+          totalMatchCount={Math.max(slots.length, connectedPlan?.analysis.matchCount ?? 0)}
           onOpenAttendance={scrollToAttendance}
           onOpenSquad={scrollToSquad}
           onOpenLineup={() => openPreparationDialog('lineup')}
@@ -1516,5 +1519,6 @@ export const TournamentDetailSections: React.FC<Props> = ({
         onConfirm={(values) => void handleConfirmCompleteTournament(values)}
       />
     </div>
+    </TournamentLogoContext.Provider>
   );
 };

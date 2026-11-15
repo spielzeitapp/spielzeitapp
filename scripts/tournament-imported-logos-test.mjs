@@ -1,0 +1,46 @@
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { parseMeinTurnierplanModel } from '../server/lib/meinTurnierplanModel.js';
+import { extractMeinTurnierplanEmbeddedJson } from '../server/lib/meinTurnierplanEmbedded.js';
+import { tournamentTeamLogos, tournamentLogoUrl } from '../server/lib/tournamentTeamLogos.js';
+const html = readFileSync(new URL('./fixtures/meinturnierplan-9rlioyuf.html', import.meta.url),'utf8');
+const payload = extractMeinTurnierplanEmbeddedJson(html, '9rlioyuf');
+payload.participants['6018016'].logo = {lx160:'https://tournej.com/data/images/test-linz.png'};
+payload.participants['6018017'].logo = {lx160:'javascript:bad',lx95:'https://tournej.com/data/images/test-wels.png'};
+payload.participants['6018018'].logo = {lx160:'data:image/svg+xml,bad'};
+const analysis = parseMeinTurnierplanModel(payload);
+const logos = tournamentTeamLogos(analysis);
+assert.equal(logos['FC BW Linz'],'https://tournej.com/data/images/test-linz.png');
+assert.equal(logos['FC Hertha Wels'],'https://tournej.com/data/images/test-wels.png');
+assert.equal(logos['USC Markersdorf'],undefined);
+assert.equal(tournamentLogoUrl('https://user:password@example.org/logo.png'),null);
+assert.equal(tournamentLogoUrl('http://example.org/logo.png'),null);
+assert.deepEqual(tournamentTeamLogos(JSON.parse(JSON.stringify(analysis))),logos,'logos survive stored analysis JSON');
+const require=createRequire(import.meta.url);
+const {build}=require('esbuild');
+const tmp=mkdtempSync(join(tmpdir(),'tournament-logos-'));
+try {
+ const file=join(tmp,'logos.cjs');
+ await build({stdin:{resolveDir:process.cwd(),loader:'tsx',contents:`
+ import React from 'react';
+ import TestRenderer,{act} from 'react-test-renderer';
+ import assert from 'node:assert/strict';
+ import {TournamentClubLogo,TournamentLogoContext} from './src/components/tournament/TournamentClubLogo';
+ let view;
+ const render=(url,explicit)=><TournamentLogoContext.Provider value={{'FC BW Linz':url}}><TournamentClubLogo name="FC BW Linz" logoUrl={explicit}/></TournamentLogoContext.Provider>;
+ act(()=>{view=TestRenderer.create(render('https://tournej.com/linz.png'))});
+ assert.equal(view.root.findByType('img').props.src,'https://tournej.com/linz.png');
+ act(()=>view.root.findByType('img').props.onError());
+ assert.equal(view.root.findAllByType('img').length,0);
+ act(()=>view.update(render('https://tournej.com/linz-new.png')));
+ assert.equal(view.root.findByType('img').props.src,'https://tournej.com/linz-new.png','new imported URL retries after error');
+ act(()=>view.update(render('https://tournej.com/linz-new.png','https://example.org/club.png')));
+ assert.equal(view.root.findByType('img').props.src,'https://example.org/club.png','explicit club logo wins');
+ act(()=>view.unmount());
+ `},bundle:true,platform:'node',format:'cjs',define:{'import.meta.env':'{"BASE_URL":"/"}'},outfile:file,logLevel:'silent'});
+ require(file);
+} finally {rmSync(tmp,{recursive:true,force:true})}
+console.log('PASS: imported logos, persistence, safe URLs, display, image retry and explicit club identity');

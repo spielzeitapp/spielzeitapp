@@ -461,7 +461,7 @@ export function TournamentAssistantCard({
   const preparationChecks = [
     { label: 'Verfügbarkeit klären', done: attendance.playerCount > 0 && attendance.openCount === 0, hint: `${attendance.yesCount} zugesagt · ${attendance.openCount} offen · ${attendance.noCount} abgesagt`, onClick: onOpenAttendance },
     { label: 'Turnierkader wählen', done: squadCount > 0, hint: squadCount > 0 ? `${squadCount} Spieler gespeichert` : 'Spieler für das Turnier auswählen', onClick: onOpenSquad },
-    { label: 'Turnierplan hinterlegen', done: ownMatchCount > 0, hint: ownMatchCount > 0 ? `${ownMatchCount} eigene Spiele hinterlegt` : 'Plan importieren oder Spiele manuell anlegen', onClick: onImportPlan },
+    { label: 'Turnierplan hinterlegen', done: totalMatchCount > 0 || ownMatchCount > 0, hint: ownMatchCount > 0 ? `${ownMatchCount} eigene Spiele hinterlegt` : totalMatchCount > 0 ? `${totalMatchCount} Spiele geladen · eigene Mannschaft zuordnen` : 'Plan importieren oder Spiele manuell anlegen', onClick: onImportPlan },
     { label: 'Aufstellung & Blöcke', done: templateReady || lineupReady, hint: templateReady || lineupReady ? 'Aufstellung gespeichert' : 'Grundaufstellung mit Block A und B vorbereiten', onClick: onOpenLineup },
   ];
   const prepared = preparationChecks.every(check => check.done);

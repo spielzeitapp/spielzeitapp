@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { getClubLogo, getTeamInitials, hasKnownClubLogo } from '../../lib/teamLogos';
 import { safeText } from '../../lib/safeText';
+
+export const TournamentLogoContext = createContext<Record<string, string>>({});
 
 type LogoSize = 'sm' | 'md' | 'lg' | 'xl';
 
@@ -45,11 +47,13 @@ export function TournamentClubLogo({
   className = '',
   tone = 'dark',
 }: Props) {
-  const [failed, setFailed] = useState(false);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const importedLogos = useContext(TournamentLogoContext);
   const label = safeText(name) || 'Team';
-  const known = hasKnownClubLogo(label, { logoUrl: logoUrl ?? undefined });
-  const src = known ? getClubLogo(label, { logoUrl: logoUrl ?? undefined }) : null;
-  const showInitials = !known || failed || !src;
+  const resolvedLogoUrl = logoUrl || importedLogos[label];
+  const known = hasKnownClubLogo(label, { logoUrl: resolvedLogoUrl });
+  const src = known ? getClubLogo(label, { logoUrl: resolvedLogoUrl }) : null;
+  const showInitials = !known || failedSrc === src || !src;
   const initialsTone = tone === 'light' ? 'text-slate-600' : 'text-white/70';
 
   return (
@@ -64,7 +68,7 @@ export function TournamentClubLogo({
           src={src!}
           alt=""
           className={`object-contain object-center ${IMG[size]}`}
-          onError={() => setFailed(true)}
+          onError={() => setFailedSrc(src)}
         />
       )}
     </div>

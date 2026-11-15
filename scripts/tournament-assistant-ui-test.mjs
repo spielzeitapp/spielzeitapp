@@ -41,6 +41,11 @@ try {
     await act(async()=>view.update(render({...props,attendance:{playerCount:2,yesCount:2,noCount:0,openCount:0},ownMatchCount:0})));
     assert.equal(view.root.findByProps({role:'progressbar'}).props['aria-valuenow'],3);
     assert(!JSON.stringify(view.toJSON()).includes('✓ Turnier vorbereitet'));
+    await act(async()=>view.update(render({...props,attendance:{playerCount:2,yesCount:2,noCount:0,openCount:0},ownMatchCount:0,totalMatchCount:15})));
+    assert.equal(view.root.findByProps({role:'progressbar'}).props['aria-valuenow'],4,'loaded official plan is complete before own-team assignment');
+    assert(JSON.stringify(view.toJSON()).includes('15 Spiele geladen'));
+    await act(async()=>view.update(render({...props,attendance:{playerCount:2,yesCount:2,noCount:0,openCount:0},hasOfficialPlanUrl:true,ownMatchCount:0,totalMatchCount:0})));
+    assert.equal(view.root.findByProps({role:'progressbar'}).props['aria-valuenow'],3,'a link without loaded games stays pending');
     act(()=>view.unmount());
     console.log('PASS: all preparation rows invoke their editor, communication is outside preparation, four progress bars turn green only with complete data, missing plan stays open.');
   `},bundle:true,platform:'node',format:'esm',outfile:file.replace('.cjs','.mjs'),logLevel:'silent',packages:'external',define:{'import.meta.env':JSON.stringify({DEV:false})},plugins:[{name:'controlled-data',setup(b){

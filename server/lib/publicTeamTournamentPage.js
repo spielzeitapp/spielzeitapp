@@ -1,3 +1,4 @@
+import { tournamentTeamLogos } from './tournamentTeamLogos.js';
 import { buildPublicTournamentMatchDetails } from './publicTournamentMatchDetails.js';
 /**
  * Service-role loader for public team tournament page (TURNIER.1).
@@ -192,7 +193,7 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
   const {data: club} = teamClub?.club_id ? await admin.from('clubs').select('logo_url,accent_color').eq('id',teamClub.club_id).maybeSingle() : {data:null};
   dto.teamLogoUrl = club?.logo_url ?? null;
   const {data: catalog} = teamClub?.club_id ? await admin.from('opponent_catalog').select('display_name,logo_url').eq('club_id',teamClub.club_id).not('logo_url','is',null) : {data:[]};
-  dto.teamLogos = Object.fromEntries((catalog ?? []).filter(r=>typeof r.logo_url==='string').map(r=>[r.display_name,r.logo_url]));
+  dto.teamLogos = { ...tournamentTeamLogos(analysis), ...Object.fromEntries((catalog ?? []).filter(r=>typeof r.logo_url==='string').map(r=>[r.display_name,r.logo_url])) };
   const [{data: tournamentPlayers}, {data: rosterRows, error: rosterError}] = await Promise.all([
     admin.from('tournament_squad').select('player_id').eq('tournament_event_id', publicId),
     admin.from('team_season_players').select('player_id,jersey_number,players:players(id,first_name,last_name,cutout_url)').eq('team_season_id', event.team_season_id),
