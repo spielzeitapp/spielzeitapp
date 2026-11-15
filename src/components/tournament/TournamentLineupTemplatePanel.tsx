@@ -136,9 +136,12 @@ export function TournamentLineupTemplatePanel({
   };
   const movePlayer = (id: string, target: FieldSlotId | null) => {
     if (!canEdit || busy || !selectedPlayers.some(p => p.id === id)) return;
-    const next = structuredClone(draft);
-    next.variants[currentBlock].slots = moveTournamentLineupPlayer(current.slots, id, target);
-    edit(next);
+    setDraft(previous => {
+      const next=structuredClone(previous);
+      next.variants[currentBlock].slots=moveTournamentLineupPlayer(previous.variants[currentBlock].slots,id,target);
+      return next;
+    });
+    setMessage(null);
     setSelectedPlayer(null);
   };
   const tapSlot = (slot: FieldSlotId) => {
@@ -294,7 +297,7 @@ export function TournamentLineupTemplatePanel({
           emphasizedPlayerId={selectedPlayer}
           renderSlotContent={({ playerId, label, isGk }) => {
             const player = selectedPlayers.find(p => p.id === playerId);
-            return <div style={{touchAction:canEdit ? 'none' : 'auto'}}
+            return <div key={playerId || `empty-${label}`} style={{touchAction:canEdit ? 'none' : 'auto'}}
               onPointerDown={e => startDrag(e, playerId)} onPointerMove={moveDrag}
               onPointerUp={finishDrag} onPointerCancel={() => { drag.current=null; }}>
               <PitchPlayerMarker
