@@ -80,3 +80,7 @@ html[data-market-theme=light] .market-auth-card [role=alert]{background:#fff0f1;
 html[data-market-theme=light] .market-auth-footer{border-color:#ded3e4}
 html[data-market-theme=light] .public-exchange .exchange-search input{background:transparent}
 html[data-market-theme=light] .exchange input[type=checkbox],html[data-market-theme=light] .exchange-dialog input[type=checkbox],html[data-market-theme=light] .market-auth-card input[type=checkbox]{accent-color:#98243f;background-color:#fff;border-color:#a99aae}
+
+/* Paint the document behind iOS chrome in both appearances, not only light. */
+html[data-market-theme=dark]{color-scheme:dark;background:#08080b}
+html[data-market-theme=dark] body{background:#08080b}
