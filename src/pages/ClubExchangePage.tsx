@@ -1,5 +1,6 @@
+import { publicMarketForClub } from '../features/club/marketSwitch';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
 import { useSession } from '../auth/useSession';
@@ -80,6 +81,7 @@ export function ClubExchangePage({embedded=false,embeddedClubId}:{embedded?:bool
     })().catch(e => { if (active) setError(e instanceof Error ? e.message : 'Vereinsmarkt konnte nicht geladen werden.'); });
     return () => { active = false; };
   }, [user?.id, clubId, permittedContext, partners, retry]);
+  if(!embedded&&isStagingApp()&&params.get('public')==='1'&&partners!==null&&permittedContext)return <Navigate replace to={publicMarketForClub(clubId,params.get('returnTo'))}/>;
   const content = <>
     {!embedded&&<Link className="inline-flex items-center gap-2 text-sm text-white/60" to="/app/mehr"><ArrowLeft size={17} /> Zurück zu Mehr</Link>}
     {!isStagingApp() ? <p className="mt-5 text-white/70">Der Vereinsmarkt wird derzeit in TEST vorbereitet.</p> : !user ? <p>Bitte melde dich an.</p> : <>

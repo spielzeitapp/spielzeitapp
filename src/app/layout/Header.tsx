@@ -1,3 +1,5 @@
+import { isStagingApp } from '../../lib/appEnvironment';
+import { marketSwitchEntry } from '../../features/club/marketSwitch';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Bell, MoreHorizontal } from 'lucide-react';
@@ -74,7 +76,7 @@ export const Header: React.FC = () => {
     };
   }, []);
 
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const navigate = useNavigate();
   const demo = useDemoMode();
   const isDemo = Boolean(demo) || pathname.startsWith('/demo');
@@ -256,6 +258,7 @@ export const Header: React.FC = () => {
                   {authLoading || !user ? null : pathname.startsWith('/app') ? (
                     <>
                       {(teamSeasons?.length ?? 0) > 0 ? <TeamSwitcher iconOnly /> : null}
+                      {isStagingApp()&&!isRoleChoice&&<Link to={marketSwitchEntry(pathname+search)} className={dsGlassIconButtonClass()} aria-label="Zum Vereinsmarkt wechseln" title="Vereinsmarkt"><img src="/vereinsmarkt/icon-180.png" width="28" height="28" className="h-7 w-7 rounded-full object-contain" alt=""/></Link>}
                       {showManagerShortcut(effectiveRole, backendRole, memberships ?? []) ? (
                         <Link
                           to="/manager"

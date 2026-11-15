@@ -3,7 +3,7 @@ import { build } from 'esbuild';
 import { createRequire } from 'node:module';
 const require=createRequire(import.meta.url);
 const React=require('react'),renderer=require('react-test-renderer');
-const {MemoryRouter}=require('react-router-dom');
+const {MemoryRouter,useLocation}=require('react-router-dom');
 const state=global.__exchangeMain={access:true,teamReads:0,seasons:[
  {id:'u12',age_group:'U12',status:'active',team:{id:'spg-u12',club_id:'nsg',name:'SPG Rohrbach',clubs:{name:'NSG Gölsental'}}},
  {id:'melk',age_group:'U16',status:'active',team:{id:'melk-team',club_id:'melk',name:'SC Melk',clubs:{name:'SC Melk'}}},
@@ -26,7 +26,8 @@ const Module=require('module');const m=new Module('exchange-main-fixture.cjs');m
 const {ClubExchangePage}=m.exports;
 const flush=async()=>{for(let i=0;i<7;i++)await new Promise(r=>setImmediate(r));};
 let app;
-const mount=async (path,props={})=>renderer.act(async()=>{app=renderer.create(React.createElement(MemoryRouter,{initialEntries:[path],future:{v7_startTransition:true,v7_relativeSplatPath:true}},React.createElement(ClubExchangePage,props)));await flush();});
+const Watch=()=>{const l=useLocation();return React.createElement('output',null,l.pathname+l.search);};
+const mount=async (path,props={})=>renderer.act(async()=>{app=renderer.create(React.createElement(MemoryRouter,{initialEntries:[path],future:{v7_startTransition:true,v7_relativeSplatPath:true}},React.createElement(React.Fragment,null,React.createElement(ClubExchangePage,props),React.createElement(Watch))));await flush();});
 try{
  await mount('/app/tauschboerse');
  assert.equal(app.root.findByType('section').props['data-club'],'usc','SPG opens shared USC exchange');
@@ -48,6 +49,8 @@ try{
  assert.equal(app.root.findAllByType('details').length,0,'embedded mode has no conflicting club picker');
  assert.ok(!JSON.stringify(app.toJSON()).includes('Zurück zu Mehr'),'no internal app navigation in marketplace');
  await renderer.act(async()=>app.unmount());
+ await mount('/app/tauschboerse?public=1&returnTo='+encodeURIComponent('/app/team?teamSeason=keep'));
+ const destination=app.root.findByType('output').children.join('');assert.ok(destination.startsWith('/marktplatz/usc?'));assert.equal(new URL(destination,'https://test.invalid').searchParams.get('returnTo'),'/app/team?teamSeason=keep');await renderer.act(async()=>app.unmount());
  state.access=false;state.teamReads=0;
  await mount('/app/tauschboerse?club=unrelated');
  assert.equal(state.teamReads,0,'no team data queried before authorization');

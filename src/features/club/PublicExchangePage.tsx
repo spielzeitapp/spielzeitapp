@@ -1,3 +1,4 @@
+import { safeMarketAppReturn } from './marketSwitch';
 import { useAuth } from '../../auth/AuthProvider';
 import React,{useEffect,useState} from 'react';
 import {Link,useParams,useSearchParams} from 'react-router-dom';
@@ -14,20 +15,22 @@ export default function PublicExchangePage(){
  const {clubId=''}=useParams();const [params,setParams]=useSearchParams();
  const [club,setClub]=useState('Dein Verein'),[items,setItems]=useState<Offer[]>([]),[error,setError]=useState(''),[loading,setLoading]=useState(true),[retry,setRetry]=useState(0);
  const [search,setSearch]=useState(''),[filters,setFilters]=useState<ExchangeFilters>({...EMPTY_EXCHANGE_FILTERS}),[sort,setSort]=useState<CatalogSort>('newest'),[filterOpen,setFilterOpen]=useState(false);
+ const appReturn=safeMarketAppReturn(params.get('returnTo'));
+ const returnQuery={returnTo:appReturn};
  const view=params.get('view')||'start';const selected=items.find(i=>i.id===params.get('listing'));
  const publicPath=`/marktplatz/${encodeURIComponent(clubId)}`;
- const memberPath=`${publicPath}?view=member&club=${encodeURIComponent(clubId)}`;
- const login=(next=memberPath)=>{const target=next==='/app/profile'?`${publicPath}?view=profil`:next;return user?target:`/login?next=${encodeURIComponent(target)}&context=vereinsmarkt&marketClub=${encodeURIComponent(clubId)}`;};
+ const memberPath=`${publicPath}?view=member&club=${encodeURIComponent(clubId)}&returnTo=${encodeURIComponent(appReturn)}`;
+ const login=(next=memberPath)=>{const target=next==='/app/profile'?`${publicPath}?view=profil&returnTo=${encodeURIComponent(appReturn)}`:next;return user?target:`/login?next=${encodeURIComponent(target)}&context=vereinsmarkt&marketClub=${encodeURIComponent(clubId)}`;};
  const catalog=items.map(i=>({...i,owner_id:'',team_label:''}));
  const shown=selectExchangeItems(catalog,'all','',filters,search,sort);
  useEffect(()=>{if(!isStagingApp()){setLoading(false);return;}let active=true;setLoading(true);setError('');void(async()=>{
    const r=await fetch(`/api/exchange/public?club=${encodeURIComponent(clubId)}`,{cache:'no-store'});const body=await r.json();if(!r.ok)throw Error(body.error||'Laden fehlgeschlagen');
    if(active){setClub(body.club.name);setItems(body.items);}
  })().catch(e=>{if(active)setError(e.message);}).finally(()=>{if(active)setLoading(false);});return()=>{active=false;};},[clubId,retry]);
- const go=(next:string)=>setParams({view:next});
+ const go=(next:string)=>setParams({...returnQuery,view:next});
  const price=(i:Offer)=>i.offer==='Verkaufen'?Number(i.price).toLocaleString('de-AT',{style:'currency',currency:'EUR'}):i.offer;
- const card=(i:Offer)=><button className="exchange-card" key={i.id} onClick={()=>setParams({view:'suchen',listing:i.id})}><div className="exchange-card-image">{i.photos[0]?<img src={i.photos[0]} alt={i.title} loading="lazy"/>:<Shirt size={40}/>}<span>{i.status}</span></div><div className="exchange-card-copy"><h3>{i.title}</h3><p>Größe {i.size} · {i.condition}</p><strong>{price(i)}</strong></div></button>;
- return <div className="public-exchange"><header className="public-market-header"><img src="/vereinsmarkt/icon-180.png" width="44" height="44" alt="" style={{borderRadius:10}}/><div style={{flex:1}}><strong>{club}</strong><small>Vereinsmarkt</small></div>{view!=='profil'&&(user?<button className="public-market-account" onClick={()=>go('profil')}><User size={18}/>Profil</button>:<Link to={login()}>Anmelden</Link>)}</header><main className="exchange">
+ const card=(i:Offer)=><button className="exchange-card" key={i.id} onClick={()=>setParams({...returnQuery,view:'suchen',listing:i.id})}><div className="exchange-card-image">{i.photos[0]?<img src={i.photos[0]} alt={i.title} loading="lazy"/>:<Shirt size={40}/>}<span>{i.status}</span></div><div className="exchange-card-copy"><h3>{i.title}</h3><p>Größe {i.size} · {i.condition}</p><strong>{price(i)}</strong></div></button>;
+ return <div className="public-exchange"><header className="public-market-header"><img src="/vereinsmarkt/icon-180.png" width="44" height="44" alt="" style={{borderRadius:10}}/><div style={{flex:1,minWidth:0}}><strong>{club}</strong><small>Vereinsmarkt</small></div>{user&&<Link className="public-market-app-switch" to={appReturn} aria-label="Zur SpielzeitApp wechseln" title="SpielzeitApp"><img src="/apple-touch-icon.png" width="28" height="28" alt=""/></Link>}{view!=='profil'&&(user?<button className="public-market-account" aria-label="Profil" title="Profil" onClick={()=>go('profil')}><User size={18}/></button>:<Link to={login()}>Anmelden</Link>)}</header><main className="exchange">
  {!isStagingApp()?<p>Der öffentliche Marktplatz wird in TEST vorbereitet.</p>:view==='member'?<React.Suspense fallback={<p role="status">Vereinsmarkt wird geladen…</p>}>{user?<MemberMarket embedded embeddedClubId={clubId}/>:<section className="public-market-panel"><h1>Dein Vereinsmarkt</h1><p>Bitte melde dich für eigene Inserate und private Anfragen an.</p><Link className="public-market-cta" to={login(publicPath+'?'+params.toString())}>Anmelden</Link></section>}</React.Suspense>:loading?<p role="status">Angebote werden geladen…</p>:error?<div role="alert" className="exchange-alert">{error}<button onClick={()=>setRetry(n=>n+1)}>Erneut laden</button></div>:selected?<>
   <button className="exchange-back" onClick={()=>go('suchen')}><ArrowLeft size={18}/>Alle Angebote</button><div className="exchange-gallery">{selected.photos.map(photo=><img key={photo} src={photo} alt={selected.title}/>)}</div><div className="exchange-item-head"><h3>{selected.title}</h3><strong>{price(selected)}</strong></div><div className="exchange-tags"><span>Größe {selected.size}</span><span>{selected.condition}</span><span>{selected.status}</span></div><p className="exchange-description">{selected.description}</p><Link className="public-market-cta" to={login(memberPath+`&listing=${selected.id}`)}>Interesse senden</Link><p className="public-market-note"><a href={`/vereinsmarkt/hilfe.html?club=${clubId}`}>Inhalt melden</a></p><p className="public-market-note"><LockKeyhole size={15}/>Private Anfrage nach Anmeldung. Vereinszuordnung erforderlich.</p>
  </>:view==='profil'?<section className="public-market-profile" aria-label="Dein Vereinsmarkt">
