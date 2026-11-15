@@ -123,3 +123,8 @@ TEST app header adds a circular market-logo link for authenticated, non-demo app
 - Vergleichsbild zeigte trotz gesperrtem Dokument einen zu hohen unteren Rand. Markt-Navi war stets absolut am gemessenen Rahmen ausgerichtet; LIVE ist im Normalfall viewport-fixed und nur bei validiertem iOS-Fullscreen absolut.
 - Exakt diese Umschaltung für den Vereinsmarkt übernommen. Begrenzter LIVE-Inset und äußere Scroll-Sperre bleiben erhalten. Keine neuen geratenen Pixel-Verschiebungen oder Änderung der globalen Viewport-Erkennung.
 - Navi-Regression und Fullscreen/Resume/Tastatur/Zoom-Policy erfolgreich; Produktionsbuild geprüft. Exakte iPhone-Position bleibt am Gerät zu bestätigen.
+
+## TEST 15.11.2026: Navi als eigener Bereich und Update-Erkennung
+- Nach weiteren Gerätebildern keine bestätigte Positionsbehebung: Markt-Rahmen nun über native feste Bildschirmgrenzen (inset 0, keine JS-Höhe) mit drei Flex-Bereichen: Header, ausschließlich scrollbarerer Inhalt, eigene Navi-Zeile. Navi überlagert keine Karte mehr; vorhandene Scroll-/Theme-Sperre bleibt routenbezogen.
+- Update-Prüfung zusätzlich jede Minute im sichtbaren Online-Fenster und bei Fokus. Vergleicht initiale JS-/CSS-Dateien mit HTML derselben Route, statt allein main-JS mit index.html. Erst später nachgeladene CSS-Dateien werden nicht als falsches Update gewertet. Gesperrter Session-Speicher verhindert Aktualisieren nicht mehr.
+- Regression für CSS-only Deployment, unveränderten Stand, lazy CSS, Routenwahl und Reload trotz Speichersperre; bestehende Theme-/Markt-UI-Prüfungen. Physische iPhone-Position weiterhin nicht als bestätigt ausgegeben.

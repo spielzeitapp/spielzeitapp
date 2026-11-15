@@ -5,16 +5,12 @@ let lastCheckAt = 0;
 let reloadStarted = false;
 let pendingDeploymentEntry: string | null = null;
 
-function entryScriptPath(doc: Document): string | null {
-  const scripts = Array.from(doc.querySelectorAll<HTMLScriptElement>('script[type="module"][src]'));
-  const entry = scripts.find((script) => script.src.includes('/assets/main-')) ?? scripts[0];
-  if (!entry?.src) return null;
-  try {
-    return new URL(entry.src, window.location.origin).pathname;
-  } catch {
-    return entry.getAttribute('src');
-  }
+function deploymentFingerprint(doc: Document): string | null {
+  const elements=Array.from(doc.querySelectorAll<HTMLElement>('script[type="module"][src],link[rel="stylesheet"][href]'));
+  const paths=elements.map(el=>el.getAttribute('src')||el.getAttribute('href')).filter((value):value is string=>Boolean(value)).map(value=>new URL(value,window.location.origin).pathname).filter(value=>value.includes('/assets/')).sort();
+  return paths.length?paths.join('|'):null;
 }
+let initialFingerprint:string|null=null;
 
 async function checkForNewDeployment(): Promise<void> {
   if (reloadStarted || document.visibilityState === 'hidden' || !navigator.onLine) return;
@@ -22,11 +18,11 @@ async function checkForNewDeployment(): Promise<void> {
   if (now - lastCheckAt < CHECK_THROTTLE_MS) return;
   lastCheckAt = now;
 
-  const currentEntry = entryScriptPath(document);
-  if (!currentEntry || !currentEntry.includes('/assets/main-')) return;
+  const currentEntry = initialFingerprint;
+  if (!currentEntry) return;
 
   try {
-    const response = await fetch(`/index.html?app-version=${now}`, {
+    const response = await fetch(`${window.location.pathname}?app-version=${now}`, {
       cache: 'no-store',
       headers: { 'Cache-Control': 'no-cache' },
     });
@@ -34,10 +30,10 @@ async function checkForNewDeployment(): Promise<void> {
 
     const latestHtml = await response.text();
     const latestDocument = new DOMParser().parseFromString(latestHtml, 'text/html');
-    const latestEntry = entryScriptPath(latestDocument);
+    const latestEntry = deploymentFingerprint(latestDocument);
     if (!latestEntry || latestEntry === currentEntry) return;
 
-    if (sessionStorage.getItem(`spz_deployment_reload:${latestEntry}`) === '1') return;
+    try{if(sessionStorage.getItem(`spz_deployment_reload:${latestEntry}`)==='1')return;}catch{}
     pendingDeploymentEntry = latestEntry;
     window.dispatchEvent(
       new CustomEvent(DEPLOYMENT_UPDATE_EVENT, { detail: { entry: latestEntry } }),
@@ -53,7 +49,7 @@ export function getPendingDeploymentEntry(): string | null {
 
 export function refreshToDeployment(entry: string): void {
   if (!entry || reloadStarted) return;
-  sessionStorage.setItem(`spz_deployment_reload:${entry}`, '1');
+  try{sessionStorage.setItem(`spz_deployment_reload:${entry}`, '1');}catch{}
   reloadStarted = true;
   window.location.reload();
 }
@@ -62,9 +58,12 @@ export function refreshToDeployment(entry: string): void {
 export function registerDeploymentRefresh(): void {
   if (typeof window === 'undefined') return;
 
+  initialFingerprint=deploymentFingerprint(document);
   const check = () => void checkForNewDeployment();
   window.addEventListener('pageshow', check);
   window.addEventListener('online', check);
+  window.addEventListener('focus', check);
+  window.setInterval(check,60_000);
   document.addEventListener('visibilitychange', check);
   window.setTimeout(check, 2_000);
 }

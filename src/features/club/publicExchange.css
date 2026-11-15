@@ -52,3 +52,10 @@ html[data-market-shell] #root{height:100%;min-height:0!important;overflow:hidden
    Only the validated recovered fullscreen frame uses absolute positioning. */
 .public-exchange .public-market-nav{position:fixed;bottom:var(--market-nav-bottom)}
 html[data-ios-standalone-fullscreen] .public-exchange .public-market-nav{position:absolute;bottom:var(--market-nav-bottom)}
+
+/* One native viewport frame, three flex rows. Neither the nav nor the header
+   depends on a cached visualViewport height or an overlay scroll offset. */
+html[data-market-shell] .public-exchange{position:fixed;inset:0;height:auto;max-height:none;display:flex;flex-direction:column}
+html[data-market-shell] .public-exchange .public-market-header{flex:0 0 auto}
+html[data-market-shell] .public-exchange main.exchange{flex:1 1 0;min-height:0;padding-bottom:24px;scroll-padding-bottom:24px}
+html[data-market-shell] .public-exchange .public-market-nav{position:relative;inset:auto;flex:0 0 var(--market-nav-height);height:var(--market-nav-height);width:calc(100% - 28px);margin:0 auto var(--market-nav-bottom);box-sizing:border-box}
