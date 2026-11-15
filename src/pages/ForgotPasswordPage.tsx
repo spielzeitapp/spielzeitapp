@@ -74,7 +74,7 @@ export const ForgotPasswordPage: React.FC = () => {
           E-Mail eingeben – wir schicken dir einen Link zum Festlegen eines neuen Passworts.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">{market&&<MarketLegalLinks/>}
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
             <label htmlFor="forgot-email" className="mb-1 block text-sm font-medium text-white/80">
               E-Mail

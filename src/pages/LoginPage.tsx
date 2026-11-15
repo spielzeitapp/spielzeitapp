@@ -355,7 +355,7 @@ export const LoginPage: React.FC = () => {
         ) : null}
 
         <form onSubmit={handleSubmit} className="relative mt-5 space-y-4">
-          {(searchParams.get('context')==='vereinsmarkt'||nextRaw.includes('/app/tauschboerse'))&&<MarketLegalLinks/>}
+          
           <div>
             <label
               htmlFor={inviteEmailLocked ? 'login-email-display' : 'login-email'}
