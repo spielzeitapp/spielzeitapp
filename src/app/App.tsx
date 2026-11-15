@@ -1,3 +1,4 @@
+import {MarketSplash} from '../features/club/MarketSplash';
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Navigate, Route, Routes, useParams, useSearchParams } from 'react-router-dom';
 import { AppLayout } from './layout/AppLayout';
@@ -236,7 +237,7 @@ class AppErrorBoundary extends Component<
 function InternalRoutes(): React.ReactElement {
   return (
     <Routes>
-      <Route path="marktplatz/:clubId" element={<React.Suspense fallback={<p className="p-6">Marktplatz wird geladen…</p>}><PublicExchangePage /></React.Suspense>} />
+      <Route path="marktplatz/:clubId" element={<React.Suspense fallback={<MarketSplash/>}><PublicExchangePage /></React.Suspense>} />
       <Route path="app/usc-rohrbach/anmelden" element={<LoginPage />} />
       <Route path="app/usc-rohrbach/registrieren" element={<RegisterPage />} />
       <Route path="app/usc-rohrbach/passwort-vergessen" element={<ForgotPasswordPage />} />
@@ -450,7 +451,7 @@ function InternalRoutes(): React.ReactElement {
 function PublicRoutes(): React.ReactElement {
   return (
     <Routes>
-      <Route path="marktplatz/:clubId" element={<React.Suspense fallback={<p className="p-6">Marktplatz wird geladen…</p>}><PublicExchangePage /></React.Suspense>} />
+      <Route path="marktplatz/:clubId" element={<React.Suspense fallback={<MarketSplash/>}><PublicExchangePage /></React.Suspense>} />
       <Route path="app/usc-rohrbach/anmelden" element={<LoginPage />} />
       <Route path="app/usc-rohrbach/registrieren" element={<RegisterPage />} />
       <Route path="app/usc-rohrbach/passwort-vergessen" element={<ForgotPasswordPage />} />

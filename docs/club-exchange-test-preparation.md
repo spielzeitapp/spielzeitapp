@@ -83,3 +83,12 @@ TEST app header adds a circular market-logo link for authenticated, non-demo app
 - Isolierter PGlite-Test: echte authenticated/anon-Rollen, Nutzertrennung, Identitätsspoofing, ungültige ID, wiederholtes/gleichzeitig angestoßenes Speichern, Sperre nach Rücknahme/Vergeben, Löschen/Cascade. Keine synthetischen Nutzer in TEST-Datenbank.
 - UI-Mocks prüfen Speichern, erneutes Laden, Kontowechsel, Fehler und Entfernen; Auth-Kontinuität, öffentlicher Katalog/API, private Anfragen/Fotos bleiben getestet. Physische iPhone-Kamera und echte Pushzustellung sind damit nicht geprüft.
 - Keine LIVE-Freigabe/Manifest-Hashes ergänzt; LIVE-Datenbank und main bleiben unverändert.
+
+## TEST 15.11.2026: Splash, eckige Filter, Schuhe und Zubehör
+- Markt-HTML enthält sofort den Logo-Splash; identischer React-Splash für Route und initiales Laden von Verein/Katalog/Anmeldung. Kein Platzhalter-Vereinsheader oder Footer während des Ladens; keine künstliche Mindestdauer. Bei API-Timeout nach 12 Sekunden erscheint eine Fehlermeldung mit Wiederholen.
+- Filterauswahl, Größen, Angebotswahl und Abschlussbutton mit 12px Ecken. Artikel/Unterarten als gut antippbare Felder.
+- Schuhgruppe: Fußballschuhe, Hallenschuhe, Laufschuhe (gemeinsames Schuhgrößensystem). Startseiten-Symbol kombiniert Fußballschuh und Laufschuh.
+- Zubehör: Schienbeinschoner, Torwarthandschuhe, Sporttaschen, Rucksäcke, Bälle, Trinkflaschen, Trainingszubehör. Unter Trainingszubehör fallen etwa Hütchen, Koordinationsleitern und Leibchen. Bälle: Größen 3/4/5; Handschuhe: 4–12; übriges Zubehör mit Einheitsgröße und freier Eingabe.
+- Migration `20261115093231_exchange_article_types.sql` erweitert ausschließlich die Kategorien-Prüfung. Bestehende Kategorien und Daten bleiben erhalten; Rechte/RLS unverändert. Alte „Schuhe“ erscheinen im Schuhgruppenfilter, alte „Sonstiges“ auch bei Zubehör. Keine automatische Unterkategorisierung vorhandener Inserate.
+- Isolierte SQL-Prüfung unter authentifizierten Rollen: alte/neue Kategorien speicherbar, unbekannte Kategorie und Nutzer ohne Verein abgewiesen; vorhandene RLS-/Chat-/Stale-Revision-Prüfungen erneut erfolgreich. UI-Tests: verzögerte Datenantwort zeigt ausschließlich Splash, anschließend echte Vereinsansicht; Unterarten, Schuhgrößen, Zubehörgrößen, Filterergebnisse, Größenwechsel und Erstellung geprüft.
+- Produktionsbuild und scoped TypeScript-Prüfung erfolgreich. Lokale Chromium-Screenshotprüfung war durch die Laufzeitumgebung blockiert; keine physische iOS-Prüfung behauptet. Keine LIVE-Freigabe ergänzt.

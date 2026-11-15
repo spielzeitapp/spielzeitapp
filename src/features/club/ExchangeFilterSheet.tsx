@@ -1,6 +1,7 @@
+import {ExchangeArticleChoices} from './ExchangeArticleChoices';
 import React,{useEffect,useRef,useState} from 'react';
 import {X} from 'lucide-react';
-import {EXCHANGE_CATEGORIES,EMPTY_EXCHANGE_FILTERS,exchangeSizeOptions,selectExchangeItems, type CatalogItem,type ExchangeFilters} from './exchangeCatalog';
+import {isExchangeShoe,EMPTY_EXCHANGE_FILTERS,exchangeSizeOptions,selectExchangeItems, type CatalogItem,type ExchangeFilters} from './exchangeCatalog';
 
 export function ExchangeFilterSheet({value,items,view,userId,search,onApply,onClose}:{value:ExchangeFilters;items:CatalogItem[];view:'all'|'mine';userId:string;search:string;onApply:(filters:ExchangeFilters)=>void;onClose:()=>void}){
   const [draft,setDraft]=useState(value);
@@ -12,8 +13,8 @@ export function ExchangeFilterSheet({value,items,view,userId,search,onApply,onCl
   return <dialog ref={dialog} className="exchange-filter-sheet" aria-labelledby="exchange-filter-title" onCancel={onClose} onClose={onClose}>
     <header><div><span className="exchange-sheet-handle"/><h2 id="exchange-filter-title">Angebote filtern</h2></div><button type="button" aria-label="Filter schließen" onClick={onClose}><X size={22}/></button></header>
     <div className="exchange-filter-body">
-      {group('Artikel','category',EXCHANGE_CATEGORIES,'Alle')}
-      {group(draft.category==='Schuhe'?'Schuhgröße':draft.category?'Kleidergröße':'Größe','size',exchangeSizeOptions(draft.category,items),'Alle')}
+      <ExchangeArticleChoices value={draft.category} allowAll onChange={category=>setDraft(previous=>({...previous,category,size:''}))}/>
+      {group(isExchangeShoe(draft.category)?'Schuhgröße':'Größe','size',exchangeSizeOptions(draft.category,items),'Alle')}
       {!draft.category&&<p className="exchange-filter-tip">Für Schuhgrößen wähle zuerst „Schuhe“.</p>}
       {group('Angebot','offer',['Gratis','Tauschen','Verkaufen'],'Alle')}
       {teams.length>0&&group('Mannschaft','team',teams,'Alle Mannschaften')}

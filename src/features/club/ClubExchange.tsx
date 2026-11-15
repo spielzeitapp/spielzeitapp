@@ -1,3 +1,4 @@
+import {ExchangeArticleChoices} from './ExchangeArticleChoices';
 import {useSavedListings} from './useSavedListings';
 import {SaveListingButton} from './SaveListingButton';
 import { MarketLegalLinks } from './MarketLegalLinks';
@@ -9,13 +10,12 @@ import type { ClubSeason } from './uscClub';
 import { notifyNotificationsReadChanged } from '../../lib/notificationsReadState';
 import { ExchangeChoiceGroup } from './ExchangeChoiceGroup';
 import { ExchangeFilterSheet } from './ExchangeFilterSheet';
-import { EXCHANGE_CATEGORIES, exchangeSizeOptions, selectExchangeItems, type CatalogSort } from './exchangeCatalog';
+import { isExchangeShoe, exchangeSizeSystem, exchangeSizeOptions, selectExchangeItems, type CatalogSort } from './exchangeCatalog';
 import './clubExchange.css';
 
 type Listing = { id: string; club_id: string; owner_id: string; owner_label: string; title: string; category: string; size: string; condition: string; offer: string; price: number | null; description: string; team_label: string; status: string; photo_paths: string[]; created_at: string; is_public?: boolean; revision: number };
 type Thread = { id: string; listing_id: string; requester_id: string; requester_label: string; created_at: string };
 type Message = { id: string; thread_id: string; sender_id: string; body: string; created_at: string };
-const categories = EXCHANGE_CATEGORIES;
 const conditions = ['Wie neu', 'Sehr gut', 'Gut', 'Gebraucht'];
 const emptyForm = { title: '', category: 'Pulli', size: '', condition: 'Sehr gut', offer: 'Gratis', price: '', description: '', team_label: '' };
 const stamp = (value: string) => new Date(value).toLocaleString('de-AT', { dateStyle: 'short', timeStyle: 'short' });
@@ -321,9 +321,9 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
         <input hidden type="file" accept="image/*" capture="environment" ref={camera} onChange={e => { addFiles(e.target.files); e.target.value=''; }} /><input hidden type="file" accept="image/*" multiple ref={gallery} onChange={e => { addFiles(e.target.files); e.target.value=''; }} />
         <div className="exchange-upload-list">{existingPaths.map((p,index) => <div key={p}><img src={photos[p]} alt={`Foto ${index+1}`} /><button type="button" disabled={busy} aria-label={`Foto ${index+1} entfernen`} onClick={() => setExistingPaths(old => old.filter(path => path !== p))}><X size={15}/></button></div>)}{previewFiles.map(({file,key},index) => <UploadPreview key={key} file={file} disabled={busy} onRemove={() => setFiles(old => old.filter((_,i) => i !== index))} />)}</div>
         <fieldset disabled={busy}><label>Bezeichnung<input required minLength={3} maxLength={80} value={form.title} placeholder="z. B. USC Trainingspulli" onChange={e => setForm({...form,title:e.target.value})} /></label>
-        <ExchangeChoiceGroup label="Artikel" value={form.category} options={categories} onChange={category=>setForm(previous=>({...previous,category,size:(category==='Schuhe')!==(previous.category==='Schuhe')?'':previous.size}))}/>
-        <ExchangeChoiceGroup label={form.category==='Schuhe'?'Schuhgröße':'Größe'} value={form.size} options={exchangeSizeOptions(form.category,items)} compact onChange={size=>setForm(previous=>({...previous,size}))}/>
-        <label>Größe direkt eingeben<input required maxLength={15} value={form.size} placeholder={form.category==='Schuhe'?'Andere Schuhgröße, z. B. 35,5':'Andere Größe, z. B. 128/134'} onChange={e=>setForm(previous=>({...previous,size:e.target.value}))}/></label>
+        <ExchangeArticleChoices value={form.category} onChange={category=>setForm(previous=>({...previous,category,size:exchangeSizeSystem(category)!==exchangeSizeSystem(previous.category)?'':previous.size}))}/>
+        <ExchangeChoiceGroup label={isExchangeShoe(form.category)?'Schuhgröße':'Größe'} value={form.size} options={exchangeSizeOptions(form.category,items)} compact onChange={size=>setForm(previous=>({...previous,size}))}/>
+        <label>Größe direkt eingeben<input required maxLength={15} value={form.size} placeholder={isExchangeShoe(form.category)?'Andere Schuhgröße, z. B. 35,5':'Andere Größe, z. B. 128/134'} onChange={e=>setForm(previous=>({...previous,size:e.target.value}))}/></label>
         <ExchangeChoiceGroup label="Zustand" value={form.condition} options={conditions} onChange={condition=>setForm(previous=>({...previous,condition}))}/>
         <ExchangeChoiceGroup label="Angebot" value={form.offer} options={['Gratis','Tauschen','Verkaufen']} onChange={offer=>setForm(previous=>({...previous,offer}))}/>
         {form.offer === 'Verkaufen' && <label>Preis in Euro<input required inputMode="decimal" value={form.price} onChange={e => setForm({...form,price:e.target.value})} /></label>}

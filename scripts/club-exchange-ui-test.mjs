@@ -85,9 +85,11 @@ try{
  const labelInput=label=>app.root.findAllByType('label').find(l=>text(l).startsWith(label)).findByType('input');
  await act(async()=>{labelInput('Bezeichnung').props.onChange({target:{value:'USC Trainingsshirt'}});});
  assert.equal(app.root.findByType('dialog').findAllByType('select').length,0,'editor uses buttons, no dropdown arrows');
- const choose=async(label,value)=>{const group=app.root.findAllByType('fieldset').find(f=>f.props.className?.includes('exchange-editor-choices')&&text(f.findByType('legend'))===label);assert.ok(group,label);const option=group.findAllByType('button').find(b=>text(b)===value);assert.ok(option,value);await act(async()=>option.props.onClick());};
+ const choose=async(label,value)=>{const group=app.root.findAllByType('fieldset').find(f=>f.children.some(c=>c.type==='legend'&&text(c)===label));assert.ok(group,label);const option=group.findAllByType('button').find(b=>text(b)===value);assert.ok(option,value);await act(async()=>option.props.onClick());};
  await choose('Artikel','Schuhe');await choose('Schuhgröße','35');
  assert.equal(labelInput('Größe').props.value,'35');
+ await choose('Welche Schuhe?','Laufschuhe');assert.equal(labelInput('Größe').props.value,'35');
+ await choose('Artikel','Zubehör');await choose('Welches Zubehör?','Torwarthandschuhe');await choose('Größe','7');
  await choose('Artikel','T-Shirt');assert.equal(labelInput('Größe').props.value,'','switching size systems clears incompatible size');
  await choose('Größe','128');await choose('Zustand','Gut');
  await choose('Angebot','Verkaufen');assert.ok(labelInput('Preis in Euro'));

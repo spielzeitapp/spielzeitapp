@@ -21,6 +21,11 @@ assert.deepEqual(selectExchangeItems(items,'all','me',empty,'','price-desc').map
 assert.ok(exchangeSizeOptions('Schuhe',items).includes('35'));
 assert.ok(!exchangeSizeOptions('Schuhe',items).includes('140'));
 assert.ok(exchangeSizeOptions('Pulli',items).includes('XL'));
+const expanded=[...items,{...base,id:'running',category:'Laufschuhe',size:'35'},{...base,id:'boot',category:'Fußballschuhe',size:'36'},{...base,id:'gloves',category:'Torwarthandschuhe',size:'7'},{...base,id:'other',category:'Sonstiges',size:'Einheitsgröße'}];
+assert.equal(selectExchangeItems(expanded,'all','me',{...empty,category:'Schuhe'}).length,3);
+assert.deepEqual(selectExchangeItems(expanded,'all','me',{...empty,category:'Laufschuhe'}).map(i=>i.id),['running']);
+assert.equal(selectExchangeItems(expanded,'all','me',{...empty,category:'Zubehör'}).length,2);
+assert.ok(!exchangeSizeOptions('Laufschuhe',expanded).includes('140'));assert.ok(exchangeSizeOptions('Torwarthandschuhe',expanded).includes('7'));assert.deepEqual(exchangeSizeOptions('Bälle',[]),['3','4','5']);
 assert.equal(items[0].id,'a','selector must not mutate source');
 let app,applied=null,closed=0;
 const click=async label=>{const b=app.root.findAllByType('button').find(n=>n.children.join('')===label||n.props['aria-label']===label);assert.ok(b,label);await renderer.act(async()=>b.props.onClick());};

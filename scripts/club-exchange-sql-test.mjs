@@ -42,6 +42,7 @@ try {
   await db.exec(fs.readFileSync('supabase/migrations/20261113102805_exchange_partner_relationship_fix.sql', 'utf8'));
   await db.exec(fs.readFileSync('supabase/migrations/20261114195022_exchange_public_opt_in.sql','utf8'));
   await db.exec(fs.readFileSync('supabase/migrations/20261115090931_exchange_saved_listings.sql','utf8'));
+  await db.exec(fs.readFileSync('supabase/migrations/20261115093231_exchange_article_types.sql','utf8'));
   const key = await db.query(`select array_agg(a.attname order by k.ordinality) as columns from pg_constraint c cross join lateral unnest(c.conkey) with ordinality k(attnum,ordinality) join pg_attribute a on a.attrelid=c.conrelid and a.attnum=k.attnum where c.conrelid='public.exchange_partner_teams'::regclass and c.contype='p'`);
   if (JSON.stringify(key.rows[0].columns)!=='["id"]') throw Error('Partner PK must not imply a teams/clubs many-to-many relationship');
   await db.exec(`insert into public.exchange_partner_teams(club_id,team_id) values('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002')`);
@@ -82,4 +83,9 @@ try {
   if((await db.query('select * from exchange_saved_listings')).rows.length)throw Error('Cascade failed');
   await db.exec('set role anon');await deny('select * from exchange_saved_listings');await db.exec('reset role');
   console.log('PASS: favorite RLS owner isolation, spoof/invalid denial, duplicate/concurrent saves, no updates, revoked/withdrawn denial, removal and cascade');
+  await db.exec("insert into memberships(user_id,team_season_id,role) values('40000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','parent'); set role authenticated; select set_config('request.jwt.claim.sub','40000000-0000-0000-0000-000000000001',false)");
+  const articleInsert=category=>"insert into exchange_listings(club_id,title,category,size,condition,offer,status) values('10000000-0000-0000-0000-000000000001','Artikeltest','"+category+"','35','Gut','Gratis','Entwurf')";
+  for(const category of ['Schuhe','Sonstiges','Fußballschuhe','Hallenschuhe','Laufschuhe','Zubehör','Schienbeinschoner','Torwarthandschuhe','Sporttaschen','Rucksäcke','Bälle','Trinkflaschen','Trainingszubehör'])await db.exec(articleInsert(category));
+  await deny(articleInsert('Invalid'));await db.exec("select set_config('request.jwt.claim.sub','40000000-0000-0000-0000-000000000002',false)");await deny(articleInsert('Laufschuhe'));
+  console.log('PASS: specific shoes/accessories and legacy categories persist as member; invalid category and nonmember rejected; existing stale-write tests remain intact');
 } finally { await db.close(); }
