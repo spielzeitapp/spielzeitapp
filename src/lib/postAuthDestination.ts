@@ -51,6 +51,10 @@ export async function resolvePostAuthDestination(opts: {
   consciousLogin?: boolean;
   parentInviteFlowHint?: boolean;
 }): Promise<PostAuthDestination> {
+  // An explicit marketplace login stays in its own shell; membership checks run there.
+  if (!opts.parentInviteFlowHint && opts.next && isSafeAuthRedirectPath(opts.next) && /^\/marktplatz\/[0-9a-f-]{36}(?:[?#]|$)/i.test(opts.next)) {
+    return {path:opts.next,kind:'deep_link',hardReplace:false};
+  }
   const invitePath = resolvePendingParentInvitePath(opts.user);
   if (invitePath) {
     return { path: invitePath, kind: 'parent_invite', hardReplace: true };

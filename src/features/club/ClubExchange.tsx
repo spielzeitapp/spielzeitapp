@@ -53,7 +53,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
-  const [view, setView] = useState<'all' | 'mine' | 'requests'>(params.get('view')==='requests'?'requests':'all');
+  const [view, setView] = useState<'all' | 'mine' | 'requests'>((params.get('mode')||params.get('view'))==='requests'?'requests':(params.get('mode')||params.get('view'))==='mine'?'mine':'all');
   const [category, setCategory] = useState('');
   const [size, setSize] = useState('');
   const [team, setTeam] = useState('');
@@ -195,6 +195,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
     setForm(item ? { title: item.title, category: item.category, size: item.size, condition: item.condition, offer: item.offer, price: String(item.price ?? ''), description: item.description, team_label: item.team_label } : {...emptyForm,team_label:defaultTeamLabel});
     formDialog.current?.showModal();
   };
+  useEffect(()=>{if(access&&!loading&&params.get('mode')==='create'){openEditor();setParams(old=>{const next=new URLSearchParams(old);next.delete('mode');return next;},{replace:true});}},[access,loading,params,setParams]);
   const closeEditor = () => { formDialog.current?.close(); setEditing(null); setFiles([]); };
   const save = (event: React.FormEvent) => {
     event.preventDefault();

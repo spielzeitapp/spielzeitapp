@@ -13,7 +13,7 @@ import '../features/club/clubExchange.css';
 const Exchange = React.lazy(() => import('../features/club/ClubExchange').then(m => ({ default: m.ClubExchange })));
 type Partner = { club_id: string; team_id: string; club: { name: string } | null };
 
-export function ClubExchangePage() {
+export function ClubExchangePage({embedded=false,embeddedClubId}:{embedded?:boolean;embeddedClubId?:string}={}) {
   const { user } = useAuth();
   const { selectedTeamSeason, teamSeasons, memberships, effectiveRole } = useSession();
   const [params, setParams] = useSearchParams();
@@ -51,7 +51,7 @@ export function ClubExchangePage() {
   }, [ownSeasons, partners]);
   const selectedTeam = selectedTeamSeason?.team;
   const selectedClub = partners?.find(p => p.team_id === selectedTeam?.id)?.club_id || selectedTeam?.club_id;
-  const clubId = params.get('club') || (selectedClub && contexts.has(selectedClub) ? selectedClub : '') || contexts.keys().next().value || '';
+  const clubId = embeddedClubId || params.get('club') || (selectedClub && contexts.has(selectedClub) ? selectedClub : '') || contexts.keys().next().value || '';
   const ownClubSeasons = ownSeasons.filter(s => (partners?.find(p => p.team_id === s.team.id)?.club_id || s.team.club_id) === clubId);
   const ownTeamLabels = [...new Set(ownClubSeasons.map(s => s.age_group || s.display_name || s.team.name))];
   const defaultSeason = ownClubSeasons.find(s => s.id === selectedTeamSeason?.id) || ownClubSeasons[0];
@@ -80,11 +80,12 @@ export function ClubExchangePage() {
     })().catch(e => { if (active) setError(e instanceof Error ? e.message : 'Vereinsmarkt konnte nicht geladen werden.'); });
     return () => { active = false; };
   }, [user?.id, clubId, permittedContext, partners, retry]);
-  return <PageShell background="more" className="exchange-main px-3 py-5 sm:px-4" contentClassName="mx-auto w-full max-w-3xl">
-    <Link className="inline-flex items-center gap-2 text-sm text-white/60" to="/app/mehr"><ArrowLeft size={17} /> Zurück zu Mehr</Link>
+  const content = <>
+    {!embedded&&<Link className="inline-flex items-center gap-2 text-sm text-white/60" to="/app/mehr"><ArrowLeft size={17} /> Zurück zu Mehr</Link>}
     {!isStagingApp() ? <p className="mt-5 text-white/70">Der Vereinsmarkt wird derzeit in TEST vorbereitet.</p> : !user ? <p>Bitte melde dich an.</p> : <>
-      {partners !== null && contexts.size > 1 ? <details className="exchange-context-picker"><summary aria-label="Verein für den Vereinsmarkt wechseln"><ShieldCheck size={16} /><span>{contexts.get(clubId) || 'Deinen Verein wählen'}</span><ChevronDown size={15}/></summary><div aria-label="Deine Vereine">{[...contexts].map(([id,name]) => <button type="button" key={id} aria-pressed={clubId === id} onClick={e => { setParams({club:id}); e.currentTarget.closest('details')?.removeAttribute('open'); }}>{name}</button>)}</div></details> : partners !== null && contexts.size === 1 ? <div className="exchange-context-chip"><ShieldCheck size={15}/><span>{contexts.values().next().value}</span><small>Dein Verein</small></div> : null}
-      {error ? <p role="alert" className="exchange-alert">{error} <button onClick={() => setRetry(n => n + 1)}>Erneut versuchen</button></p> : partners === null ? <p role="status">Vereinszuordnung wird geladen…</p> : !clubId ? <p className="exchange-hint">Für den Vereinsmarkt brauchst du eine aktive Eltern-, Trainer- oder Vereinszuordnung. Favoriten zählen nicht als Vereinszuordnung.</p> : !permittedContext ? <p className="exchange-hint">Diese Anfrage gehört nicht zu deinen zugeordneten Vereinen. <Link to="/app/tauschboerse">Zum eigenen Vereinsmarkt</Link></p> : loadedClub !== clubId ? <p role="status">Vereinsmarkt wird geladen…</p> : <React.Suspense fallback={<p role="status">Vereinsmarkt wird geladen…</p>}><Exchange key={`${user.id}:${clubId}`} clubId={clubId} userId={user.id} seasons={seasons} defaultTeamLabel={defaultTeamLabel} ownTeamLabels={ownTeamLabels} /></React.Suspense>}
+      {!embedded && partners !== null && contexts.size > 1 ? <details className="exchange-context-picker"><summary aria-label="Verein für den Vereinsmarkt wechseln"><ShieldCheck size={16} /><span>{contexts.get(clubId) || 'Deinen Verein wählen'}</span><ChevronDown size={15}/></summary><div aria-label="Deine Vereine">{[...contexts].map(([id,name]) => <button type="button" key={id} aria-pressed={clubId === id} onClick={e => { setParams({club:id}); e.currentTarget.closest('details')?.removeAttribute('open'); }}>{name}</button>)}</div></details> : partners !== null && contexts.size === 1 ? <div className="exchange-context-chip"><ShieldCheck size={15}/><span>{contexts.values().next().value}</span><small>Dein Verein</small></div> : null}
+      {error ? <p role="alert" className="exchange-alert">{error} <button onClick={() => setRetry(n => n + 1)}>Erneut versuchen</button></p> : partners === null ? <p role="status">Vereinszuordnung wird geladen…</p> : !clubId ? <p className="exchange-hint">Für den Vereinsmarkt brauchst du eine aktive Eltern-, Trainer- oder Vereinszuordnung. Favoriten zählen nicht als Vereinszuordnung.</p> : !permittedContext ? <p className="exchange-hint">Diese Anfrage gehört nicht zu deinen zugeordneten Vereinen. <Link to={embedded?`/marktplatz/${contexts.keys().next().value||clubId}`:"/app/tauschboerse"}>Zum eigenen Vereinsmarkt</Link></p> : loadedClub !== clubId ? <p role="status">Vereinsmarkt wird geladen…</p> : <React.Suspense fallback={<p role="status">Vereinsmarkt wird geladen…</p>}><Exchange key={`${user.id}:${clubId}:${params.get('mode')==='requests'?'requests':params.get('mode')==='mine'?'mine':'all'}`} clubId={clubId} userId={user.id} seasons={seasons} defaultTeamLabel={defaultTeamLabel} ownTeamLabels={ownTeamLabels} /></React.Suspense>}
     </>}
-  </PageShell>;
+  </>;
+  return embedded?<div className="exchange-member-content">{content}</div>:<PageShell background="more" className="exchange-main px-3 py-5 sm:px-4" contentClassName="mx-auto w-full max-w-3xl">{content}</PageShell>;
 }

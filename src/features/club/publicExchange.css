@@ -27,3 +27,4 @@
 .public-market-footer{flex-wrap:wrap}.public-market-legal-links{display:flex;flex-wrap:wrap;gap:10px 16px;width:100%;font-size:12px;line-height:1.8;margin-top:12px}.public-market-legal-links a{min-height:36px;display:inline-flex;align-items:center}
 
 .public-exchange .public-market-footer>button{border:0;background:transparent;box-shadow:none;padding:6px 0;min-height:36px;color:#999;font-size:12px}.public-exchange .public-market-footer>button span{background:none;color:#c5becb}
+.public-market-account{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 14px;border:1px solid #b43c5055;border-radius:12px;background:linear-gradient(135deg,#741c2c,#43121e);color:white;font-weight:700;font-size:14px}.exchange-member-content{width:100%;min-width:0}

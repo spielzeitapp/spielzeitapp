@@ -26,7 +26,7 @@ const Module=require('module');const m=new Module('exchange-main-fixture.cjs');m
 const {ClubExchangePage}=m.exports;
 const flush=async()=>{for(let i=0;i<7;i++)await new Promise(r=>setImmediate(r));};
 let app;
-const mount=async path=>renderer.act(async()=>{app=renderer.create(React.createElement(MemoryRouter,{initialEntries:[path],future:{v7_startTransition:true,v7_relativeSplatPath:true}},React.createElement(ClubExchangePage)));await flush();});
+const mount=async (path,props={})=>renderer.act(async()=>{app=renderer.create(React.createElement(MemoryRouter,{initialEntries:[path],future:{v7_startTransition:true,v7_relativeSplatPath:true}},React.createElement(ClubExchangePage,props)));await flush();});
 try{
  await mount('/app/tauschboerse');
  assert.equal(app.root.findByType('section').props['data-club'],'usc','SPG opens shared USC exchange');
@@ -42,6 +42,11 @@ try{
  await renderer.act(async()=>app.unmount());
  await mount('/app/tauschboerse?club=melk&thread=private-chat');
  assert.equal(app.root.findByType('section').props['data-club'],'melk','notification club wins over selected team');
+ await renderer.act(async()=>app.unmount());
+ await mount('/marktplatz/usc?view=member&club=melk',{embedded:true,embeddedClubId:'usc'});
+ assert.equal(app.root.findByType('section').props['data-club'],'usc','standalone route pins its own club despite altered query');
+ assert.equal(app.root.findAllByType('details').length,0,'embedded mode has no conflicting club picker');
+ assert.ok(!JSON.stringify(app.toJSON()).includes('Zurück zu Mehr'),'no internal app navigation in marketplace');
  await renderer.act(async()=>app.unmount());
  state.access=false;state.teamReads=0;
  await mount('/app/tauschboerse?club=unrelated');

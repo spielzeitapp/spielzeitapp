@@ -261,7 +261,7 @@ console.log(
 );
 // Vereinsmarkt reuses the same auth while preserving club, listing and recovery context.
 const marketClub='3db6fce2-a4c1-44a5-a333-19d1d4d62e6a';
-const marketNext='/app/tauschboerse?club='+marketClub+'&listing=fixture';
+const marketNext='/marktplatz/'+marketClub+'?view=member&club='+marketClub+'&listing=fixture';
 const marketQuery=new URLSearchParams({context:'vereinsmarkt',marketClub,next:marketNext}).toString();
 globalThis.__uscAuthUser=null;
 await mount(login.LoginPage,'/login?'+marketQuery);
@@ -278,6 +278,10 @@ const marketReset=globalThis.__uscAuthCalls.filter(c=>c[0]==='reset').at(-1);ass
 console.log('PASS Vereinsmarkt: own auth brand, no player/demo controls, safe market back link, signup/reset continuity, original sign-in and selected listing retained.');
 
 const marketHelpers=mods.at(-1);
-for(const target of ['https://evil.test/app/tauschboerse','//evil.test/app/tauschboerse','/app/tauschboerse/../../manager','/manager']){const c=marketHelpers.marketAuthContext('?context=vereinsmarkt&next='+encodeURIComponent(target));assert.ok(c.next.startsWith('/app/tauschboerse?club='));}
+for(const target of ['https://evil.test/app/tauschboerse','//evil.test/app/tauschboerse','/app/tauschboerse/../../manager','/manager']){const c=marketHelpers.marketAuthContext('?context=vereinsmarkt&next='+encodeURIComponent(target));assert.ok(c.next.startsWith('/marktplatz/'+marketClub+'?view=member&club='));}
 assert.equal(marketHelpers.marketAuthContext('?next=/manager'),null);
 console.log('PASS: marketplace presentation helper rejects external, traversal and unrelated return paths');
+
+const migrated=marketHelpers.marketAuthContext('?context=vereinsmarkt&next='+encodeURIComponent('/app/tauschboerse?club='+marketClub+'&listing=fixture'));assert.equal(new URL(migrated.next,'https://test.invalid').pathname,'/marktplatz/'+marketClub);assert.equal(new URL(migrated.next,'https://test.invalid').searchParams.get('listing'),'fixture');
+
+globalThis.__uscAuthUser={id:'existing-market-user'};await mount(login.LoginPage,'/login?'+marketQuery);assert.equal(tree.root.findByType('output').children.join(''),marketNext);await act(async()=>tree.unmount());globalThis.__uscAuthUser=null;console.log('PASS: existing marketplace session returns directly to public shell');

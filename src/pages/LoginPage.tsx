@@ -115,7 +115,7 @@ export const LoginPage: React.FC = () => {
     : null;
   const clubReturnTo = uscAuthTarget(location.pathname,location.search);
   const isUscLogin = Boolean(clubReturnTo);
-  const nextRaw = clubReturnTo ?? searchParams.get('next') ?? '';
+  const nextRaw = market?.next ?? clubReturnTo ?? searchParams.get('next') ?? '';
   const nextFromQuery = isSafeAuthRedirectPath(nextRaw) ? nextRaw : null;
   const orphanT = searchParams.get('t');
   const inviteConfirmedFlag =
@@ -217,6 +217,8 @@ export const LoginPage: React.FC = () => {
       cancelled = true;
     };
   }, [authLoading, user, isParentInviteFlow, nextSafe, safeFromState, navigate]);
+
+  useEffect(()=>{if(market&&user&&!authLoading&&!isParentInviteFlow)navigate(market.next,{replace:true});},[market?.next,user,authLoading,isParentInviteFlow,navigate]);
 
   useEffect(()=>{if(isUscLogin && user && !authLoading && !isParentInviteFlow)navigate(clubReturnTo!,{replace:true});},[isUscLogin,user,authLoading,isParentInviteFlow,clubReturnTo,navigate]);
 

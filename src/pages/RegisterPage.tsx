@@ -130,7 +130,7 @@ export const RegisterPage: React.FC = () => {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
-  const nextRaw = clubReturnTo ?? searchParams.get('next') ?? '';
+  const nextRaw = market?.next ?? clubReturnTo ?? searchParams.get('next') ?? '';
   const nextSafe = isSafeAuthRedirectPath(nextRaw) ? nextRaw : null;
   const pendingInvitePath = resolvePendingParentInvitePath();
   const emailRedirectPath = pendingInvitePath || nextSafe || AUTH_EMAIL_CONFIRM_PATH;
