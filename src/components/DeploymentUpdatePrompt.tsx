@@ -1,3 +1,5 @@
+import {useLocation} from 'react-router-dom';
+import {isMarketThemeRoute} from '../features/club/marketTheme';
 import React, { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import {
@@ -10,6 +12,8 @@ import appIcon from '../assets/branding/spielzeitapp-icon.png';
 type DeploymentUpdateDetail = { entry?: string };
 
 export const DeploymentUpdatePrompt: React.FC = () => {
+  const {pathname,search}=useLocation();
+  const market=isMarketThemeRoute(pathname,search);
   const [entry, setEntry] = useState<string | null>(() => getPendingDeploymentEntry());
 
   useEffect(() => {
@@ -36,7 +40,7 @@ export const DeploymentUpdatePrompt: React.FC = () => {
         <div className="pointer-events-none absolute left-1/2 top-0 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500/20 blur-3xl" />
 
         <div className="relative mx-auto flex h-[96px] w-[96px] items-center justify-center">
-          <img src={appIcon} alt="" className="h-[92px] w-[92px] object-contain drop-shadow-[0_12px_26px_rgba(0,0,0,0.42)]" aria-hidden />
+          <img src={market?'/vereinsmarkt/icon-180.png':appIcon} alt="" className="h-[92px] w-[92px] object-contain drop-shadow-[0_12px_26px_rgba(0,0,0,0.42)]" aria-hidden />
         </div>
 
         <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.24em] text-red-300">
@@ -47,7 +51,7 @@ export const DeploymentUpdatePrompt: React.FC = () => {
         </h2>
 
         <p id="deployment-update-description" className="mx-auto mt-3 max-w-[18rem] text-[14px] leading-relaxed text-white/68">
-          Wir haben die SpielzeitApp verbessert. Aktualisiere jetzt – deine Daten und Einstellungen bleiben erhalten.
+          Wir haben {market?'den Vereinsmarkt':'die SpielzeitApp'} verbessert. Aktualisiere jetzt – deine Daten und Einstellungen bleiben erhalten.
         </p>
 
         <button
