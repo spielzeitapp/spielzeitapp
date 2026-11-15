@@ -55,9 +55,9 @@ export function LeibchenJersey({
   assignFlash = false,
   className = '',
 }: LeibchenJerseyProps): React.ReactElement {
-  const nameDisplay = lastName.trim().toUpperCase();
+  const nameDisplay = String(lastName ?? '').trim().toUpperCase();
   const numDisplay = number === null || number === undefined || number === '' ? '–' : String(number);
-  const posDisplay = position.trim().toUpperCase();
+  const posDisplay = String(position ?? '').trim().toUpperCase();
 
   /** ~35 % größer als vorher: Fokus auf dem Jersey */
   const sizeClass =

@@ -324,7 +324,7 @@ export function TournamentLineupTemplatePanel({
               onPointerDown={e => startDrag(e,p.id)} onPointerMove={moveDrag} onPointerUp={finishDrag}
               onPointerCancel={() => { drag.current=null; }}
               onClick={() => setSelectedPlayer(selectedPlayer === p.id ? null : p.id)}>
-              <LeibchenJersey lastName={p.last_name || p.display_name} number={p.jersey_number}
+              <LeibchenJersey lastName={p.last_name || p.display_name || 'Spieler'} number={p.jersey_number} position=""
                 variant="field" size="compact" showBackPrint={false} pitchStyleBack selected={selectedPlayer === p.id}/>
               <span className="mt-1 text-center text-xs font-bold text-white">{p.last_name || p.display_name}</span>
             </button>)}
