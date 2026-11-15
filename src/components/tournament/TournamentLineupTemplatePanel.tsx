@@ -213,7 +213,7 @@ export function TournamentLineupTemplatePanel({
   if (loading)
     return <p className="text-[16px] text-white/65">Lade Grundaufstellung…</p>;
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 w-full space-y-4">
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-[20px] font-bold text-white">
           {useBlocks ? "Grundaufstellung · Block A / B" : "Normale Aufstellung"}
@@ -309,31 +309,33 @@ export function TournamentLineupTemplatePanel({
           }}
         />
       </div>
-      <section data-tournament-bench className="mt-3 border-t border-white/10 pt-3" aria-label="Ersatzbank">
+      <section data-tournament-bench className="mt-3 min-w-0 w-full max-w-full border-t border-white/10 pt-3" aria-label="Ersatzbank">
         <div className="mb-2 flex items-center justify-between gap-2">
           <h4 className="text-sm font-bold uppercase tracking-wider text-white/65">Ersatzbank</h4>
           {selectedPlayer && Object.values(current.slots).includes(selectedPlayer) ? <button type="button"
             className="min-h-11 rounded-full border border-white/20 px-3 text-sm font-bold text-white"
             disabled={!canEdit || busy} onClick={() => movePlayer(selectedPlayer,null)}>Auf die Bank</button> : null}
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-3">
+        <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain pb-3 [-webkit-overflow-scrolling:touch]" style={{touchAction:'pan-x'}} aria-label="Ersatzbank seitlich scrollen" tabIndex={0}>
+        <div className="flex w-max min-w-full flex-nowrap gap-2">
           {selectedPlayers.filter(p => !Object.values(current.slots).includes(p.id)).map(p =>
             <button key={p.id} type="button" disabled={!canEdit || busy}
               aria-label={`${p.display_name} auswählen`} aria-pressed={selectedPlayer === p.id}
-              className={matchdayBenchTileClass(selectedPlayer === p.id)} style={{touchAction:'none'}}
-              onPointerDown={e => startDrag(e,p.id)} onPointerMove={moveDrag} onPointerUp={finishDrag}
+              className={`${matchdayBenchTileClass(selectedPlayer === p.id)} !w-[88px] !min-w-[88px] !shrink-0`} style={{touchAction:'pan-x'}}
+              onPointerDown={e => { if (e.pointerType !== 'touch') startDrag(e,p.id); }} onPointerMove={moveDrag} onPointerUp={finishDrag}
               onPointerCancel={() => { drag.current=null; }}
               onClick={() => setSelectedPlayer(selectedPlayer === p.id ? null : p.id)}>
               <LeibchenJersey lastName={p.last_name || p.display_name || 'Spieler'} number={p.jersey_number} position=""
                 variant="field" size="compact" showBackPrint={false} pitchStyleBack selected={selectedPlayer === p.id}/>
-              <span className="mt-1 text-center text-xs font-bold text-white">{p.last_name || p.display_name}</span>
+              <span className="mt-1 block w-full truncate text-center text-xs font-bold text-white">{p.last_name || p.display_name}</span>
             </button>)}
           {!selectedPlayers.some(p => !Object.values(current.slots).includes(p.id)) ? <p className="py-3 text-sm text-white/50">Alle Spieler sind auf dem Feld.</p> : null}
+        </div>
         </div>
       </section>
       </div>
       {canEdit ? (
-        <>
+        <div className={`grid gap-2 ${useBlocks ? 'grid-cols-3' : 'grid-cols-1'}`} aria-label="Blockaktionen">
           {useBlocks ? <><button
             disabled={busy}
             onClick={() => {
@@ -341,9 +343,9 @@ export function TournamentLineupTemplatePanel({
               next.startVariant = block;
               edit(next);
             }}
-            className={`${dsSecondaryCtaClass()} w-full !text-[16px]`}
+            className={`${dsSecondaryCtaClass()} w-full !min-h-[64px] !rounded-xl !px-2 !text-[14px] !leading-snug`}
           >
-            Block {block === 1 ? "A" : "B"} als Startblock
+            Startblock {block === 1 ? "A" : "B"}
           </button>
           <button
             disabled={busy}
@@ -352,22 +354,22 @@ export function TournamentLineupTemplatePanel({
               next.variants[block === 1 ? 2 : 1] = structuredClone(current);
               edit(next);
             }}
-            className={`${dsSecondaryCtaClass()} w-full !text-[16px]`}
+            className={`${dsSecondaryCtaClass()} w-full !min-h-[64px] !rounded-xl !px-2 !text-[14px] !leading-snug`}
           >
-            Block {block === 1 ? "A nach B" : "B nach A"} kopieren
+            {block === 1 ? "A → B" : "B → A"} kopieren
           </button></> : null}
           <button
             disabled={busy || !squad.length}
             onClick={() => void save()}
-            className={`${dsPrimaryCtaClass()} min-h-12 w-full !text-[17px]`}
+            className={`${dsPrimaryCtaClass()} w-full !min-h-[64px] !rounded-xl !px-2 !text-[14px] !leading-snug`}
           >
             {busy
-              ? "Wird gespeichert…"
+              ? "Speichert…"
               : tournamentTemplateReady(draft, squad, unavailable)
-                ? "Grundaufstellung speichern"
+                ? "Speichern"
                 : "Entwurf speichern"}
           </button>
-        </>
+        </div>
       ) : null}
       {message ? (
         <p role="status" className="text-[16px] text-emerald-300">
