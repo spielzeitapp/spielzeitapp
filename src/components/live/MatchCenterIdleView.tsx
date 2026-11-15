@@ -71,7 +71,6 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
   const [activeLiveContext, setActiveLiveContext] = useState<ActiveTournamentLiveContext | null>(
     null,
   );
-  const [activeLiveLoading, setActiveLiveLoading] = useState(false);
   const [planSyncBusy, setPlanSyncBusy] = useState(false);
   const [tournamentExtrasKey, setTournamentExtrasKey] = useState(0);
 
@@ -103,12 +102,10 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
   useEffect(() => {
     if (!teamSeasonId || eventsLoading) {
       setActiveLiveContext(null);
-      setActiveLiveLoading(false);
       return;
     }
 
     let cancelled = false;
-    setActiveLiveLoading(true);
 
     void fetchActiveTournamentLiveContext({
       teamSeasonId,
@@ -119,13 +116,11 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
       .then((ctx) => {
         if (!cancelled) {
           setActiveLiveContext(ctx);
-          setActiveLiveLoading(false);
         }
       })
       .catch(() => {
         if (!cancelled) {
           setActiveLiveContext(null);
-          setActiveLiveLoading(false);
         }
       });
 
@@ -236,7 +231,7 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
     ? 'Sobald dein Team live spielt, erscheint der Liveticker hier.'
     : 'Sobald ein Spiel auf LIVE steht, erscheint der Liveticker hier.';
 
-  if (eventsLoading || activeLiveLoading) {
+  if (eventsLoading) {
     return (
       <LivePremiumShell centerContent matchCenter>
         <p className="text-sm text-white/60">Lade Match Center…</p>

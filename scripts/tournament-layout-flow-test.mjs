@@ -35,6 +35,14 @@ export {React,TestRenderer,act,MemoryRouter,Routes,Route,PublicTeamTournamentPag
  await act(async()=>{await action().props.onClick()});assert.equal(applied,0,'preview cannot perform substitutions');
  await act(async()=>{await action().props.onClick()});assert.equal(applied,1,'explicit confirmation applies the block');
  await act(async()=>view.unmount());
+ await act(async()=>{view=TestRenderer.create(render({...props,current:target,seconds:180}))});
+ const early=view.root.findAllByType('button').find(b=>b.props.children==='Block A einsetzen');assert(early&&!early.props.disabled,'actual B lineup must offer A immediately at three minutes');
+ const three=view.root.findAllByType('button').find(b=>Array.isArray(b.props.children)&&b.props.children[0]===3);await act(async()=>three.props.onClick());assert(view.root.findByProps({role:'timer'}).children.join('').includes('fällig'),'three-minute preset uses match clock');
+ await act(async()=>early.props.onClick());assert.equal(applied,1,'early swap still needs review');
+ await act(async()=>view.root.findAllByType('button').find(b=>b.props.children==='Wechsel bestätigen').props.onClick());assert.equal(applied,2,'early swap is allowed before six-minute default');
+ await act(async()=>view.unmount());
+ globalThis.blocks={...blocks,variants:{1:blocks.variants[1],2:blocks.variants[1]}};
+ await act(async()=>{view=TestRenderer.create(render(props))});assert(JSON.stringify(view.toJSON()).includes('A / B identisch'),'identical plans are explained accurately');assert(view.root.findAllByType('button').find(b=>b.props.children==='Block B einsetzen').props.disabled,'identical blocks must not write substitutions');await act(async()=>view.unmount());
  globalThis.window={...window,addEventListener(){},removeEventListener(){},setInterval,clearInterval};document.addEventListener=()=>{};document.removeEventListener=()=>{};
  const page={publicId:'test',tournamentName:'Hallencup',dateLabel:'27. Nov.',teamName:'Rohrbach',ownParticipantName:'Rohrbach',ageGroupLabel:'U12',tournamentStatusLabel:'Läuft',allMatches:matches.map(m=>({...m,ourTeamName:'Rohrbach',opponentName:m.id,kickoffTimeLabel:m.kickoffAt.slice(11,16),scoreOur:m.status==='finished'?1:null,scoreOpp:m.status==='finished'?0:null})),scorers:[],schedule:[],fanRoster:[],upcomingMatches:[],results:[]};
  globalThis.fetch=async()=>({ok:true,json:async()=>({ok:true,page})});

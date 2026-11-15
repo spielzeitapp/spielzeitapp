@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useSession } from '../auth/useSession';
-import { isTournamentLiveMatchForTeam } from '../lib/matchCenterTournamentLive';
 import { LivePageHeader, LivePremiumShell, LiveScheduleCtaLink } from '../components/live/LivePremiumShell';
 import { MatchCenterIdleView } from '../components/live/MatchCenterIdleView';
 import { LiveMatchScreen } from './live/LiveMatchScreen';
@@ -35,6 +34,7 @@ export const LivePage: React.FC = () => {
   const matchIdParam =
     searchParams.get('matchId')?.trim() || idFromRoute?.trim() || null;
 
+  const loadedScope = useRef<string | null>(null);
   const [loading, setLoading] = useState(!matchIdParam);
   const [error, setError] = useState<string | null>(null);
   const [liveMatches, setLiveMatches] = useState<LiveMatchRow[] | null>(null);
@@ -104,10 +104,13 @@ export const LivePage: React.FC = () => {
       return;
     }
     let cancelled = false;
+    const scope = teamSeasonId ?? "all";
+    const initial = loadedScope.current !== scope;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 7000);
     (async () => {
-      setLoading(true);
+      if (initial) { setLoading(true); setTournamentCheckDone(false); }
       setError(null);
-      setTournamentCheckDone(false);
 
       let query = supabase
         .from('matches')
@@ -119,12 +122,12 @@ export const LivePage: React.FC = () => {
         query = query.eq('team_season_id', teamSeasonId.trim());
       }
 
-      const { data, error: err } = await query.returns<LiveMatchRow[]>();
+      const { data, error: err } = await query.abortSignal(controller.signal).returns<LiveMatchRow[]>();
+      window.clearTimeout(timeout);
 
       if (cancelled) return;
       if (err) {
-        setError('Fehler beim Laden der Live-Spiele.');
-        setLiveMatches([]);
+        if (initial) { setError('Fehler beim Laden der Live-Spiele.'); setLiveMatches([]); }
         setTournamentLiveMatchId(null);
         setTournamentCheckDone(true);
         setLoading(false);
@@ -134,15 +137,8 @@ export const LivePage: React.FC = () => {
       const rows = data ?? [];
       setLiveMatches(rows);
 
-      if (rows.length === 1 && teamSeasonId?.trim()) {
-        const onlyId = String(rows[0]!.id);
-        const isTournament = await isTournamentLiveMatchForTeam(onlyId, teamSeasonId.trim());
-        if (!cancelled) {
-          setTournamentLiveMatchId(isTournament ? onlyId : null);
-        }
-      } else {
-        setTournamentLiveMatchId(null);
-      }
+      loadedScope.current = scope;
+      setTournamentLiveMatchId(null);
 
       if (!cancelled) {
         setTournamentCheckDone(true);
@@ -150,14 +146,15 @@ export const LivePage: React.FC = () => {
       }
     })().catch(() => {
       if (cancelled) return;
-      setError('Fehler beim Laden der Live-Spiele.');
-      setLiveMatches([]);
+      if (initial) { setError('Fehler beim Laden der Live-Spiele.'); setLiveMatches([]); }
       setTournamentLiveMatchId(null);
       setTournamentCheckDone(true);
       setLoading(false);
     });
     return () => {
       cancelled = true;
+      window.clearTimeout(timeout);
+      controller.abort();
     };
   }, [matchIdParam, teamSeasonId, isDemo, liveProbeTick]);
 
