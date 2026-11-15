@@ -73,6 +73,9 @@ try {
   if((await db.query('select * from exchange_saved_listings')).rows.length)throw Error('Another user saw saved items');
   await db.exec("reset role; update exchange_listings set is_public=false; set role authenticated; select set_config('request.jwt.claim.sub','40000000-0000-0000-0000-000000000002',false); delete from exchange_saved_listings");
   await deny(save);
+  await db.exec("reset role; insert into memberships(user_id,team_season_id,role) values('40000000-0000-0000-0000-000000000002','30000000-0000-0000-0000-000000000001','parent'); set role authenticated");await db.exec(save);
+  if((await db.query('select * from exchange_saved_listings')).rows.length!==1)throw Error('Authorized internal save failed');
+  await db.exec("reset role; delete from memberships; update exchange_listings set is_public=false; set role authenticated; delete from exchange_saved_listings");await deny(save);
   await db.exec("reset role; update exchange_listings set is_public=true,status='Vergeben'; set role authenticated");await deny(save);
   await db.exec("reset role; update exchange_listings set status='Verfügbar'; set role authenticated");await db.exec(save);
   await db.exec("reset role; delete from exchange_listings");
