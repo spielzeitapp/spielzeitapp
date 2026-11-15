@@ -99,3 +99,8 @@ TEST app header adds a circular market-logo link for authenticated, non-demo app
 - HTML-Bootstrap liest die gespeicherte Einstellung vor dem ersten Splash. Route-Synchronisation entfernt Markt-Thema und stellt Browser-Farbe beim Wechsel zurück zur App wieder her. Ohne beschreibbaren Browser-Speicher funktioniert der Schalter für den Besuch weiter.
 - `market-theme-test.mjs`: Umschalten, Speicherung, Wiederaufnahme beim Zurückkehren, Auth-Kontinuität, anderer Tab, gesperrter Speicher und Aufräumen der Dokument-/Browser-Farbe geprüft. Public-UI, Auth-Kontinuität, Editor und Installationsmetadaten erneut geprüft. Native iOS-Anzeige nicht physisch getestet.
 - Kein SQL, keine LIVE-Veröffentlichung. Kleine Textkorrektur: ein Treffer heißt „1 Angebot“.
+
+## TEST 15.11.2026: Vereinsmarkt-Navigation an LIVE angleichen
+- LIVE `main`: BottomNav, useViewportRecovery, standaloneViewport und Layout gelesen. Viewport-Recovery ist bereits identisch; übernommen wird die begrenzte LIVE-Abstandsformel statt 10px plus vollem iOS-Safe-Area-Wert.
+- Vereinsmarkt-Leiste bleibt im eigenen App-Rahmen unten verankert; im erkannten iOS-Vollbild nutzt der Rahmen explizit die korrigierte Bildschirmhöhe. Scroll-Endabstand orientiert sich an Leistenhöhe plus begrenztem Abstand, damit Footer/Links erreichbar bleiben.
+- Regression: normale und veraltete Safe-Area-Werte (0/20/34/80/120), Vollbild-/Resume-/Tastatur-/Zoom-Policy. WebKit-Geräteprüfung hier nicht ausführbar (Browser-Binary fehlt); keine physische iPhone-Prüfung behauptet. LIVE und SpielzeitApp-Nav unverändert.
