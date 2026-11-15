@@ -8,7 +8,7 @@ let navigate;function Controls(){navigate=useNavigate();return React.createEleme
 let app;const route='/marktplatz/3db6fce2-a4c1-44a5-a333-19d1d4d62e6a';
 await act(async()=>{app=create(React.createElement(MemoryRouter,{initialEntries:[route]},React.createElement(Controls)))});
 assert.equal(attributes.get('data-market-theme'),'dark');assert.ok(attributes.has('data-market-shell'));assert.equal(app.root.findByType('button').props['aria-label'],'Tagmodus aktivieren');
-await act(async()=>app.root.findByType('button').props.onClick());assert.equal(saved.get(MARKET_THEME_KEY),'light');assert.equal(attributes.get('data-market-theme'),'light');assert.equal(meta.get('content'),'#f6f5f7');assert.equal(apple.get('content'),'default');assert.equal(app.root.findByType('button').props['aria-label'],'Nachtmodus aktivieren');
+await act(async()=>app.root.findByType('button').props.onClick());assert.equal(saved.get(MARKET_THEME_KEY),'light');assert.equal(attributes.get('data-market-theme'),'light');assert.equal(meta.get('content'),'#ffffff');assert.equal(apple.get('content'),'default');assert.equal(app.root.findByType('button').props['aria-label'],'Nachtmodus aktivieren');
 await act(async()=>navigate('/login?context=vereinsmarkt'));assert.equal(attributes.get('data-market-theme'),'light');
 await act(async()=>navigate('/app/home'));assert.ok(!attributes.has('data-market-theme'));assert.ok(!attributes.has('data-market-shell'));assert.equal(meta.get('content'),'#08080b');assert.equal(apple.get('content'),'black-translucent');assert.equal(saved.get(MARKET_THEME_KEY),'light');
 await act(async()=>navigate(route));assert.equal(attributes.get('data-market-theme'),'light');

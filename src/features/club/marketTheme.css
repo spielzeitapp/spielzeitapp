@@ -4,8 +4,8 @@
 .market-auth-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px}.market-auth-top .market-auth-back{margin-bottom:0;flex:1}.market-auth-top .market-theme-toggle{margin-top:-3px}
 .public-exchange .public-market-header{gap:10px}.public-exchange .public-market-header>.market-theme-toggle{flex:none}
 @media(max-width:360px){.public-exchange .public-market-header{padding-inline:12px;gap:7px}.public-exchange .public-market-header>img{width:36px;height:36px}.public-exchange .public-market-header strong{font-size:16px}.public-exchange .public-market-header>a:not(.public-market-app-switch){padding-inline:10px;font-size:12px}.public-exchange .public-market-header>.market-theme-toggle,.public-exchange .public-market-header>.public-market-account,.public-exchange .public-market-header>.public-market-app-switch{width:40px;height:40px;min-width:40px;min-height:40px}}
-html[data-market-theme=light]{color-scheme:light;background:#f6f5f7}
-html[data-market-theme=light] body{background:#f6f5f7}
+html[data-market-theme=light]{color-scheme:light;background:#fff}
+html[data-market-theme=light] body{background:#fff}
 html[data-market-theme=light] .public-exchange{background:radial-gradient(ellipse at 85% 0,#f6e9ed,transparent 48%),#f6f5f7;color:#211d25;--exchange-muted:#625b68;--club-primary-rgb:143 28 53;--club-on-primary:#fff;--club-accent-text-rgb:166 31 58;--accent:#b11f3d}
 html[data-market-theme=light] .public-exchange .public-market-header{background:#fff;border-color:#ddd7df;box-shadow:0 3px 16px #2b10200a}
 html[data-market-theme=light] .public-market-header small{color:#625b68}
