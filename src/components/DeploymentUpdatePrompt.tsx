@@ -1,5 +1,5 @@
 import {useLocation} from 'react-router-dom';
-import {isMarketThemeRoute} from '../features/club/marketTheme';
+import {isMarketThemeRoute,useMarketTheme} from '../features/club/marketTheme';
 import React, { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import {
@@ -14,6 +14,8 @@ type DeploymentUpdateDetail = { entry?: string };
 export const DeploymentUpdatePrompt: React.FC = () => {
   const {pathname,search}=useLocation();
   const market=isMarketThemeRoute(pathname,search);
+  const {theme}=useMarketTheme();
+  const light=market&&theme==='light';
   const [entry, setEntry] = useState<string | null>(() => getPendingDeploymentEntry());
 
   useEffect(() => {
@@ -30,12 +32,13 @@ export const DeploymentUpdatePrompt: React.FC = () => {
   return (
     <div
       className="fixed inset-0 z-[1000] flex items-center justify-center overflow-y-auto bg-[radial-gradient(circle_at_50%_42%,rgba(120,22,34,0.24),rgba(0,0,0,0.88)_48%,rgba(0,0,0,0.95)_100%)] px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] backdrop-blur-md"
+      style={light?{background:"rgba(238,233,239,.82)"}:undefined}
       role="dialog"
       aria-modal="true"
       aria-labelledby="deployment-update-title"
       aria-describedby="deployment-update-description"
     >
-      <div className="relative w-full max-w-[22rem] overflow-hidden rounded-[30px] border border-red-400/30 bg-[linear-gradient(150deg,rgba(43,12,18,0.98),rgba(12,10,12,0.99)_64%)] px-5 pb-5 pt-6 text-center text-white shadow-[0_28px_80px_rgba(0,0,0,0.78),0_0_52px_rgba(220,38,38,0.2)]">
+      <div style={light?{background:"#fff",color:"#211d25",borderColor:"#ddd5df",boxShadow:"0 24px 70px #29132133"}:undefined} className="relative w-full max-w-[22rem] overflow-hidden rounded-[30px] border border-red-400/30 bg-[linear-gradient(150deg,rgba(43,12,18,0.98),rgba(12,10,12,0.99)_64%)] px-5 pb-5 pt-6 text-center text-white shadow-[0_28px_80px_rgba(0,0,0,0.78),0_0_52px_rgba(220,38,38,0.2)]">
         <div className="pointer-events-none absolute inset-x-7 top-0 h-px bg-gradient-to-r from-transparent via-red-300/90 to-transparent" />
         <div className="pointer-events-none absolute left-1/2 top-0 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500/20 blur-3xl" />
 
@@ -43,14 +46,14 @@ export const DeploymentUpdatePrompt: React.FC = () => {
           <img src={market?'/vereinsmarkt/icon-180.png':appIcon} alt="" className="h-[92px] w-[92px] object-contain drop-shadow-[0_12px_26px_rgba(0,0,0,0.42)]" aria-hidden />
         </div>
 
-        <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.24em] text-red-300">
+        <p style={light?{color:"#ad2442"}:undefined} className="mt-3 text-[10px] font-bold uppercase tracking-[0.24em] text-red-300">
           Update bereit
         </p>
         <h2 id="deployment-update-title" className="mt-1.5 text-[24px] font-black leading-tight tracking-tight">
           Neue Version verfügbar
         </h2>
 
-        <p id="deployment-update-description" className="mx-auto mt-3 max-w-[18rem] text-[14px] leading-relaxed text-white/68">
+        <p style={light?{color:"#625b68"}:undefined} id="deployment-update-description" className="mx-auto mt-3 max-w-[18rem] text-[14px] leading-relaxed text-white/68">
           Wir haben {market?'den Vereinsmarkt':'die SpielzeitApp'} verbessert. Aktualisiere jetzt – deine Daten und Einstellungen bleiben erhalten.
         </p>
 
@@ -63,7 +66,7 @@ export const DeploymentUpdatePrompt: React.FC = () => {
           App aktualisieren
         </button>
 
-        <p className="mt-3 text-[11px] font-medium text-white/42">In wenigen Sekunden erledigt.</p>
+        <p style={light?{color:"#625b68"}:undefined} className="mt-3 text-[11px] font-medium text-white/42">In wenigen Sekunden erledigt.</p>
       </div>
     </div>
   );
