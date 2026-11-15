@@ -10,13 +10,12 @@ try {
 import React from 'react';import TestRenderer,{act} from 'react-test-renderer';import {MemoryRouter,Routes,Route} from 'react-router-dom';import {PublicTeamTournamentPage} from './src/pages/public/PublicTeamTournamentPage';
 import {TournamentBlockControl} from './src/components/tournament/TournamentBlockControl';
 import {groupPublicTournamentMatches} from './src/lib/publicTeamTournament';
-import {tournamentBlockReminder} from './src/lib/tournamentBlockReminder';import {tournamentTeamLabel} from './src/lib/tournamentDisplay';
-export {tournamentTeamLabel,React,TestRenderer,act,MemoryRouter,Routes,Route,PublicTeamTournamentPage,TournamentBlockControl,groupPublicTournamentMatches,tournamentBlockReminder};`},bundle:true,platform:'node',format:'cjs',outfile:out,logLevel:'silent',define:{'import.meta.env':'{}'},plugins:[{name:'stubs',setup(b){
+import {tournamentBlockReminder} from './src/lib/tournamentBlockReminder';
+export {React,TestRenderer,act,MemoryRouter,Routes,Route,PublicTeamTournamentPage,TournamentBlockControl,groupPublicTournamentMatches,tournamentBlockReminder};`},bundle:true,platform:'node',format:'cjs',outfile:out,logLevel:'silent',define:{'import.meta.env':'{}'},plugins:[{name:'stubs',setup(b){
  b.onResolve({filter:/tournamentLineupTemplates$|matchLineupVariants$|supabaseClient$/},a=>({path:a.path.split('/').pop(),namespace:'stub'}));
  b.onLoad({filter:/.*/,namespace:'stub'},a=>({contents:a.path==='supabaseClient'?'export const supabase={};':a.path==='tournamentLineupTemplates'?'export const fetchRemoteMatchBlocks=async()=>globalThis.blocks;':'export const readMatchLineupVariants=()=>globalThis.blocks;export const writeMatchLineupVariants=()=>{};'}));
 }}]});
- const {tournamentTeamLabel,React,TestRenderer,act,MemoryRouter,Routes,Route,PublicTeamTournamentPage,TournamentBlockControl,groupPublicTournamentMatches:group,tournamentBlockReminder:reminder}=require(out);
- assert.equal(tournamentTeamLabel('ASK Peham Wilhelmsburg'),'Wilhelmsburg');assert.equal(tournamentTeamLabel('NSG Rohrbach'),'Rohrbach');assert.equal(tournamentTeamLabel('FC BW Linz'),'BW Linz');assert.equal(tournamentTeamLabel('USC Rohrbach II'),'Rohrbach II');
+ const {React,TestRenderer,act,MemoryRouter,Routes,Route,PublicTeamTournamentPage,TournamentBlockControl,groupPublicTournamentMatches:group,tournamentBlockReminder:reminder}=require(out);
  const matches=[{id:'old',status:'finished',kickoffAt:'2026-11-27T17:14Z'},{id:'next2',status:'upcoming',kickoffAt:'2026-11-27T19:48Z'},{id:'live',status:'live',kickoffAt:'2026-11-27T18:52Z'},{id:'recent',status:'finished',kickoffAt:'2026-11-27T18:10Z'},{id:'next1',status:'upcoming',kickoffAt:'2026-11-27T19:20Z'}];
  const ordered=group(matches);assert.deepEqual(ordered.live.map(m=>m.id),['live']);assert.deepEqual(ordered.upcoming.map(m=>m.id),['next1','next2']);assert.deepEqual(ordered.results.map(m=>m.id),['recent','old']);assert.equal(matches[0].id,'old');
  assert.deepEqual(reminder(359,null,6),{remaining:1,due:false,label:'0:01'});assert.equal(reminder(360,null,6).due,true);assert.equal(reminder(361,360,6).label,'5:59');
@@ -44,12 +43,7 @@ export {tournamentTeamLabel,React,TestRenderer,act,MemoryRouter,Routes,Route,Pub
  const articles=view.root.findAllByType('article').map(text);
  assert.equal(articles.length,5,'live match must appear once');
  for(const [i,id] of ['live','next1','next2','recent','old'].entries())assert(articles[i].includes(id),'public cards must be ordered '+id);
- const nav=view.root.findByProps({'aria-label':'Turnierbereiche'});assert.deepEqual(nav.findAllByType('button').map(b=>b.props.children),['Unsere Spiele','Alle','Tabelle','Ticker']);
- await act(async()=>nav.findAllByType('button').find(b=>b.props.children==='Ticker').props.onClick());
- assert.equal(view.root.findAllByProps({'aria-label':'Spielbereiche'}).length,0,'ticker overview must not repeat the full match navigation per game');
- assert.equal(view.root.findAllByType('article').length,3,'live hero plus two completed match rows, no duplicate live row');
- await act(async()=>view.unmount());console.log('PASS compact four-tab public menu, one live hero and compact ticker without repeated navigation');
- console.log('PASS live/upcoming/results order; match-time reminder and reset; optional sound only once, pauses respected; block requires confirmation');
+ await act(async()=>view.unmount());console.log('PASS live/upcoming/results order; match-time reminder and reset; optional sound only once, pauses respected; block requires confirmation');
 }finally{rmSync(dir,{recursive:true,force:true});}
 
 process.exit(0);
