@@ -50,7 +50,7 @@ export function TournamentClubLogo({
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const importedLogos = useContext(TournamentLogoContext);
   const label = safeText(name) || 'Team';
-  const resolvedLogoUrl = logoUrl || importedLogos[label];
+  const resolvedLogoUrl = logoUrl || (hasKnownClubLogo(label) ? undefined : importedLogos[label]);
   const known = hasKnownClubLogo(label, { logoUrl: resolvedLogoUrl });
   const src = known ? getClubLogo(label, { logoUrl: resolvedLogoUrl }) : null;
   const showInitials = !known || failedSrc === src || !src;

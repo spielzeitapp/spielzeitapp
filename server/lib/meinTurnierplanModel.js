@@ -44,7 +44,7 @@ export function parseMeinTurnierplanModel(json) {
   if (!teams.length) return null;
   const groupStandings = json.groups.map((g, i) => ({
     groupLabel: label(i),
-    rows: (json.groupRankTables?.[i] ?? [])
+    rows: (json.groupRankTables?.[i]?.length ? json.groupRankTables[i] : (json.groupParticipants?.[i] ?? []).map(participant => ({participant,rank:0})))
       .map((r) => ({
         teamName: name(r.participant),
         rank: num(r.rank),

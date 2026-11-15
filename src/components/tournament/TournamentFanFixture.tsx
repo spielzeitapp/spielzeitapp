@@ -1,9 +1,10 @@
+import { displayLogoUrl } from '../../lib/logoPreparation';
 import React from 'react';
 import { getClubLogo, hasKnownClubLogo, PLACEHOLDER_LOGO } from '../../lib/teamLogos';
 const key=(name:string)=>name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\bu\d+\b|\b(fc|sv|sc|spg|uhg|styx|i|ii|iii)\b/g,'').replace(/[^a-z0-9]/g,'');
 export function FanTeamLogo({name,logos={},ownName,ownLogo,small=false}:{name:string;logos?:Record<string,string>;ownName?:string|null;ownLogo?:string|null;small?:boolean}) {
  const catalog=Object.entries(logos).find(([n])=>key(n)===key(name))?.[1];
- const src=name===ownName&&ownLogo?ownLogo:catalog||(hasKnownClubLogo(name)?getClubLogo(name):PLACEHOLDER_LOGO);
+ const src=displayLogoUrl(name===ownName&&ownLogo?ownLogo:hasKnownClubLogo(name)?getClubLogo(name):catalog||PLACEHOLDER_LOGO);
  return <img src={src} alt="" className={`${small?'h-7 w-7':'h-16 w-16 sm:h-20 sm:w-20'} shrink-0 object-contain`} onError={e=>{if(!e.currentTarget.src.endsWith(PLACEHOLDER_LOGO))e.currentTarget.src=PLACEHOLDER_LOGO;}}/>;
 }
 export function TournamentFanFixture({home,away,homeGoals,awayGoals,time,phase,logos,ownName,ownLogo,scorers=[],status}:{home:string;away:string;homeGoals:number|null;awayGoals:number|null;time:string;phase:string;logos?:Record<string,string>;ownName?:string|null;ownLogo?:string|null;scorers?:Array<{name:string;goals:number;example?:boolean}>;status?:string}) {

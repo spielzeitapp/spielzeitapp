@@ -1,3 +1,4 @@
+import { resolveTournamentOwnTeam } from '../../server/lib/tournamentOwnTeam.js';
 import { parseMeinTurnierplanModel, inferMeinTurnierplanPhase } from '../../server/lib/meinTurnierplanModel.js';
 import { isTeamAliasMatch } from './teamSeasonAliasMatch';
 import { safeOptionalText, safeText } from './safeText';
@@ -2732,7 +2733,7 @@ export async function importTournamentPlanFromAnalysis(params: {
   const { supabase: centralDb } = await import('./supabaseClient');
   const { data: centralEvent } = await centralDb.from('events').select('official_tournament_url').eq('id', params.tournamentEventId).maybeSingle();
   if (centralEvent?.official_tournament_url) {
-    const { error } = await centralDb.rpc('apply_tournament_plan', { p_event: params.tournamentEventId, p_url: centralEvent.official_tournament_url, p_analysis: params.analysis, p_own_team: null });
+    const { error } = await centralDb.rpc('apply_tournament_plan', { p_event: params.tournamentEventId, p_url: centralEvent.official_tournament_url, p_analysis: params.analysis, p_own_team: resolveTournamentOwnTeam(params.analysis.teams, params.knownNames ?? []) });
     if (!error) return { importedTeams: params.analysis.teamCount, importedMatches: params.analysis.matchCount, skippedMatches: 0, updatedResults: 0, error: null };
     if (!/PGRST202|42883/.test(error.code ?? '')) return { importedTeams: 0, importedMatches: 0, skippedMatches: 0, updatedResults: 0, error: error.message };
   }
