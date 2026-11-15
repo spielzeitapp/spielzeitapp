@@ -43,6 +43,8 @@ export type PublicTournamentMatchDetails = {
   benchPlayers: string[];
   events: Array<{id:string;type:'start'|'resume'|'pause'|'end'|'goal'|'goal_away'|'substitution'|'sub_in'|'sub_out'|'extra_player_on'|'extra_player_off';second:number;playerName:string|null;otherPlayerName:string|null;removedPlayerName:string|null}>;
   elapsedSeconds: number;
+  clockSampledAt?: string;
+  clockRunning?: boolean;
   timingAvailable: boolean;
   unavailable: boolean;
 };

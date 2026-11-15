@@ -19,6 +19,6 @@ export function buildPublicTournamentMatchDetails({matches, roster, events, curr
       if(Number.isFinite(delta)) elapsedSeconds += Math.max(0,delta);
     }
     elapsedSeconds = Math.min(5400,Math.max(elapsedSeconds,...changes.map(row=>row.second),0));
-    return {id:match.id,formation:/^1-(?:\d+-?){1,4}$/.test(match.u11_formation_id || '')?match.u11_formation_id:null,startingPlayers:starters,benchPlayers:[...new Set(benchRows.filter(row=>row.match_id===match.id).map(row=>names.get(row.player_id)).filter(name=>name&&!seen.has(name)))],events:changes,elapsedSeconds,timingAvailable:!unavailable&&kickoff.length>0&&changes.some(row=>row.type==='start')&&elapsedSeconds>0,unavailable};
+    return {id:match.id,formation:/^1-(?:\d+-?){1,4}$/.test(match.u11_formation_id || '')?match.u11_formation_id:null,startingPlayers:starters,benchPlayers:[...new Set(benchRows.filter(row=>row.match_id===match.id).map(row=>names.get(row.player_id)).filter(name=>name&&!seen.has(name)))],events:changes,elapsedSeconds,clockSampledAt:new Date().toISOString(),clockRunning:match.status==='live' && match.live_is_running===true,timingAvailable:!unavailable&&kickoff.length>0&&changes.some(row=>row.type==='start')&&elapsedSeconds>0,unavailable};
   });
 }

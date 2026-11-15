@@ -1,3 +1,4 @@
+import { fetchTournamentParticipants } from '../../lib/tournamentPlan';
 import { TournamentBlockControl } from '../../components/tournament/TournamentBlockControl';
 import { planBlockChange, type BlockChange } from '../../lib/tournamentBlocks';
 import { DemoFormationPreview } from '../../demo/components/DemoFormationPreview';
@@ -974,6 +975,7 @@ export const LiveMatchScreen: React.FC = () => {
   const [initialStartingPlayerIds, setInitialStartingPlayerIds] = useState<string[]>([]);
   const [events, setEvents] = useState<MatchEngineEvent[]>([]);
   const [opponentLabel, setOpponentLabel] = useState('Gegner');
+  const [tournamentLogoUrl, setTournamentLogoUrl] = useState<string | null>(null);
   const [opponentLogoUrl, setOpponentLogoUrl] = useState<string | null>(null);
   const [eventIsHome, setEventIsHome] = useState<boolean | null>(null);
   const [calendarMatchType, setCalendarMatchType] = useState<string | null>(null);
@@ -1746,15 +1748,21 @@ export const LiveMatchScreen: React.FC = () => {
       return;
     }
     let cancelled = false;
+    setTournamentLogoUrl(null);
     void fetchTournamentMatchNavigationContext(effectiveMatchId, { afterCurrentMatch: true }).then(
       (ctx) => {
-        if (!cancelled) setTournamentNavContext(ctx);
+        if (!cancelled) {
+          setTournamentNavContext(ctx);
+          if(ctx) void fetchTournamentParticipants(ctx.tournamentEventId).then(result=>{
+            if(!cancelled) setTournamentLogoUrl(result.data.find(p=>p.team_name.trim().toLowerCase()===headerOpponent.trim().toLowerCase())?.logo_url ?? null);
+          });
+        }
       },
     );
     return () => {
       cancelled = true;
     };
-  }, [effectiveMatchId, matchIsFinished, matchRow?.status, isDemo]);
+  }, [effectiveMatchId, matchIsFinished, matchRow?.status, isDemo, headerOpponent]);
 
   /**
    * Eltern/Fans: sticky ?matchId= darf nicht auf finished Match 1 bleiben,
@@ -4480,7 +4488,7 @@ export const LiveMatchScreen: React.FC = () => {
       ? ownTeamName.trim()
       : getOurTeamDisplayName();
   const ownLogoSrc = getClubLogo(ownLogoName, { logoUrl: isDemo ? null : matchClub.brand?.logo_url });
-  const opponentLogoSrc = sameClubIdentity(ownLogoName, headerOpponent) ? ownLogoSrc : getClubLogo(headerOpponent, { logoUrl: preferredClubLogo(headerOpponent, matchOpponentLogos, opponentLogoUrl) });
+  const opponentLogoSrc = sameClubIdentity(ownLogoName, headerOpponent) ? ownLogoSrc : getClubLogo(headerOpponent, { logoUrl: preferredClubLogo(headerOpponent, matchOpponentLogos, tournamentLogoUrl || opponentLogoUrl) });
   const homeLogoSrc = sides.isOwnTeamHome ? ownLogoSrc : opponentLogoSrc;
   const awayLogoSrc = sides.isOwnTeamHome ? opponentLogoSrc : ownLogoSrc;
   const kickoffRaw = matchRow?.match_date ? new Date(matchRow.match_date) : null;
