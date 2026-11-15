@@ -1,3 +1,4 @@
+import { prepareTournamentMatchFromTemplate } from '../../lib/tournamentLineupTemplates';
 import { fetchTournamentParticipants } from '../../lib/tournamentPlan';
 import { TournamentBlockControl } from '../../components/tournament/TournamentBlockControl';
 import { planBlockChange, type BlockChange } from '../../lib/tournamentBlocks';
@@ -2925,6 +2926,16 @@ export const LiveMatchScreen: React.FC = () => {
   const onStartClick = async () => {
     if (!canControlLiveMatch || matchIsFinished || isRunning || !effectiveMatchId) return;
     if (!hasClockStarted) {
+      if (!isDemo) {
+        try {
+          const template = await prepareTournamentMatchFromTemplate(effectiveMatchId);
+          const planned = template?.blocks.variants[template.blocks.startVariant];
+          if (planned && U11_FORMATIONS[planned.formationId].length !== U11_FORMATIONS[safeFormationId].length) {
+            navigate(`${basePath}/match-lineup?matchId=${encodeURIComponent(effectiveMatchId)}`);
+            return;
+          }
+        } catch (e) { setSaveError(e instanceof Error ? e.message : String(e)); return; }
+      }
       const { error: snapErr } = await ensureKickoffLineupSnapshot(effectiveMatchId);
       if (snapErr) {
         setSaveError(snapErr);

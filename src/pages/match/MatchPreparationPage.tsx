@@ -1,3 +1,4 @@
+import { prepareTournamentMatchFromTemplate } from '../../lib/tournamentLineupTemplates';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
@@ -192,6 +193,11 @@ export const MatchPreparationPage: React.FC = () => {
     void (async () => {
       setMatchLoading(true);
       setMatchError(null);
+      if (canManage) {
+        try { await prepareTournamentMatchFromTemplate(matchId); }
+        catch (e) { if (!cancelled) { setMatchError(e instanceof Error ? e.message : String(e)); setMatchLoading(false); } return; }
+      }
+      if (cancelled) return;
       const [{ data, error }, lineupRes, benchRes] = await Promise.all([
         supabase
           .from('matches')
@@ -230,7 +236,7 @@ export const MatchPreparationPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [matchId, isDemo, demo]);
+  }, [matchId, isDemo, demo, canManage]);
 
   useEffect(() => {
     let cancelled = false;

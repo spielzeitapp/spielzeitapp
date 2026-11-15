@@ -32,7 +32,7 @@ import {
   isMatchSquadEditable,
 } from '../../lib/matchPreparationAccess';
 import { supabase } from '../../lib/supabaseClient';
-import { fetchRemoteMatchBlocks, saveRemoteMatchBlocks } from '../../lib/tournamentLineupTemplates';
+import { prepareTournamentMatchFromTemplate, fetchRemoteMatchBlocks, saveRemoteMatchBlocks, type TournamentTemplateRecord } from '../../lib/tournamentLineupTemplates';
 import type { FieldSlotId } from '../../types/match';
 import { getPositionLabel } from '../../lib/positionLabels';
 import {
@@ -136,6 +136,7 @@ export const MatchLineupPage: React.FC = () => {
     [routeState?.selectedPlayers],
   );
 
+  const [tournamentTemplate, setTournamentTemplate] = useState<TournamentTemplateRecord | null>(null);
   const [matchRow, setMatchRow] = useState<MatchRowLite | null>(null);
   const [matchStatus, setMatchStatus] = useState<string | null>(null);
   const [matchLiveStartedAt, setMatchLiveStartedAt] = useState<string | null>(null);
@@ -213,6 +214,14 @@ export const MatchLineupPage: React.FC = () => {
     void (async () => {
       setMatchLoading(true);
       setMatchError(null);
+      initializedVariantsForMatchRef.current = null;
+      setLineupLoading(true);
+      setTournamentTemplate(null);
+      if (canManage) {
+        try { const template = await prepareTournamentMatchFromTemplate(matchId); if (!cancelled) setTournamentTemplate(template); }
+        catch (e) { if (!cancelled) { setMatchError(e instanceof Error ? e.message : String(e)); setMatchLoading(false); } return; }
+      }
+      if (cancelled) return;
       const { data, error } = await supabase
         .from('matches')
         .select('id, team_season_id, opponent, u11_formation_id, status, live_started_at')
@@ -240,7 +249,7 @@ export const MatchLineupPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [matchId, isDemo, demo]);
+  }, [matchId, isDemo, demo, canManage]);
 
   const teamSeasonId = matchRow?.team_season_id ?? null;
   const { players: livePlayers, loading: playersLoadingLive, error: playersErrorLive } = usePlayers(
@@ -257,6 +266,7 @@ export const MatchLineupPage: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
+    if (matchLoading) return;
     if (!matchId) {
       setLineupLoading(false);
       setLineupError('Keine Match-ID übergeben.');
@@ -334,7 +344,7 @@ export const MatchLineupPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [matchId, selectedFromState, location.key, isDemo, demo]);
+  }, [matchId, selectedFromState, location.key, isDemo, demo, matchLoading]);
 
   useEffect(() => {
     if (!matchId || !matchRow) return;
@@ -434,7 +444,7 @@ export const MatchLineupPage: React.FC = () => {
   });
 
   useEffect(() => {
-    if (!matchId || lineupLoading || initializedVariantsForMatchRef.current === matchId) return;
+    if (!matchId || matchLoading || lineupLoading || initializedVariantsForMatchRef.current === matchId) return;
     initializedVariantsForMatchRef.current = matchId;
     let cancelled = false;
     let initialized = false;
@@ -475,7 +485,7 @@ export const MatchLineupPage: React.FC = () => {
     return () => { cancelled = true; if (!initialized && initializedVariantsForMatchRef.current === matchId) initializedVariantsForMatchRef.current = null; };
   // Der Effekt initialisiert genau einmal je Match nach dem kanonischen Lineup-Load.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matchId, lineupLoading]);
+  }, [matchId, matchLoading, lineupLoading]);
 
   const persistVariantDrafts = (
     nextDrafts: Record<MatchLineupVariantNumber, MatchLineupVariantDraft>,
@@ -535,10 +545,23 @@ export const MatchLineupPage: React.FC = () => {
   const requiredStarters = U11_FORMATIONS[formationId].length;
   const hasSquad = squadIds.length > 0;
 
+  const tournamentFormation = tournamentTemplate?.blocks.variants[tournamentTemplate.blocks.startVariant]?.formationId;
+  const tournamentSize = tournamentFormation ? U11_FORMATIONS[tournamentFormation]?.length : undefined;
+  const tournamentSizeMismatch = Boolean(tournamentSize && requiredStarters !== tournamentSize);
   const formationChoices = useMemo(
-    () => (isFairPlayFormationId(formationId) ? [...FAIRPLAY_FORMATION_CHOICES] : [...U11_FORMATION_CHOICES]),
-    [formationId],
+    () => tournamentSize ? U11_FORMATION_CHOICES.filter(id => U11_FORMATIONS[id].length === tournamentSize) : (isFairPlayFormationId(formationId) ? [...FAIRPLAY_FORMATION_CHOICES] : [...U11_FORMATION_CHOICES]),
+    [formationId, tournamentSize],
   );
+  const useTournamentTemplate = () => {
+    if (!lineupEditable || !tournamentTemplate || blocksLoading) return;
+    const blocks = tournamentTemplate.blocks;
+    const draft = cloneMatchLineupVariant(blocks.variants[blocks.startVariant]);
+    setVariantDrafts({1:cloneMatchLineupVariant(blocks.variants[1]),2:cloneMatchLineupVariant(blocks.variants[2])});
+    setStartVariant(blocks.startVariant); setVisibleVariant(blocks.startVariant);
+    setSingleTournamentLineup(blocks.lineupMode === 'single');
+    setSlots(draft.slots); setSquadIds(draft.squadIds); setFormationId(draft.formationId);
+    setSaveMsg('Turnierkader und Aufstellung übernommen. Bitte speichern.');
+  };
 
   const onTapBankPlayer = (playerId: string) => {
     if (!lineupEditable) return;
@@ -700,13 +723,17 @@ export const MatchLineupPage: React.FC = () => {
     setVariantDrafts(nextDrafts);
     setStartVariant(visibleVariant);
     persistVariantDrafts(nextDrafts, visibleVariant);
+    if (!isDemo) {
+      try { await saveRemoteMatchBlocks(matchId, {version:1,lineupMode:singleTournamentLineup ? 'single' : undefined,startVariant:visibleVariant,variants:nextDrafts}); }
+      catch (e) { setSavingLineup(false); setSaveError(e instanceof Error ? e.message : String(e)); return; }
+    }
     setSavingLineup(false);
     setSaveMsg(`Variante ${visibleVariant} als Startaufstellung gewählt.`);
     if (!isDemo) void triggerLineupFeedPostAfterSave(matchId);
   };
 
   const onStartLive = async () => {
-    if (!matchId || starterCount < requiredStarters || !canManage || !lineupEditable) return;
+    if (!matchId || tournamentSizeMismatch || blocksLoading || starterCount < requiredStarters || !canManage || !lineupEditable) return;
     setSaveMsg(null);
     setSaveError(null);
     setStartingLive(true);
@@ -819,6 +846,11 @@ export const MatchLineupPage: React.FC = () => {
           </h1>
         </header>
 
+        {tournamentSize ? <section className="mb-3 rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-3 text-sm">
+          <p className="font-bold text-emerald-300">Turnier · {tournamentSize - 1}+1 · {tournamentFormation}</p>
+          {tournamentSizeMismatch ? <p role="alert" className="mt-1 text-amber-200">Die Spielaufstellung hat noch eine andere Spielerzahl. Vor dem Start bitte die Turnieraufstellung übernehmen.</p> : null}
+          {lineupEditable ? <button type="button" disabled={blocksLoading || savingLineup || startingLive} onClick={useTournamentTemplate} className="mt-2 min-h-11 rounded-lg border border-white/15 px-3 font-semibold text-white">Kader & Aufstellung vom Assistenten übernehmen</button> : null}
+        </section> : null}
         {canManage && !singleTournamentLineup ? (
           <div
             className="mb-1 mt-0.5 grid h-11 w-full shrink-0 grid-cols-2 gap-1.5 sm:mt-1 sm:h-12"
@@ -1139,7 +1171,7 @@ export const MatchLineupPage: React.FC = () => {
           </button>
           <button
             type="button"
-            disabled={!lineupEditable || starterCount < requiredStarters || savingLineup || startingLive}
+            disabled={!lineupEditable || tournamentSizeMismatch || starterCount < requiredStarters || savingLineup || startingLive || blocksLoading}
             onClick={() => void (visibleVariant === startVariant ? onStartLive() : onUseAsStartVariant())}
             className={`flex h-14 min-h-14 flex-1 items-center justify-center px-2 text-xs font-bold leading-tight ${dsPrimaryCtaClass()}`}
           >
