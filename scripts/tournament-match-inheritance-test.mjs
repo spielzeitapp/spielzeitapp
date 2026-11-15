@@ -9,7 +9,7 @@ const file=join(dir,'test.cjs');
 await require('esbuild').build({entryPoints:['src/lib/tournamentLineupTemplates.ts'],bundle:true,platform:'node',format:'cjs',outfile:file,logLevel:'silent',plugins:[{name:'fixture',setup(b){
 b.onResolve({filter:/supabaseClient$|tournamentSquad$|demoTournamentState$/},a=>({path:a.path.split('/').pop(),namespace:'stub'}));
 b.onLoad({filter:/.*/,namespace:'stub'},a=>({loader:'js',contents:a.path==='supabaseClient'?`
-export const supabase={from(table){const q={select(){return q},eq(k,v){q.id=v;return q},async maybeSingle(){if(table==='tournament_lineup_templates')return {data:globalThis.fixture.record};return {data:globalThis.fixture.matches[q.id]};},async limit(){return {data:globalThis.fixture.lineups[q.id]||[]}}};return q},async rpc(name,args){globalThis.fixture.calls.push(args);return {error:null}}};
+export const supabase={from(table){const q={select(){return q},eq(k,v){q.id=v;return q},async maybeSingle(){if(table==='tournament_lineup_templates')return {data:globalThis.fixture.record};return {data:globalThis.fixture.matches[q.id]};},async limit(){return {data:table==='match_lineup' ? (globalThis.fixture.lineups[q.id]||[]) : table==='match_bench' ? (globalThis.fixture.benches?.[q.id]||[]) : (globalThis.fixture.events?.[q.id]||[])}}};return q},async rpc(name,args){globalThis.fixture.calls.push(args);return {error:null}}};
 `:a.path==='tournamentSquad'?`export async function fetchTournamentEventIdForMatch(id){return id==='normal'?null:'event'}`:`export const isDemoTournamentEventId=()=>false;`}));
 }}]});
 globalThis.window={localStorage:{setItem(){}}};
@@ -24,6 +24,13 @@ assert.equal(fixture.record.blocks.variants[1].formationId,'1-2-1-2');
 for(const id of ['normal','prepared','running','done','inherited'])await lib.prepareTournamentMatchFromTemplate(id);
 assert.equal(fixture.calls.length,1,'ordinary, prepared, live, finished and already inherited games must remain untouched');
 assert.equal((await lib.prepareTournamentMatchFromTemplate('prepared')).blocks.variants[1].formationId,'1-2-1-2','prepared games still receive template for explicit restore UI');
+fixture.benches={empty:[{player_id:'p1'}]};
+await lib.prepareTournamentMatchFromTemplate('empty');
+assert.equal(fixture.calls.length,1,'a deliberately reduced roster must not be reset');
+fixture.benches={};fixture.events={empty:[{id:'event'}]};
+await lib.prepareTournamentMatchFromTemplate('empty');
+assert.equal(fixture.calls.length,1,'existing events must be preserved');
+fixture.events={};
 fixture.record.blocks.variants[1].slots.RW=null;
 await lib.prepareTournamentMatchFromTemplate('empty');
 assert.equal(fixture.calls.length,1,'incomplete template cannot be auto-applied');

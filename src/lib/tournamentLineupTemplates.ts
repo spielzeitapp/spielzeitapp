@@ -119,6 +119,13 @@ async function prepareTournamentMatchTemplateOnce(matchId: string): Promise<Tour
   const { tournamentTemplateReady } = await import('./tournamentLineupTemplate');
   const squad = record.blocks.variants[record.blocks.startVariant]?.squadIds ?? [];
   if (!tournamentTemplateReady(record.blocks, squad)) return record;
+  const [{ data: bench, error: benchError }, { data: events, error: eventError }] = await Promise.all([
+    supabase.from('match_bench').select('player_id').eq('match_id', matchId).limit(100),
+    supabase.from('match_events').select('id').eq('match_id', matchId).limit(1),
+  ]);
+  if (benchError || eventError) throw new Error((benchError || eventError)!.message);
+  // Preserve a deliberately changed roster (e.g. an injured player left out).
+  if (events?.length || (bench?.length && (bench.length !== squad.length || bench.some(row => !squad.includes(row.player_id))))) return record;
   await applyTournamentLineupTemplate(eventId, matchId, record);
   return record;
 }
