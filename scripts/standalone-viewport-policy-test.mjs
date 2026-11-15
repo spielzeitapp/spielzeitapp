@@ -11,6 +11,19 @@ const height = policy.module.exports.standaloneFullscreenHeight;
 assert.equal(height(input),874);
 assert.equal(height({...input,innerHeight:874,visibleHeight:874}),874);
 for (const change of [{ios:false},{standalone:false},{editing:true},{scale:1.5},{visibleHeight:500},{innerWidth:700},{visibleTop:90},{screenHeight:NaN}]) assert.equal(height({...input,...change}),null);
+// Exact N7 iPhone report: 402x874 screen, 473x955 layout, 85% page zoom.
+const pageZoom={...input,innerWidth:473,innerHeight:955,visibleHeight:955,scale:0.8500000238418579};
+assert.ok(Math.abs(height(pageZoom) * pageZoom.scale - 874) < 0.001);
+assert.ok(height(pageZoom) > 1028 && height(pageZoom) < 1029);
+assert.equal(height({...pageZoom,editing:true}),null);
+assert.equal(height({...pageZoom,visibleHeight:500}),null);
+assert.equal(height({...pageZoom,standalone:false}),null);
+assert.equal(height({...pageZoom,scale:0.7}),null,'pinch zoom must not be mistaken for page zoom');
+assert.equal(height({...input,innerWidth:402,scale:0.85}),null);
+for(const scale of [0.5,0.75,0.85,1,1.15,1.25,2]){
+ const z={...input,scale,innerWidth:Math.round(402/scale),innerHeight:812/scale,visibleHeight:812/scale};
+ assert.ok(Math.abs(height(z)*scale-874)<0.001);
+}
 const bundle=await build({entryPoints:['src/hooks/useViewportRecovery.ts'],bundle:true,write:false,format:'cjs',plugins:[{name:'lifecycle-isolation',setup(b){b.onResolve({filter:/^react$/},()=>({path:'react',namespace:'mock'}));b.onResolve({filter:/bodyScrollLock$/},()=>({path:'locks',namespace:'mock'}));b.onLoad({filter:/.*/,namespace:'mock'},args=>({contents:args.path==='react'?'export const useLayoutEffect=fn=>{globalThis.cleanup=fn();};':'export const hasActiveBodyScrollLocks=()=>false;export const forceReleaseBodyScrollLocks=()=>{};'}));}}]});
 const values=new Map();const root={dataset:{},style:{setProperty:(k,v)=>values.set(k,v),removeProperty:k=>values.delete(k)}};
 class Element {constructor(editing=false){this.isContentEditable=false;this.editing=editing;}matches(){return this.editing;}}
@@ -30,5 +43,27 @@ assert.equal(root.dataset.iosStandaloneFullscreen,undefined);assert.equal(values
 doc.activeElement=new Element();win.innerHeight=812;vv.height=812;vv.offsetTop=0;win.dispatchEvent(new Event('pageshow'));
 assert.equal(values.get('--app-visible-height'),'874px');
 vv.scale=1.5;vv.height=400;vv.dispatchEvent(new Event('resize'));assert.equal(values.get('--app-visible-height'),'874px');assert.equal(root.dataset.iosStandaloneFullscreen,undefined);
+// The old hook skipped all height variables when scale wasn't 1.
+// Reproduce the actual first-load report, then keyboard, resume and pinch.
+win.innerWidth=473;win.innerHeight=955;vv.width=473;vv.height=955;vv.scale=pageZoom.scale;
+values.clear();vv.dispatchEvent(new Event('resize'));
+const fullZoomHeight=Number.parseFloat(values.get('--app-visible-height'));
+assert.ok(Math.abs(fullZoomHeight*vv.scale-874)<0.001);
+assert.equal(root.dataset.iosStandaloneFullscreen,'true');
+assert.equal(values.get('--app-standalone-height'),values.get('--app-visible-height'));
+for(const safe of [0,34,80]){
+ const navGap=Math.max(2,Math.min(12,safe-24));
+ const navBottom=(fullZoomHeight-navGap)*vv.scale;
+ assert.ok(874-navBottom < 11,'85% page zoom must not leave the old 62px strip');
+}
+doc.activeElement=new Element(true);vv.height=550;doc.dispatchEvent(new Event('focusin'));
+assert.equal(root.dataset.iosStandaloneFullscreen,undefined);
+assert.equal(values.get('--app-visible-height'),'550px','keyboard still shrinks zoomed viewport');
+doc.activeElement=new Element();vv.height=955;win.dispatchEvent(new Event('pageshow'));
+assert.equal(root.dataset.iosStandaloneFullscreen,'true');
+assert.equal(Number.parseFloat(values.get('--app-visible-height')),fullZoomHeight);
+vv.scale=0.7;vv.height=1100;vv.dispatchEvent(new Event('resize'));
+assert.equal(Number.parseFloat(values.get('--app-visible-height')),fullZoomHeight);
+assert.equal(root.dataset.iosStandaloneFullscreen,undefined);
 ctx.cleanup();
-console.log('PASS: screenshot startup, delayed stale measurements, settled screen, keyboard focus/offset, resume and pinch zoom; Safari, Android, split screen and invalid dimensions excluded.');
+console.log('PASS: exact 85% N7 report, 50–200% page zoom, first-load CSS vars, nav physical gap, keyboard, resume, delayed measures and actual pinch isolation; Safari/Android/split-screen excluded.');
