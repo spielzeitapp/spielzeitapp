@@ -271,7 +271,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   const previewFiles = files.map(file => ({ file, key: `${file.name}-${file.lastModified}-${file.size}` }));
   const teamLabels = [...new Set([...(ownTeamLabels || seasons.map(s => s.age_group || s.display_name || s.team.name)), ...(form.team_label ? [form.team_label] : [])])];
   return <section className="exchange" aria-label="Vereinsinterner Vereinsmarkt">
-    <header className="exchange-heading"><div><span className="usc-eyebrow">Alle Mannschaften · Ein Verein</span><h2>Vereinsmarkt</h2><p>Tauschbörse · Trainingsgewand im Verein weitergeben.</p></div>{access && <button className="exchange-primary sz-club-primary" onClick={() => openEditor()}><Plus size={17} /> Inserat</button>}</header>
+    <header className="exchange-heading"><div><span className="usc-eyebrow">Alle Teams. Ein Verein.</span><h2>Vereinsmarkt</h2><p>Tauschbörse · Fußballsachen im Verein weitergeben.</p></div>{access && <button className="exchange-primary sz-club-primary" onClick={() => openEditor()}><Plus size={17} /> Inserat</button>}</header>
     {error && <div className="exchange-alert" role="alert">{error}<button onClick={() => { setError(''); void loadRef.current(); }}>Erneut versuchen</button></div>}
     {notice && <p role="status" className="exchange-hint">{notice}</p>}
     <Link className="exchange-back" to={`/marktplatz/${clubId}`}>Öffentliche Vereinsseite ansehen</Link>
