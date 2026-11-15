@@ -1407,7 +1407,6 @@ export const LiveMatchScreen: React.FC = () => {
   const homeNameParts = matchboardAbbrevAndClub(stadiumHomeDisplay);
   const awayNameParts = matchboardAbbrevAndClub(stadiumAwayDisplay);
   const opponentDisplayName = cleanTeamDisplayName(headerOpponent);
-  const matchTypeDisplay = getMatchTypeLabel(calendarMatchType) ?? 'Meisterschaftsspiel';
   const [mainTab, setMainTab] = useState<'hub' | 'overview' | 'lineup' | 'events' | 'time' | 'videos'>('hub');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
   useEffect(() => {
@@ -1586,6 +1585,7 @@ export const LiveMatchScreen: React.FC = () => {
   const [calendarFinalized, setCalendarFinalized] = useState(false);
   const [tournamentNavContext, setTournamentNavContext] =
     useState<TournamentMatchNavigationContext | null>(null);
+  const matchTypeDisplay = tournamentNavContext ? 'Turnier' : getMatchTypeLabel(calendarMatchType) ?? 'Meisterschaftsspiel';
   const [tournamentPlanSyncBusy, setTournamentPlanSyncBusy] = useState(false);
   const [tournamentPlanSyncStatus, setTournamentPlanSyncStatus] = useState<string | null>(null);
   const [goalUndoOffer, setGoalUndoOffer] = useState<{

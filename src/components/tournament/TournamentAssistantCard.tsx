@@ -152,6 +152,7 @@ export function TournamentAssistantCard({
 }: Props) {
   const navigate = useNavigate();
   const basePath = useInternalBasePath();
+  const [preparationExpanded, setPreparationExpanded] = useState(false);
   const [lineupReady, setLineupReady] = useState(false);
   const [lineupLoading, setLineupLoading] = useState(false);
   const [squadCount, setSquadCount] = useState(0);
@@ -494,6 +495,8 @@ export function TournamentAssistantCard({
           </div>
         </div>
 
+        {prepared ? <button type="button" aria-expanded={preparationExpanded} className="flex min-h-11 items-center justify-between rounded-xl border border-emerald-400/25 px-3 text-left font-bold text-emerald-300" onClick={() => setPreparationExpanded(v=>!v)}>✓ Vorbereitung abgeschlossen <span>{preparationExpanded ? 'Einklappen' : 'Bearbeiten'}</span></button> : null}
+        <div hidden={prepared && !preparationExpanded}>
         <p className="text-[16px] leading-relaxed text-white/65">Punkt antippen, bearbeiten und speichern. Erledigte Punkte werden grün.</p>
         <ol className="space-y-2" aria-label="Turnier vorbereiten">
           {preparationChecks.map((check, index) => <li key={check.label}>
@@ -508,6 +511,7 @@ export function TournamentAssistantCard({
             </button>
           </li>)}
         </ol>
+        </div>
         {prepared ? <p role="status" className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-[18px] font-bold text-emerald-300">✓ Turnier vorbereitet</p> : null}
         {prepared || gamePhaseStarted ? <div className="space-y-2 border-t border-white/10 pt-4">
           <p className="text-[15px] font-bold uppercase tracking-wide sz-club-accent-text">Am Turniertag</p>

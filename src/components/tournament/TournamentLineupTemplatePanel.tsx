@@ -1,6 +1,7 @@
+import { Modal } from '../../app/ui/Modal';
 import { useNavigate } from 'react-router-dom';
 import { useInternalBasePath } from '../../demo/demoPaths';
-import { matchPreparationPath } from '../../lib/matchPreparationAccess';
+import { matchLineupPath as matchPreparationPath } from '../../lib/matchPreparationAccess';
 import { formatTournamentKickoffTime } from '../../lib/tournamentPlan';
 import { TournamentClubLogo } from './TournamentClubLogo';
 import type { FieldSlotId } from '../../types/match';
@@ -62,6 +63,7 @@ export function TournamentLineupTemplatePanel({
 }: Props) {
   const demo = useDemoMode();
   const navigate = useNavigate();
+  const [gameToOpen, setGameToOpen] = useState<TournamentMatchSlotView | null>(null);
   const basePath = useInternalBasePath();
   const [appliedMatches, setAppliedMatches] = useState<string[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
@@ -302,7 +304,7 @@ export function TournamentLineupTemplatePanel({
         ))}
       </div> : null}
       <label className="block space-y-2 text-[16px] font-semibold text-white">
-        Spielform / Formation
+        Spielform / Formation · gilt für die Turniervorlage
         <select
           disabled={!canEdit || busy}
           className={input}
@@ -425,6 +427,23 @@ export function TournamentLineupTemplatePanel({
           </button>
         </div>
       ) : null}
+      <Modal open={Boolean(gameToOpen)} onClose={() => setGameToOpen(null)} title="Turnierspiel vorbereiten">
+        <p className="mb-3 text-lg font-bold text-white">{gameToOpen?.opponent_name}</p>
+        <p className="mb-4 text-white/65">Turnierkader, Formation und Blöcke verwenden oder für dieses Spiel anpassen?</p>
+        <div className="grid grid-cols-2 gap-2">
+          <button disabled={busy || !ready} className={`${dsPrimaryCtaClass()} !rounded-xl !px-2 !text-sm`} onClick={() => {
+            const game=gameToOpen;if(!game)return;setGameToOpen(null);
+            if(eligible.some(s=>s.id===game.id)) void applyToGames([game],true);
+            else navigate(matchPreparationPath(game.match_id!,basePath));
+          }}>Übernehmen & prüfen</button>
+          <button disabled={busy} className={`${dsSecondaryCtaClass()} !rounded-xl !px-2 !text-sm`} onClick={() => {
+            const game=gameToOpen;if(!game)return;setGameToOpen(null);
+            if(eligible.some(s=>s.id===game.id)) void applyToGames([game],true);
+            else navigate(matchPreparationPath(game.match_id!,basePath));
+          }}>Aufstellung ändern</button>
+        </div>
+        <p className="mt-3 text-sm text-white/50">Eine bestehende Spielaufstellung bleibt erhalten. Im nächsten Schritt kannst du Spieler und Positionen ändern.</p>
+      </Modal>
       {slots.some(s => s.match_id) ? (
         <section className="space-y-3 border-t border-white/10 pt-4" aria-label="Unsere Spiele vorbereiten">
           <div className="flex items-center justify-between gap-3">
@@ -445,7 +464,7 @@ export function TournamentLineupTemplatePanel({
               const status = game.match_status === 'live' ? 'Live' : game.match_status === 'finished' ? 'Beendet' : prepared ? 'Vorbereitet' : 'Offen';
               return <button key={game.id} type="button" disabled={busy || dirty || (canApply && (!ready || !canEdit))}
                 aria-label={`${formatTournamentKickoffTime(game.kickoff_at)} · ${game.opponent_name} · ${status}`}
-                onClick={() => canApply ? void applyToGames([game],true) : navigate(matchPreparationPath(game.match_id!,basePath))}
+                onClick={() => setGameToOpen(game)}
                 className="flex min-h-[72px] w-full items-center gap-3 px-3 py-3 text-left disabled:opacity-50 active:bg-white/5">
                 <span className="shrink-0 text-sm font-bold tabular-nums text-white/70">{formatTournamentKickoffTime(game.kickoff_at)}</span>
                 <TournamentClubLogo name={game.opponent_name} size="sm"/>

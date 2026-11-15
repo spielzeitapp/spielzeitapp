@@ -17,8 +17,8 @@ act(()=>view.unmount());console.log('PASS bulk applies only empty upcoming games
 b.onResolve({filter:/tournamentLineupTemplates$|tournamentSquad$|DemoContext$|demoPaths$|supabaseClient$/},a=>({path:a.path.split('/').pop(),namespace:'stub'}));
 b.onLoad({filter:/.*/,namespace:'stub'},a=>({loader:'ts',resolveDir:process.cwd(),contents:a.path.endsWith('supabaseClient')?`export const supabase={};`:a.path.endsWith('tournamentLineupTemplates')?`
 import {emptyTournamentTemplate} from './src/lib/tournamentLineupTemplate';import{U11_FORMATIONS}from'./src/lib/matchFormations';
-export const calls=[];const ids=Array.from({length:12},(_,i)=>'p'+i);const blocks=emptyTournamentTemplate(ids,undefined,'single');for(const n of [1,2])U11_FORMATIONS[blocks.variants[n].formationId].forEach((row,i)=>blocks.variants[n].slots[row.slot]=ids[i]);
-export const fetchTournamentLineupTemplate=async()=>({blocks,updated_at:'stamp'});export const saveTournamentLineupTemplate=async()=> 'stamp';export const applyTournamentLineupTemplate=async(e,m)=>{calls.push(m)};
+export const calls=[];const ids=Array.from({length:12},(_,i)=>'p'+i);const blocks=emptyTournamentTemplate(ids,'1-2-1-2','blocks');for(const n of [1,2])U11_FORMATIONS[blocks.variants[n].formationId].forEach((row,i)=>blocks.variants[n].slots[row.slot]=ids[i]);
+export const fetchTournamentLineupTemplate=async()=>({blocks,updated_at:'stamp'});export const saveTournamentLineupTemplate=async()=> 'stamp';export const applyTournamentLineupTemplate=async(e,m,r)=>{if(r.blocks.variants[r.blocks.startVariant].formationId!=='1-2-1-2'||r.blocks.variants[1].squadIds.length!==12)throw Error('Turnierformat oder Kader verloren');calls.push(m)};
 `:a.path.endsWith('tournamentSquad')?`export const fetchTournamentSquadPlayerIds=async()=>({data:Array.from({length:12},(_,i)=>'p'+i),error:null});`:a.path.endsWith('DemoContext')?`export const useDemoMode=()=>null;`:`export const useInternalBasePath=()=>'/app';`}));
 }}]});await require(file);}finally{rmSync(dir,{recursive:true,force:true})}
 
