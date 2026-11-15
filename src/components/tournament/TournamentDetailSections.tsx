@@ -945,6 +945,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
         onSaved={() => setAssistantRefreshToken(token => token + 1)}
         onOpenTemplate={() => openPreparationDialog('lineup')} />;
       case 'plan': return <div id="tournament-plan-section" className="space-y-4">
+            {officialTournamentUrl && !ownSlots.length ? <TournamentConnectedPlan eventId={tournamentEventId} url={officialTournamentUrl} userId={userId} canManage={canManage && !tournamentCanceled} onUpdated={reload} onState={setConnectedPlan} /> : null}
             <TournamentOfficialPlanCard
               tournamentEventId={tournamentEventId}
               teamSeasonId={teamSeasonId}

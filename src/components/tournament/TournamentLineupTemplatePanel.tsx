@@ -340,15 +340,16 @@ export function TournamentLineupTemplatePanel({
       {canEdit ? (
         <div className={`grid gap-2 ${useBlocks ? 'grid-cols-3' : 'grid-cols-1'}`} aria-label="Blockaktionen">
           {useBlocks ? <><button
+            aria-pressed={draft.startVariant === block}
             disabled={busy}
             onClick={() => {
               const next = structuredClone(draft);
               next.startVariant = block;
               edit(next);
             }}
-            className={`${dsSecondaryCtaClass()} w-full !min-h-[64px] !rounded-xl !px-2 !text-[14px] !leading-snug`}
+            className={`${dsSecondaryCtaClass()} ${draft.startVariant === block ? '!border-emerald-400/60 !bg-emerald-500/15 !text-emerald-200' : ''} w-full !min-h-[64px] !rounded-xl !px-2 !text-[14px] !leading-snug`}
           >
-            Startblock {block === 1 ? "A" : "B"}
+            {draft.startVariant === block ? '✓ ' : ''}Startblock {block === 1 ? "A" : "B"}
           </button>
           <button
             disabled={busy}

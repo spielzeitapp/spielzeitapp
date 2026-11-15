@@ -511,10 +511,14 @@ export function TournamentAssistantCard({
         {prepared ? <p role="status" className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-[18px] font-bold text-emerald-300">✓ Turnier vorbereitet</p> : null}
         {prepared || gamePhaseStarted ? <div className="space-y-2 border-t border-white/10 pt-4">
           <p className="text-[15px] font-bold uppercase tracking-wide sz-club-accent-text">Am Turniertag</p>
-          <h2 className="text-[21px] font-bold leading-snug text-white">{step.title}</h2>
+          {totalMatchCount > 0 && ownMatchCount === 0 ? <>
+            <h2 className="text-[21px] font-bold text-white">Eigene Mannschaft zuordnen</h2>
+            <p className="text-[16px] text-white/65">Der Spielplan ist geladen. Wähle unsere Mannschaft im Veranstalterplan, damit die eigenen Spiele vorbereitet und gestartet werden können.</p>
+            <button type="button" onClick={onImportPlan} className={`${dsPrimaryCtaClass()} w-full`}>Mannschaft zuordnen</button>
+          </> : <><h2 className="text-[21px] font-bold leading-snug text-white">{step.title}</h2>
           <p className="text-[16px] leading-relaxed text-white/65">{step.description}</p>
           {step.detailLines.map(line => <p key={line} className="text-[15px] text-white/65">{line}</p>)}
-          {renderAction(step.action)}
+          {renderAction(step.action)}</>}
         </div> : null}
 
         {copyError ? (
