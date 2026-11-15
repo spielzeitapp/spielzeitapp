@@ -1,4 +1,4 @@
-import {useLayoutEffect} from 'react';
+import React,{useLayoutEffect} from 'react';
 import {useLocation} from 'react-router-dom';
 import {isMarketThemeRoute,useMarketTheme} from './marketTheme';
 import './marketTheme.css';
@@ -18,5 +18,8 @@ export function MarketThemeSync(){
   root.setAttribute('data-market-theme',theme);meta?.setAttribute('content',theme==='light'?'#ffffff':'#08080b');
   return()=>{root.removeAttribute('data-market-theme');if(meta){if(before===null||before===undefined)meta.removeAttribute('content');else meta.setAttribute('content',before);}if(apple){if(beforeApple===null||beforeApple===undefined)apple.removeAttribute('content');else apple.setAttribute('content',beforeApple);document.head.appendChild(apple);}};
  },[active,theme]);
- return null;
+ // WebKit samples real fixed edge elements for native chrome tint. Keep this
+ // separate from the scrolling shell and replace its layer on appearance changes.
+ // It paints only the edge; it must not change viewport or navigation geometry.
+ return active?<div key={theme} aria-hidden="true" data-market-chrome-edge="" style={{position:'fixed',top:0,left:0,right:0,height:'max(1px, env(safe-area-inset-top, 0px))',backgroundColor:theme==='light'?'#ffffff':'#08080b',pointerEvents:'none',zIndex:2147483646}}/>:null;
 }
