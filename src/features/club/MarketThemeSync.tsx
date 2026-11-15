@@ -12,8 +12,11 @@ export function MarketThemeSync(){
   if(!active){root.removeAttribute('data-market-theme');return;}
   const meta=document.querySelector('meta[name="theme-color"]');const before=meta?.getAttribute('data-market-original-color')??meta?.getAttribute('content');
   const apple=document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');const beforeApple=apple?.getAttribute('data-market-original-style')??apple?.getAttribute('content');
-  root.setAttribute('data-market-theme',theme);apple?.setAttribute('content',theme==='light'?'default':'black');meta?.setAttribute('content',theme==='light'?'#ffffff':'#08080b');
-  return()=>{root.removeAttribute('data-market-theme');if(meta){if(before===null||before===undefined)meta.removeAttribute('content');else meta.setAttribute('content',before);}if(apple){if(beforeApple===null||beforeApple===undefined)apple.removeAttribute('content');else apple.setAttribute('content',beforeApple);}};
+  // Legacy iOS status-bar overrides lock installed apps to black/default.
+  // Let WebKit derive chrome from the document's current appearance instead.
+  apple?.remove();
+  root.setAttribute('data-market-theme',theme);meta?.setAttribute('content',theme==='light'?'#ffffff':'#08080b');
+  return()=>{root.removeAttribute('data-market-theme');if(meta){if(before===null||before===undefined)meta.removeAttribute('content');else meta.setAttribute('content',before);}if(apple){if(beforeApple===null||beforeApple===undefined)apple.removeAttribute('content');else apple.setAttribute('content',beforeApple);document.head.appendChild(apple);}};
  },[active,theme]);
  return null;
 }
