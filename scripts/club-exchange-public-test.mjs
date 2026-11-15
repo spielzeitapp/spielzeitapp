@@ -9,6 +9,7 @@ const module={exports:{}};const env={SUPABASE_URL:'https://acbaecjzoabafbsjrzvr.
 vm.runInNewContext(fs.readFileSync('api/exchange/public.js','utf8'),{require:()=>({createClient:()=>db}),module,process:{env},Buffer});
 async function call(query,method='GET'){const res={headers:{},setHeader(k,v){this.headers[k]=v},status(n){this.code=n;return this},json(v){this.body=v;return this},end(){return this},send(v){this.body=v;return this}};await module.exports({query,method},res);return res;}
 let r=await call({club});assert.equal(r.code,200);assert.equal(r.body.items.length,1);const payload=JSON.stringify(r.body);for(const s of ['secret-user','owner_label','team_label','photo_paths','public_confirmed_at'])assert.ok(!payload.includes(s),s);assert.ok(r.body.items[0].photos[0].includes(`listing=${id}`));assert.equal(r.headers['Cache-Control'],'no-store');
+assert.equal((await call({club,ids:id})).body.items.length,1);assert.equal((await call({club,ids:'50000000-0000-0000-0000-000000000099'})).body.items.length,0);assert.equal((await call({club,ids:'bad'})).code,400);assert.equal((await call({club,ids:Array(51).fill(id).join(',')})).code,400);
 r=await call({club,listing:id,photo:'0'});assert.equal(r.code,200);assert.equal(downloads,1);
 rows[0].is_public=false;r=await call({club,listing:id,photo:'0'});assert.equal(r.code,404);assert.equal(downloads,1);
 assert.equal((await call({club:'bad'})).code,400);assert.equal((await call({club},'POST')).code,405);

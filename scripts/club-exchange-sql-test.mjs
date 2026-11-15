@@ -41,6 +41,7 @@ try {
   await db.exec(fs.readFileSync('supabase/migrations/20261113094653_exchange_main_app_links.sql', 'utf8'));
   await db.exec(fs.readFileSync('supabase/migrations/20261113102805_exchange_partner_relationship_fix.sql', 'utf8'));
   await db.exec(fs.readFileSync('supabase/migrations/20261114195022_exchange_public_opt_in.sql','utf8'));
+  await db.exec(fs.readFileSync('supabase/migrations/20261115090931_exchange_saved_listings.sql','utf8'));
   const key = await db.query(`select array_agg(a.attname order by k.ordinality) as columns from pg_constraint c cross join lateral unnest(c.conkey) with ordinality k(attnum,ordinality) join pg_attribute a on a.attrelid=c.conrelid and a.attnum=k.attnum where c.conrelid='public.exchange_partner_teams'::regclass and c.contype='p'`);
   if (JSON.stringify(key.rows[0].columns)!=='["id"]') throw Error('Partner PK must not imply a teams/clubs many-to-many relationship');
   await db.exec(`insert into public.exchange_partner_teams(club_id,team_id) values('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002')`);
@@ -60,4 +61,22 @@ try {
   if((await state()).public_confirmed_at)throw Error('Revocation failed');
   await db.exec('set role anon');let denied=false;try{await db.query('select * from exchange_listings');}catch{denied=true;}await db.exec('reset role');if(!denied)throw Error('Anonymous table access');
   console.log('PASS: private default, opt-in, repeat timestamp protection, revoke, anonymous denial; no synthetic users left by RLS fixture');
+  await db.exec(`insert into auth.users(id) values('40000000-0000-0000-0000-000000000002'); update exchange_listings set is_public=true; set role authenticated; select set_config('request.jwt.claim.sub','40000000-0000-0000-0000-000000000002',false)`);
+  const save="insert into exchange_saved_listings(listing_id) values('50000000-0000-0000-0000-000000000001') on conflict(user_id,listing_id) do nothing";
+  await Promise.all([db.exec(save),db.exec(save)]);
+  if((await db.query('select * from exchange_saved_listings')).rows.length!==1)throw Error('Repeat/concurrent save duplicated');
+  const deny=async(sql)=>{let denied=false;try{await db.exec(sql)}catch{denied=true}if(!denied)throw Error('Expected rejection: '+sql)};
+  await deny("insert into exchange_saved_listings(user_id,listing_id) values('40000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001')");
+  await deny("insert into exchange_saved_listings(listing_id) values('50000000-0000-0000-0000-000000000099')");
+  await deny("update exchange_saved_listings set created_at=now()");
+  await db.exec("select set_config('request.jwt.claim.sub','40000000-0000-0000-0000-000000000001',false)");
+  if((await db.query('select * from exchange_saved_listings')).rows.length)throw Error('Another user saw saved items');
+  await db.exec("reset role; update exchange_listings set is_public=false; set role authenticated; select set_config('request.jwt.claim.sub','40000000-0000-0000-0000-000000000002',false); delete from exchange_saved_listings");
+  await deny(save);
+  await db.exec("reset role; update exchange_listings set is_public=true,status='Vergeben'; set role authenticated");await deny(save);
+  await db.exec("reset role; update exchange_listings set status='Verfügbar'; set role authenticated");await db.exec(save);
+  await db.exec("reset role; delete from exchange_listings");
+  if((await db.query('select * from exchange_saved_listings')).rows.length)throw Error('Cascade failed');
+  await db.exec('set role anon');await deny('select * from exchange_saved_listings');await db.exec('reset role');
+  console.log('PASS: favorite RLS owner isolation, spoof/invalid denial, duplicate/concurrent saves, no updates, revoked/withdrawn denial, removal and cascade');
 } finally { await db.close(); }

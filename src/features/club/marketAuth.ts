@@ -8,7 +8,7 @@ export function marketAuthContext(search:string){
  if(!active)return null;
  if(!UUID.test(club))club=DEFAULT_CLUB;
  const back=`/marktplatz/${club}`;
- if(next.startsWith('/app/')){const old=new URL(next,'https://market.invalid');const q=new URLSearchParams({view:old.pathname==='/app/profile'?'profil':'member',club});for(const key of ['listing','thread','mode']){const v=old.searchParams.get(key);if(v)q.set(key,v);}if(old.searchParams.get('view')==='requests')q.set('mode','requests');next=back+'?'+q;}
- return {club,back,next:next||back+'?view=member&club='+club};
+ if(next.startsWith('/app/')){const old=new URL(next,'https://market.invalid');const q=new URLSearchParams({view:old.pathname==='/app/profile'?'start':'member',club});for(const key of ['listing','thread','mode']){const v=old.searchParams.get(key);if(v)q.set(key,v);}if(old.searchParams.get('view')==='requests')q.set('mode','requests');next=back+'?'+q;}
+ return {club,back,next:next||back+'?view=start'};
 }
 export function marketAuthPath(screen:'login'|'register'|'forgot-password',search:string){const c=marketAuthContext(search);if(!c)return '/'+screen;const q=new URLSearchParams({context:'vereinsmarkt',marketClub:c.club,next:c.next});return '/'+screen+'?'+q;}

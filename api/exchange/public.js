@@ -12,6 +12,8 @@ module.exports=async function(req,res){
   res.setHeader('Content-Type','application/manifest+json');
   return res.status(200).json({id:`/marktplatz/${club}`,name:'Vereinsmarkt · SpielzeitApp',short_name:'Vereinsmarkt',start_url:`/marktplatz/${club}`,scope:'/marktplatz/',display:'standalone',background_color:'#08080b',theme_color:'#08080b',icons:[{src:'/vereinsmarkt/icon-192.png',sizes:'192x192',type:'image/png'},{src:'/vereinsmarkt/icon-512.png',sizes:'512x512',type:'image/png'}]});
  }
+ const ids=req.query.ids===undefined?null:String(req.query.ids).split(',');
+ if(ids&&(!ids.length||ids.length>50||ids.some(id=>!UUID.test(id))))return res.status(400).json({error:'Ungültige Inserat-Auswahl'});
  const db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
  try{
   const c=await db.from('clubs').select('id,name').eq('id',club).eq('status','active').maybeSingle();
@@ -19,6 +21,7 @@ module.exports=async function(req,res){
   let q=db.from('exchange_listings').select('id,title,category,size,condition,offer,price,description,status,photo_paths,created_at')
    .eq('club_id',club).eq('is_public',true).not('public_confirmed_at','is',null).in('status',['Verfügbar','Reserviert']);
   if(listing)q=q.eq('id',listing);
+  if(ids)q=q.in('id',ids);
   const result=await q.order('created_at',{ascending:false}).limit(200);if(result.error)throw result.error;
   if(req.query.photo!==undefined){
    const index=Number(req.query.photo),item=result.data?.[0];

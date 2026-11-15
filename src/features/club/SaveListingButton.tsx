@@ -1,0 +1,2 @@
+import React from 'react';import {Heart} from 'lucide-react';
+export function SaveListingButton({saved,busy,onClick}:{saved:boolean;busy?:boolean;onClick:()=>void}){return <button type="button" className="market-save-button" aria-label={saved?'Aus Merkliste entfernen':'Inserat merken'} aria-pressed={saved} disabled={busy} title={saved?'Gemerkt':'Merken'} onClick={e=>{e.stopPropagation();onClick();}}><Heart size={21} fill={saved?'currentColor':'none'}/></button>;}

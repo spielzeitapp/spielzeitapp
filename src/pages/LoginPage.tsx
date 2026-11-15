@@ -338,7 +338,7 @@ export const LoginPage: React.FC = () => {
         </header>
 
         <p className="relative mt-4 text-sm leading-6 text-white/60">
-          {market ? 'Melde dich mit deinem SpielzeitApp-Zugang an.' : showInviteConfirmedHint
+          {market ? 'Melde dich mit deinem Vereinsmarkt- oder SpielzeitApp-Konto an. Beide Zugänge funktionieren hier.' : showInviteConfirmedHint
             ? 'E-Mail bestätigt. Melde dich jetzt an, um die Einladung anzunehmen.'
             : isParentInviteFlow
               ? 'Mit der eingeladenen E-Mail anmelden, um die Eltern-Einladung fortzusetzen.'

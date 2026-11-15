@@ -1,3 +1,5 @@
+import {useSavedListings} from './useSavedListings';
+import {SaveListingButton} from './SaveListingButton';
 import { MarketLegalLinks } from './MarketLegalLinks';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Camera, ImagePlus, LockKeyhole, MessageCircle, Plus, Search, Send, Shirt, SlidersHorizontal, Trash2, Users, X } from 'lucide-react';
@@ -42,6 +44,7 @@ async function preparePhoto(file: File): Promise<Blob> {
 
 export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', ownTeamLabels }: { clubId: string; userId: string; seasons: ClubSeason[]; defaultTeamLabel?: string; ownTeamLabels?: string[] }) {
   const [params, setParams] = useSearchParams();
+  const marks=useSavedListings(userId);
   const [items, setItems] = useState<Listing[]>([]);
   const [threads, setThreads] = useState<Thread[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -279,7 +282,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
       {detail ? <>
         <button className="exchange-back" onClick={() => { openThread(null); setDetailId(null); }}><ArrowLeft size={18} /> Zur Übersicht</button>
         <div className="exchange-gallery">{detail.photo_paths.map(path => <img key={path} src={photos[path]} alt={detail.title} />)}</div>
-        <div className="exchange-item-head"><h3>{detail.title}</h3><strong>{priceLabel(detail)}</strong></div>
+        <div className="exchange-item-head"><h3>{detail.title}</h3><strong>{priceLabel(detail)}</strong></div><div className="market-save-detail"><SaveListingButton saved={marks.saved.has(detail.id)} busy={marks.loading||marks.pending.includes(detail.id)} onClick={()=>void marks.toggle(detail.id)}/><span>Inserat merken</span></div>{marks.error&&<p role="alert">{marks.error}</p>}
         <div className="exchange-tags"><span>Größe {detail.size}</span><span>{detail.condition}</span><span>{detail.status}</span></div>
         <p className="exchange-owner">{detail.owner_label}{detail.team_label ? ` · ${detail.team_label}` : ''}</p><p className="exchange-description">{detail.description}</p>
         {myItem && <div className="exchange-owner-tools"><button onClick={() => openEditor(detail)}>Bearbeiten</button><select aria-label="Status des Inserats" disabled={busy} value={detail.status} onChange={e => void status(e.target.value)}>{['Entwurf', 'Verfügbar', 'Reserviert', 'Vergeben'].map(s => <option key={s}>{s}</option>)}</select><button disabled={busy} onClick={() => void remove()}><Trash2 size={16} /> Löschen</button></div>}
@@ -301,7 +304,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
             </div>
             <div className="exchange-result-row"><strong aria-live="polite">{shown.length} {shown.length===1?'Angebot':'Angebote'}</strong><label><span className="exchange-sr">Angebote sortieren</span><select aria-label="Angebote sortieren" value={sort} onChange={e=>setSort(e.target.value as CatalogSort)}><option value="newest">Neueste zuerst</option><option value="price-asc">Preis aufsteigend</option><option value="price-desc">Preis absteigend</option></select></label></div>
           </div>
-          <div className="exchange-grid">{shown.map(item => <button key={item.id} className="exchange-card" onClick={() => { setDetailId(item.id); setBody(''); setAdult(false); }}><div className="exchange-card-image">{photos[item.photo_paths[0]] ? <img src={photos[item.photo_paths[0]]} alt={item.title} loading="lazy" /> : <Shirt size={42} />}<span>{item.status}</span></div><div className="exchange-card-copy"><h3>{item.title}</h3><p>Größe {item.size} · {item.condition}</p><strong>{priceLabel(item)}</strong><small>{item.owner_label}{item.team_label ? ` · ${item.team_label}` : ''}</small></div></button>)}</div>
+          <div className="exchange-grid">{shown.map(item => <div className="market-save-card" key={item.id}><button className="exchange-card" onClick={() => { setDetailId(item.id); setBody(''); setAdult(false); }}><div className="exchange-card-image">{photos[item.photo_paths[0]] ? <img src={photos[item.photo_paths[0]]} alt={item.title} loading="lazy" /> : <Shirt size={42} />}<span>{item.status}</span></div><div className="exchange-card-copy"><h3>{item.title}</h3><p>Größe {item.size} · {item.condition}</p><strong>{priceLabel(item)}</strong><small>{item.owner_label}{item.team_label ? ` · ${item.team_label}` : ''}</small></div></button><SaveListingButton saved={marks.saved.has(item.id)} busy={marks.loading||marks.pending.includes(item.id)} onClick={()=>void marks.toggle(item.id)}/></div>)}</div>
           {!shown.length && <div className="exchange-empty"><Shirt size={36} /><h3>{items.length ? 'Keine passenden Angebote' : 'Zu klein? Gib es weiter.'}</h3><p>{items.length ? 'Ändere die Filter oder stelle selbst ein Inserat ein.' : 'Sei der Erste und stelle Trainingsgewand für andere Familien im Verein ein.'}</p>{(filterCount>0||search)&&<button className="exchange-back" onClick={()=>{clearFilters();setSearch('');}}>Suche und Filter zurücksetzen</button>}</div>}
         </>}
       </>}

@@ -74,3 +74,12 @@ Signed-in private content reuses ClubExchangePage in embedded mode inside public
 
 ### Header switches between app and market
 TEST app header adds a circular market-logo link for authenticated, non-demo app users. Existing club-context resolver selects the active assigned club (including SPG-to-USC partner mapping) before navigating to its public market. Public market shows an app-logo circle only when signed in; its safe local return URL persists across public tabs, listing views and auth/member links. Default for direct market entrants is app home. React Router links reuse the existing session. No new permissions or database grants. Tests cover original app return including team query/hash, guest hiding, authenticated icon, market club resolution and rejection of external/traversal return URLs.
+
+## TEST 15.11.2026: Anmeldung und private Merkliste
+- Normale Anmeldung/Registrierung kehrt zur öffentlichen Markt-Startseite zurück. Explizite Inserat-, Erstellen-, Nachrichten- und Merkliste-Ziele bleiben erhalten.
+- Anmeldetext erklärt gemeinsames Vereinsmarkt-/SpielzeitApp-Konto; Registrierung erfordert keine App-Installation und vergibt keine Vereinsmitgliedschaft.
+- Herz auf öffentlichen und internen Inseraten; Profil → Meine Merkliste zeigt im aktuellen Verein noch verfügbare, weiterhin zugängliche Angebote. Speicherung pro Konto, keine öffentliche Favoritenzahl.
+- Neue Migration `20261115090931_exchange_saved_listings.sql`: nur eigene Einträge lesen/entfernen; Einfügen erfordert aktive öffentliche Freigabe oder Vereinsberechtigung. Kein Update, keine Rechteerweiterung auf Inserate.
+- Isolierter PGlite-Test: echte authenticated/anon-Rollen, Nutzertrennung, Identitätsspoofing, ungültige ID, wiederholtes/gleichzeitig angestoßenes Speichern, Sperre nach Rücknahme/Vergeben, Löschen/Cascade. Keine synthetischen Nutzer in TEST-Datenbank.
+- UI-Mocks prüfen Speichern, erneutes Laden, Kontowechsel, Fehler und Entfernen; Auth-Kontinuität, öffentlicher Katalog/API, private Anfragen/Fotos bleiben getestet. Physische iPhone-Kamera und echte Pushzustellung sind damit nicht geprüft.
+- Keine LIVE-Freigabe/Manifest-Hashes ergänzt; LIVE-Datenbank und main bleiben unverändert.
