@@ -4,7 +4,7 @@ const webpush = require('web-push');
 function buildWebPushJsonPayload(parts) {
   return JSON.stringify({ ...parts, icon: '/icon-192.png', badge: '/badge-72.png',
     vibrate: [200,100,200], requireInteraction: false,
-    data: { url: parts.url, kind: parts.kind } });
+    data: { url: parts.url, kind: parts.kind, unread_count: parts.unread_count, badge_count: parts.badge_count } });
 }
 
 /** Dispatch only server-created queue entries belonging to the verified sender.
@@ -55,19 +55,22 @@ module.exports = async function handler(req, res) {
         await db.from('exchange_push_queue').update({ status: 'sent' }).eq('message_id', job.message_id);
         continue;
       }
-      const { data: subscriptions, error: subError } = await db.from('notification_subscriptions')
-        .select('id,endpoint,p256dh,auth').eq('user_id', job.recipient_id).eq('is_active', true);
+      const { data: subscriptions, error: subError } = await db.from('push_subscriptions')
+        .select('id,endpoint,p256dh,auth').eq('user_id', job.recipient_id);
       let failed = Boolean(subError);
+      const unread = await db.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', job.recipient_id).eq('read', false);
+      if (unread.error) failed = true;
+      const badge = !unread.error && Number.isFinite(unread.count) ? { unread_count: Math.min(99, Math.max(0, unread.count)), badge_count: Math.min(99, Math.max(0, unread.count)) } : {}; 
       for (const sub of subscriptions || []) {
         try {
           await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-            buildWebPushJsonPayload({ title: 'Tauschbörse', body: 'Neue Anfrage oder Nachricht zu einem Inserat.',
-              url: job.link, tag: `exchange-${job.message_id}`, kind: 'exchange' }), { TTL: 3600 });
+            buildWebPushJsonPayload({ title: 'Vereinsmarkt', body: 'Neue Anfrage oder Nachricht zu einem Inserat.',
+              ...badge, url: job.link, tag: `exchange-${job.message_id}`, kind: 'exchange' }), { TTL: 3600 });
           sent++;
         } catch (e) {
           const status = e?.statusCode;
           if (status === 410 || status === 404) {
-            await db.from('notification_subscriptions').update({ is_active: false }).eq('id', sub.id);
+            await db.from('push_subscriptions').delete().eq('user_id', job.recipient_id).eq('id', sub.id);
           } else failed = true;
         }
       }

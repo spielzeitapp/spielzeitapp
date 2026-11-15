@@ -1,3 +1,5 @@
+import {useUnreadCount} from '../../hooks/useUnreadCount';
+import {supabase} from '../../lib/supabaseClient';
 import {MarketThemeToggle} from './MarketThemeToggle';
 import {MarketSplash} from './MarketSplash';
 import {useSavedListings} from './useSavedListings';
@@ -18,7 +20,9 @@ const MemberMarket=React.lazy(()=>import('../../pages/ClubExchangePage').then(m=
 type Offer=SavedOffer;
 export default function PublicExchangePage(){
  const {user,signOut,loading:authLoading}=useAuth();
+ useEffect(()=>{if(!user)return;let active=true;void supabase.auth.getSession().then(({data})=>{if(active&&data.session)void fetch('/api/exchange/push',{method:'POST',headers:{Authorization:`Bearer ${data.session.access_token}`}}).catch(()=>{});}).catch(()=>{});return()=>{active=false;};},[user?.id]);
  const {clubId=''}=useParams();const [params,setParams]=useSearchParams();
+ const unreadMessages=useUnreadCount(user?.id,'exchange',clubId);
  const [settledClub,setSettledClub]=useState('');
  const [club,setClub]=useState('Dein Verein'),[items,setItems]=useState<Offer[]>([]),[error,setError]=useState(''),[loading,setLoading]=useState(true),[retry,setRetry]=useState(0);
  const [search,setSearch]=useState(''),[filters,setFilters]=useState<ExchangeFilters>({...EMPTY_EXCHANGE_FILTERS}),[sort,setSort]=useState<CatalogSort>('newest'),[filterOpen,setFilterOpen]=useState(false);
@@ -57,7 +61,7 @@ export default function PublicExchangePage(){
  {view==='start'&&<><Link className="public-market-banner" to={login(memberPath+'&mode=create')}><Plus size={30}/><span><strong>Zu klein? Gib es weiter.</strong><small>Inserat mit Foto erstellen – im Verein.</small></span></Link><button className="public-market-banner" onClick={()=>go('shop')}><Shirt size={28}/><span><strong>Lieber neu?</strong><small>Vereinsshop · für später vorbereitet</small></span></button></>}
  </>}
  <p className="public-market-note">Stöbern ohne Anmeldung · Inserieren und private Anfragen mit Vereinskonto</p><footer className="public-market-footer"><button onClick={()=>go('app')}>powered by <span className="font-semibold">SpielzeitApp</span></button>{view!=='profil'&&<div className="public-market-legal-links">{[['nutzungsbedingungen','Nutzungsbedingungen'],['datenschutz','Datenschutz'],['impressum','Impressum'],['hilfe','Hilfe & Kontakt']].map(([path,label])=><a key={path} href={`/vereinsmarkt/${path}.html?club=${clubId}`}>{label}</a>)}</div>}</footer>
- </main><nav className="public-market-nav" aria-label="Marktplatz-Navigation">{[{id:'start',label:'Start',Icon:Home},{id:'suchen',label:'Suchen',Icon:Search},{id:'inserieren',label:'Inserieren',Icon:Plus},{id:'nachrichten',label:'Nachrichten',Icon:MessageCircle},{id:'profil',label:'Profil',Icon:User}].map(({id,label,Icon})=>id==='start'||id==='suchen'||id==='profil'?<button key={id} aria-current={view===id?'page':undefined} onClick={()=>go(id)}><Icon size={23}/>{label}</button>:<Link key={id} to={login(id==='profil'?'/app/profile':memberPath+(id==='nachrichten'?'&mode=requests':'&mode=create'))}><Icon size={23}/>{label}</Link>)}</nav>
+ </main><nav className="public-market-nav" aria-label="Marktplatz-Navigation">{[{id:'start',label:'Start',Icon:Home},{id:'suchen',label:'Suchen',Icon:Search},{id:'inserieren',label:'Inserieren',Icon:Plus},{id:'nachrichten',label:'Nachrichten',Icon:MessageCircle},{id:'profil',label:'Profil',Icon:User}].map(({id,label,Icon})=>id==='start'||id==='suchen'||id==='profil'?<button key={id} aria-current={view===id?'page':undefined} onClick={()=>go(id)}><Icon size={23}/>{label}</button>:<Link key={id} to={login(id==='profil'?'/app/profile':memberPath+(id==='nachrichten'?'&mode=requests':'&mode=create'))}><Icon size={23}/>{label}{id==='nachrichten'&&unreadMessages>0&&<span className="market-unread-badge" aria-label={`${unreadMessages} ungelesene Nachrichten`}>{unreadMessages>99?'99+':unreadMessages}</span>}</Link>)}</nav>
  {filterOpen&&<ExchangeFilterSheet items={catalog} value={filters} view="all" userId="" search={search} onClose={()=>setFilterOpen(false)} onApply={v=>{setFilters(v);setFilterOpen(false);go('suchen');}}/>}
  </div>;
 }

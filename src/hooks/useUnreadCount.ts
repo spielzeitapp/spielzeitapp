@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { syncAppBadge } from '../lib/notifications/appBadge';
 import {
@@ -12,33 +12,40 @@ import { useNotificationsInboxRealtime } from './useNotificationsInboxRealtime';
  * Nur `public.notifications` mit read = false (keine messages-Tabelle).
  * Homescreen-Badge nicht bei Fokus/Visibility/Route wegsyncen — nur bei echtem Count oder Read-Events.
  */
-export function useUnreadCount(userId: string | undefined | null, scope: 'inbox' | 'feed' = 'inbox'): number {
-  const [count, setCount] = useState(0);
+export function useUnreadCount(userId: string | undefined | null, scope: 'inbox' | 'feed' | 'exchange' = 'inbox', scopeClubId?: string): number {
+  const key=JSON.stringify([userId,scope,scopeClubId]);
+  const [state,setState]=useState({key,count:0});
+  const currentKey=useRef(key);currentKey.current=key;
+  const mounted=useRef(true),request=useRef(0);
+  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;request.current++;};},[]);
 
   const refresh = useCallback(async () => {
+    const version=++request.current;
     if (!userId) {
-      setCount(0);
+      setState({key,count:0});
       void syncAppBadge(0);
       return;
     }
     try {
       const { data, error } = await supabase
         .from('notifications')
-        .select('event_type')
+        .select('event_type,link')
         .eq('user_id', userId)
         .eq('read', false);
       if (error) {
         console.warn('[useUnreadCount]', error.message ?? error);
         return;
       }
+      if(!mounted.current||currentKey.current!==key||request.current!==version)return;
       const rows = data ?? [];
       const feedCount = rows.filter(row => row.event_type === 'feed_post').length;
-      setCount(scope === 'feed' ? feedCount : rows.length - feedCount);
+      const count=scope==='exchange'?rows.filter(row=>{if(row.event_type!=='exchange')return false;if(!scopeClubId)return true;try{return new URL(row.link||'', 'https://app.invalid').searchParams.get('club')===scopeClubId;}catch{return false;}}).length:scope==='feed'?feedCount:rows.length-feedCount;
+      setState({key,count});
       void syncAppBadge(rows.length);
     } catch (e) {
       console.warn('[useUnreadCount]', e);
     }
-  }, [userId, scope]);
+  }, [userId,scope,scopeClubId,key]);
 
   useEffect(() => {
     void refresh();
@@ -57,11 +64,16 @@ export function useUnreadCount(userId: string | undefined | null, scope: 'inbox'
     };
     document.addEventListener('visibilitychange', resync);
     window.addEventListener('pageshow', onPageShow);
+    window.addEventListener('focus', onPageShow);
+    // TEST projects may not publish notifications through Realtime.
+    const interval=window.setInterval(()=>{if(!document.hidden)void refresh();},15000);
     return () => {
       document.removeEventListener('visibilitychange', resync);
       window.removeEventListener('pageshow', onPageShow);
+      window.removeEventListener('focus', onPageShow);
+      window.clearInterval(interval);
     };
-  }, [userId]);
+  }, [userId,refresh]);
 
   useEffect(() => {
     const onReadChanged = () => {
@@ -80,5 +92,5 @@ export function useUnreadCount(userId: string | undefined | null, scope: 'inbox'
 
   useNotificationsInboxRealtime(userId ?? null, refresh, `badge-${scope}`);
 
-  return count;
+  return state.key===key?state.count:0;
 }

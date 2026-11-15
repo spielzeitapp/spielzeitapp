@@ -7,14 +7,14 @@ const output=await build({entryPoints:['api/exchange/push.js'],bundle:true,platf
  b.onResolve({filter:/^@supabase\/supabase-js$/},()=>({path:'db',namespace:'fixture'}));
  b.onLoad({filter:/^db$/,namespace:'fixture'},()=>({contents:`
  class Query{
- constructor(table){this.table=table;this.filters=[];this.values=null;this.single=false;}
- select(){return this;}eq(k,v){this.filters.push(r=>r[k]===v);return this;}lt(k,v){this.filters.push(r=>r[k]<v);return this;}order(){return this;}limit(){return this;}
- update(values){this.values=values;return this;}maybeSingle(){this.single=true;return this;}
- then(resolve,reject){const rows=(global.__exchange[this.table]||[]).filter(r=>this.filters.every(f=>f(r)));if(this.values)rows.forEach(r=>Object.assign(r,this.values));return Promise.resolve({data:this.single?rows[0]||null:rows,error:null}).then(resolve,reject);}}
+ constructor(table){this.table=table;this.filters=[];this.values=null;this.single=false;this.op='read';this.countOnly=false;}
+ select(_,options){this.countOnly=Boolean(options?.head);return this;}eq(k,v){this.filters.push(r=>r[k]===v);return this;}lt(k,v){this.filters.push(r=>r[k]<v);return this;}order(){return this;}limit(){return this;}
+ update(values){this.values=values;return this;}delete(){this.op='delete';return this;}maybeSingle(){this.single=true;return this;}
+ then(resolve,reject){const rows=(global.__exchange[this.table]||[]).filter(r=>this.filters.every(f=>f(r)));if(this.values)rows.forEach(r=>Object.assign(r,this.values));if(this.op==='delete')global.__exchange[this.table]=global.__exchange[this.table].filter(r=>!rows.includes(r));return Promise.resolve({count:this.countOnly?rows.length:undefined,data:this.single?rows[0]||null:rows,error:null}).then(resolve,reject);}}
  exports.createClient=()=>({auth:{getUser:async token=>({data:{user:token==='valid'?{id:'sender'}:null},error:token==='valid'?null:Error('invalid')})},from:table=>new Query(table)});
  `}));
  b.onResolve({filter:/^web-push$/},()=>({path:'push',namespace:'fixture'}));
- b.onLoad({filter:/^push$/,namespace:'fixture'},()=>({contents:`module.exports={setVapidDetails(){},sendNotification:async(sub,payload)=>{global.__exchange.sent.push({sub,payload:JSON.parse(payload)});}};`}));
+ b.onLoad({filter:/^push$/,namespace:'fixture'},()=>({contents:`module.exports={setVapidDetails(){},sendNotification:async(sub,payload)=>{if(sub.endpoint.includes('expired'))throw Object.assign(Error('Gone'),{statusCode:410});if(global.__exchange.failPush)throw Object.assign(Error('Transient'),{statusCode:503});global.__exchange.sent.push({sub,payload:JSON.parse(payload)});}};`}));
 }}]});
 const m=new Module('exchange-push-test.cjs');m.paths=require.resolve.paths('react');m._compile(output.outputFiles[0].text,'exchange-push-test.cjs');
 const handler=m.exports;
@@ -33,12 +33,14 @@ try{
  process.env.STAGING_DISABLE_OUTBOUND='true';
  assert.equal((await call()).body.disabled,true);
  delete process.env.STAGING_DISABLE_OUTBOUND;
- global.__exchange={sent:[],exchange_push_queue:[{message_id:'message',sender_id:'sender',recipient_id:'receiver',link:'/app/usc-rohrbach?tab=verein&section=tauschboerse&thread=thread',status:'pending',attempts:0},{message_id:'foreign',sender_id:'other',recipient_id:'intruder',link:'/malicious',status:'pending',attempts:0}],exchange_messages:[{id:'message'}],notification_subscriptions:[{id:'sub',user_id:'receiver',is_active:true,endpoint:'https://push.example.invalid',p256dh:'key',auth:'auth'}]};
+ global.__exchange={sent:[],exchange_push_queue:[{message_id:'message',sender_id:'sender',recipient_id:'receiver',link:'/app/usc-rohrbach?tab=verein&section=tauschboerse&thread=thread',status:'pending',attempts:0},{message_id:'foreign',sender_id:'other',recipient_id:'intruder',link:'/malicious',status:'pending',attempts:0}],exchange_messages:[{id:'message'}],notifications:[{user_id:'receiver',read:false},{user_id:'receiver',read:false},{user_id:'receiver',read:true}],push_subscriptions:[{id:'sub',user_id:'receiver',is_active:true,endpoint:'https://push.example.invalid',p256dh:'key',auth:'auth'}]};
  const result=await call({body:{recipient_id:'intruder',title:'Injected',message:'PRIVATE CHAT'}});
  assert.equal(result.statusCode,200);assert.equal(result.body.sent,1);
- const sent=global.__exchange.sent[0];assert.equal(sent.payload.title,'Tauschbörse');assert.ok(!JSON.stringify(sent.payload).includes('PRIVATE CHAT'));
+ const sent=global.__exchange.sent[0];assert.equal(sent.payload.title,'Vereinsmarkt');assert.equal(sent.payload.unread_count,2);assert.equal(sent.payload.data.badge_count,2);assert.ok(!JSON.stringify(sent.payload).includes('PRIVATE CHAT'));
  assert.ok(sent.payload.url.includes('thread=thread'));assert.equal(global.__exchange.exchange_push_queue[1].status,'pending','other senders untouched');
  assert.equal(global.__exchange.exchange_push_queue[0].status,'sent');
  assert.equal((await call()).body.sent,0,'completed delivery not sent again');
+ global.__exchange.exchange_push_queue[0].status='pending';global.__exchange.failPush=true;assert.equal((await call()).body.pending,1);assert.equal(global.__exchange.exchange_push_queue[0].status,'pending');global.__exchange.failPush=false;assert.equal((await call()).body.sent,1);
+ global.__exchange.exchange_push_queue[0].status='pending';global.__exchange.push_subscriptions[0].endpoint='https://expired.example.invalid';await call();assert.equal(global.__exchange.push_subscriptions.length,0,'expired device removed from actual table');
  console.log('PASS: push auth, TEST guard, outbound-disable, server-selected recipient/content, claim/deduplication; no real push sent');
 }finally{for(const [k,v]of Object.entries(previous)){if(v===undefined)delete process.env[k];else process.env[k]=v;}delete global.__exchange;}

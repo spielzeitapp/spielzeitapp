@@ -36,3 +36,5 @@
 .public-exchange .public-market-nav{bottom:var(--market-nav-bottom);height:var(--market-nav-height);min-height:var(--market-nav-height);box-sizing:border-box}
 .public-exchange main.exchange{padding-bottom:calc(var(--market-nav-height) + var(--market-nav-bottom) + 24px);scroll-padding-bottom:calc(var(--market-nav-height) + var(--market-nav-bottom) + 24px)}
 html[data-ios-standalone-fullscreen] .public-exchange{height:var(--app-standalone-height);max-height:var(--app-standalone-height)}
+
+.public-market-nav .market-unread-badge{position:absolute;top:-5px;left:calc(50% + 7px);min-width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;border-radius:12px;background:#b32040;color:#fff;border:2px solid #100b0f;font-size:10px;font-weight:800;line-height:1}.public-market-nav a:has(.market-unread-badge){position:relative}html[data-market-theme=light] .public-market-nav .market-unread-badge{border-color:#fff}

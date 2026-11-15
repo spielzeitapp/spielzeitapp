@@ -116,8 +116,9 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
       if (list.error || chats.error || notifications.error || blocks.error) throw Error('Angebote oder Anfragen konnten nicht geladen werden.');
       if (!alive.current) return;
       const listings = (list.data || []) as Listing[];
-      setItems(listings); setThreads((chats.data || []).filter(t => listings.some(l => l.id === t.listing_id)) as Thread[]);
-      setUnread((notifications.data || []) as { id: string; kind: string }[]);
+      const clubThreads=(chats.data||[]).filter(t=>listings.some(l=>l.id===t.listing_id)) as Thread[];
+      setItems(listings);setThreads(clubThreads);
+      setUnread((notifications.data||[]).filter(n=>clubThreads.some(t=>n.kind===`exchange:${t.id}`)) as {id:string;kind:string}[]);
       setBlocked((blocks.data || []).map(b => b.blocked_id));
       const paths = listings.flatMap(item => item.photo_paths);
       if (paths.length && (Date.now() > photoExpiry.current || paths.some(p => !photos[p]))) {
