@@ -60,6 +60,7 @@ export type PublicTeamTournamentPageDto = {
   seasonLabel?: string | null;
   accentColor?: string;
   syncedAt?: string | null;
+  standingsProvisional?: boolean;
   groupTables?: Array<{groupLabel:string;rows:Array<{teamName:string;rank:number;played:number;goalsFor:number;goalsAgainst:number;points:number}>}>;
   finalRanking?: Array<{rank:number;teamName:string}>;
   schedule?: Array<{id:string;homeTeam:string;awayTeam:string;time:string;phase:string;groupLabel:string|null;roundLabel:string|null;homeGoals:number|null;awayGoals:number|null}>;

@@ -1,3 +1,4 @@
+import { publicTournamentStandings } from './publicTournamentStandings.js';
 import { resolveTournamentOwnTeam } from './tournamentOwnTeam.js';
 import { tournamentTeamLogos } from './tournamentTeamLogos.js';
 import { buildPublicTournamentMatchDetails } from './publicTournamentMatchDetails.js';
@@ -107,7 +108,7 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
   let slotRes = await admin
     .from('tournament_matches')
     .select(
-      'id, tournament_event_id, match_id, opponent_name, kickoff_at, planned_minutes, pitch, group_label, phase, sort_order, home_team, away_team, official_status, home_goals, away_goals',
+      'id, tournament_event_id, match_id, opponent_name, kickoff_at, planned_minutes, pitch, group_label, phase, sort_order, external_match_id, home_team, away_team, official_status, home_goals, away_goals',
     )
     .eq('tournament_event_id', publicId)
     .order('kickoff_at', { ascending: true })
@@ -182,11 +183,14 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
 
   const { data: sync } = await admin.from('tournament_sync_state').select('analysis,synced_at,own_team_name').eq('event_id', publicId).maybeSingle();
   const analysis = sync?.analysis ?? {};
-  dto.groupTables = (analysis.groupStandings ?? []).map(g => ({groupLabel:String(g.groupLabel),rows:(g.rows?.length ? g.rows : (analysis.teams ?? []).filter(t => t.groupLabel === g.groupLabel).map(t => ({teamName:t.teamName,rank:0,played:0,goalsFor:0,goalsAgainst:0,points:0}))).map(r => ({teamName:String(r.teamName),rank:Number(r.rank),played:Number(r.played),goalsFor:Number(r.goalsFor),goalsAgainst:Number(r.goalsAgainst),points:Number(r.points)}))}));
+
   dto.finalRanking = (analysis.finalStandings ?? []).map(r => ({rank:Number(r.rank),teamName:String(r.teamName)}));
   dto.schedule = (analysis.rawMatches ?? []).map(m => ({id:String(m.externalMatchId ?? ''),homeTeam:String(m.homeTeam),awayTeam:String(m.awayTeam),time:String(m.kickoffTimeHHmm),phase:String(m.phase),groupLabel:m.groupLabel == null ? null : String(m.groupLabel),roundLabel:m.roundLabel == null ? null : String(m.roundLabel),homeGoals:m.hasResult ? Number(m.homeGoals) : null,awayGoals:m.hasResult ? Number(m.awayGoals) : null}));
   dto.syncedAt = sync?.synced_at ?? null;
   dto.ownParticipantName = sync?.own_team_name ?? resolveTournamentOwnTeam(analysis.teams ?? [], [rawTeamName]);
+  const standings = publicTournamentStandings(analysis, enriched, dto.ownParticipantName);
+  dto.groupTables = standings.tables;
+  dto.standingsProvisional = standings.provisional;
   dto.seasonLabel = originalSeason || String(ts?.display_name ?? '').match(/20\d{2}\/\d{2}/)?.[0] || null;
   const originalDate = String(event.notes ?? '').match(/^Turnierdatum: (20\d{2}-\d{2}-\d{2})$/m)?.[1];
   if (originalDate) dto.dateLabel = new Intl.DateTimeFormat('de-AT',{timeZone:'Europe/Vienna',weekday:'short',day:'2-digit',month:'short',year:'numeric'}).format(new Date(originalDate+'T12:00:00Z'));
