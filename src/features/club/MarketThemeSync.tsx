@@ -5,6 +5,8 @@ import './marketTheme.css';
 /** Theme is scoped to market routes, including native dialogs in the top layer. */
 export function MarketThemeSync(){
  const {pathname,search}=useLocation();const {theme}=useMarketTheme();const active=isMarketThemeRoute(pathname,search);
+ const shell=pathname.startsWith('/marktplatz/');
+ useLayoutEffect(()=>{const root=document.documentElement;if(shell)root.setAttribute('data-market-shell','');else root.removeAttribute('data-market-shell');return()=>root.removeAttribute('data-market-shell');},[shell]);
  useLayoutEffect(()=>{
   const root=document.documentElement;
   if(!active){root.removeAttribute('data-market-theme');return;}
