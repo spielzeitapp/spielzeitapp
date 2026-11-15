@@ -1,6 +1,10 @@
+import type { FieldSlotId } from '../../types/match';
+import { moveTournamentLineupPlayer } from '../../lib/tournamentLineupMove';
+import { LeibchenJersey } from '../match/LeibchenJersey';
+import { matchdayBenchTileClass } from '../../lib/matchdayPlayerCard';
 import { useDemoMode } from "../../demo/DemoContext";
 import { writeMatchLineupVariants } from "../../lib/matchLineupVariants";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { CheckCircle2 } from "lucide-react";
 import {
   U11_FORMATIONS,
@@ -52,12 +56,17 @@ export function TournamentLineupTemplatePanel({
   canEdit,
 }: Props) {
   const demo = useDemoMode();
+  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
+  const drag = useRef<{id:string;x:number;y:number;moved:boolean} | null>(null);
+  const suppressClick = useRef(false);
+  useEffect(() => { setSelectedPlayer(null); drag.current = null; }, [eventId]);
   const [draft, setDraft] = useState<StoredMatchLineupVariants>(() =>
     emptyTournamentTemplate([], undefined, 'single'),
   );
   const [saved, setSaved] = useState<TournamentTemplateRecord | null>(null);
   const [squad, setSquad] = useState<string[]>([]);
   const [block, setBlock] = useState<1 | 2>(1);
+  useEffect(() => { setSelectedPlayer(null); drag.current = null; }, [block]);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -112,6 +121,7 @@ export function TournamentLineupTemplatePanel({
     setMessage(null);
   };
   const setFormation = (formationId: U11FormationId) => {
+    setSelectedPlayer(null);
     const next = structuredClone(draft);
     for (const n of [1, 2] as const) {
       next.variants[n].formationId = formationId;
@@ -123,6 +133,42 @@ export function TournamentLineupTemplatePanel({
       }
     }
     edit(next);
+  };
+  const movePlayer = (id: string, target: FieldSlotId | null) => {
+    if (!canEdit || busy || !selectedPlayers.some(p => p.id === id)) return;
+    const next = structuredClone(draft);
+    next.variants[currentBlock].slots = moveTournamentLineupPlayer(current.slots, id, target);
+    edit(next);
+    setSelectedPlayer(null);
+  };
+  const tapSlot = (slot: FieldSlotId) => {
+    if (!canEdit || busy) return;
+    if (selectedPlayer) movePlayer(selectedPlayer, slot);
+    else setSelectedPlayer(current.slots[slot]);
+  };
+  const startDrag = (e: React.PointerEvent<HTMLElement>, id: string | null) => {
+    if (!id || !canEdit || busy || e.button !== 0) return;
+    drag.current = { id, x:e.clientX, y:e.clientY, moved:false };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const moveDrag = (e: React.PointerEvent<HTMLElement>) => {
+    if (!drag.current) return;
+    if (Math.hypot(e.clientX-drag.current.x, e.clientY-drag.current.y)>8) {
+      drag.current.moved = true;
+      setSelectedPlayer(drag.current.id);
+    }
+  };
+  const finishDrag = (e: React.PointerEvent<HTMLElement>) => {
+    const active = drag.current;
+    drag.current = null;
+    if (!active?.moved) return;
+    suppressClick.current = true;
+    window.setTimeout(() => { suppressClick.current = false; }, 0);
+    const element = document.elementFromPoint(e.clientX,e.clientY);
+    const target = element?.closest('[data-lineup-slot]')?.getAttribute('data-lineup-slot');
+    if (target && layout.some(row => row.slot === target)) movePlayer(active.id, target as FieldSlotId);
+    else if (element?.closest('[data-tournament-bench]')) movePlayer(active.id,null);
+    else setSelectedPlayer(null);
   };
   const save = async () => {
     setBusy(true);
@@ -233,67 +279,59 @@ export function TournamentLineupTemplatePanel({
           ))}
         </select>
       </label>
-      <div className="mx-auto max-w-sm">
+      <p className="text-[14px] text-white/65" role="status">
+        {selectedPlayer ? 'Zielposition antippen oder auf die Ersatzbank setzen.' : 'Spieler ziehen oder antippen und danach die Zielposition wählen. Besetzte Positionen werden getauscht.'}
+      </p>
+      <div onClickCapture={e => { if (suppressClick.current) { e.preventDefault(); e.stopPropagation(); } }}>
+      <div className="mx-auto w-full max-w-lg">
         <LineupFormationPitch
           formationId={current.formationId}
           slots={current.slots}
           displayMode="lineup-fullscreen"
+          interactive={canEdit && !busy}
+          onSlotTap={tapSlot}
+          selectedBankPlayerId={selectedPlayer}
+          emphasizedPlayerId={selectedPlayer}
           renderSlotContent={({ playerId, label, isGk }) => {
             const player = selectedPlayers.find(p => p.id === playerId);
-            return <PitchPlayerMarker
+            return <div style={{touchAction:canEdit ? 'none' : 'auto'}}
+              onPointerDown={e => startDrag(e, playerId)} onPointerMove={moveDrag}
+              onPointerUp={finishDrag} onPointerCancel={() => { drag.current=null; }}>
+              <PitchPlayerMarker
               lastName={player?.last_name || player?.display_name || 'Position offen'}
               number={player?.jersey_number}
               positionBadge={label}
               variant={isGk ? 'goalkeeper' : 'field'}
               mode="pitch"
               fullscreenLineup
-            />;
+              emphasize={selectedPlayer === playerId && Boolean(playerId)}
+            /></div>;
           }}
         />
       </div>
-      <div className="space-y-3">
-        {layout.map(({ slot, label }) => (
-          <label
-            key={slot}
-            className="grid grid-cols-[3rem_1fr] items-center gap-3 text-[16px] font-bold text-white"
-          >
-            <span>{label}</span>
-            <select
-              disabled={!canEdit || busy || !squad.length}
-              aria-label={`${useBlocks ? `Block ${block === 1 ? "A" : "B"}` : "Aufstellung"} · ${label}`}
-              className={input}
-              value={current.slots[slot] ?? ""}
-              onChange={(e) => {
-                const next = structuredClone(draft);
-                const value = e.target.value;
-                for (const s of Object.keys(
-                  next.variants[currentBlock].slots,
-                ) as Array<typeof slot>) {
-                  if (value && next.variants[currentBlock].slots[s] === value)
-                    next.variants[currentBlock].slots[s] = null;
-                }
-                next.variants[currentBlock].slots[slot] = value || null;
-                edit(next);
-              }}
-            >
-              <option value="">Position offen</option>
-              {selectedPlayers.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.jersey_number ? `${p.jersey_number} · ` : ""}
-                  {p.display_name}
-                </option>
-              ))}
-            </select>
-          </label>
-        ))}
+      <section data-tournament-bench className="mt-3 border-t border-white/10 pt-3" aria-label="Ersatzbank">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <h4 className="text-sm font-bold uppercase tracking-wider text-white/65">Ersatzbank</h4>
+          {selectedPlayer && Object.values(current.slots).includes(selectedPlayer) ? <button type="button"
+            className="min-h-11 rounded-full border border-white/20 px-3 text-sm font-bold text-white"
+            disabled={!canEdit || busy} onClick={() => movePlayer(selectedPlayer,null)}>Auf die Bank</button> : null}
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-3">
+          {selectedPlayers.filter(p => !Object.values(current.slots).includes(p.id)).map(p =>
+            <button key={p.id} type="button" disabled={!canEdit || busy}
+              aria-label={`${p.display_name} auswählen`} aria-pressed={selectedPlayer === p.id}
+              className={matchdayBenchTileClass(selectedPlayer === p.id)} style={{touchAction:'none'}}
+              onPointerDown={e => startDrag(e,p.id)} onPointerMove={moveDrag} onPointerUp={finishDrag}
+              onPointerCancel={() => { drag.current=null; }}
+              onClick={() => setSelectedPlayer(selectedPlayer === p.id ? null : p.id)}>
+              <LeibchenJersey lastName={p.last_name || p.display_name} number={p.jersey_number}
+                variant="field" size="compact" showBackPrint={false} pitchStyleBack selected={selectedPlayer === p.id}/>
+              <span className="mt-1 text-center text-xs font-bold text-white">{p.last_name || p.display_name}</span>
+            </button>)}
+          {!selectedPlayers.some(p => !Object.values(current.slots).includes(p.id)) ? <p className="py-3 text-sm text-white/50">Alle Spieler sind auf dem Feld.</p> : null}
+        </div>
+      </section>
       </div>
-      <p className="text-[15px] text-white/65">
-        Bank:{" "}
-        {selectedPlayers
-          .filter((p) => !Object.values(current.slots).includes(p.id))
-          .map((p) => p.display_name)
-          .join(", ") || "–"}
-      </p>
       {canEdit ? (
         <>
           {useBlocks ? <><button

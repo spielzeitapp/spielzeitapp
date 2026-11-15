@@ -262,6 +262,7 @@ export function LineupFormationPitch({
           return (
             <button
               key={`${safeFormationId}-${layoutIdx}-${slot}`}
+              data-lineup-slot={slot}
               type="button"
               onClick={() => onSlotTap(slot)}
               title={label}
