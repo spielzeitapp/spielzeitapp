@@ -1,3 +1,4 @@
+import {ExchangePhotoGallery} from './ExchangePhotoGallery';
 import {ExchangeArticleChoices} from './ExchangeArticleChoices';
 import {useSavedListings} from './useSavedListings';
 import {SaveListingButton} from './SaveListingButton';
@@ -275,15 +276,15 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   const previewFiles = files.map(file => ({ file, key: `${file.name}-${file.lastModified}-${file.size}` }));
   const teamLabels = [...new Set([...(ownTeamLabels || seasons.map(s => s.age_group || s.display_name || s.team.name)), ...(form.team_label ? [form.team_label] : [])])];
   return <section className="exchange" aria-label="Vereinsinterner Vereinsmarkt">
-    <header className="exchange-heading"><div><span className="usc-eyebrow">Alle Teams. Ein Verein.</span><h2>Vereinsmarkt</h2><p>Tauschbörse · Fußballsachen im Verein weitergeben.</p></div>{access && <button className="exchange-primary sz-club-primary" onClick={() => openEditor()}><Plus size={17} /> Inserat</button>}</header>
+    {!detail&&<header className="exchange-heading"><div><span className="usc-eyebrow">Alle Teams. Ein Verein.</span><h2>Vereinsmarkt</h2><p>Tauschbörse · Fußballsachen im Verein weitergeben.</p></div>{access && <button className="exchange-primary sz-club-primary" onClick={() => openEditor()}><Plus size={17} /> Inserat</button>}</header>}
     {error && <div className="exchange-alert" role="alert">{error}<button onClick={() => { setError(''); void loadRef.current(); }}>Erneut versuchen</button></div>}
     {marks.error&&<p role="alert" className="exchange-alert">{marks.error}</p>}
     {notice && <p role="status" className="exchange-hint">{notice}</p>}
-    <Link className="exchange-back" to={`/marktplatz/${clubId}`}>Öffentliche Vereinsseite ansehen</Link>
+    {!detail&&<Link className="exchange-back" to={`/marktplatz/${clubId}`}>Öffentliche Vereinsseite ansehen</Link>}
     {loading ? <p role="status">Vereinsmarkt wird geladen…</p> : access === false ? <div className="exchange-empty"><LockKeyhole /><h3>Nur für Vereinsmitglieder</h3><p>Für Inserate und Anfragen benötigst du einen zugeordneten Eltern-, Trainer- oder Vereinszugang. Ein Favorit allein reicht dafür nicht.</p></div> : access && <>
       {detail ? <>
         <button className="exchange-back" onClick={() => { openThread(null); setDetailId(null); }}><ArrowLeft size={18} /> Zur Übersicht</button>
-        <div className="exchange-gallery">{detail.photo_paths.map(path => <img key={path} src={photos[path]} alt={detail.title} />)}</div>
+        <ExchangePhotoGallery key={detail.id} photos={detail.photo_paths.map(path=>photos[path]||'')} title={detail.title}/>
         <div className="exchange-item-head"><h3>{detail.title}</h3><strong>{priceLabel(detail)}</strong></div><div className="market-save-detail"><SaveListingButton saved={marks.saved.has(detail.id)} busy={marks.loading||marks.pending.includes(detail.id)} onClick={()=>void marks.toggle(detail.id)}/><span>Inserat merken</span></div>
         <div className="exchange-tags"><span>Größe {detail.size}</span><span>{detail.condition}</span><span>{detail.status}</span></div>
         <p className="exchange-owner">{detail.owner_label}{detail.team_label ? ` · ${detail.team_label}` : ''}</p><p className="exchange-description">{detail.description}</p>

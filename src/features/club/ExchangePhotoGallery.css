@@ -1,0 +1,20 @@
+.market-photo-gallery{position:relative;min-width:0;margin:12px 0 22px}
+.market-photo-rail{display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;border-radius:18px;background:#161318;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.market-photo-rail::-webkit-scrollbar{display:none}
+.market-photo-slide{flex:0 0 100%;min-width:0;scroll-snap-align:center;scroll-snap-stop:always;aspect-ratio:1/1;display:grid;place-items:center}
+.market-photo-slide img{display:block;width:100%;height:100%;max-height:520px;object-fit:contain;user-select:none}
+.market-photo-empty{display:grid;place-items:center;text-align:center;min-height:160px;color:#a8a1ad;padding:24px}
+.market-photo-count{position:absolute;right:12px;top:12px;border-radius:20px;padding:6px 11px;background:#100b0fce;color:#fff;font-size:12px;font-weight:700;pointer-events:none}
+.market-photo-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px}
+.exchange .market-photo-controls button{width:44px;height:44px;min-height:44px;padding:0;background:transparent;border:0;border-radius:50%}
+.market-photo-dots{display:flex;justify-content:center;flex-wrap:wrap}
+.exchange .market-photo-dots button{width:32px;min-width:32px}
+.market-photo-dots span{display:block;width:7px;height:7px;border-radius:50%;background:#827987}
+.market-photo-dots button[aria-pressed=true] span{background:#ec4263;width:10px;height:10px}
+html[data-market-theme=light] .market-photo-rail{background:#ede9ee}
+html[data-market-theme=light] .market-photo-empty{color:#625b68}
+.exchange .exchange-item-head h3{font-size:clamp(23px,5vw,30px);line-height:1.2;overflow-wrap:anywhere}
+.exchange .exchange-item-head strong{display:block;font-size:24px;font-weight:850;margin:10px 0 16px}
+.exchange .exchange-description:empty{display:none}
+.public-exchange .public-market-cta{min-height:48px}
+@media(min-width:650px){.market-photo-slide{aspect-ratio:4/3}}
