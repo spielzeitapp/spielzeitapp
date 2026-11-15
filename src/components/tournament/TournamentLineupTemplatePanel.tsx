@@ -429,7 +429,8 @@ export function TournamentLineupTemplatePanel({
       ) : null}
       <Modal open={Boolean(gameToOpen)} onClose={() => setGameToOpen(null)} title="Turnierspiel vorbereiten">
         <p className="mb-3 text-lg font-bold text-white">{gameToOpen?.opponent_name}</p>
-        <p className="mb-4 text-white/65">Turnierkader, Formation und Blöcke verwenden oder für dieses Spiel anpassen?</p>
+        <p className="mb-2 font-bold text-emerald-300">Turniervorlage: {layout.length - 1}+1 · {current.formationId} · {squad.length} Spieler{useBlocks ? ' · Block A / B' : ''}</p>
+        <p className="mb-4 text-white/65">{gameToOpen?.match_status === 'finished' ? 'Dieses Spiel ist abgeschlossen. Es zeigt die damals gespeicherte Aufstellung.' : eligible.some(s=>s.id===gameToOpen?.id) ? 'Kader, Formation und Blöcke aus dem Assistenten für dieses Spiel übernehmen.' : 'Dieses Spiel hat bereits eine eigene Aufstellung. Beim Öffnen bleibt sie erhalten; du kannst sie vor Spielbeginn bearbeiten.'}</p>
         <div className="grid grid-cols-2 gap-2">
           <button disabled={busy || !ready} className={`${dsPrimaryCtaClass()} !rounded-xl !px-2 !text-sm`} onClick={() => {
             const game=gameToOpen;if(!game)return;setGameToOpen(null);

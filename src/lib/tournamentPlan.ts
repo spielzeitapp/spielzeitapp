@@ -1,3 +1,4 @@
+import { mergeTournamentParticipantLogos } from './tournamentParticipantLogos';
 import { safeOptionalText, safeText } from './safeText';
 import { supabase } from './supabaseClient';
 import { upsertMatchForSetup, updateMatchRow } from './liveMatchService';
@@ -51,6 +52,7 @@ export function normalizeTournamentDbError(
 }
 
 export type TournamentParticipant = {
+  logo_url?: string | null;
   id: string;
   tournament_event_id: string;
   team_name: string;
@@ -479,8 +481,12 @@ export async function fetchTournamentParticipants(
     .order('team_name', { ascending: true });
 
   if (error) return { data: [], error: normalizeTournamentDbError(error.message, error.code) };
+  // Provider logos live in the saved analysis, not in participant table columns.
+  const { data: sync } = await supabase.from('tournament_sync_state')
+    .select('analysis').eq('event_id', tournamentEventId).maybeSingle();
+
   return {
-    data: ((data ?? []) as TournamentParticipant[]).map(normalizeParticipantRow),
+    data: mergeTournamentParticipantLogos(((data ?? []) as TournamentParticipant[]).map(normalizeParticipantRow), sync?.analysis),
     error: null,
   };
 }
