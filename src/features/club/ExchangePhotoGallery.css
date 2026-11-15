@@ -18,3 +18,32 @@ html[data-market-theme=light] .market-photo-empty{color:#625b68}
 .exchange .exchange-description:empty{display:none}
 .public-exchange .public-market-cta{min-height:48px}
 @media(min-width:650px){.market-photo-slide{aspect-ratio:4/3}}
+
+/* Full-width listing hero within the market's sole content scroller. */
+.public-exchange main.exchange{--listing-gutter:18px}
+.public-exchange main.exchange:has(.market-photo-gallery){padding-top:0}
+.public-exchange .market-photo-gallery{margin:0 calc(-1 * var(--listing-gutter)) 22px;width:calc(100% + 2 * var(--listing-gutter))}
+.public-exchange .market-photo-rail{border-radius:0}
+.market-photo-slide{aspect-ratio:4/5;max-height:65dvh}
+.market-photo-slide img{object-fit:cover;max-height:none}
+.market-photo-count{top:auto;bottom:14px;z-index:2}
+.market-photo-controls{position:absolute;inset:0;margin:0;padding:10px;transform:none;pointer-events:none}
+.exchange .market-photo-controls>button{pointer-events:auto;background:#ffffffcf;color:#211d25;box-shadow:0 2px 12px #0002}
+.exchange .market-photo-controls>button:disabled{visibility:hidden}
+.market-photo-dots{position:absolute;top:auto;left:50%;transform:translateX(-50%);bottom:12px;pointer-events:auto;border-radius:20px;background:#0006}
+.market-photo-dots span{background:#ffffff88}
+.market-photo-dots button[aria-pressed=true] span{background:#fff}
+.listing-photo-actions{position:absolute;left:16px;right:16px;top:14px;z-index:3;display:flex;justify-content:space-between;pointer-events:none}
+.listing-photo-actions>div{display:flex;gap:10px}
+.exchange .listing-photo-actions button{pointer-events:auto;width:46px;height:46px;min-height:46px;padding:0;border-radius:50%;background:#fffffff0;color:#211d25;border:1px solid #ffffff88;box-shadow:0 3px 12px #0002}
+.listing-photo-actions>span{position:absolute;top:54px;right:0;padding:6px 10px;background:#100b0fe8;color:#fff;border-radius:10px;font-size:12px}
+.listing-facts{margin:18px 0;border-block:1px solid #8883}
+.listing-facts>div{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:13px 0;border-bottom:1px solid #8882}
+.listing-facts>div:last-child{border-bottom:0}
+.listing-facts dt{color:var(--exchange-muted,#8e8594);font-weight:600}
+.listing-facts dd{margin:0;font-weight:650}
+.listing-description h2{font-size:20px!important;margin-top:20px}
+.listing-description .exchange-description{border:0;padding:8px 0;margin:0}
+.listing-club{border-block:1px solid #8883;padding:16px 0;font-weight:700}
+.public-exchange .public-market-cta{display:flex;align-items:center;gap:10px;width:100%;margin-top:18px}
+@media(min-width:501px){.public-exchange main.exchange{--listing-gutter:24px}}

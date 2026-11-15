@@ -1,7 +1,7 @@
 import React,{useRef,useState} from 'react';
 import {ChevronLeft,ChevronRight,ImageOff} from 'lucide-react';
 import './ExchangePhotoGallery.css';
-export function ExchangePhotoGallery({photos,title}:{photos:string[];title:string}){
+export function ExchangePhotoGallery({photos,title,actions}:{photos:string[];title:string;actions?:React.ReactNode}){
  const rail=useRef<HTMLDivElement>(null);
  const [active,setActive]=useState(0);
  const [failed,setFailed]=useState<Set<number>>(()=>new Set());
@@ -16,6 +16,7 @@ export function ExchangePhotoGallery({photos,title}:{photos:string[];title:strin
     {src&&!failed.has(i)?<img src={src} alt={`${title} – Foto ${i+1} von ${photos.length}`} loading={i===0?'eager':'lazy'} draggable={false} onError={()=>setFailed(old=>new Set([...old,i]))}/>:<div className="market-photo-empty"><ImageOff aria-hidden/><p>{src?'Foto konnte nicht geladen werden':'Foto wird geladen…'}</p></div>}
    </div>)}
   </div>
+  {actions}
   <span className="market-photo-count" aria-live="polite">{index+1} / {photos.length}</span>
   {photos.length>1&&<div className="market-photo-controls">
    <button type="button" aria-label="Vorheriges Foto" disabled={index===0} onClick={()=>jump(index-1)}><ChevronLeft size={20}/></button>

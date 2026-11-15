@@ -63,7 +63,7 @@ try{
  const card=app.root.findAllByType('button').find(b=>b.props.className==='exchange-card');
  assert.ok(card);await act(async()=>{card.props.onClick();await flush();});
  await act(async()=>{app.root.findAllByType('label').find(l=>text(l).includes('erwachsene Person')).findByType('input').props.onChange({target:{checked:true}});});
- await click('Interesse senden');
+ await click('Nachricht senden');
  assert.equal(window.exchangeFixture.tables.exchange_threads.length,1);
  assert.equal(window.exchangeFixture.tables.exchange_messages.length,1);
  assert.match(text(app.toJSON()),/Privater Chat mit Johannes/);
