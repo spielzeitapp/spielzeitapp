@@ -1,3 +1,4 @@
+import {MarketThemeSync} from './features/club/MarketThemeSync';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -29,6 +30,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter basename={comparison ? MANAGER_COMPARISON_BASE : undefined}>
       {!comparison && <ManifestSync />}
+      <MarketThemeSync />
       <DeploymentUpdatePrompt />
       <AuthProvider>
         <SessionProvider>

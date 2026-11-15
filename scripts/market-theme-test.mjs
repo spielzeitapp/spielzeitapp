@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';import fs from 'node:fs/promises';import {build} from 'esbuild';import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),React=require('react'),{act,create}=require('react-test-renderer'),{MemoryRouter,useNavigate}=require('react-router-dom'),Module=require('module');
+const events=new EventTarget(),saved=new Map(),attributes=new Map(),meta=new Map([['content','#08080b']]);let blocked=false;
+globalThis.window={addEventListener:events.addEventListener.bind(events),removeEventListener:events.removeEventListener.bind(events),dispatchEvent:events.dispatchEvent.bind(events),localStorage:{getItem:k=>saved.get(k)??null,setItem(k,v){if(blocked)throw Error('Blocked');saved.set(k,v)}}};
+const node=map=>({setAttribute:(k,v)=>map.set(k,v),getAttribute:k=>map.get(k)??null,removeAttribute:k=>map.delete(k)});globalThis.document={documentElement:node(attributes),querySelector:()=>node(meta)};
+const out=await build({stdin:{contents:"export * from './src/features/club/marketTheme';export * from './src/features/club/MarketThemeSync';export * from './src/features/club/MarketThemeToggle';",resolveDir:process.cwd(),loader:'tsx'},bundle:true,platform:'node',format:'cjs',packages:'external',write:false,loader:{'.css':'empty'}});const m=new Module('market-test');m.paths=require.resolve.paths('react');m._compile(out.outputFiles[0].text,'market-test');const {MARKET_THEME_KEY,readMarketTheme,setMarketTheme,MarketThemeToggle,MarketThemeSync,isMarketThemeRoute}=m.exports;
+let navigate;function Controls(){navigate=useNavigate();return React.createElement(React.Fragment,null,React.createElement(MarketThemeSync),React.createElement(MarketThemeToggle));}
+let app;const route='/marktplatz/3db6fce2-a4c1-44a5-a333-19d1d4d62e6a';
+await act(async()=>{app=create(React.createElement(MemoryRouter,{initialEntries:[route]},React.createElement(Controls)))});
+assert.equal(attributes.get('data-market-theme'),'dark');assert.equal(app.root.findByType('button').props['aria-label'],'Tagmodus aktivieren');
+await act(async()=>app.root.findByType('button').props.onClick());assert.equal(saved.get(MARKET_THEME_KEY),'light');assert.equal(attributes.get('data-market-theme'),'light');assert.equal(meta.get('content'),'#f6f5f7');assert.equal(app.root.findByType('button').props['aria-label'],'Nachtmodus aktivieren');
+await act(async()=>navigate('/login?context=vereinsmarkt'));assert.equal(attributes.get('data-market-theme'),'light');
+await act(async()=>navigate('/app/home'));assert.ok(!attributes.has('data-market-theme'));assert.equal(meta.get('content'),'#08080b');assert.equal(saved.get(MARKET_THEME_KEY),'light');
+await act(async()=>navigate(route));assert.equal(attributes.get('data-market-theme'),'light');
+saved.set(MARKET_THEME_KEY,'dark');await act(async()=>events.dispatchEvent(Object.assign(new Event('storage'),{key:MARKET_THEME_KEY})));assert.equal(attributes.get('data-market-theme'),'dark');
+await act(async()=>app.unmount());assert.ok(!attributes.has('data-market-theme'));assert.equal(meta.get('content'),'#08080b');assert.equal(isMarketThemeRoute('/login',''),false);assert.equal(isMarketThemeRoute('/app/home','?context=vereinsmarkt'),false);
+blocked=true;await act(async()=>setMarketTheme('light'));assert.equal(readMarketTheme(),'light','toggle works without writable storage');
+const html=await fs.readFile('markt.html','utf8');assert.ok(html.includes(MARKET_THEME_KEY));assert.ok(html.includes('data-market-original-color'));console.log('PASS: day/night toggle, persisted preference, shared auth appearance, cross-tab updates, app isolation, chrome cleanup, blocked-storage fallback, early splash theme');

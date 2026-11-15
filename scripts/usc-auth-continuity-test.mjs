@@ -19,6 +19,7 @@ globalThis.window = {
     setItem: (k, v) => store.set(k, v),
     removeItem: (k) => store.delete(k),
   },
+  addEventListener(){},removeEventListener(){},dispatchEvent(){},
   localStorage: { getItem: () => null, removeItem() {} },
   setTimeout,
   clearTimeout,
