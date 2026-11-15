@@ -43,7 +43,15 @@ export {React,TestRenderer,act,MemoryRouter,Routes,Route,PublicTeamTournamentPag
  const articles=view.root.findAllByType('article').map(text);
  assert.equal(articles.length,5,'live match must appear once');
  for(const [i,id] of ['live','next1','next2','recent','old'].entries())assert(articles[i].includes(id),'public cards must be ordered '+id);
- await act(async()=>view.unmount());console.log('PASS live/upcoming/results order; match-time reminder and reset; optional sound only once, pauses respected; block requires confirmation');
+ assert.equal(view.root.findAllByProps({'aria-label':'Aktuelles Livespiel'}).length,1);
+ assert(!view.root.findAllByType('article').some(a=>a.props.className?.includes('tournament-fixture-row')),'pairings must use readable cards');
+ await act(async()=>view.unmount());
+ page.allMatches=page.allMatches.map(m=>m.status==='live'?{...m,status:'finished',scoreOur:0,scoreOpp:0}:m);
+ await act(async()=>{view=TestRenderer.create(React.createElement(MemoryRouter,{initialEntries:['/turnier/test']},React.createElement(Routes,null,React.createElement(Route,{path:'/turnier/:publicId',element:React.createElement(PublicTeamTournamentPage)}))))});
+ assert.equal(view.root.findAllByProps({'aria-label':'Nächstes eigenes Spiel'}).length,1,'after finish next own game must become the hero');
+ const after=view.root.findAllByType('article').map(text);assert(after[0].includes('next1'));assert.equal(after.filter(t=>t.includes('next1')).length,1,'featured next match is not duplicated');
+ const archive=view.root.findAllByType('details').find(d=>d.findAllByType('summary').some(n=>text(n).includes('Weitere Ergebnisse')));assert(archive);assert(!archive.props.open,'older results start collapsed');
+ await act(async()=>view.unmount());console.log('PASS live-to-next large hero, no duplicate next fixture, full-size pairing cards and collapsed result archive');console.log('PASS live/upcoming/results order; match-time reminder and reset; optional sound only once, pauses respected; block requires confirmation');
 }finally{rmSync(dir,{recursive:true,force:true});}
 
 process.exit(0);
