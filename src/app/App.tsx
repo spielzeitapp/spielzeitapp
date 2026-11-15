@@ -237,6 +237,9 @@ class AppErrorBoundary extends Component<
 function InternalRoutes(): React.ReactElement {
   return (
     <Routes>
+      <Route path="marktplatz/:clubId/anmelden" element={<LoginPage />} />
+      <Route path="marktplatz/:clubId/registrieren" element={<RegisterPage />} />
+      <Route path="marktplatz/:clubId/passwort-vergessen" element={<ForgotPasswordPage />} />
       <Route path="marktplatz/:clubId" element={<React.Suspense fallback={<MarketSplash/>}><PublicExchangePage /></React.Suspense>} />
       <Route path="app/usc-rohrbach/anmelden" element={<LoginPage />} />
       <Route path="app/usc-rohrbach/registrieren" element={<RegisterPage />} />
@@ -451,6 +454,9 @@ function InternalRoutes(): React.ReactElement {
 function PublicRoutes(): React.ReactElement {
   return (
     <Routes>
+      <Route path="marktplatz/:clubId/anmelden" element={<LoginPage />} />
+      <Route path="marktplatz/:clubId/registrieren" element={<RegisterPage />} />
+      <Route path="marktplatz/:clubId/passwort-vergessen" element={<ForgotPasswordPage />} />
       <Route path="marktplatz/:clubId" element={<React.Suspense fallback={<MarketSplash/>}><PublicExchangePage /></React.Suspense>} />
       <Route path="app/usc-rohrbach/anmelden" element={<LoginPage />} />
       <Route path="app/usc-rohrbach/registrieren" element={<RegisterPage />} />

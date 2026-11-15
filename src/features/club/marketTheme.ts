@@ -20,4 +20,4 @@ function subscribe(update:()=>void){
  return()=>{window.removeEventListener(EVENT,update);window.removeEventListener('storage',storage);};
 }
 export function useMarketTheme(){const theme=useSyncExternalStore(subscribe,readMarketTheme,()=> 'dark' as MarketTheme);return {theme,toggle:()=>setMarketTheme(readMarketTheme()==='dark'?'light':'dark')};}
-export function isMarketThemeRoute(pathname:string,search:string){return /^\/marktplatz\/[0-9a-f-]{36}\/?$/i.test(pathname)||(['/login','/register','/forgot-password','/reset-password'].includes(pathname)&&new URLSearchParams(search).get('context')==='vereinsmarkt');}
+export function isMarketThemeRoute(pathname:string,search:string){return /^\/marktplatz\/[0-9a-f-]{36}(?:\/(?:anmelden|registrieren|passwort-vergessen))?\/?$/i.test(pathname)||(['/login','/register','/forgot-password','/reset-password'].includes(pathname)&&new URLSearchParams(search).get('context')==='vereinsmarkt');}

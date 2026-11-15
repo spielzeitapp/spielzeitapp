@@ -265,16 +265,16 @@ const marketClub='3db6fce2-a4c1-44a5-a333-19d1d4d62e6a';
 const marketNext='/marktplatz/'+marketClub+'?view=member&club='+marketClub+'&listing=fixture';
 const marketQuery=new URLSearchParams({context:'vereinsmarkt',marketClub,next:marketNext}).toString();
 globalThis.__uscAuthUser=null;
-await mount(login.LoginPage,'/login?'+marketQuery);
+await mount(login.LoginPage,'/marktplatz/'+marketClub+'/anmelden?'+marketQuery);
 assert.match(json(),/Willkommen im Vereinsmarkt/);assert.match(json(),/market-auth-brand/);
 assert.doesNotMatch(json(),/Demo ohne Login|Spieler-Login/);
 assert.ok(hrefs().includes('/marktplatz/'+marketClub));
-assert.ok(hrefs().includes('/register?'+marketQuery));assert.ok(hrefs().includes('/forgot-password?'+marketQuery));
+assert.ok(hrefs().includes('/marktplatz/'+marketClub+'/registrieren?'+marketQuery));assert.ok(hrefs().includes('/marktplatz/'+marketClub+'/passwort-vergessen?'+marketQuery));
 await change('login-email','market@example.test');await change('login-password','fixture-password');
 await act(async()=>tree.root.findByType('form').props.onSubmit({preventDefault(){}}));
 assert.equal(tree.root.findByType('output').children.join(''),marketNext);await act(async()=>tree.unmount());
-await mount(register.RegisterPage,'/register?'+marketQuery);assert.match(json(),/Für den Vereinsmarkt registrieren/);assert.ok(hrefs().includes('/login?'+marketQuery));await act(async()=>tree.unmount());
-await mount(forgot.ForgotPasswordPage,'/forgot-password?'+marketQuery);assert.match(json(),/market-auth-brand/);assert.ok(hrefs().includes('/login?'+marketQuery));await change('forgot-email','market@example.test');await act(async()=>tree.root.findByType('form').props.onSubmit({preventDefault(){}}));
+await mount(register.RegisterPage,'/marktplatz/'+marketClub+'/registrieren?'+marketQuery);assert.match(json(),/Für den Vereinsmarkt registrieren/);assert.ok(hrefs().includes('/marktplatz/'+marketClub+'/anmelden?'+marketQuery));await act(async()=>tree.unmount());
+await mount(forgot.ForgotPasswordPage,'/marktplatz/'+marketClub+'/passwort-vergessen?'+marketQuery);assert.match(json(),/market-auth-brand/);assert.ok(hrefs().includes('/marktplatz/'+marketClub+'/anmelden?'+marketQuery));await change('forgot-email','market@example.test');await act(async()=>tree.root.findByType('form').props.onSubmit({preventDefault(){}}));
 const marketReset=globalThis.__uscAuthCalls.filter(c=>c[0]==='reset').at(-1);assert.equal(new URL(marketReset[2].redirectTo).searchParams.get('next'),marketNext);await act(async()=>tree.unmount());
 console.log('PASS Vereinsmarkt: own auth brand, no player/demo controls, safe market back link, signup/reset continuity, original sign-in and selected listing retained.');
 
@@ -285,4 +285,4 @@ console.log('PASS: marketplace presentation helper rejects external, traversal a
 
 const migrated=marketHelpers.marketAuthContext('?context=vereinsmarkt&next='+encodeURIComponent('/app/tauschboerse?club='+marketClub+'&listing=fixture'));assert.equal(new URL(migrated.next,'https://test.invalid').pathname,'/marktplatz/'+marketClub);assert.equal(new URL(migrated.next,'https://test.invalid').searchParams.get('listing'),'fixture');
 
-globalThis.__uscAuthUser={id:'existing-market-user'};await mount(login.LoginPage,'/login?'+marketQuery);assert.equal(tree.root.findByType('output').children.join(''),marketNext);await act(async()=>tree.unmount());globalThis.__uscAuthUser=null;console.log('PASS: existing marketplace session returns directly to public shell');
+globalThis.__uscAuthUser={id:'existing-market-user'};await mount(login.LoginPage,'/marktplatz/'+marketClub+'/anmelden?'+marketQuery);assert.equal(tree.root.findByType('output').children.join(''),marketNext);await act(async()=>tree.unmount());globalThis.__uscAuthUser=null;console.log('PASS: existing marketplace session returns directly to public shell');
