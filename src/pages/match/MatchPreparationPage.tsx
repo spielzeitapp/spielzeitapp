@@ -1,4 +1,5 @@
-import { prepareTournamentMatchFromTemplate } from '../../lib/tournamentLineupTemplates';
+import { U11_FORMATIONS } from '../../lib/matchFormations';
+import { prepareTournamentMatchFromTemplate, type TournamentTemplateRecord } from '../../lib/tournamentLineupTemplates';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
@@ -135,6 +136,8 @@ export const MatchPreparationPage: React.FC = () => {
   const [lineupCopyBusy, setLineupCopyBusy] = useState(false);
   const [lineupCopyError, setLineupCopyError] = useState<string | null>(null);
   const [lineupCopyConfirm, setLineupCopyConfirm] = useState(false);
+  const [template, setTemplate] = useState<TournamentTemplateRecord | null>(null);
+  const [copySource, setCopySource] = useState<'assistant' | 'previous'>('assistant');
 
   // Eltern/Fans: Direct-Route Guard → read-only Aufstellung
   useEffect(() => {
@@ -194,7 +197,7 @@ export const MatchPreparationPage: React.FC = () => {
       setMatchLoading(true);
       setMatchError(null);
       if (canManage) {
-        try { await prepareTournamentMatchFromTemplate(matchId); }
+        try { const record = await prepareTournamentMatchFromTemplate(matchId); if (!cancelled) { setTemplate(record); setCopySource(record ? 'assistant' : 'previous'); } }
         catch (e) { if (!cancelled) { setMatchError(e instanceof Error ? e.message : String(e)); setMatchLoading(false); } return; }
       }
       if (cancelled) return;
@@ -839,6 +842,8 @@ export const MatchPreparationPage: React.FC = () => {
   return (
     <div className={dsPageShellClass()}>
       <div className={dsPageAtmosphereClass()} aria-hidden />
+      {tournamentEventId ? <style>{`@media (max-width:639px){nav[aria-label="Hauptnavigation"],.app-header{display:none!important}main.appMain{padding-top:env(safe-area-inset-top,0px)!important}}`}</style> : null}
+      {tournamentEventId ? <header className="mx-auto flex w-full max-w-xl items-center justify-between gap-3 px-4 py-4"><div className="min-w-0"><button type="button" onClick={()=>navigate(-1)} className="min-h-11 text-base text-white/70">← Zurück</button><h1 className="text-2xl font-bold">{matchRow?.opponent || 'Turnierspiel'}</h1><p className="mt-1 text-base text-white/60">Spiel vorbereiten</p></div>{template ? <span className="shrink-0 rounded-lg border border-white/15 px-3 py-2 text-lg font-bold">{U11_FORMATIONS[template.blocks.variants[template.blocks.startVariant].formationId].length-1}+1</span> : null}</header> : <>
       <header className={`${dsPageHeaderClass()} relative overflow-hidden`}>
         <div className={dsPageHeroGlowClass()} aria-hidden />
         <div className="relative mx-auto flex max-w-xl items-center justify-between gap-3">
@@ -860,7 +865,7 @@ export const MatchPreparationPage: React.FC = () => {
           </div>
           <span className={dsStatusChipClass('selected')}>Trainer</span>
         </div>
-      </header>
+      </header></>}
 
       <main className={dsPageContentClass(`mx-auto max-w-xl flex flex-col ${DS_SECTION_GAP} px-4 py-5 pb-48`)}>
         {(playersLoading || attendanceLoading) ? <p className="text-sm text-white/55">Lade Spieler und Status…</p> : null}
@@ -875,54 +880,22 @@ export const MatchPreparationPage: React.FC = () => {
             Turnierkader als Vorauswahl — du kannst die Auswahl pro Spiel anpassen.
           </p>
         ) : null}
-        {canManage && lineupCopyContext && lineupCopyContext.sourceStarterCount > 0 ? (
-          <div className="rounded-xl border border-purple-500/30 bg-purple-950/30 px-3 py-3">
-            <p className="text-[13px] font-bold text-purple-50">Letzte Aufstellung übernehmen</p>
-            <p className="mt-1 text-[11px] leading-snug text-purple-100/75">
-              Spiel gegen {lineupCopyContext.sourceOpponentName} · Formation, Startelf und Bank —
-              ohne erneute Spielerauswahl.
-            </p>
-            {lineupCopyConfirm ? (
-              <p className="mt-2 text-[11px] text-amber-100/90">
-                Bestehende Aufstellung wird ersetzt — erneut tippen zum Bestätigen.
-              </p>
-            ) : null}
-            {lineupCopyError ? <p className="mt-2 text-[11px] text-red-300">{lineupCopyError}</p> : null}
-            <div className="mt-2.5 flex flex-col gap-1.5">
-              <button
-                type="button"
-                disabled={lineupCopyBusy}
-                onClick={() => void runPrepLineupCopy('full')}
-                className={`${dsPrimaryCtaClass()} min-h-[44px] w-full text-[13px] font-bold disabled:opacity-60`}
-              >
-                {lineupCopyBusy ? 'Wird übernommen…' : 'Komplette Aufstellung übernehmen'}
-              </button>
-              <button
-                type="button"
-                disabled={lineupCopyBusy}
-                onClick={() => void runPrepLineupCopy('starters')}
-                className={`${dsSecondaryCtaClass()} min-h-[40px] w-full text-[12px] font-semibold disabled:opacity-60`}
-              >
-                Nur Startelf
-              </button>
-              <button
-                type="button"
-                disabled={lineupCopyBusy}
-                onClick={() => void runPrepLineupCopy('bench')}
-                className={`${dsSecondaryCtaClass()} min-h-[40px] w-full text-[12px] font-semibold disabled:opacity-60`}
-              >
-                Nur Ersatzspieler
-              </button>
-              <button
-                type="button"
-                disabled={lineupCopyBusy || !tournamentEventId}
-                onClick={() => void runPrepLineupCopy('squad_only')}
-                className={`${dsSecondaryCtaClass()} min-h-[40px] w-full text-[12px] font-semibold disabled:opacity-60`}
-              >
-                Mit Turnierkader neu aufstellen
-              </button>
+        {canManage && (template || (lineupCopyContext && lineupCopyContext.sourceStarterCount > 0)) ? (
+          <section className="rounded-2xl border border-white/15 bg-white/[.035] p-4">
+            <h2 className="text-xl font-bold">Vorbereitung übernehmen</h2>
+            <div className="mt-3 grid grid-cols-2 gap-2" aria-label="Quelle der Aufstellung">
+              <button type="button" disabled={!template || lineupCopyBusy} aria-pressed={copySource==='assistant'} onClick={()=>{setCopySource('assistant');setLineupCopyConfirm(false);}} className={`min-h-11 rounded-xl px-3 text-base font-bold disabled:opacity-40 ${copySource==='assistant'?'sz-club-tab-active':'bg-white/5'}`}>Assistent</button>
+              <button type="button" disabled={!lineupCopyContext || lineupCopyBusy} aria-pressed={copySource==='previous'} onClick={()=>{setCopySource('previous');setLineupCopyConfirm(false);}} className={`min-h-11 rounded-xl px-3 text-base font-bold disabled:opacity-40 ${copySource==='previous'?'sz-club-tab-active':'bg-white/5'}`}>Letztes Spiel</button>
             </div>
-          </div>
+            <p className="mt-3 text-base text-white/75">{copySource==='assistant' && template ? `${template.blocks.variants[template.blocks.startVariant].squadIds.length} Spieler · ${U11_FORMATIONS[template.blocks.variants[template.blocks.startVariant].formationId].length-1}+1 · ${template.blocks.lineupMode==='single'?'Aufstellung':'Block A / B'}` : `Gegen ${lineupCopyContext?.sourceOpponentName ?? '—'}`}</p>
+            {lineupCopyConfirm ? <p role="status" className="mt-2 text-sm text-amber-200">Vorhandene Aufstellung ersetzen? Erneut bestätigen.</p> : null}
+            {lineupCopyError ? <p role="alert" className="mt-2 text-sm text-red-300">{lineupCopyError}</p> : null}
+            <button type="button" disabled={lineupCopyBusy || !squadEditable} onClick={()=>{if(copySource==='assistant'){navigate(matchLineupPath(matchId!,basePath),{state:{useTournamentTemplate:true}});}else void runPrepLineupCopy('full');}} className={`${dsPrimaryCtaClass()} mt-3 min-h-12 w-full rounded-xl px-3 text-base font-bold disabled:opacity-40`}>{lineupCopyBusy?'Übernehmen…':lineupCopyConfirm?'Ersetzen bestätigen':'Alles übernehmen'}</button>
+            <details className="mt-2"><summary className="cursor-pointer py-2 text-base text-white/70">Einzeln auswählen</summary><div className="mt-2 grid grid-cols-2 gap-2">
+              {copySource==='previous' ? <><button type="button" disabled={lineupCopyBusy || !squadEditable} onClick={()=>void runPrepLineupCopy('starters')} className={`${dsSecondaryCtaClass()} min-h-11 px-2 text-sm`}>Nur Startelf</button><button type="button" disabled={lineupCopyBusy || !squadEditable} onClick={()=>void runPrepLineupCopy('bench')} className={`${dsSecondaryCtaClass()} min-h-11 px-2 text-sm`}>Nur Ersatzbank</button></> : <p className="col-span-2 text-sm text-white/65">Spieler im Kader unten anpassen. Positionen und Blöcke bearbeitest du in der Aufstellung.</p>}
+              {lineupCopyContext ? <button type="button" disabled={lineupCopyBusy || !tournamentEventId || !squadEditable} onClick={()=>void runPrepLineupCopy('squad_only')} className={`${dsSecondaryCtaClass()} col-span-2 min-h-11 px-3 text-sm`}>Mit Turnierkader neu aufstellen</button> : null}
+            </div></details>
+          </section>
         ) : null}
         <div className="flex flex-wrap gap-1.5">
           {(
@@ -973,7 +946,7 @@ export const MatchPreparationPage: React.FC = () => {
       <div
         className={dsStickyCtaBarClass()}
         style={{
-          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
+          bottom: tournamentEventId ? 'calc(env(safe-area-inset-bottom, 0px) + 4px)' : 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
           paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))',
         }}
       >
@@ -986,6 +959,10 @@ export const MatchPreparationPage: React.FC = () => {
               {publishedSelectionMatches ? 'Kader veröffentlicht' : squadPublication ? 'Änderungen nicht veröffentlicht' : 'Noch nicht veröffentlicht'}
             </span>
           </div>
+          {tournamentEventId ? <div className="flex flex-col gap-1">
+            <button type="button" disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable || publishedSelectionMatches} onClick={openSquadMessageDialog} className="min-h-11 text-sm font-semibold text-white/70 disabled:opacity-40">{squadPublishBusy?'Veröffentliche…':squadPublication?'Kader aktualisieren':'Kader veröffentlichen'}</button>
+            <button type="button" disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable} onClick={()=>void onContinueToLineup()} className={`${dsPrimaryCtaClass()} min-h-12 px-3 text-base font-bold`}>{persisting || squadSaveBusy?'Speichern…':'Weiter zur Aufstellung →'}</button>
+          </div> : <>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -1003,7 +980,7 @@ export const MatchPreparationPage: React.FC = () => {
             >
               {persisting || squadSaveBusy ? 'Speichern…' : 'Zur Aufstellung'}
             </button>
-          </div>
+          </div></>}
         </div>
         {persistError ? <p className="mx-auto mt-1 max-w-xl text-xs text-red-400">{persistError}</p> : null}
         {squadPublishMessage ? (

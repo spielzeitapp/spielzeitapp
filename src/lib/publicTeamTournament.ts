@@ -403,3 +403,17 @@ export async function fetchPublicTeamTournamentPage(
     return { page: null, error: 'Keine Verbindung. Bitte erneut versuchen.' };
   }
 }
+
+/** Public overview: live once above navigation; upcoming ascending, results newest first. */
+export function groupPublicTournamentMatches(matches: PublicTeamTournamentMatchDto[]) {
+  const chronological = [...matches].sort((a,b) => {
+    const ta=Date.parse(a.kickoffAt),tb=Date.parse(b.kickoffAt);
+    return (Number.isFinite(ta)?ta:0)-(Number.isFinite(tb)?tb:0) || a.id.localeCompare(b.id);
+  });
+  return {
+    live: chronological.filter(m=>m.status==='live'),
+    upcoming: chronological.filter(m=>m.status==='upcoming'),
+    results: chronological.filter(m=>m.status==='finished').reverse(),
+    canceled: chronological.filter(m=>m.status==='canceled'),
+  };
+}

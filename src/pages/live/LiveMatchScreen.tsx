@@ -4919,7 +4919,7 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : null}
                   </div>
                   <div className={`flex justify-center ${matchIsFinished ? 'pt-0.5' : ''}`}>
-                    <MatchTypeHeading label={matchTypeDisplay} ageGroup={matchTeamSeason?.age_group} />
+                    {tournamentNavContext ? <p className="text-sm font-bold text-white/75">{matchTeamSeason?.age_group} · Turnierspiel</p> : <MatchTypeHeading label={matchTypeDisplay} ageGroup={matchTeamSeason?.age_group} />}
                   </div>
                   <div aria-hidden="true" />
                 </div>
@@ -5160,7 +5160,7 @@ export const LiveMatchScreen: React.FC = () => {
                       : 'border-red-500/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_-12px_32px_rgba(220,38,38,0.12)]',
                   ].join(' ')}
                 >
-                  {!matchIsFinished && effectiveMatchId ? (
+                  {!matchIsFinished && !hasClockStarted && effectiveMatchId ? (
                     <Link
                       to={`${basePath}/match-preparation?matchId=${encodeURIComponent(effectiveMatchId)}`}
                       className={`flex min-h-[44px] w-full items-center justify-center px-3 text-[11px] font-bold ${dsSecondaryCtaClass()}`}
@@ -5209,7 +5209,7 @@ export const LiveMatchScreen: React.FC = () => {
                     </button>
                   ) : null}
 
-                  {!calendarFinalized ? (
+                  {!calendarFinalized && (!tournamentNavContext || matchIsFinished) ? (
                     <button
                       type="button"
                       disabled={!matchIsFinished}
@@ -5279,8 +5279,8 @@ export const LiveMatchScreen: React.FC = () => {
             </div>
           )}
 
-          {canControlLiveMatch && tournamentNavContext && matchRow?.status === 'live' && !fairPlayExtraPlayerId && effectiveMatchId && mainTab === 'hub' ? (
-            <TournamentBlockControl key={effectiveMatchId} matchId={effectiveMatchId} seconds={currentMatchSeconds} current={liveReplayState.slotsBySlot} squad={squadPlayerIds} name={id=>rosterById.get(id)?.name ?? 'Spieler'} busy={subSaving} onApply={applyTournamentBlock} basePath={basePath}/>
+          {canControlLiveMatch && tournamentNavContext && matchRow?.status === 'live' && !fairPlayExtraPlayerId && effectiveMatchId ? (
+            <TournamentBlockControl key={effectiveMatchId} matchId={effectiveMatchId} seconds={currentMatchSeconds} running={isRunning} current={liveReplayState.slotsBySlot} squad={squadPlayerIds} name={id=>rosterById.get(id)?.name ?? 'Spieler'} busy={subSaving} onApply={applyTournamentBlock} basePath={basePath}/>
           ) : null}
 
           {mainTab === 'hub' ? (
