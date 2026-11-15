@@ -68,7 +68,7 @@ export const TournamentPlanRefreshSheet: React.FC<Props> = ({
         <div className="modalHeader">
           <div id="tournament-plan-refresh-title" className="modalTitle flex items-center gap-2 text-white">
             <RefreshCw className="h-4 w-4 sz-club-accent-text" strokeWidth={2} aria-hidden />
-            Turnierplan aktualisiert
+            {error ? 'Turnierplan konnte nicht aktualisiert werden' : 'Turnierplan aktualisiert'}
           </div>
           <button type="button" className="modalClose" onClick={onClose} aria-label="Schließen" disabled={importing}>
             ×
@@ -86,7 +86,7 @@ export const TournamentPlanRefreshSheet: React.FC<Props> = ({
                   <div className="min-w-0">
                     <p className="text-[15px] font-bold text-white">Aktualisierung derzeit nicht möglich</p>
                     <p className="mt-1 text-[13px] leading-relaxed text-white/68">
-                      Der Anbieter liefert aktuell keinen vollständigen Spielplan. Die vorhandenen Spiele und alle
+                      {error} Die vorhandenen Spiele und alle
                       Eingaben aus der SpielzeitApp bleiben erhalten.
                     </p>
                   </div>

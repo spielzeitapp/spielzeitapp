@@ -81,7 +81,7 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
         <div className="modalHeader">
           <div id="tournament-plan-import-title" className="modalTitle flex items-center gap-2 text-white">
             <FileDown className="h-4 w-4 sz-club-accent-text" strokeWidth={2} aria-hidden />
-            {error ? 'Turnierplan nicht verfügbar' : 'Turnierplan erkannt'}
+            {error ? 'Turnierplan konnte nicht importiert werden' : 'Turnierplan erkannt'}
           </div>
           <button type="button" className="modalClose" onClick={onClose} aria-label="Schließen" disabled={importing}>
             ×
@@ -99,7 +99,7 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
                   <div className="min-w-0">
                     <p className="text-[15px] font-bold text-white">Automatischer Import derzeit nicht möglich</p>
                     <p className="mt-1 text-[13px] leading-relaxed text-white/68">
-                      Der Anbieter liefert aktuell keinen vollständigen Spielplan. Bereits gespeicherte Spiele,
+                      {analyzeFailure?.message ?? error} Bereits gespeicherte Spiele,
                       Live-Ergebnisse und Torschützen bleiben unverändert.
                     </p>
                   </div>

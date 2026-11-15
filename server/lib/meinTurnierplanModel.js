@@ -14,8 +14,16 @@ export function inferMeinTurnierplanPhase(mapping, a, b) {
   return "unknown";
 }
 export function parseMeinTurnierplanModel(json) {
-  if (!json?.participants || !Array.isArray(json.groups) || !json.groups.length)
-    return null;
+  if (!json?.participants || !Array.isArray(json.groups)) return null;
+  // Compact public plans use one league table without an explicit groups list.
+  if (!json.groups.length) {
+    const matches = json.groupMatches;
+    if (!Array.isArray(matches) || !matches.length ||
+        matches.some((m) => m.groupId != null && Number(m.groupId) !== 0)) return null;
+    const ids = Object.keys(json.participants).filter((id) => text(json.participants[id]?.name));
+    if (!ids.length) return null;
+    json = { ...json, groups: [{ displayId: 'A' }], groupParticipants: [ids] };
+  }
   const name = (id) => text(json.participants[id]?.name);
   const label = (i) => text(json.groups[i]?.displayId) || String(Number(i) + 1);
   const teams = json.groups.flatMap((g, i) =>
