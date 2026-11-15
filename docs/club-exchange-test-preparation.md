@@ -118,3 +118,8 @@ TEST app header adds a circular market-logo link for authenticated, non-demo app
 - Markt-Routen markieren das Dokument vor dem ersten Splash und über den Router-Lebenszyklus. Nur dort: body festsetzen, html/body/root-Überlauf sperren, festen Markt-Rahmen am gemessenen sichtbaren Viewport ausrichten. Ausschließlich main bleibt vertikal scrollbar; Pinch-Zoom bleibt erlaubt.
 - Markierung wird beim Wechsel zu Anmeldung/SpielzeitApp und beim Unmount entfernt. Keine globalen Touch-Event-Sperren oder Änderungen an SpielzeitApp-LIVE.
 - Regression für Setzen/Entfernen der Markierung, bestehende Markt-UI und Navi-Abstandsregeln sowie TypeScript/Produktionsbuild geprüft. Physischer iOS-Randzug/Bounce bleibt auf dem Gerät zu bestätigen.
+
+## TEST 15.11.2026: Navi-Verankerung wie LIVE
+- Vergleichsbild zeigte trotz gesperrtem Dokument einen zu hohen unteren Rand. Markt-Navi war stets absolut am gemessenen Rahmen ausgerichtet; LIVE ist im Normalfall viewport-fixed und nur bei validiertem iOS-Fullscreen absolut.
+- Exakt diese Umschaltung für den Vereinsmarkt übernommen. Begrenzter LIVE-Inset und äußere Scroll-Sperre bleiben erhalten. Keine neuen geratenen Pixel-Verschiebungen oder Änderung der globalen Viewport-Erkennung.
+- Navi-Regression und Fullscreen/Resume/Tastatur/Zoom-Policy erfolgreich; Produktionsbuild geprüft. Exakte iPhone-Position bleibt am Gerät zu bestätigen.
