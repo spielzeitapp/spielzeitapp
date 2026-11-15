@@ -9,6 +9,8 @@ export type StandaloneViewportInput = {
   visibleTop: number;
   scale: number;
   editing: boolean;
+  /** Zero means iOS already reserved a separate status bar outside the viewport. */
+  safeAreaTop?: number;
 };
 
 /** Safari page zoom changes both layout width and visualViewport.scale.
@@ -28,6 +30,7 @@ export function standalonePageScale(input: Pick<StandaloneViewportInput, 'ios' |
 export function standaloneFullscreenHeight(input: StandaloneViewportInput): number | null {
   const { screenHeight, innerHeight, visibleHeight, visibleTop, editing } = input;
   const pageScale = standalonePageScale(input);
+  if (input.safeAreaTop !== undefined && input.safeAreaTop <= 1) return null;
   if (pageScale === null || editing || !Number.isFinite(visibleTop) || Math.abs(visibleTop) > 1) return null;
   if (![screenHeight, innerHeight, visibleHeight].every(value => Number.isFinite(value) && value > 0)) return null;
   const gap = screenHeight - Math.min(innerHeight, visibleHeight) * pageScale;

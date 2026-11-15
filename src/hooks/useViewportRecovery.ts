@@ -26,13 +26,24 @@ function applyViewportVars(): void {
   const vv = window.visualViewport;
   const active = document.activeElement;
   const editing = active instanceof HTMLElement && (active.isContentEditable || active.matches('input:not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select'));
+  // An installed PWA can retain an opaque status bar from its install-time
+  // appearance. A zero top safe area means that bar is OUTSIDE the viewport;
+  // expanding to screen.height would put the navigation underneath the screen.
+  let safeAreaTop: number | undefined;
+  if (root.hasAttribute('data-market-shell')) {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top,0px)';
+    document.body.appendChild(probe);
+    safeAreaTop = Number.parseFloat(getComputedStyle(probe).paddingTop) || 0;
+    probe.remove();
+  }
   const viewportInput = {
     ios: /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1),
     standalone: window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true,
     screenWidth: window.screen.width, screenHeight: window.screen.height,
     innerWidth: window.innerWidth, innerHeight: innerH,
     visibleHeight: vv?.height ?? innerH, visibleTop: vv?.offsetTop ?? 0,
-    scale: vv?.scale ?? 1, editing,
+    scale: vv?.scale ?? 1, editing, safeAreaTop,
   };
   const fullscreenHeight = standaloneFullscreenHeight(viewportInput);
   const pageScale = standalonePageScale(viewportInput);
