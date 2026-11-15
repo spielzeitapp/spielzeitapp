@@ -84,3 +84,23 @@ html[data-market-theme=light] .exchange input[type=checkbox],html[data-market-th
 /* Paint the document behind iOS chrome in both appearances, not only light. */
 html[data-market-theme=dark]{color-scheme:dark;background:#08080b}
 html[data-market-theme=dark] body{background:#08080b}
+
+/* Saved-password autofill has a global !important dark inset. Override it
+   within market auth only; changing the normal background isn't sufficient. */
+html[data-market-theme=light] .market-auth-card .auth-login-input:-webkit-autofill,
+html[data-market-theme=light] .market-auth-card .auth-login-input:-webkit-autofill:hover,
+html[data-market-theme=light] .market-auth-card .auth-login-input:-webkit-autofill:focus,
+html[data-market-theme=light] .market-auth-card .auth-login-input:-webkit-autofill:active{
+ -webkit-text-fill-color:#211d25!important;caret-color:#211d25;
+ -webkit-box-shadow:0 0 0 1000px #faf8fb inset!important;
+ box-shadow:0 0 0 1000px #faf8fb inset!important;color-scheme:light;
+}
+html[data-market-theme=light] .market-auth-card .auth-login-input:-moz-autofill{
+ color:#211d25!important;box-shadow:0 0 0 1000px #faf8fb inset!important;
+}
+html[data-market-theme=light] .market-auth-card input:not([type=checkbox]){
+ color-scheme:light;
+}
+html[data-market-theme=dark] .market-auth-card input:not([type=checkbox]){
+ color-scheme:dark;
+}
