@@ -1,3 +1,8 @@
+import { useNavigate } from 'react-router-dom';
+import { useInternalBasePath } from '../../demo/demoPaths';
+import { matchPreparationPath } from '../../lib/matchPreparationAccess';
+import { formatTournamentKickoffTime } from '../../lib/tournamentPlan';
+import { TournamentClubLogo } from './TournamentClubLogo';
 import type { FieldSlotId } from '../../types/match';
 import { moveTournamentLineupPlayer } from '../../lib/tournamentLineupMove';
 import { LeibchenJersey } from '../match/LeibchenJersey';
@@ -56,6 +61,9 @@ export function TournamentLineupTemplatePanel({
   canEdit,
 }: Props) {
   const demo = useDemoMode();
+  const navigate = useNavigate();
+  const basePath = useInternalBasePath();
+  const [appliedMatches, setAppliedMatches] = useState<string[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const drag = useRef<{id:string;x:number;y:number;moved:boolean} | null>(null);
   const suppressClick = useRef(false);
@@ -211,8 +219,34 @@ export function TournamentLineupTemplatePanel({
     }
   };
   const eligible = slots.filter(
-    (s) => s.match_id && s.match_status === "upcoming" && !s.has_lineup,
+    (s) => s.match_id && s.match_status === "upcoming" && !s.has_lineup && !appliedMatches.includes(s.match_id),
   );
+  const applyToGames = async (games: TournamentMatchSlotView[], openAfter = false) => {
+    if (!saved || !ready || busy || !canEdit) return;
+    setBusy(true);
+    setError(null);
+    let count = 0;
+    const failures: string[] = [];
+    for (const game of games) {
+      if (!game.match_id || !eligible.some(s => s.id === game.id)) continue;
+      try {
+        if (demo) {
+          const start = saved.blocks.variants[saved.blocks.startVariant];
+          demo.setDemoMatchLineup(game.match_id, start.slots, start.squadIds, start.formationId);
+          writeMatchLineupVariants(game.match_id, saved.blocks);
+        } else await applyTournamentLineupTemplate(eventId, game.match_id, saved);
+        count++;
+        setAppliedMatches(ids => [...ids, game.match_id!]);
+      } catch (e) {
+        failures.push(`${game.opponent_name}: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+    setMessage(`${count} ${count === 1 ? 'Spiel vorbereitet' : 'Spiele vorbereitet'} · Kader und Aufstellung übernommen.`);
+    if (failures.length) setError(failures.join(' · '));
+    setBusy(false);
+    if (count) onSaved();
+    if (openAfter && !failures.length && games[0]?.match_id) navigate(matchPreparationPath(games[0].match_id, basePath));
+  };
   if (loading)
     return <p className="text-[16px] text-white/65">Lade Grundaufstellung…</p>;
   return (
@@ -391,56 +425,38 @@ export function TournamentLineupTemplatePanel({
           </button>
         </div>
       ) : null}
-      {ready && eligible.length && canEdit ? (
-        <div className="space-y-3 border-t border-white/10 pt-4">
-          <h4 className="text-[17px] font-bold text-white">
-            Für ein Spiel übernehmen
-          </h4>
-          <p className="text-[15px] text-white/65">
-            Nur leere Aufstellungen werden übernommen. Bereits vorbereitete oder
-            gestartete Spiele bleiben geschützt.
-          </p>
-          {eligible.map((s) => (
-            <button
-              key={s.id}
-              disabled={busy}
-              className={`${dsSecondaryCtaClass()} w-full !text-[16px]`}
-              onClick={async () => {
-                if (!saved || !s.match_id) return;
-                setBusy(true);
-                setError(null);
-                try {
-                  if (demo) {
-                    const start =
-                      saved.blocks.variants[saved.blocks.startVariant];
-                    demo.setDemoMatchLineup(
-                      s.match_id,
-                      start.slots,
-                      start.squadIds,
-                      start.formationId,
-                    );
-                    writeMatchLineupVariants(s.match_id, saved.blocks);
-                  } else
-                    await applyTournamentLineupTemplate(
-                      eventId,
-                      s.match_id,
-                      saved,
-                    );
-                  setMessage(
-                    `Grundaufstellung gegen ${s.opponent_name} übernommen.`,
-                  );
-                  onSaved();
-                } catch (e) {
-                  setError(e instanceof Error ? e.message : String(e));
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              Gegen {s.opponent_name} übernehmen
-            </button>
-          ))}
-        </div>
+      {slots.some(s => s.match_id) ? (
+        <section className="space-y-3 border-t border-white/10 pt-4" aria-label="Unsere Spiele vorbereiten">
+          <div className="flex items-center justify-between gap-3">
+            <h4 className="text-[18px] font-bold text-white">Unsere Spiele</h4>
+            <span className="text-xs text-white/50">{slots.filter(s => s.match_id).length} Spiele</span>
+          </div>
+          <p className="text-[14px] leading-relaxed text-white/60">Spiel antippen: Kader und Aufstellung übernehmen, prüfen und zum Matchstart weitergehen.</p>
+          {canEdit && eligible.length > 0 ? <button type="button" disabled={busy || !ready}
+            onClick={() => void applyToGames(eligible)}
+            className={`${dsPrimaryCtaClass()} w-full !min-h-11 !rounded-xl !px-3 !py-2 !text-[14px]`}>
+            {busy ? 'Wird übernommen…' : `Kader & Aufstellung für alle übernehmen (${eligible.length})`}
+          </button> : null}
+          {!ready && canEdit ? <p className="text-[13px] text-amber-200">Zum Übernehmen zuerst die vollständige Grundaufstellung speichern.</p> : null}
+          <div className="divide-y divide-white/10 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
+            {[...slots].filter(s => s.match_id).sort((a,b) => Date.parse(a.kickoff_at)-Date.parse(b.kickoff_at)).map(game => {
+              const prepared = game.has_lineup || appliedMatches.includes(game.match_id!);
+              const canApply = eligible.some(s => s.id === game.id);
+              const status = game.match_status === 'live' ? 'Live' : game.match_status === 'finished' ? 'Beendet' : prepared ? 'Vorbereitet' : 'Offen';
+              return <button key={game.id} type="button" disabled={busy || dirty || (canApply && (!ready || !canEdit))}
+                aria-label={`${formatTournamentKickoffTime(game.kickoff_at)} · ${game.opponent_name} · ${status}`}
+                onClick={() => canApply ? void applyToGames([game],true) : navigate(matchPreparationPath(game.match_id!,basePath))}
+                className="flex min-h-[72px] w-full items-center gap-3 px-3 py-3 text-left disabled:opacity-50 active:bg-white/5">
+                <span className="shrink-0 text-sm font-bold tabular-nums text-white/70">{formatTournamentKickoffTime(game.kickoff_at)}</span>
+                <TournamentClubLogo name={game.opponent_name} size="sm"/>
+                <span className="min-w-0 flex-1"><span className="block text-[15px] font-bold leading-snug text-white">{game.opponent_name}</span>
+                <span className={`mt-1 block text-xs ${prepared ? 'text-emerald-300' : 'text-white/50'}`}>{status}</span></span>
+                <span className="shrink-0 text-xl text-white/50" aria-hidden>›</span>
+              </button>;
+            })}
+          </div>
+          <p className="text-[12px] leading-relaxed text-white/45">Die Sammelübernahme gilt für offene, leere Aufstellungen. Bereits vorbereitete und gestartete Spiele bleiben erhalten. Änderungen pro Spiel sind danach möglich.</p>
+        </section>
       ) : null}
     </div>
   );
