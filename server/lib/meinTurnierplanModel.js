@@ -1,3 +1,4 @@
+import { tournamentLogoUrl } from './tournamentTeamLogos.js';
 /** Shared provider model: confirmed participants and projections stay distinct. */
 const text = (value) => String(value ?? "").trim();
 const num = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
@@ -14,19 +15,36 @@ export function inferMeinTurnierplanPhase(mapping, a, b) {
   return "unknown";
 }
 export function parseMeinTurnierplanModel(json) {
-  if (!json?.participants || !Array.isArray(json.groups) || !json.groups.length)
-    return null;
+  if (!json?.participants || !Array.isArray(json.groups)) return null;
+  // Compact public plans use one league table without an explicit groups list.
+  if (!json.groups.length) {
+    const matches = json.groupMatches;
+    if (!Array.isArray(matches) || !matches.length ||
+        matches.some((m) => m.groupId != null && Number(m.groupId) !== 0)) return null;
+    const ids = Object.keys(json.participants).filter((id) => text(json.participants[id]?.name));
+    if (!ids.length) return null;
+    json = { ...json, groups: [{ displayId: 'A' }], groupParticipants: [ids] };
+  }
   const name = (id) => text(json.participants[id]?.name);
+  const logo = (id) => {
+    const participant = json.participants[id];
+    for (const candidate of [participant?.logo?.lx160, participant?.logo?.lx160w,
+      participant?.logo?.lx95, participant?.logo?.lx95w, participant?.logoUrl]) {
+      const url = tournamentLogoUrl(candidate);
+      if (url) return url;
+    }
+    return null;
+  };
   const label = (i) => text(json.groups[i]?.displayId) || String(Number(i) + 1);
   const teams = json.groups.flatMap((g, i) =>
     (json.groupParticipants?.[i] ?? [])
-      .map((id) => ({ teamName: name(id), groupLabel: label(i) }))
+      .map((id) => ({ teamName: name(id), groupLabel: label(i), ...(logo(id) ? { logoUrl: logo(id) } : {}) }))
       .filter((t) => t.teamName),
   );
   if (!teams.length) return null;
   const groupStandings = json.groups.map((g, i) => ({
     groupLabel: label(i),
-    rows: (json.groupRankTables?.[i] ?? [])
+    rows: (json.groupRankTables?.[i]?.length ? json.groupRankTables[i] : (json.groupParticipants?.[i] ?? []).map(participant => ({participant,rank:0})))
       .map((r) => ({
         teamName: name(r.participant),
         rank: num(r.rank),

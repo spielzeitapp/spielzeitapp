@@ -147,7 +147,7 @@ export function TournamentMatchSlotCard({
             </div>
             {clickable ? (
               <span className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-white/45">
-                Zum Spiel <ChevronRight className="sz-club-icon h-5 w-5" strokeWidth={2} aria-hidden />
+                {status.kind === 'result' ? 'Spielbericht öffnen' : status.kind === 'live' ? 'Zum Liveticker' : 'Spiel vorbereiten'} <ChevronRight className="sz-club-icon h-5 w-5" strokeWidth={2} aria-hidden />
               </span>
             ) : null}
           </div>

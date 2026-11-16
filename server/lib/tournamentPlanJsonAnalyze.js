@@ -1,9 +1,10 @@
+import { extractMeinTurnierplanEmbeddedJson } from './meinTurnierplanEmbedded.js';
 import { parseMeinTurnierplanModel } from './meinTurnierplanModel.js';
 /**
- * JSON-only MeinTurnierplan-Analyse — colocated with Vercel API (no src/lib imports).
+ * MeinTurnierplan-Analyse mit eingebetteten Webseitendaten — colocated with Vercel API (no src/lib imports).
  */
 
-const MEIN_TURNIERPLAN_FETCH_TIMEOUT_MS = 15_000;
+const MEIN_TURNIERPLAN_FETCH_TIMEOUT_MS = 6_000;
 
 const MEIN_TURNIERPLAN_BROWSER_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
@@ -209,53 +210,49 @@ export function parseMeinTurnierplanJson(data) {
 async function fetchMeinTurnierplanJsonWithFallbacks(tournamentId, fetchImpl = fetch, options = {}) {
   const attemptedEndpoints = buildMeinTurnierplanJsonEndpoints(tournamentId);
   const refererUrl = options.refererUrl ?? buildMeinTurnierplanShowitUrl(tournamentId);
-  let apiReachable = false;
-  let bestFailureCode = 'plan_no_longer_provided';
-
-  for (const endpoint of attemptedEndpoints) {
+  // Bound the complete API stage, leaving time for the webpage fallback.
+  const attempts = await Promise.all(attemptedEndpoints.map(async (endpoint) => {
     try {
-      const res = await fetchMeinTurnierplanWithTimeout(
-        endpoint,
-        { headers: buildMeinTurnierplanFetchHeaders(refererUrl) },
-        fetchImpl,
-      );
-      apiReachable = true;
-
-      if (!res.ok) {
-        if (res.status >= 500) bestFailureCode = 'api_unreachable';
-        continue;
-      }
-
+      const res = await fetchMeinTurnierplanWithTimeout(endpoint,
+        { headers: buildMeinTurnierplanFetchHeaders(refererUrl) }, fetchImpl);
+      if (!res.ok) return { endpoint, status: res.status, reachable: false };
       let payload;
-      try {
-        payload = await res.json();
-      } catch {
-        bestFailureCode = 'parse_failed';
-        continue;
+      try { payload = await res.json(); } catch {
+        return { endpoint, status: res.status, reachable: true, code: 'parse_failed' };
       }
-
-      const diagnose = diagnoseMeinTurnierplanPayload(payload);
-      if (diagnose !== 'ok') {
-        if (diagnose === 'no_groups' || diagnose === 'no_teams' || diagnose === 'no_matches') {
-          bestFailureCode = diagnose;
-        } else if (diagnose === 'plan_no_longer_provided') {
-          bestFailureCode = diagnose;
-        }
-        continue;
-      }
-
       const analysis = parseMeinTurnierplanJson(payload);
-      if (analysis) {
-        return { ok: true, json: payload, attemptedEndpoints, analysis };
-      }
-      bestFailureCode = 'parse_failed';
-    } catch {
-      /* try next endpoint */
+      return { endpoint, status: res.status, reachable: true,
+        analysis: analysis?.matchCount > 0 ? analysis : null,
+        code: analysis ? 'no_matches' : diagnoseMeinTurnierplanPayload(payload) };
+    } catch (err) {
+      return { endpoint, reachable: false, error: err instanceof Error ? err.message : String(err) };
     }
-  }
+  }));
+  const diagnostics = { apiReachable: attempts.some((a) => a.reachable),
+    endpointAttempts: attempts.map((a) => ({ endpoint: a.endpoint, finalUrl: null,
+      httpStatus: a.status ?? null, networkError: !a.status, errorDetail: a.error ?? null,
+      exceptionName: null, exceptionMessage: a.error ?? null,
+      parseCode: a.analysis ? 'ok' : a.code ?? null })) };
+  const success = attempts.find((a) => a.analysis);
+  if (success) return { ok: true, analysis: success.analysis, attemptedEndpoints, ...diagnostics };
+  return { ok: false, attemptedEndpoints, ...diagnostics,
+    code: diagnostics.apiReachable ? 'parse_failed' : 'api_unreachable' };
+}
 
-  const code = apiReachable ? bestFailureCode : 'api_unreachable';
-  return { ok: false, attemptedEndpoints, code };
+async function fetchEmbeddedPlan(pageUrl, tournamentId, fetchImpl) {
+  try {
+    const res = await fetchMeinTurnierplanWithTimeout(pageUrl, {
+      headers: { ...buildMeinTurnierplanFetchHeaders(pageUrl), Accept: 'text/html,application/xhtml+xml' },
+    }, fetchImpl);
+    if (!res.ok) return { ok: false, reachable: false, error: `HTTP ${res.status}` };
+    const payload = extractMeinTurnierplanEmbeddedJson(await res.text(), tournamentId);
+    const analysis = payload && parseMeinTurnierplanJson(payload);
+    if (!analysis?.matchCount) return { ok: false, reachable: true,
+      error: 'Webseite erreichbar, aber keine lesbaren Teams und Spiele gefunden.' };
+    return { ok: true, reachable: true, analysis, finalUrl: res.url || pageUrl };
+  } catch (err) {
+    return { ok: false, reachable: false, error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 export async function analyzeTournamentPlanJson(url, fetchImpl = fetch) {
@@ -321,36 +318,44 @@ export async function analyzeTournamentPlanJson(url, fetchImpl = fetch) {
   }
 
   const refererUrl = resolveMeinTurnierplanShowitUrl(resolution);
-
-  const fetchResult = await fetchMeinTurnierplanJsonWithFallbacks(extractedId, fetchImpl, {
-    refererUrl,
-  });
-
-  if (!fetchResult.ok) {
-    return buildFailure(fetchResult.code, extractedId, fetchResult.attemptedEndpoints);
+  const pageUrl = resolution.finalRedirectUrl || resolution.normalizedUrl || refererUrl;
+  const compactLink = /\/c\//i.test(new URL(pageUrl).pathname);
+  let htmlResult = null;
+  let fetchResult = { ok: false, attemptedEndpoints: [], apiReachable: false, endpointAttempts: [] };
+  // Compact links expose a complete public schedule directly in their HTML.
+  if (compactLink) htmlResult = await fetchEmbeddedPlan(pageUrl, extractedId, fetchImpl);
+  if (!htmlResult?.ok) {
+    fetchResult = await fetchMeinTurnierplanJsonWithFallbacks(extractedId, fetchImpl, { refererUrl });
   }
-
-  const analysis = fetchResult.analysis ?? parseMeinTurnierplanJson(fetchResult.json);
-  if (!analysis) {
-    return buildFailure('parse_failed', extractedId, fetchResult.attemptedEndpoints);
+  if (!htmlResult && !fetchResult.ok) {
+    htmlResult = await fetchEmbeddedPlan(pageUrl, extractedId, fetchImpl);
   }
-
-  return {
-    ok: true,
-    provider: 'meinturnierplan',
+  const analysis = htmlResult?.ok ? htmlResult.analysis : fetchResult.analysis;
+  const diagnostics = {
+    linkRecognized: true,
+    idExtracted: true,
     extractedId,
+    apiReachable: fetchResult.apiReachable,
+    provider: 'meinturnierplan',
     attemptedEndpoints: fetchResult.attemptedEndpoints,
-    analysis,
-    diagnostics: {
-      linkRecognized: true,
-      idExtracted: true,
-      extractedId,
-      apiReachable: true,
-      provider: 'meinturnierplan',
-      attemptedEndpoints: fetchResult.attemptedEndpoints,
-      source: 'server_api',
-      fallbackStage: 'json',
-      ...urlDiagnostics,
-    },
+    endpointAttempts: fetchResult.endpointAttempts,
+    source: htmlResult?.ok ? 'html_fallback' : 'server_api',
+    fallbackStage: htmlResult ? 'html' : 'json',
+    htmlFallbackAttempted: Boolean(htmlResult),
+    htmlFallbackSuccessful: Boolean(htmlResult?.ok),
+    showitPageReachable: htmlResult?.reachable ?? null,
+    htmlFallbackError: htmlResult?.error ?? null,
+    htmlFallbackTeamsFound: htmlResult?.analysis?.teamCount ?? 0,
+    htmlFallbackMatchesFound: htmlResult?.analysis?.matchCount ?? 0,
+    detectedTeamCount: analysis?.teamCount ?? 0,
+    detectedMatchCount: analysis?.matchCount ?? 0,
+    ...urlDiagnostics,
+    finalRedirectUrl: htmlResult?.finalUrl ?? urlDiagnostics.finalRedirectUrl,
   };
+  if (!analysis) {
+    const code = htmlResult?.reachable ? 'import_data_unavailable' : fetchResult.code || 'api_unreachable';
+    return { ...buildFailure(code, extractedId, fetchResult.attemptedEndpoints), diagnostics };
+  }
+  return { ok: true, provider: 'meinturnierplan', extractedId,
+    attemptedEndpoints: fetchResult.attemptedEndpoints, analysis, diagnostics };
 }

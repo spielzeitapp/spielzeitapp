@@ -1,3 +1,4 @@
+import { resolveTournamentOwnTeam } from '../../server/lib/tournamentOwnTeam.js';
 /**
  * Throttled official tournament-plan sync for staging/test.
  * Trainer writes persist; on error local slots stay unchanged.
@@ -87,7 +88,7 @@ export async function syncOfficialTournamentPlan(params: {
     }
 
     const { error: centralError } = await supabase.rpc('apply_tournament_plan', {
-      p_event: eventId, p_url: url, p_analysis: analyzed.analysis, p_own_team: null,
+      p_event: eventId, p_url: url, p_analysis: analyzed.analysis, p_own_team: resolveTournamentOwnTeam(analyzed.analysis.teams, recognition.knownNames),
     });
     if (!centralError) {
       lastSyncAtByEvent.set(eventId, Date.now());

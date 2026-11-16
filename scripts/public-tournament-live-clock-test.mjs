@@ -1,0 +1,9 @@
+import {createRequire}from'node:module';import{mkdtempSync,rmSync}from'node:fs';import{tmpdir}from'node:os';import{join}from'node:path';const require=createRequire(import.meta.url),{build}=require('esbuild'),dir=mkdtempSync(join(tmpdir(),'public-clock-'));
+try{const file=join(dir,'test.cjs');await build({stdin:{resolveDir:process.cwd(),loader:'tsx',contents:`
+import React from 'react';import TestRenderer,{act} from 'react-test-renderer';import assert from 'node:assert/strict';import{TournamentFanFixture}from'./src/components/tournament/TournamentFanFixture';
+let now=Date.parse('2026-11-15T12:00:00Z'),tick,cleared=false;const nativeNow=Date.now;Date.now=()=>now;global.window={setInterval:fn=>{tick=fn;return 1},clearInterval:()=>{cleared=true}};
+const render=running=><TournamentFanFixture home="NSG Rohrbach" away="USC Markersdorf" homeGoals={1} awayGoals={0} time="17:14" phase="Gruppe A" status="live" scorers={[{name:'Theo Putz',goals:1}]} clock={{elapsedSeconds:5,clockRunning:running,clockSampledAt:'2026-11-15T12:00:00Z'} as any}/>;
+let view;act(()=>{view=TestRenderer.create(render(true))});assert(JSON.stringify(view.toJSON()).includes('Theo Putz'));assert.equal(view.root.findByProps({role:'timer'}).children.join(''),'0:05');
+act(()=>{now+=2000;tick()});assert.equal(view.root.findByProps({role:'timer'}).children.join(''),'0:07');
+act(()=>view.update(render(false)));assert(cleared);assert(view.root.findByProps({role:'timer'}).children.join('').includes('Pause'));act(()=>view.unmount());Date.now=nativeNow;console.log('PASS live scorer shown before final whistle; clock advances each second and pauses');
+`},bundle:true,platform:'node',format:'cjs',outfile:file,define:{'import.meta.env':'{"BASE_URL":"/"}'},logLevel:'silent'});require(file);}finally{rmSync(dir,{recursive:true,force:true})}

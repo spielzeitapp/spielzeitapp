@@ -1,3 +1,5 @@
+import { prepareTournamentMatchFromTemplate } from '../../lib/tournamentLineupTemplates';
+import { fetchTournamentParticipants } from '../../lib/tournamentPlan';
 import { TournamentBlockControl } from '../../components/tournament/TournamentBlockControl';
 import { planBlockChange, type BlockChange } from '../../lib/tournamentBlocks';
 import { DemoFormationPreview } from '../../demo/components/DemoFormationPreview';
@@ -972,6 +974,7 @@ export const LiveMatchScreen: React.FC = () => {
   const [initialStartingPlayerIds, setInitialStartingPlayerIds] = useState<string[]>([]);
   const [events, setEvents] = useState<MatchEngineEvent[]>([]);
   const [opponentLabel, setOpponentLabel] = useState('Gegner');
+  const [tournamentLogoUrl, setTournamentLogoUrl] = useState<string | null>(null);
   const [opponentLogoUrl, setOpponentLogoUrl] = useState<string | null>(null);
   const [eventIsHome, setEventIsHome] = useState<boolean | null>(null);
   const [calendarMatchType, setCalendarMatchType] = useState<string | null>(null);
@@ -1405,7 +1408,6 @@ export const LiveMatchScreen: React.FC = () => {
   const homeNameParts = matchboardAbbrevAndClub(stadiumHomeDisplay);
   const awayNameParts = matchboardAbbrevAndClub(stadiumAwayDisplay);
   const opponentDisplayName = cleanTeamDisplayName(headerOpponent);
-  const matchTypeDisplay = getMatchTypeLabel(calendarMatchType) ?? 'Meisterschaftsspiel';
   const [mainTab, setMainTab] = useState<'hub' | 'overview' | 'lineup' | 'events' | 'time' | 'videos'>('hub');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
   useEffect(() => {
@@ -1584,6 +1586,7 @@ export const LiveMatchScreen: React.FC = () => {
   const [calendarFinalized, setCalendarFinalized] = useState(false);
   const [tournamentNavContext, setTournamentNavContext] =
     useState<TournamentMatchNavigationContext | null>(null);
+  const matchTypeDisplay = tournamentNavContext ? 'Turnier' : getMatchTypeLabel(calendarMatchType) ?? 'Meisterschaftsspiel';
   const [tournamentPlanSyncBusy, setTournamentPlanSyncBusy] = useState(false);
   const [tournamentPlanSyncStatus, setTournamentPlanSyncStatus] = useState<string | null>(null);
   const [goalUndoOffer, setGoalUndoOffer] = useState<{
@@ -1744,15 +1747,21 @@ export const LiveMatchScreen: React.FC = () => {
       return;
     }
     let cancelled = false;
+    setTournamentLogoUrl(null);
     void fetchTournamentMatchNavigationContext(effectiveMatchId, { afterCurrentMatch: true }).then(
       (ctx) => {
-        if (!cancelled) setTournamentNavContext(ctx);
+        if (!cancelled) {
+          setTournamentNavContext(ctx);
+          if(ctx) void fetchTournamentParticipants(ctx.tournamentEventId).then(result=>{
+            if(!cancelled) setTournamentLogoUrl(result.data.find(p=>p.team_name.trim().toLowerCase()===headerOpponent.trim().toLowerCase())?.logo_url ?? null);
+          });
+        }
       },
     );
     return () => {
       cancelled = true;
     };
-  }, [effectiveMatchId, matchIsFinished, matchRow?.status, isDemo]);
+  }, [effectiveMatchId, matchIsFinished, matchRow?.status, isDemo, headerOpponent]);
 
   /**
    * Eltern/Fans: sticky ?matchId= darf nicht auf finished Match 1 bleiben,
@@ -2915,6 +2924,16 @@ export const LiveMatchScreen: React.FC = () => {
   const onStartClick = async () => {
     if (!canControlLiveMatch || matchIsFinished || isRunning || !effectiveMatchId) return;
     if (!hasClockStarted) {
+      if (!isDemo) {
+        try {
+          const template = await prepareTournamentMatchFromTemplate(effectiveMatchId);
+          const planned = template?.blocks.variants[template.blocks.startVariant];
+          if (planned && U11_FORMATIONS[planned.formationId].length !== U11_FORMATIONS[safeFormationId].length) {
+            navigate(`${basePath}/match-lineup?matchId=${encodeURIComponent(effectiveMatchId)}`);
+            return;
+          }
+        } catch (e) { setSaveError(e instanceof Error ? e.message : String(e)); return; }
+      }
       const { error: snapErr } = await ensureKickoffLineupSnapshot(effectiveMatchId);
       if (snapErr) {
         setSaveError(snapErr);
@@ -4478,7 +4497,7 @@ export const LiveMatchScreen: React.FC = () => {
       ? ownTeamName.trim()
       : getOurTeamDisplayName();
   const ownLogoSrc = getClubLogo(ownLogoName, { logoUrl: isDemo ? null : matchClub.brand?.logo_url });
-  const opponentLogoSrc = sameClubIdentity(ownLogoName, headerOpponent) ? ownLogoSrc : getClubLogo(headerOpponent, { logoUrl: preferredClubLogo(headerOpponent, matchOpponentLogos, opponentLogoUrl) });
+  const opponentLogoSrc = sameClubIdentity(ownLogoName, headerOpponent) ? ownLogoSrc : getClubLogo(headerOpponent, { logoUrl: preferredClubLogo(headerOpponent, matchOpponentLogos, tournamentLogoUrl || opponentLogoUrl) });
   const homeLogoSrc = sides.isOwnTeamHome ? ownLogoSrc : opponentLogoSrc;
   const awayLogoSrc = sides.isOwnTeamHome ? opponentLogoSrc : ownLogoSrc;
   const kickoffRaw = matchRow?.match_date ? new Date(matchRow.match_date) : null;
@@ -4898,7 +4917,7 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : null}
                   </div>
                   <div className={`flex justify-center ${matchIsFinished ? 'pt-0.5' : ''}`}>
-                    <MatchTypeHeading label={matchTypeDisplay} ageGroup={matchTeamSeason?.age_group} />
+                    {tournamentNavContext ? <p className="text-sm font-bold text-white/75">{matchTeamSeason?.age_group} · Turnierspiel</p> : <MatchTypeHeading label={matchTypeDisplay} ageGroup={matchTeamSeason?.age_group} />}
                   </div>
                   <div aria-hidden="true" />
                 </div>
@@ -5139,7 +5158,7 @@ export const LiveMatchScreen: React.FC = () => {
                       : 'border-red-500/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_-12px_32px_rgba(220,38,38,0.12)]',
                   ].join(' ')}
                 >
-                  {!matchIsFinished && effectiveMatchId ? (
+                  {!matchIsFinished && !hasClockStarted && effectiveMatchId ? (
                     <Link
                       to={`${basePath}/match-preparation?matchId=${encodeURIComponent(effectiveMatchId)}`}
                       className={`flex min-h-[44px] w-full items-center justify-center px-3 text-[11px] font-bold ${dsSecondaryCtaClass()}`}
@@ -5188,7 +5207,7 @@ export const LiveMatchScreen: React.FC = () => {
                     </button>
                   ) : null}
 
-                  {!calendarFinalized ? (
+                  {!calendarFinalized && (!tournamentNavContext || matchIsFinished) ? (
                     <button
                       type="button"
                       disabled={!matchIsFinished}
@@ -5258,8 +5277,8 @@ export const LiveMatchScreen: React.FC = () => {
             </div>
           )}
 
-          {canControlLiveMatch && tournamentNavContext && matchRow?.status === 'live' && !fairPlayExtraPlayerId && effectiveMatchId && mainTab === 'hub' ? (
-            <TournamentBlockControl key={effectiveMatchId} matchId={effectiveMatchId} seconds={currentMatchSeconds} current={liveReplayState.slotsBySlot} squad={squadPlayerIds} name={id=>rosterById.get(id)?.name ?? 'Spieler'} busy={subSaving} onApply={applyTournamentBlock} basePath={basePath}/>
+          {canControlLiveMatch && tournamentNavContext && matchRow?.status === 'live' && !fairPlayExtraPlayerId && effectiveMatchId ? (
+            <TournamentBlockControl key={effectiveMatchId} matchId={effectiveMatchId} seconds={currentMatchSeconds} running={isRunning} current={liveReplayState.slotsBySlot} squad={squadPlayerIds} name={id=>rosterById.get(id)?.name ?? 'Spieler'} busy={subSaving} onApply={applyTournamentBlock} basePath={basePath}/>
           ) : null}
 
           {mainTab === 'hub' ? (

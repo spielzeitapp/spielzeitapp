@@ -152,6 +152,7 @@ export function TournamentAssistantCard({
 }: Props) {
   const navigate = useNavigate();
   const basePath = useInternalBasePath();
+  const [preparationExpanded, setPreparationExpanded] = useState(false);
   const [lineupReady, setLineupReady] = useState(false);
   const [lineupLoading, setLineupLoading] = useState(false);
   const [squadCount, setSquadCount] = useState(0);
@@ -461,13 +462,15 @@ export function TournamentAssistantCard({
   const preparationChecks = [
     { label: 'Verfügbarkeit klären', done: attendance.playerCount > 0 && attendance.openCount === 0, hint: `${attendance.yesCount} zugesagt · ${attendance.openCount} offen · ${attendance.noCount} abgesagt`, onClick: onOpenAttendance },
     { label: 'Turnierkader wählen', done: squadCount > 0, hint: squadCount > 0 ? `${squadCount} Spieler gespeichert` : 'Spieler für das Turnier auswählen', onClick: onOpenSquad },
-    { label: 'Turnierplan hinterlegen', done: ownMatchCount > 0, hint: ownMatchCount > 0 ? `${ownMatchCount} eigene Spiele hinterlegt` : 'Plan importieren oder Spiele manuell anlegen', onClick: onImportPlan },
+    { label: 'Turnierplan hinterlegen', done: totalMatchCount > 0 || ownMatchCount > 0, hint: ownMatchCount > 0 ? `${ownMatchCount} eigene Spiele hinterlegt` : totalMatchCount > 0 ? `${totalMatchCount} Spiele geladen · eigene Mannschaft zuordnen` : 'Plan importieren oder Spiele manuell anlegen', onClick: onImportPlan },
     { label: 'Aufstellung & Blöcke', done: templateReady || lineupReady, hint: templateReady || lineupReady ? 'Aufstellung gespeichert' : 'Grundaufstellung mit Block A und B vorbereiten', onClick: onOpenLineup },
   ];
   const prepared = preparationChecks.every(check => check.done);
   const gamePhaseStarted = slots.some(slot => ['live', 'finished'].includes(slot.match_status ?? ''));
 
-  if (loading || lineupLoading || squadLoading) {
+  useEffect(() => { setPreparationExpanded(!prepared && !gamePhaseStarted); }, [prepared, gamePhaseStarted, tournamentEventId]);
+
+  if (loading && !slots.length && (lineupLoading || squadLoading)) {
     return (
       <section className={TC_CARD}>
         <div className={TC_CARD_INNER}>
@@ -481,20 +484,12 @@ export function TournamentAssistantCard({
     );
   }
 
-  return (
+  return (<>
     <section className={TC_CARD}>
-      <div className={`${TC_CARD_INNER} flex flex-col gap-3`}>
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="inline-flex items-center gap-1.5 text-[16px] font-bold uppercase tracking-[0.14em] sz-club-accent-text">
-              <ClipboardList className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
-              Turnier-Assistent
-            </p>
-            <StepProgress checks={preparationChecks.map(check => check.done)} />
-          </div>
-        </div>
-
-        <p className="text-[16px] leading-relaxed text-white/65">Punkt antippen, bearbeiten und speichern. Erledigte Punkte werden grün.</p>
+      <details open={preparationExpanded} onToggle={e=>setPreparationExpanded(e.currentTarget.open)} className={TC_CARD_INNER}>
+        <summary className="cursor-pointer py-1 text-[17px] font-bold text-white">Turnier-Assistent <span className="text-[14px] text-emerald-300">{prepared ? '· Vorbereitung abgeschlossen' : '· Vorbereitung bearbeiten'}</span></summary>
+        <StepProgress checks={preparationChecks.map(check=>check.done)}/>
+        <p className="my-3 text-[15px] text-white/65">Punkt antippen, bearbeiten und speichern.</p>
         <ol className="space-y-2" aria-label="Turnier vorbereiten">
           {preparationChecks.map((check, index) => <li key={check.label}>
             <button type="button" onClick={check.onClick}
@@ -508,14 +503,22 @@ export function TournamentAssistantCard({
             </button>
           </li>)}
         </ol>
-        {prepared ? <p role="status" className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-[18px] font-bold text-emerald-300">✓ Turnier vorbereitet</p> : null}
-        {prepared || gamePhaseStarted ? <div className="space-y-2 border-t border-white/10 pt-4">
-          <p className="text-[15px] font-bold uppercase tracking-wide sz-club-accent-text">Am Turniertag</p>
-          <h2 className="text-[21px] font-bold leading-snug text-white">{step.title}</h2>
+      </details>
+    </section>
+    {prepared || gamePhaseStarted ? <section className={TC_CARD}>
+      <details className={TC_CARD_INNER}>
+        <summary className="cursor-pointer py-1 text-[17px] font-bold text-white">Am Turniertag <span className="text-[14px] text-white/60">· {step.title}</span></summary>
+        <div className="mt-3 space-y-2">
+          <p className="text-[15px] text-white/60">Optionale Aktionen für Aufstellung übernehmen, nächste Runde und Turnierabschluss. Die Spiele stehen direkt darunter.</p>
+          {totalMatchCount > 0 && ownMatchCount === 0 ? <>
+            <h2 className="text-[21px] font-bold text-white">Eigene Mannschaft zuordnen</h2>
+            <p className="text-[16px] text-white/65">Der Spielplan ist geladen. Wähle unsere Mannschaft im Veranstalterplan, damit die eigenen Spiele vorbereitet und gestartet werden können.</p>
+            <button type="button" onClick={onImportPlan} className={`${dsPrimaryCtaClass()} w-full`}>Mannschaft zuordnen</button>
+          </> : <><h2 className="text-[21px] font-bold leading-snug text-white">{step.title}</h2>
           <p className="text-[16px] leading-relaxed text-white/65">{step.description}</p>
           {step.detailLines.map(line => <p key={line} className="text-[15px] text-white/65">{line}</p>)}
-          {renderAction(step.action)}
-        </div> : null}
+          {renderAction(step.action)}</>}
+        </div>
 
         {copyError ? (
           <p className="text-[15px] text-red-300/90" role="alert">
@@ -527,7 +530,7 @@ export function TournamentAssistantCard({
         {step.action.kind === 'complete_tournament' && canCreateReport ? (
           <SecondaryButton label="Zuerst Turnierbericht erstellen" onClick={onCreateReport} disabled={completingTournament} />
         ) : null}
-      </div>
-    </section>
-  );
+      </details>
+    </section> : null}
+  </>);
 }

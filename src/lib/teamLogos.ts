@@ -100,6 +100,7 @@ const LOGO_MAP: Record<string, string> = {
   vienna: 'first-vienna',
   // ASK Wilhelmsburg
   'ask wilhelmsburg': 'ask-wilhelmsburg',
+  'ask peham wilhelmsburg': 'ask-wilhelmsburg',
   'wilhelmsburg ask': 'ask-wilhelmsburg',
   wilhelmsburg: 'ask-wilhelmsburg',
   // SKU Amstetten (TURNIERlive: „SKU Amstetten“) — freigestelltes PNG
@@ -211,6 +212,7 @@ const ALLOWED_LOGO_PREFIXES = ['/logos/', 'https://'];
 function isAllowedLogoUrl(url: unknown): boolean {
   const u = safeText(url);
   if (!u) return false;
+  if (u.startsWith('/api/tournament-plan-analyze?logo=')) { try { const v=new URL(decodeURIComponent(u.split('logo=')[1])); return v.protocol==='https:' && v.hostname==='tournej.com' && v.pathname.startsWith('/data/images/'); } catch { return false; } }
   if (/^\/api\/oefb\/table\?view=logo&id=[a-f0-9]{20}$/i.test(u)) return true;
   // preferredClubLogo already converts an imported official photo to this route.
   // Accept only the exact canonical output; arbitrary API URLs stay rejected.

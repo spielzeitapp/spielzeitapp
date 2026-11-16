@@ -96,7 +96,45 @@ export async function saveRemoteMatchBlocks(
     .from("matches")
     .update({ tournament_lineup_blocks: blocks })
     .eq("id", matchId)
-    .eq("status", "upcoming")
-    .not("tournament_lineup_blocks", "is", null);
+    .eq("status", "upcoming");
   if (error) throw new Error(error.message);
+}
+
+/** Prepare empty tournament matches before the regular match editor loads defaults.
+ * The existing RPC locks the match and protects started games and existing lineups.
+ */
+async function prepareTournamentMatchTemplateOnce(matchId: string): Promise<TournamentTemplateRecord | null> {
+  const { fetchTournamentEventIdForMatch } = await import('./tournamentSquad');
+  const eventId = await fetchTournamentEventIdForMatch(matchId);
+  if (!eventId || isDemoTournamentEventId(eventId)) return null;
+  const record = await fetchTournamentLineupTemplate(eventId);
+  if (!record) return null;
+  const { data: match, error: matchError } = await supabase.from('matches')
+    .select('status,live_started_at,tournament_lineup_blocks').eq('id', matchId).maybeSingle();
+  if (matchError) throw new Error(matchError.message);
+  if (!match || match.status !== 'upcoming' || match.live_started_at || match.tournament_lineup_blocks) return record;
+  const { data: lineup, error } = await supabase.from('match_lineup').select('player_id').eq('match_id', matchId).limit(1);
+  if (error) throw new Error(error.message);
+  if (lineup?.length) return record;
+  const { tournamentTemplateReady } = await import('./tournamentLineupTemplate');
+  const squad = record.blocks.variants[record.blocks.startVariant]?.squadIds ?? [];
+  if (!tournamentTemplateReady(record.blocks, squad)) return record;
+  const [{ data: bench, error: benchError }, { data: events, error: eventError }] = await Promise.all([
+    supabase.from('match_bench').select('player_id').eq('match_id', matchId).limit(100),
+    supabase.from('match_events').select('id').eq('match_id', matchId).limit(1),
+  ]);
+  if (benchError || eventError) throw new Error((benchError || eventError)!.message);
+  // Preserve a deliberately changed roster (e.g. an injured player left out).
+  if (events?.length || (bench?.length && (bench.length !== squad.length || bench.some(row => !squad.includes(row.player_id))))) return record;
+  await applyTournamentLineupTemplate(eventId, matchId, record);
+  return record;
+}
+
+const preparationInFlight = new Map<string, Promise<TournamentTemplateRecord | null>>();
+export function prepareTournamentMatchFromTemplate(matchId: string): Promise<TournamentTemplateRecord | null> {
+  const existing = preparationInFlight.get(matchId);
+  if (existing) return existing;
+  const task = prepareTournamentMatchTemplateOnce(matchId).finally(() => preparationInFlight.delete(matchId));
+  preparationInFlight.set(matchId, task);
+  return task;
 }

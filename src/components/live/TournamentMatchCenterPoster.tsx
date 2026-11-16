@@ -35,7 +35,7 @@ function TournamentTeamLogo({
 
   if (!known || failed) {
     return (
-      <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${MC_SURFACE} text-[11px] font-bold text-white/80`}>
+      <div className={`flex h-16 w-16 items-center justify-center rounded-xl ${MC_SURFACE} text-[11px] font-bold text-white/80`}>
         {getTeamInitials(name)}
       </div>
     );
@@ -45,7 +45,7 @@ function TournamentTeamLogo({
     <img
       src={src!}
       alt=""
-      className="h-10 w-10 object-contain"
+      className="h-16 w-16 object-contain"
       onError={() => setFailed(true)}
     />
   );
@@ -133,14 +133,14 @@ export function TournamentFirstMatchPreview({
   const kickoff = formatTimeHHmmDe(slot.kickoff_at);
 
   return (
-    <div className="rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-2">
-      <p className="text-[8px] font-bold uppercase tracking-[0.1em] text-white/38">
-        Erstes Spiel
+    <div className="rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-4">
+      <p className="text-xs font-bold uppercase tracking-[0.1em] text-white/38">
+        Nächstes Spiel
       </p>
       <div className="mt-1.5 flex items-center justify-between gap-2">
         <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
           <TournamentTeamLogo name={homeTeam} map={participantLogoByName} />
-          <p className="w-full truncate text-center text-[10px] font-semibold text-white/88" title={homeTeam}>
+          <p className="w-full text-center text-sm font-semibold text-white/88" title={homeTeam}>
             {homeTeam}
           </p>
         </div>
@@ -149,12 +149,12 @@ export function TournamentFirstMatchPreview({
         </span>
         <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
           <TournamentTeamLogo name={awayTeam} map={participantLogoByName} />
-          <p className="w-full truncate text-center text-[10px] font-semibold text-white/88" title={awayTeam}>
+          <p className="w-full text-center text-sm font-semibold text-white/88" title={awayTeam}>
             {awayTeam}
           </p>
         </div>
       </div>
-      <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-0.5 text-[10px] text-white/58">
+      <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-0.5 text-sm text-white/58">
         <span>
           {dateParts.wd} {dateParts.day}. {dateParts.mon}
         </span>

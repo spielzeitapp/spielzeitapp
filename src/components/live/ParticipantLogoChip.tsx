@@ -45,20 +45,20 @@ export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Pro
   const displayClub = carousel ? shortenClubDisplayName(club || name) : club || name;
   const heim = isHeimteamParticipant(name);
 
-  const widthClass = carousel ? 'w-[5.75rem] sm:w-[6.25rem]' : 'w-[4.75rem]';
+  const widthClass = carousel ? 'w-full min-w-0' : 'w-[4.75rem]';
 
   return (
     <div className={`relative flex shrink-0 flex-col items-center ${widthClass}`}>
       <TournamentClubLogo
         name={name}
         logoUrl={safeText(logoUrl) || undefined}
-        size={carousel ? 'lg' : 'md'}
+        size={carousel ? 'xl' : 'md'}
         tone="dark"
       />
       <p
         className={`mt-1 w-full text-center leading-tight text-white/90 ${
           carousel
-            ? 'line-clamp-2 text-[10px] font-semibold sm:text-[11px]'
+            ? 'text-[13px] font-semibold [overflow-wrap:anywhere]'
             : 'line-clamp-2 text-[8px] font-medium'
         }`}
         title={club || name}
@@ -66,7 +66,7 @@ export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Pro
         {displayClub}
       </p>
       {heim ? (
-        <span className="mt-0.5 whitespace-nowrap rounded-full border border-[rgba(255,71,71,0.28)] bg-[rgba(255,71,71,0.08)] px-1 py-px text-[5px] font-semibold uppercase tracking-[0.04em] text-[rgba(255,140,140,0.9)]">
+        <span className="mt-0.5 whitespace-nowrap rounded-full border border-[rgba(255,71,71,0.28)] bg-[rgba(255,71,71,0.08)] px-1 py-px text-[10px] font-semibold uppercase tracking-[0.04em] text-[rgba(255,140,140,0.9)]">
           Heim
         </span>
       ) : null}

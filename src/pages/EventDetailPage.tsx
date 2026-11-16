@@ -96,7 +96,7 @@ import { MatchHeadToHead } from '../components/match/MatchHeadToHead';
 import { AudienceMatchdayDetailCard } from '../components/events/AudienceMatchdayDetailCard';
 import { TournamentDetailSections } from '../components/tournament/TournamentDetailSections';
 import { TournamentCenterHeader } from '../components/tournament/TournamentCenterHeader';
-import { TournamentQuickActionBar, TournamentHeaderQuickActions } from '../components/tournament/TournamentQuickActionBar';
+import { TournamentQuickActionBar, TournamentHeaderQuickActions, TournamentAttendanceButton } from '../components/tournament/TournamentQuickActionBar';
 import { TournamentCompactAttendancePanel } from '../components/tournament/TournamentCompactAttendancePanel';
 import { CenterHeader } from '../components/center/CenterHeader';
 import { CenterQuickActionBar } from '../components/center/CenterQuickActionBar';
@@ -4033,7 +4033,7 @@ export const EventDetailPage: React.FC = () => {
                 : CalendarPlus;
 
   return (
-    <div style={matchClub.style} className={`min-h-screen text-white ${event.kind === 'match' || isTraining ? 'sz-club-event-detail' : 'bg-black'}`}>
+    <div style={matchClub.style} className={`min-h-screen text-white ${event.kind === 'match' || isTraining || isTournament ? 'sz-club-event-detail' : 'bg-black'}`}>
       <div
         className={`mx-auto flex w-full max-w-2xl flex-col overflow-x-hidden px-2 sm:px-4 ${
           isTournament || isTraining || event.kind === 'match'
@@ -4115,14 +4115,18 @@ export const EventDetailPage: React.FC = () => {
                 tournamentCoverUrl={safeOptionalText((event as { tournament_cover_url?: unknown }).tournament_cover_url)}
                 tournamentNotes={tournamentNotesText}
                 headerActions={
-                  <TournamentHeaderQuickActions kind="calendar" onAddToCalendar={() => void handleAddSingleEventToCalendar()} />
+                  <><TournamentHeaderQuickActions kind="calendar" onAddToCalendar={() => void handleAddSingleEventToCalendar()} />
+                  {!canTrainerViewEvent && canShowSelfRsvp && event.status !== 'canceled' ? <TournamentAttendanceButton status={rsvpStatus} onOpen={()=>setCenterAttendanceOpen(true)}/>:null}</>
                 }
                 navigationAction={
                   <TournamentHeaderQuickActions kind="navigation" onNavigate={handleStartNavigation} showNavigation={canStartNavigation} />
                 }
                 quickActions={
                   <TournamentQuickActionBar
-                    location={safeOptionalText(event.location)}
+                    location={[safeOptionalText(event.location),safeOptionalText(event.address)].filter(Boolean).join(' · ')}
+                    dateLabel={new Date(event.starts_at).toLocaleDateString('de-AT',{timeZone:'Europe/Vienna',weekday:'short',day:'2-digit',month:'long',year:'numeric'})}
+                    startLabel={eventStartTimeLabel}
+                    meetingLabel={eventMeetupLabel}
                     shareTitle={tournamentTitle}
                     tournamentEventId={event.id}
                   />
@@ -4464,9 +4468,9 @@ export const EventDetailPage: React.FC = () => {
         !(isTraining && event.status === 'canceled') &&
         !(event.kind === 'match' && event.status === 'canceled') &&
         !(isAudienceMatchDetail && canShowSelfRsvp) &&
-        !(isTournament && canTrainerViewEvent) &&
+        !(isTournament && (canTrainerViewEvent || event.status === 'canceled')) &&
         !(isTraining && canTrainerViewEvent) ? (
-          <CenterAttendanceSurface dialog={event.kind === 'match' && canTrainerManageEvent && event.status === 'upcoming'} open={centerAttendanceOpen} onClose={() => setCenterAttendanceOpen(false)}>
+          <CenterAttendanceSurface title={isTournament?'Zu-/Absage':undefined} className={isTournament?'tournamentWorkflowModal':undefined} dialog={(event.kind === 'match' && canTrainerManageEvent && event.status === 'upcoming') || (isTournament && !canTrainerViewEvent && canShowSelfRsvp)} open={centerAttendanceOpen} onClose={() => setCenterAttendanceOpen(false)}>
           <Card
             className={
               isTraining

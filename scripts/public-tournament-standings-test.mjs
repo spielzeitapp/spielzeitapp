@@ -1,0 +1,28 @@
+import assert from 'node:assert/strict';
+import { publicTournamentStandings } from '../server/lib/publicTournamentStandings.js';
+const teams=['Rohrbach','Markersdorf','Linz'].map(teamName=>({teamName,groupLabel:'A'}));
+const game={externalMatchId:'g1',homeTeam:'Markersdorf',awayTeam:'Rohrbach',phase:'group',groupLabel:'A',hasResult:false};
+const slot={match_id:'m1',external_match_id:'g1',home_team:'Markersdorf',away_team:'Rohrbach',opponent_name:'Markersdorf',match_status:'finished',phase:'group',group_label:'A',score_home:1,score_away:0};
+const analysis={teams,rawMatches:[game],groupStandings:[{groupLabel:'A',rows:[]}]};
+let result=publicTournamentStandings(analysis,[slot],'Rohrbach');
+assert.equal(result.provisional,true);
+assert.deepEqual(result.tables[0].rows[0],{teamName:'Rohrbach',rank:1,played:1,goalsFor:1,goalsAgainst:0,points:3});
+assert.equal(result.tables[0].rows.find(r=>r.teamName==='Markersdorf').goalsAgainst,1);
+assert.equal(result.tables[0].rows.find(r=>r.teamName==='Linz').played,0);
+assert.equal(publicTournamentStandings(analysis,[{...slot,match_status:'live'}],'Rohrbach').tables[0].rows.every(r=>r.played===0),true);
+const official={...analysis,rawMatches:[{...game,hasResult:true,homeGoals:0,awayGoals:1}]};
+result=publicTournamentStandings(official,[slot,slot],'Rohrbach');
+assert.equal(result.provisional,true);
+assert.equal(result.tables[0].rows[0].played,1);
+assert.equal(result.tables[0].rows[0].points,3);
+const corrected=publicTournamentStandings(official,[{...slot,score_home:2}],'Rohrbach');
+assert.equal(corrected.tables[0].rows[0].goalsFor,2);
+assert.equal(corrected.tables[0].rows[0].played,1);
+const final=publicTournamentStandings(analysis,[{...slot,phase:'final'}],'Rohrbach');
+assert.equal(final.tables[0].rows.every(r=>r.played===0),true);
+console.log('Public standings: own away win, zero teams, live exclusion, official deduplication, correction and final exclusion passed.');
+
+const published={...official,groupStandings:[{groupLabel:'A',rows:result.tables[0].rows}]};
+const unchanged=publicTournamentStandings(published,[slot],'Rohrbach');
+assert.equal(unchanged.provisional,false);
+assert.deepEqual(unchanged.tables,published.groupStandings);

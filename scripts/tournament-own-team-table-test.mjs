@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import {resolveTournamentOwnTeam as resolve} from '../server/lib/tournamentOwnTeam.js';
+import {parseMeinTurnierplanModel} from '../server/lib/meinTurnierplanModel.js';
+import {extractMeinTurnierplanEmbeddedJson} from '../server/lib/meinTurnierplanEmbedded.js';
+import {readFileSync} from 'node:fs';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);
+const a=parseMeinTurnierplanModel(extractMeinTurnierplanEmbeddedJson(readFileSync('scripts/fixtures/meinturnierplan-9rlioyuf.html','utf8'),'9rlioyuf'));
+assert.equal(resolve(a.teams,['SPG Rohrbach']),'NSG Rohrbach');
+assert.equal(resolve([...a.teams,{teamName:'SPG Rohrbach'}],['SPG Rohrbach']),null);
+assert.equal(resolve([{teamName:'Rohrbach U11'}],['SPG Rohrbach']),null);
+assert.equal(a.rawMatches.filter(m=>m.homeTeam==='NSG Rohrbach'||m.awayTeam==='NSG Rohrbach').length,5);
+assert.equal(a.groupStandings[0].rows.length,6);
+assert(a.groupStandings[0].rows.every(r=>r.played===0 && r.points===0 && r.goalsFor===0));
+const {PNG}=require('pngjs'),jpeg=require('jpeg-js');
+const png=new PNG({width:12,height:12});png.data.fill(255);
+for(let y=4;y<8;y++)for(let x=4;x<8;x++){const i=(y*12+x)*4;png.data[i]=0;png.data[i+1]=0;png.data[i+2]=0;}
+const native=globalThis.fetch;
+globalThis.fetch=async()=>new Response(jpeg.encode(png,100).data);
+const handler=require('../server/lib/tournamentLogo.cjs');let status;
+await handler({query:{logo:'https://tournej.com/data/images/test.jpg'}},{setHeader(){},status(s){status=s;return this;},send(bytes){const decoded=PNG.sync.read(bytes);assert.equal(decoded.data[3],0);assert.equal(decoded.data[(6*12+6)*4+3],255);return this;},end(){return this;}});
+assert.equal(status,200);globalThis.fetch=native;
+console.log('PASS: unique own-team alias, five own games, six zero rows, JPEG converted to transparent PNG');

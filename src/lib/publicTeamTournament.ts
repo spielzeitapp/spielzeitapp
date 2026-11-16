@@ -43,6 +43,8 @@ export type PublicTournamentMatchDetails = {
   benchPlayers: string[];
   events: Array<{id:string;type:'start'|'resume'|'pause'|'end'|'goal'|'goal_away'|'substitution'|'sub_in'|'sub_out'|'extra_player_on'|'extra_player_off';second:number;playerName:string|null;otherPlayerName:string|null;removedPlayerName:string|null}>;
   elapsedSeconds: number;
+  clockSampledAt?: string;
+  clockRunning?: boolean;
   timingAvailable: boolean;
   unavailable: boolean;
 };
@@ -58,6 +60,7 @@ export type PublicTeamTournamentPageDto = {
   seasonLabel?: string | null;
   accentColor?: string;
   syncedAt?: string | null;
+  standingsProvisional?: boolean;
   groupTables?: Array<{groupLabel:string;rows:Array<{teamName:string;rank:number;played:number;goalsFor:number;goalsAgainst:number;points:number}>}>;
   finalRanking?: Array<{rank:number;teamName:string}>;
   schedule?: Array<{id:string;homeTeam:string;awayTeam:string;time:string;phase:string;groupLabel:string|null;roundLabel:string|null;homeGoals:number|null;awayGoals:number|null}>;
@@ -399,4 +402,18 @@ export async function fetchPublicTeamTournamentPage(
   } catch {
     return { page: null, error: 'Keine Verbindung. Bitte erneut versuchen.' };
   }
+}
+
+/** Public overview: live once above navigation; upcoming ascending, results newest first. */
+export function groupPublicTournamentMatches(matches: PublicTeamTournamentMatchDto[]) {
+  const chronological = [...matches].sort((a,b) => {
+    const ta=Date.parse(a.kickoffAt),tb=Date.parse(b.kickoffAt);
+    return (Number.isFinite(ta)?ta:0)-(Number.isFinite(tb)?tb:0) || a.id.localeCompare(b.id);
+  });
+  return {
+    live: chronological.filter(m=>m.status==='live'),
+    upcoming: chronological.filter(m=>m.status==='upcoming'),
+    results: chronological.filter(m=>m.status==='finished').reverse(),
+    canceled: chronological.filter(m=>m.status==='canceled'),
+  };
 }

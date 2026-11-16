@@ -89,7 +89,7 @@ export function MatchCenterTournamentCard({
   }, [carouselTeams]);
 
   const teamsDisplay = teamCount ?? (carouselTeams.length > 0 ? carouselTeams.length : null);
-  const firstMatch = pickTournamentFirstMatch(slots.filter(isOwnPlayableTournamentSlot));
+  const firstMatch = pickTournamentFirstMatch(slots.filter(isOwnPlayableTournamentSlot).filter(slot => (slot.match_status ?? '').toLowerCase() !== 'finished'));
   const placementLabel = nextOwnSlot
     ? tournamentPhaseDisplayLabel(nextOwnSlot.phase, nextOwnSlot.group_label)
     : null;
@@ -180,23 +180,23 @@ export function MatchCenterTournamentCard({
             parts={countdown}
             variant="heroCompact"
             showHeader
-            headerLabel={nextOwnSlot ? 'Countdown bis zu unserem nächsten Spiel' : 'Countdown bis Turnierstart'}
+            headerLabel={nextOwnSlot ? 'Countdown bis zu unserem nächsten Spiel' : 'Countdown bis zum Turnierstart'}
           />
         ) : null}
 
         {carouselTeams.length > 0 && liveDayMode === 'upcoming' ? (
           <div className="mt-1">
             <div className="mb-0 flex items-center justify-between gap-1.5">
-              <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-white/38">
+              <p className="text-xs font-bold uppercase tracking-[0.08em] text-white/38">
                 Teilnehmende Mannschaften
               </p>
               {teamsDisplay != null ? (
-                <span className="shrink-0 rounded-full border border-[rgba(255,71,71,0.28)] bg-[rgba(255,71,71,0.06)] px-1 py-px text-[6px] font-bold uppercase tracking-[0.05em] text-[rgba(255,150,150,0.9)] shadow-[0_0_8px_rgba(255,71,71,0.12)]">
+                <span className="shrink-0 rounded-full border border-[rgba(255,71,71,0.28)] bg-[rgba(255,71,71,0.06)] px-1 py-px text-[11px] font-bold uppercase tracking-[0.05em] text-[rgba(255,150,150,0.9)] shadow-[0_0_8px_rgba(255,71,71,0.12)]">
                   {teamsDisplay} Teams
                 </span>
               ) : null}
             </div>
-            <div className="-mx-0.5 flex gap-1.5 overflow-x-auto pb-0.5 pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="mt-3 grid grid-cols-3 gap-x-3 gap-y-5 pb-4">
               {carouselTeams.map((p) => (
                 <ParticipantLogoChip
                   key={p.name}

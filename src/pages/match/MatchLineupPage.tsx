@@ -32,7 +32,7 @@ import {
   isMatchSquadEditable,
 } from '../../lib/matchPreparationAccess';
 import { supabase } from '../../lib/supabaseClient';
-import { fetchRemoteMatchBlocks, saveRemoteMatchBlocks } from '../../lib/tournamentLineupTemplates';
+import { prepareTournamentMatchFromTemplate, fetchRemoteMatchBlocks, saveRemoteMatchBlocks, type TournamentTemplateRecord } from '../../lib/tournamentLineupTemplates';
 import type { FieldSlotId } from '../../types/match';
 import { getPositionLabel } from '../../lib/positionLabels';
 import {
@@ -82,6 +82,7 @@ type LocationState = {
   selectedPlayers?: string[];
   formationId?: string;
   lineupCopiedFromPrevious?: boolean;
+  useTournamentTemplate?: boolean;
 } | null;
 
 function emptySlots(): Record<FieldSlotId, string | null> {
@@ -136,6 +137,7 @@ export const MatchLineupPage: React.FC = () => {
     [routeState?.selectedPlayers],
   );
 
+  const [tournamentTemplate, setTournamentTemplate] = useState<TournamentTemplateRecord | null>(null);
   const [matchRow, setMatchRow] = useState<MatchRowLite | null>(null);
   const [matchStatus, setMatchStatus] = useState<string | null>(null);
   const [matchLiveStartedAt, setMatchLiveStartedAt] = useState<string | null>(null);
@@ -213,6 +215,14 @@ export const MatchLineupPage: React.FC = () => {
     void (async () => {
       setMatchLoading(true);
       setMatchError(null);
+      initializedVariantsForMatchRef.current = null;
+      setLineupLoading(true);
+      setTournamentTemplate(null);
+      if (canManage) {
+        try { const template = await prepareTournamentMatchFromTemplate(matchId); if (!cancelled) setTournamentTemplate(template); }
+        catch (e) { if (!cancelled) { setMatchError(e instanceof Error ? e.message : String(e)); setMatchLoading(false); } return; }
+      }
+      if (cancelled) return;
       const { data, error } = await supabase
         .from('matches')
         .select('id, team_season_id, opponent, u11_formation_id, status, live_started_at')
@@ -240,7 +250,7 @@ export const MatchLineupPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [matchId, isDemo, demo]);
+  }, [matchId, isDemo, demo, canManage]);
 
   const teamSeasonId = matchRow?.team_season_id ?? null;
   const { players: livePlayers, loading: playersLoadingLive, error: playersErrorLive } = usePlayers(
@@ -257,6 +267,7 @@ export const MatchLineupPage: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
+    if (matchLoading) return;
     if (!matchId) {
       setLineupLoading(false);
       setLineupError('Keine Match-ID übergeben.');
@@ -334,7 +345,7 @@ export const MatchLineupPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [matchId, selectedFromState, location.key, isDemo, demo]);
+  }, [matchId, selectedFromState, location.key, isDemo, demo, matchLoading]);
 
   useEffect(() => {
     if (!matchId || !matchRow) return;
@@ -434,14 +445,16 @@ export const MatchLineupPage: React.FC = () => {
   });
 
   useEffect(() => {
-    if (!matchId || lineupLoading || initializedVariantsForMatchRef.current === matchId) return;
+    if (!matchId || matchLoading || lineupLoading || initializedVariantsForMatchRef.current === matchId) return;
     initializedVariantsForMatchRef.current = matchId;
     let cancelled = false;
     let initialized = false;
     setBlocksLoading(true);
     void (async () => {
     const canonical = captureVisibleVariant();
-    const stored = (canManage ? await fetchRemoteMatchBlocks(matchId) : null) ?? readMatchLineupVariants(matchId);
+    const requestedTemplate = canManage && routeState?.useTournamentTemplate ? tournamentTemplate?.blocks : null;
+    const stored = requestedTemplate ?? (canManage ? await fetchRemoteMatchBlocks(matchId) : null) ?? readMatchLineupVariants(matchId);
+    if (requestedTemplate) canonical.squadIds = [...requestedTemplate.variants[requestedTemplate.startVariant].squadIds];
     if (cancelled) return;
     setSingleTournamentLineup(stored?.lineupMode === 'single');
     if (stored) {
@@ -475,7 +488,7 @@ export const MatchLineupPage: React.FC = () => {
     return () => { cancelled = true; if (!initialized && initializedVariantsForMatchRef.current === matchId) initializedVariantsForMatchRef.current = null; };
   // Der Effekt initialisiert genau einmal je Match nach dem kanonischen Lineup-Load.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matchId, lineupLoading]);
+  }, [matchId, matchLoading, lineupLoading]);
 
   const persistVariantDrafts = (
     nextDrafts: Record<MatchLineupVariantNumber, MatchLineupVariantDraft>,
@@ -535,10 +548,23 @@ export const MatchLineupPage: React.FC = () => {
   const requiredStarters = U11_FORMATIONS[formationId].length;
   const hasSquad = squadIds.length > 0;
 
+  const tournamentFormation = tournamentTemplate?.blocks.variants[tournamentTemplate.blocks.startVariant]?.formationId;
+  const tournamentSize = tournamentFormation ? U11_FORMATIONS[tournamentFormation]?.length : undefined;
+  const tournamentSizeMismatch = Boolean(tournamentSize && requiredStarters !== tournamentSize);
   const formationChoices = useMemo(
-    () => (isFairPlayFormationId(formationId) ? [...FAIRPLAY_FORMATION_CHOICES] : [...U11_FORMATION_CHOICES]),
-    [formationId],
+    () => tournamentSize ? U11_FORMATION_CHOICES.filter(id => U11_FORMATIONS[id].length === tournamentSize) : (isFairPlayFormationId(formationId) ? [...FAIRPLAY_FORMATION_CHOICES] : [...U11_FORMATION_CHOICES]),
+    [formationId, tournamentSize],
   );
+  const useTournamentTemplate = () => {
+    if (!lineupEditable || !tournamentTemplate || blocksLoading) return;
+    const blocks = tournamentTemplate.blocks;
+    const draft = cloneMatchLineupVariant(blocks.variants[blocks.startVariant]);
+    setVariantDrafts({1:cloneMatchLineupVariant(blocks.variants[1]),2:cloneMatchLineupVariant(blocks.variants[2])});
+    setStartVariant(blocks.startVariant); setVisibleVariant(blocks.startVariant);
+    setSingleTournamentLineup(blocks.lineupMode === 'single');
+    setSlots(draft.slots); setSquadIds(draft.squadIds); setFormationId(draft.formationId);
+    setSaveMsg('Turnierkader und Aufstellung übernommen. Bitte speichern.');
+  };
 
   const onTapBankPlayer = (playerId: string) => {
     if (!lineupEditable) return;
@@ -700,13 +726,17 @@ export const MatchLineupPage: React.FC = () => {
     setVariantDrafts(nextDrafts);
     setStartVariant(visibleVariant);
     persistVariantDrafts(nextDrafts, visibleVariant);
+    if (!isDemo) {
+      try { await saveRemoteMatchBlocks(matchId, {version:1,lineupMode:singleTournamentLineup ? 'single' : undefined,startVariant:visibleVariant,variants:nextDrafts}); }
+      catch (e) { setSavingLineup(false); setSaveError(e instanceof Error ? e.message : String(e)); return; }
+    }
     setSavingLineup(false);
     setSaveMsg(`Variante ${visibleVariant} als Startaufstellung gewählt.`);
     if (!isDemo) void triggerLineupFeedPostAfterSave(matchId);
   };
 
   const onStartLive = async () => {
-    if (!matchId || starterCount < requiredStarters || !canManage || !lineupEditable) return;
+    if (!matchId || tournamentSizeMismatch || blocksLoading || starterCount < requiredStarters || !canManage || !lineupEditable) return;
     setSaveMsg(null);
     setSaveError(null);
     setStartingLive(true);
@@ -801,7 +831,7 @@ export const MatchLineupPage: React.FC = () => {
         className={dsPageContentClass(
           // Normaler Layout-Flow: Seite scrollt im Body, kein verschachtelter Scroll/overflow-hidden
           // (iOS/iPhone SE: Inhalte sonst abgeschnitten). Scroll-Ende über BottomNav + Safe-Area.
-          'live-page-safe-scroll mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col gap-0 px-1.5 pt-0 sm:px-4 sm:pb-[25rem] sm:pt-1',
+          'mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col gap-0 px-1.5 pt-0 pb-28 sm:px-4 sm:pt-1',
         )}
       >
         <header className="relative flex min-h-[2.5rem] shrink-0 items-center justify-center px-1 py-1.5 sm:min-h-[2.75rem] sm:py-2">
@@ -818,6 +848,12 @@ export const MatchLineupPage: React.FC = () => {
             Aufstellung
           </h1>
         </header>
+
+        {tournamentSize ? <section className="mb-2 rounded-xl border border-emerald-500/25 bg-emerald-950/15 px-3 py-2 text-sm">
+          <div className="flex items-center justify-between"><strong className="text-emerald-300">Turnier · {tournamentSize - 1}+1</strong><span className="text-white/65">{formationId}</span></div>
+          {tournamentSizeMismatch ? <p role="alert" className="mt-1 text-amber-200">Spielerzahl abweichend – Turnieraufstellung übernehmen.</p> : null}
+          {lineupEditable ? <details open={tournamentSizeMismatch}><summary className="cursor-pointer py-2 text-white/65">Grundaufstellung übernehmen</summary><button type="button" disabled={blocksLoading || savingLineup || startingLive} onClick={useTournamentTemplate} className="min-h-11 rounded-lg border border-white/15 px-3 font-semibold text-white">Kader & Aufstellung vom Assistenten</button></details> : null}
+        </section> : null}
 
         {canManage && !singleTournamentLineup ? (
           <div
@@ -1005,23 +1041,12 @@ export const MatchLineupPage: React.FC = () => {
             </section>
           </>
         ) : (
-          <div
-            className="flex w-full flex-1 min-h-0 flex-col"
-            style={{
-              // Resume-sichere Viewport-Höhe (useViewportRecovery) statt 100dvh — iOS/PWA.
-              height: isMobile
-                ? 'calc(var(--app-visual-vh, var(--app-vh, 1dvh)) * 100 - 6rem - 11.25rem - 5.75rem)'
-                : 'calc(var(--app-visual-vh, var(--app-vh, 1dvh)) * 100 - 6rem - 11.25rem - 9.5rem)',
-              maxHeight: isMobile
-                ? 'calc(var(--app-visual-vh, var(--app-vh, 1dvh)) * 100 - 6rem - 11.25rem - 5.75rem)'
-                : 'calc(var(--app-visual-vh, var(--app-vh, 1dvh)) * 100 - 6rem - 11.25rem - 9.5rem)',
-            }}
-          >
-            <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-[22px] border border-transparent bg-gradient-to-br from-[#121214] via-[#0a0a0c] to-black p-1.5 shadow-[0_6px_28px_rgba(0,0,0,0.5),0_0_24px_rgba(224,33,41,0.05)] sm:p-2">
-              <div className="grid h-full min-h-0 flex-1 grid-cols-2 gap-2">
+          <div className="w-full pb-4">
+            <section className="flex flex-col rounded-[22px] border border-transparent bg-gradient-to-br from-[#121214] via-[#0a0a0c] to-black p-1.5 shadow-[0_6px_28px_rgba(0,0,0,0.5),0_0_24px_rgba(224,33,41,0.05)] sm:p-2">
+              <div className="grid grid-cols-2 items-start gap-3">
                 <div className="flex min-h-0 min-w-0 flex-col gap-1">
                   <h2 className={`shrink-0 ${dsSectionLabelClass()}`}>Startaufstellung</h2>
-                  <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [-webkit-overflow-scrolling:touch] flex flex-col ${DS_LIST_GAP}`}>
+                  <div className={`pr-1 flex flex-col ${DS_LIST_GAP}`}>
                     {U11_FORMATIONS[formationId].map(({ slot }) => {
                       const pid = slots[slot];
                       const p = pid ? playersById.get(pid) : null;
@@ -1035,7 +1060,7 @@ export const MatchLineupPage: React.FC = () => {
                             key={`list-f-${slot}`}
                             type="button"
                             onClick={() => onTapSlot(slot)}
-                            className={matchdayLineupListRowClass({ role: 'starter' })}
+                            className={`${matchdayLineupListRowClass({ role: 'starter' })} !min-h-[80px] !rounded-xl`}
                           >
                             <div className={matchdayJerseyWrapClass()}>
                               <LeibchenJersey
@@ -1049,7 +1074,7 @@ export const MatchLineupPage: React.FC = () => {
                               />
                             </div>
                             <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 py-0.5 pr-1">
-                              <p className={dsPlayerNameClass()}>{fullName}</p>
+                              <p className={`${dsPlayerNameClass()} !text-[15px] !leading-snug`}>{fullName}</p>
                               <span className="inline-flex w-fit rounded-md border border-transparent bg-[rgba(120,18,28,0.26)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#FF8D98]">
                                 {posLabel}
                               </span>
@@ -1073,7 +1098,7 @@ export const MatchLineupPage: React.FC = () => {
                 </div>
                 <div className="flex min-h-0 min-w-0 flex-col gap-1 border-l border-white/[0.08] pl-2">
                   <h2 className={`shrink-0 ${dsSectionLabelClass()}`}>Ersatzbank</h2>
-                  <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [-webkit-overflow-scrolling:touch] flex flex-col ${DS_LIST_GAP}`}>
+                  <div className={`pr-1 flex flex-col ${DS_LIST_GAP}`}>
                     {bankIds.length === 0 ? (
                       <p className="text-xs text-zinc-500">Keine Bankspieler.</p>
                     ) : (
@@ -1089,7 +1114,7 @@ export const MatchLineupPage: React.FC = () => {
                             key={`list-b-${id}`}
                             type="button"
                             onClick={() => onTapBankPlayer(id)}
-                            className={matchdayLineupListRowClass({ role: 'bench', selected: isSelected })}
+                            className={`${matchdayLineupListRowClass({ role: 'bench', selected: isSelected })} !min-h-[80px] !rounded-xl`}
                           >
                             <div className={matchdayJerseyWrapClass()}>
                               <LeibchenJersey
@@ -1103,7 +1128,7 @@ export const MatchLineupPage: React.FC = () => {
                               />
                             </div>
                             <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 py-0.5 pr-1">
-                              <p className={dsPlayerNameClass()}>{fullName}</p>
+                              <p className={`${dsPlayerNameClass()} !text-[15px] !leading-snug`}>{fullName}</p>
                               <span className={matchdayLineupPositionBadgeClass('bench')}>
                                 Bank
                               </span>
@@ -1133,15 +1158,15 @@ export const MatchLineupPage: React.FC = () => {
             type="button"
             disabled={!lineupEditable || savingLineup || startingLive}
             onClick={() => void onSaveLineupClick()}
-            className={`flex h-14 min-h-14 flex-1 items-center justify-center px-2 text-xs font-semibold leading-tight ${dsSecondaryCtaClass()}`}
+            className={`flex h-14 min-h-14 flex-1 items-center justify-center px-2 text-sm font-semibold leading-tight ${dsSecondaryCtaClass()}`}
           >
             {savingLineup ? 'Speichern…' : 'Aufstellung speichern'}
           </button>
           <button
             type="button"
-            disabled={!lineupEditable || starterCount < requiredStarters || savingLineup || startingLive}
+            disabled={!lineupEditable || tournamentSizeMismatch || starterCount < requiredStarters || savingLineup || startingLive || blocksLoading}
             onClick={() => void (visibleVariant === startVariant ? onStartLive() : onUseAsStartVariant())}
-            className={`flex h-14 min-h-14 flex-1 items-center justify-center px-2 text-xs font-bold leading-tight ${dsPrimaryCtaClass()}`}
+            className={`flex h-14 min-h-14 flex-1 items-center justify-center px-2 text-sm font-bold leading-tight ${dsPrimaryCtaClass()}`}
           >
             {startingLive
               ? 'Start…'

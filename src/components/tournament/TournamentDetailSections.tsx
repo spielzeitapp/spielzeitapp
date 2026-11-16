@@ -1,3 +1,6 @@
+import { PublicTeamTournamentPage } from '../../pages/public/PublicTeamTournamentPage';
+import { tournamentTeamLogos } from '../../../server/lib/tournamentTeamLogos.js';
+import { TournamentLogoContext } from './TournamentClubLogo';
 import { fetchTournamentLineupTemplate } from '../../lib/tournamentLineupTemplates';
 import { tournamentTemplateReady } from '../../lib/tournamentLineupTemplate';
 import { fetchTournamentSquadPlayerIds } from '../../lib/tournamentSquad';
@@ -244,17 +247,28 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const players = isDemo && demo ? demo.players : dbPlayers;
   const playersLoading = isDemo ? false : playersLoadingLive;
 
+  const loadedEvent = React.useRef<string | null>(null);
+  const reloadRequest = React.useRef(0);
   const reload = useCallback(async () => {
-    setLoading(true);
-    const [pRes, mRes] = await Promise.all([
-      fetchTournamentParticipants(tournamentEventId),
-      fetchTournamentMatchSlots(tournamentEventId),
-    ]);
-    const err = pRes.error ?? mRes.error;
-    setListError(err);
-    setParticipants(pRes.data);
-    setSlots(mRes.data);
-    setLoading(false);
+    const request = ++reloadRequest.current;
+    const initial = loadedEvent.current !== tournamentEventId;
+    if (initial) setLoading(true);
+    try {
+      const [pRes, mRes] = await Promise.all([
+        fetchTournamentParticipants(tournamentEventId),
+        fetchTournamentMatchSlots(tournamentEventId),
+      ]);
+      if (request !== reloadRequest.current) return;
+      const err = pRes.error ?? mRes.error;
+      setListError(err);
+      if (!pRes.error) setParticipants(pRes.data);
+      if (!mRes.error) setSlots(mRes.data);
+      if (!err) loadedEvent.current = tournamentEventId;
+    } catch {
+      if (request === reloadRequest.current) setListError('Aktualisierung nicht möglich – letzter geladener Stand bleibt sichtbar.');
+    } finally {
+      if (request === reloadRequest.current) setLoading(false);
+    }
   }, [tournamentEventId]);
 
   useEffect(() => {
@@ -943,6 +957,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
         onSaved={() => setAssistantRefreshToken(token => token + 1)}
         onOpenTemplate={() => openPreparationDialog('lineup')} />;
       case 'plan': return <div id="tournament-plan-section" className="space-y-4">
+            {officialTournamentUrl && !ownSlots.length ? <TournamentConnectedPlan eventId={tournamentEventId} url={officialTournamentUrl} userId={userId} canManage={canManage && !tournamentCanceled} onUpdated={reload} onState={setConnectedPlan} /> : null}
             <TournamentOfficialPlanCard
               tournamentEventId={tournamentEventId}
               teamSeasonId={teamSeasonId}
@@ -1123,6 +1138,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   };
 
   return (
+    <TournamentLogoContext.Provider value={tournamentTeamLogos(connectedPlan?.analysis)}>
     <div className={`tournament-center-flow flex min-w-0 flex-col overflow-x-hidden ${TC_STACK_GAP}`}>
       {toastMessage ? (
         <div
@@ -1199,7 +1215,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
           awaitingFurtherPhase={awaitingFurtherPhase}
           refreshingPlan={planSyncBusy}
           ownMatchCount={ownSlots.length}
-          totalMatchCount={slots.length}
+          totalMatchCount={Math.max(slots.length, connectedPlan?.analysis.matchCount ?? 0)}
           onOpenAttendance={scrollToAttendance}
           onOpenSquad={scrollToSquad}
           onOpenLineup={() => openPreparationDialog('lineup')}
@@ -1228,19 +1244,17 @@ export const TournamentDetailSections: React.FC<Props> = ({
       <TournamentOpponentOutlook state={connectedPlan} />
       {listError ? <p role="alert" className="text-sm text-red-300">{listError}</p> : null}
       {!canManage ? <section className={TC_CARD}><div className={`${TC_CARD_INNER} space-y-3`}>
-        <h2 className="text-lg font-bold text-white">Alles zum Turnier</h2>
-        <p className="text-[16px] leading-relaxed text-white/70">Spielstände, alle Tabellen, Finalrunde und unsere Torschützen auf einer Seite. Die Übersicht aktualisiert sich automatisch.</p>
         {quickActions ?? (<Link className={addButtonClass} to={publicTeamTournamentPath(tournamentEventId)} state={{returnTo: `${basePath}/events/${tournamentEventId}`}}>Turnierseite ansehen</Link>)}
-        {ownSlots.filter(slot => !tournamentCanceled && slot.match_status === 'live' && slot.match_id).map(slot => <Link key={slot.id} className={addButtonClass} to={`${basePath}/live?matchId=${encodeURIComponent(slot.match_id!)}`}>Unser Spiel läuft · Zum Liveticker</Link>)}
+
       </div></section> : null}
+      {!canManage ? <PublicTeamTournamentPage key={tournamentEventId} publicIdOverride={tournamentEventId} embedded/> : null}
       {canManage ? <TournamentCenterTabBar activeTab={activeTab} onTabChange={setActiveTab} actions={quickActions} /> : null}
       {canManage && activeTab === 'games' ? <div className={`flex flex-col ${TC_STACK_GAP}`}>
-        <h2 className="text-[16px] font-bold text-white">Unsere Turnierspiele vorbereiten</h2>
-        <p className="text-[16px] leading-relaxed text-white/65">Aufstellung und Liveticker für unser Team. Den gesamten Turnierverlauf findest du unter „Turnierseite ansehen“.</p>
-        {!tournamentCanceled ? <button type="button" className={addButtonClass} onClick={openMatchModal}><Plus className="h-4 w-4"/>Turnierspiel hinzufügen</button> : null}
-        {loading ? <p className="text-[16px] text-white/65">Lade unsere Spiele…</p> : !ownSlots.length ? <section className={TC_CARD}><div className={TC_CARD_INNER}><p className="text-[16px] text-white/65">Noch keine eigenen Turnierspiele hinterlegt.</p></div></section> : ownSlots.map(slot => <TournamentMatchSlotCard key={slot.id} slot={slot} canManage={!tournamentCanceled} isNextUpcoming={slot.id === nextMatchId}
-          onOpen={() => { if (!slot.match_id) return; if (!tournamentCanceled && slot.match_status === 'live') navigate(`${basePath}/live?matchId=${encodeURIComponent(slot.match_id)}`); else onOpenMatchPreparation(slot.match_id); }}
+        <h2 className="text-[16px] font-bold text-white">Unsere Spiele</h2>
+        {loading && !ownSlots.length ? <p className="text-[16px] text-white/65">Lade unsere Spiele…</p> : !ownSlots.length ? <section className={TC_CARD}><div className={TC_CARD_INNER}><p className="text-[16px] text-white/65">Noch keine eigenen Turnierspiele hinterlegt.</p></div></section> : ownSlots.map(slot => <TournamentMatchSlotCard key={slot.id} slot={slot} canManage={!tournamentCanceled} isNextUpcoming={slot.id === nextMatchId}
+          onOpen={() => { if (!slot.match_id) return; if (slot.match_status === 'finished' || (!tournamentCanceled && slot.match_status === 'live')) navigate(`${basePath}/live?matchId=${encodeURIComponent(slot.match_id)}`); else onOpenMatchPreparation(slot.match_id); }}
           onDelete={!tournamentCanceled && slot.match_id ? () => void handleRemoveSlot(slot.match_id!) : undefined}/>) }
+        {!tournamentCanceled ? <button type="button" className={addButtonClass} onClick={openMatchModal}><Plus className="h-4 w-4"/>Turnierspiel hinzufügen</button> : null}
       </div> : null}
       {canManage && activeTab === 'table' ? <TournamentTableTab bundle={standingsBundle} loading={standingsLoading} /> : null}
 
@@ -1516,5 +1530,6 @@ export const TournamentDetailSections: React.FC<Props> = ({
         onConfirm={(values) => void handleConfirmCompleteTournament(values)}
       />
     </div>
+    </TournamentLogoContext.Provider>
   );
 };

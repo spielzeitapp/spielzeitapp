@@ -1510,3 +1510,7 @@ html[data-club-theme="black-white"] .sz-club-placeholder-player {
 
 /* Keep the participant sheet header compact on phones. */
 .training-participant-modal .modalHeader { padding-top: 14px; }
+
+/* Tournament details fit their content instead of reserving an empty sheet. */
+.modalSheet.tournament-details-modal{height:auto;min-height:0;align-self:center;max-height:min(80dvh,640px)}
+.tournament-details-modal>.modalHeader{padding:14px 16px;min-height:0}
