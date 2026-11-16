@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';import {build} from 'esbuild';import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),React=require('react'),{create,act}=require('react-test-renderer'),Module=require('module');
+globalThis.window={matchMedia:()=>({matches:false})};
+const out=await build({entryPoints:['src/features/club/ExchangePhotoGallery.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,loader:{'.css':'empty'}});
+const m=new Module('gallery');m.paths=require.resolve.paths('react');m._compile(out.outputFiles[0].text,'gallery');const Gallery=m.exports.ExchangePhotoGallery;
+let app;const calls=[];await act(async()=>{app=create(React.createElement(Gallery,{photos:['one.jpg','two.jpg'],title:'Jacke'}),{createNodeMock:el=>el.props.className==='market-photo-rail'?{clientWidth:360,scrollTo:o=>calls.push(o)}:null});});
+const count=()=>app.root.findByProps({className:'market-photo-count'}).children.join('');
+assert.equal(app.root.findAllByType('img').length,2);assert.equal(count(),'1 / 2');
+await act(async()=>app.root.findByProps({'aria-label':'Nächstes Foto'}).props.onClick());
+assert.equal(count(),'2 / 2');assert.equal(calls.at(-1).left,360);assert.equal(app.root.findByProps({'aria-label':'Nächstes Foto'}).props.disabled,true);
+await act(async()=>app.root.findByProps({className:'market-photo-rail'}).props.onScroll({currentTarget:{scrollLeft:0,clientWidth:360}}));
+assert.equal(count(),'1 / 2');
+let prevented=false;await act(async()=>app.root.findByProps({className:'market-photo-rail'}).props.onKeyDown({key:'ArrowRight',preventDefault(){prevented=true;}}));
+assert.ok(prevented);assert.equal(count(),'2 / 2');
+await act(async()=>app.root.findAllByType('img')[1].props.onError());assert.ok(JSON.stringify(app.toJSON()).includes('Foto konnte nicht geladen werden'));assert.equal(count(),'2 / 2');
+await act(async()=>app.update(React.createElement(Gallery,{photos:['one.jpg'],title:'Jacke'})));assert.equal(count(),'1 / 1');assert.equal(app.root.findAllByProps({className:'market-photo-controls'}).length,0);
+await act(async()=>app.unmount());console.log('PASS: both photos, counter, arrows, dots, scroll/swipe index, keyboard, failures, single photo');

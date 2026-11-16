@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, CalendarDays, CalendarRange, ChevronRight, Dumbbell, Music2, Link2, Settings, Smartphone, Users, Wrench } from 'lucide-react';
+import { Shirt, Bell, CalendarDays, CalendarRange, ChevronRight, Dumbbell, Music2, Link2, Settings, Smartphone, Users, Wrench } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { supabase } from '../lib/supabaseClient';
@@ -321,7 +321,8 @@ export const MoreHubPage: React.FC = () => {
             <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
           </Link>
         ) : null}
-        <HubRowLink to="/app/nachrichten" className={dsPanelRowClass()} isDemo={isDemo}>
+        {!isDemo&&<Link to="/app/tauschboerse?club=9c7a8741-6e73-42d5-88d8-46ce5217e8cd&public=1" className={dsPanelRowClass()}><span className="flex items-center gap-3"><Shirt className="h-5 w-5"/><span><span className="block">Vereinsmarkt</span><span className="block text-[11px] text-white/60">NSG Gölsental · U7 bis U16</span></span></span><ChevronRight className="h-5 w-5"/></Link>}
+<HubRowLink to="/app/nachrichten" className={dsPanelRowClass()} isDemo={isDemo}>
           <span className="flex min-w-0 flex-col gap-0.5">
             <span className="flex items-center gap-3">
               <Bell className="h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />

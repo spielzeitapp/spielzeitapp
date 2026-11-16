@@ -1,0 +1,7 @@
+import React from 'react';
+/** Match the existing outline icons; readable as small category controls. */
+export function FootballBootIcon({size=24}:{size?:number}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 4.5h5l1 4 5 3.5 5 1c1.3.3 2 1.3 2 2.5V18H3V4.5Z"/><path d="m4 5 3 4 2-1M9 11l2-2m1 4 2-2M3 15h18M5 18v3m5-3v2m6-2v3m4-3v2"/></svg>;}
+export function ShinGuardIcon({size=24}:{size?:number}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 3.5Q12 .5 18 3.5L17 17q-1 4-5 5-4-1-5-5L6 3.5Z"/><path d="M7 8q5-2 10 0M8 16q4-2 8 0M12 5v8"/></svg>;}
+
+export function RunningShoeIcon({size=24}:{size?:number}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7 6 5l4 6 4 2 5 1q2 .5 2 3v2H3V7Z"/><path d="m3 9 3 3 2-2m2 3 2-2m1 4 2-2M3 16q7 2 18 0M3 19h18"/></svg>;}
+export function MarketShoesIcon({size=24}:{size?:number}){return <span className="market-shoes-icons" aria-hidden="true"><FootballBootIcon size={size}/><RunningShoeIcon size={size}/></span>;}

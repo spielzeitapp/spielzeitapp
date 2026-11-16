@@ -1,3 +1,5 @@
+import {uscAuthTarget} from '../features/club/uscAuth';
+import { isUscAppPath, USC_MANIFEST, USC_APP_ICON } from '../features/club/uscClub';
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
@@ -10,15 +12,14 @@ function isInternalDomain(): boolean {
 }
 
 function ensureManifestLink(href: string): void {
-  let link = document.getElementById(MANIFEST_ID) as HTMLLinkElement | null;
+  let link = (document.getElementById(MANIFEST_ID) ?? document.querySelector('head link[rel="manifest"]')) as HTMLLinkElement | null;
   if (!link) {
-    const existing = document.querySelector('head link[rel="manifest"]');
-    if (existing) existing.remove();
     link = document.createElement('link');
     link.rel = 'manifest';
-    link.id = MANIFEST_ID;
     document.head.appendChild(link);
   }
+  // Reuse the initial link: installation must not observe an intermediate manifest.
+  link.id = MANIFEST_ID;
   if (link.getAttribute('href') !== href) {
     link.href = href;
   }
@@ -33,12 +34,14 @@ function ensureManifestLink(href: string): void {
  * - sonst → /manifest.json (nur lokale Public-Dev-Variante)
  */
 export function ManifestSync(): null {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
 
   useEffect(() => {
+    const marketplace = pathname.match(/^\/marktplatz\/([0-9a-f-]{36})(?:\/|$)/i);
+    const usc = isUscAppPath(pathname) || Boolean(uscAuthTarget(pathname,search));
     const demo = pathname === '/demo' || pathname.startsWith('/demo/');
     const manager = pathname.startsWith('/manager');
-    const href = demo
+    const href = marketplace ? (marketplace[1]==='3db6fce2-a4c1-44a5-a333-19d1d4d62e6a' ? '/vereinsmarkt/rohrbach-v2.webmanifest' : `/api/exchange/public?manifest=1&club=${marketplace[1]}`) : usc ? USC_MANIFEST : demo
       ? '/manifest-demo.json'
       : manager
       ? '/manifest-manager.json'
@@ -49,13 +52,15 @@ export function ManifestSync(): null {
         : '/manifest.json';
     ensureManifestLink(href);
     const icon = document.querySelector('head link[rel="apple-touch-icon"]') as HTMLLinkElement | null;
-    if (icon) icon.href = manager ? '/manager-apple-touch-icon.png' : '/apple-touch-icon.png';
+    if (icon) icon.href = marketplace ? '/vereinsmarkt/icon-180.png' : usc ? USC_APP_ICON : manager ? '/manager-apple-touch-icon.png' : '/apple-touch-icon.png';
     const title = document.querySelector('head meta[name="apple-mobile-web-app-title"]') as HTMLMetaElement | null;
-    if (title) title.content = demo ? 'Spielzeit Demo' : manager ? 'Spielzeit Manager' : 'SpielzeitApp';
-    if (demo) document.title = 'SpielzeitApp Demo';
+    if (title) title.content = marketplace ? 'Vereinsmarkt' : usc ? 'USC Rohrbach' : demo ? 'Spielzeit Demo' : manager ? 'Spielzeit Manager' : 'SpielzeitApp';
+    if (marketplace) document.title = 'Vereinsmarkt';
+    else if (usc) document.title = 'USC Rohrbach';
+    else if (demo) document.title = 'SpielzeitApp Demo';
     else if (manager) document.title = 'Spielzeit Manager';
-    else if (document.title === 'Spielzeit Manager' || document.title === 'SpielzeitApp Demo') document.title = 'SpielzeitApp';
-  }, [pathname]);
+    else if (document.title === 'Spielzeit Manager' || document.title === 'SpielzeitApp Demo' || document.title === 'USC Rohrbach' || document.title === 'Vereinsmarkt') document.title = 'SpielzeitApp';
+  }, [pathname, search]);
 
   return null;
 }

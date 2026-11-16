@@ -1,0 +1,106 @@
+/* A device preference scoped to Vereinsmarkt. SpielzeitApp keeps its own look. */
+.market-theme-toggle{display:inline-flex;align-items:center;justify-content:center;flex:none;width:42px;height:42px;min-width:42px;min-height:42px;padding:0;border-radius:50%;border:1px solid #ffffff24;background:#19131b;color:#f3edf5;cursor:pointer}
+.market-theme-toggle:focus-visible{outline:2px solid #e3405e;outline-offset:3px}
+.market-auth-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px}.market-auth-top .market-auth-back{margin-bottom:0;flex:1}.market-auth-top .market-theme-toggle{margin-top:-3px}
+.public-exchange .public-market-header{gap:10px}.public-exchange .public-market-header>.market-theme-toggle{flex:none}
+@media(max-width:360px){.public-exchange .public-market-header{padding-inline:12px;gap:7px}.public-exchange .public-market-header>img{width:36px;height:36px}.public-exchange .public-market-header strong{font-size:16px}.public-exchange .public-market-header>a:not(.public-market-app-switch){padding-inline:10px;font-size:12px}.public-exchange .public-market-header>.market-theme-toggle,.public-exchange .public-market-header>.public-market-account,.public-exchange .public-market-header>.public-market-app-switch{width:40px;height:40px;min-width:40px;min-height:40px}}
+html[data-market-theme=light]{color-scheme:light;background:#fff}
+html[data-market-theme=light] body{background:#fff}
+html[data-market-theme=light] .public-exchange{background:radial-gradient(ellipse at 85% 0,#f6e9ed,transparent 48%),#f6f5f7;color:#211d25;--exchange-muted:#625b68;--club-primary-rgb:143 28 53;--club-on-primary:#fff;--club-accent-text-rgb:166 31 58;--accent:#b11f3d}
+html[data-market-theme=light] .public-exchange .public-market-header{background:#fff;border-color:#ddd7df;box-shadow:0 3px 16px #2b10200a}
+html[data-market-theme=light] .public-market-header small{color:#625b68}
+html[data-market-theme=light] .market-theme-toggle,html[data-market-theme=light] .public-exchange .public-market-app-switch,html[data-market-theme=light] .public-exchange .public-market-account{background:#f2eef3;color:#28212e;border-color:#d9d1dc;box-shadow:none}
+html[data-market-theme=light] .public-market-intro,html[data-market-theme=light] .public-market-note,html[data-market-theme=light] .public-market-panel p,html[data-market-theme=light] .public-market-banner small,html[data-market-theme=light] .public-market-profile-hero>p:not(.public-market-eyebrow),html[data-market-theme=light] .public-market-profile-hero small{color:#625b68}
+html[data-market-theme=light] .public-market-eyebrow{color:#ad2442}
+html[data-market-theme=light] .public-exchange .public-market-categories button{background:#fff;color:#29232d;border-color:#dad4dd;box-shadow:0 3px 10px #32102705}
+html[data-market-theme=light] .public-market-categories svg{color:#bd2647}
+html[data-market-theme=light] .public-exchange .exchange-search{background:#fff;border-color:#d6ceda;color:#716878}
+html[data-market-theme=light] .public-exchange .exchange-search input{background:transparent;color:#211d25;border:0;box-shadow:none}
+html[data-market-theme=light] .public-market-tools button,html[data-market-theme=light] .public-market-tools select,html[data-market-theme=light] .public-market-panel button{background:#fff;border-color:#d6ceda;color:#2b2430;box-shadow:none}
+html[data-market-theme=light] .public-exchange .public-market-nav{background:#fffffff5;border-color:#dcd6df;box-shadow:0 8px 30px #26122922}
+html[data-market-theme=light] .public-market-nav a,html[data-market-theme=light] .public-market-nav button{color:#68616f}
+html[data-market-theme=light] .public-market-nav [aria-current=page]{color:#ad2442}
+html[data-market-theme=light] .public-market-panel,html[data-market-theme=light] .public-exchange .exchange-empty,html[data-market-theme=light] .public-market-banner{background:#fff;color:#211d25;border-color:#ded6e0;box-shadow:0 4px 16px #2b102007}
+html[data-market-theme=light] .public-market-banner:first-of-type{background:linear-gradient(130deg,#fff1f4,#fff);border-color:#e5bdc8}
+html[data-market-theme=light] .public-market-profile-symbol{background:linear-gradient(140deg,#f9dce5,#fff5f7);border-color:#e5b7c5;color:#b42446}
+html[data-market-theme=light] .public-market-register{color:#792039}
+html[data-market-theme=light] .public-market-profile-links{background:#fff;border-color:#ddd5df}
+html[data-market-theme=light] .public-market-profile-links a{color:#29222e;border-color:#e7e1ea}
+html[data-market-theme=light] .public-market-footer,html[data-market-theme=light] .public-exchange .public-market-footer>button,html[data-market-theme=light] .public-exchange .public-market-footer>button span{color:#625b68}
+/* Native dialogs stay descendants of the scoped page even in the top layer. */
+html[data-market-theme=light] .public-exchange .exchange,html[data-market-theme=light] .exchange-dialog,html[data-market-theme=light] .exchange-filter-sheet{color:#211d25;--exchange-muted:#625b68}
+html[data-market-theme=light] .public-exchange .exchange .exchange-card{background:#fff;border-color:#ddd5df;box-shadow:0 4px 14px #21102612}
+html[data-market-theme=light] .exchange-card-copy h3,html[data-market-theme=light] .exchange-empty h3{color:#211d25}
+html[data-market-theme=light] .exchange-card-copy p,html[data-market-theme=light] .exchange-card-copy small,html[data-market-theme=light] .exchange .exchange-empty p,html[data-market-theme=light] .exchange .exchange-back,html[data-market-theme=light] .exchange-owner,html[data-market-theme=light] .exchange-privacy{color:#625b68}
+html[data-market-theme=light] .exchange .exchange-card-copy strong,html[data-market-theme=light] .exchange-item-head strong{color:#b42343}
+html[data-market-theme=light] .exchange .market-save-button{background:#fff;color:#49354b;border-color:#cfc2d2;box-shadow:0 2px 6px #1b101226}
+html[data-market-theme=light] .exchange .market-save-button[aria-pressed=true]{background:#fff0f4;color:#af1f41;border-color:#b52e4b}
+html[data-market-theme=light] .exchange .exchange-chat,html[data-market-theme=light] .exchange-dialog,html[data-market-theme=light] .exchange-filter-sheet{background:#fff;border-color:#d6ceda;box-shadow:0 12px 36px #26142629}
+html[data-market-theme=light] .exchange-dialog::backdrop,html[data-market-theme=light] .exchange-filter-sheet::backdrop{background:#21142559}
+html[data-market-theme=light] .exchange-dialog .exchange-editor-form>.exchange-heading,html[data-market-theme=light] .exchange-dialog .exchange-editor-footer,html[data-market-theme=light] .exchange-filter-sheet footer{background:#faf8fb;border-color:#e0d8e3;box-shadow:none}
+html[data-market-theme=light] .exchange-dialog label,html[data-market-theme=light] .exchange-dialog legend,html[data-market-theme=light] .exchange-editor-choices legend,html[data-market-theme=light] .exchange-article-choices legend{color:#312737}
+html[data-market-theme=light] .exchange-dialog p,html[data-market-theme=light] .exchange-dialog .exchange-editor-intro,html[data-market-theme=light] .exchange-dialog .exchange-photo-note,html[data-market-theme=light] .exchange-dialog .exchange-hint,html[data-market-theme=light] .exchange-dialog .exchange-publication-info p,html[data-market-theme=light] .exchange-article-hint,html[data-market-theme=light] .exchange-filter-tip,html[data-market-theme=light] .exchange-chat>p,html[data-market-theme=light] .exchange-thread small{color:#625b68}
+html[data-market-theme=light] .public-exchange .exchange input:not([type=checkbox]),html[data-market-theme=light] .public-exchange .exchange textarea,html[data-market-theme=light] .public-exchange .exchange select,html[data-market-theme=light] .exchange-dialog input:not([type=checkbox]),html[data-market-theme=light] .exchange-dialog textarea,html[data-market-theme=light] .exchange-dialog select{background:#faf8fb;color:#211d25;border-color:#d7cedc;box-shadow:none}
+html[data-market-theme=light] .exchange input::placeholder,html[data-market-theme=light] .exchange textarea::placeholder,html[data-market-theme=light] .exchange-dialog input::placeholder,html[data-market-theme=light] .exchange-dialog textarea::placeholder{color:#756c7d;opacity:1}
+html[data-market-theme=light] .exchange select option{background:#fff;color:#211d25}
+html[data-market-theme=light] .exchange-dialog button,html[data-market-theme=light] .exchange .exchange-thread,html[data-market-theme=light] .exchange-active-filters button,html[data-market-theme=light] .exchange-filter-group button,html[data-market-theme=light] .exchange-filter-sheet header>button{background:#f8f5f9;color:#352b3b;border-color:#d8cedd;box-shadow:none}
+html[data-market-theme=light] .exchange-dialog .exchange-editor-choices button,html[data-market-theme=light] .exchange-dialog .exchange-article-grid button,html[data-market-theme=light] .exchange-filter-sheet .exchange-article-grid button{background:#fbf9fc;color:#352b3b;border-color:#d8cedd;box-shadow:none}
+html[data-market-theme=light] .exchange-dialog .exchange-editor-choices button[aria-pressed=true],html[data-market-theme=light] .exchange-dialog .exchange-article-grid button[aria-pressed=true],html[data-market-theme=light] .exchange-filter-sheet .exchange-article-grid button[aria-pressed=true],html[data-market-theme=light] .exchange-filter-group button[aria-pressed=true]{background:#fbe6ed;color:#792039;border-color:#b22a4c;box-shadow:none}
+html[data-market-theme=light] .exchange-dialog .exchange-choice-check{color:#8c1e40}
+html[data-market-theme=light] .exchange-dialog .exchange-photo-actions button{border-color:#b9aabc;background:#faf7fb;color:#312737}
+html[data-market-theme=light] .exchange-photo-actions button svg,html[data-market-theme=light] .exchange-publication-info h3 svg,html[data-market-theme=light] .exchange-dialog .exchange-editor-offers button>svg:not(.exchange-choice-check){color:#aa2445}
+html[data-market-theme=light] .exchange-dialog .exchange-provider-context,html[data-market-theme=light] .exchange-dialog .exchange-publication-info,html[data-market-theme=light] .exchange-dialog .exchange-hint,html[data-market-theme=light] .exchange-hint,html[data-market-theme=light] .exchange-team-context{background:#f7f3f8;color:#625b68;border-color:#dfd6e3}
+html[data-market-theme=light] .exchange-provider-chip,html[data-market-theme=light] .exchange-team-context strong,html[data-market-theme=light] .exchange-publication-info summary{color:#792039;border-color:#dbc2ce;background:#fff1f5}
+html[data-market-theme=light] .exchange-dialog .exchange-primary.sz-club-primary,html[data-market-theme=light] .exchange .exchange-primary.sz-club-primary,html[data-market-theme=light] .exchange-filter-sheet footer .exchange-primary{background:linear-gradient(125deg,#98243f,#70182f);color:#fff;border-color:#98243f;box-shadow:none}
+html[data-market-theme=light] .exchange-filter-sheet footer>button:first-child{color:#625b68}
+html[data-market-theme=light] .exchange-sheet-handle{background:#cec3d3}
+html[data-market-theme=light] .exchange-description,html[data-market-theme=light] .exchange-tags span{border-color:#d8d0de}
+html[data-market-theme=light] .exchange-message{background:#f0eaf4;color:#302337}
+html[data-market-theme=light] .exchange-message-own{background:#f8dfe8;color:#572039}
+html[data-market-theme=light] .exchange-alert{background:#fff0f1;border-color:#dda5b1;color:#8b1f39}
+html[data-market-theme=light] .exchange-context-chip,html[data-market-theme=light] .exchange-context-picker>summary,html[data-market-theme=light] .exchange-context-picker>div,html[data-market-theme=light] .exchange-tabs{background:#fff;color:#625b68;border-color:#dcd3e1;box-shadow:none}
+html[data-market-theme=light] .exchange-context-chip small{color:#756b7e;border-color:#dbd0e1}
+html[data-market-theme=light] .exchange-context-picker button,html[data-market-theme=light] .exchange-tabs button{background:transparent;color:#625b68}
+html[data-market-theme=light] .exchange-context-picker button[aria-pressed=true],html[data-market-theme=light] .exchange-tabs button[aria-pressed=true]{background:#f8e0e9;color:#792039;border-color:#d69eaf;box-shadow:none}
+html[data-market-theme=light] .market-splash{background:radial-gradient(ellipse at 70% 15%,#f4e2e8,transparent 60%),#f6f5f7;color:#211d25}
+html[data-market-theme=light] .market-splash p,html[data-market-theme=light] .market-splash small{color:#625b68}
+html[data-market-theme=light] .market-splash-track{background:#ddd5df}
+/* Shared login/register/reset forms retain their validation and account flow. */
+html[data-market-theme=light] .market-auth-page{background:radial-gradient(ellipse at 90% 0,#f6dfe7,transparent 50%),#f6f5f7;color:#211d25}
+html[data-market-theme=light] .market-auth-card{background:#fff!important;border-color:#dfccd5!important;box-shadow:0 12px 36px #23112716}
+html[data-market-theme=light] .market-auth-card [class*="text-white"],html[data-market-theme=light] .market-auth-back,html[data-market-theme=light] .market-auth-brand strong{color:#302437}
+html[data-market-theme=light] .market-auth-card [class*="text-white/"],html[data-market-theme=light] .market-auth-brand small,html[data-market-theme=light] .market-auth-footer>p:last-child{color:#625b68}
+html[data-market-theme=light] .market-auth-card [class*="text-red-"]{color:#a22344}
+html[data-market-theme=light] .market-auth-card [class*="border-white/"]{border-color:#dbd0e0}
+html[data-market-theme=light] .market-auth-card [class*="bg-white/"]{background:#faf7fb}
+html[data-market-theme=light] .market-auth-card input:not([type=checkbox]){background:#faf8fb;color:#211d25;border-color:#d7cedc}
+html[data-market-theme=light] .market-auth-card input::placeholder{color:#786d81;opacity:1}
+html[data-market-theme=light] .market-auth-card button[type=submit],html[data-market-theme=light] .market-auth-card button[type=submit] [class*="text-white"]{color:#fff}
+html[data-market-theme=light] .market-auth-card [role=alert]{background:#fff0f1;color:#8b1f39;border-color:#dda5b1}
+html[data-market-theme=light] .market-auth-footer{border-color:#ded3e4}
+html[data-market-theme=light] .public-exchange .exchange-search input{background:transparent}
+html[data-market-theme=light] .exchange input[type=checkbox],html[data-market-theme=light] .exchange-dialog input[type=checkbox],html[data-market-theme=light] .market-auth-card input[type=checkbox]{accent-color:#98243f;background-color:#fff;border-color:#a99aae}
+
+/* Paint the document behind iOS chrome in both appearances, not only light. */
+html[data-market-theme=dark]{color-scheme:dark;background:#08080b}
+html[data-market-theme=dark] body{background:#08080b}
+
+/* Saved-password autofill has a global !important dark inset. Override it
+   within market auth only; changing the normal background isn't sufficient. */
+html[data-market-theme=light] .market-auth-card .auth-login-input:-webkit-autofill,
+html[data-market-theme=light] .market-auth-card .auth-login-input:-webkit-autofill:hover,
+html[data-market-theme=light] .market-auth-card .auth-login-input:-webkit-autofill:focus,
+html[data-market-theme=light] .market-auth-card .auth-login-input:-webkit-autofill:active{
+ -webkit-text-fill-color:#211d25!important;caret-color:#211d25;
+ -webkit-box-shadow:0 0 0 1000px #faf8fb inset!important;
+ box-shadow:0 0 0 1000px #faf8fb inset!important;color-scheme:light;
+}
+html[data-market-theme=light] .market-auth-card .auth-login-input:-moz-autofill{
+ color:#211d25!important;box-shadow:0 0 0 1000px #faf8fb inset!important;
+}
+html[data-market-theme=light] .market-auth-card input:not([type=checkbox]){
+ color-scheme:light;
+}
+html[data-market-theme=dark] .market-auth-card input:not([type=checkbox]){
+ color-scheme:dark;
+}

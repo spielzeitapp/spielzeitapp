@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),React=require('react'),{act,create}=require('react-test-renderer'),Module=require('module');
+const e=new EventTarget();globalThis.window=e;globalThis.document=e;document.hidden=false;
+let activated=0,deactivated=0;const badges=[];
+globalThis.__marketPush={initDone:true,browserOk:true,hasVapidKey:true,pushReady:true,loading:false,permission:'default',isActive:false,activate:async()=>activated++,deactivate:async()=>deactivated++,syncFromBrowser:async()=>{}};
+globalThis.__badge=n=>badges.push(n);
+const out=await build({entryPoints:['src/features/club/MarketNotifications.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,loader:{'.css':'empty'},plugins:[{name:'mock',setup(b){
+b.onResolve({filter:/usePushSubscription$/},()=>({path:'push',namespace:'mock'}));
+b.onResolve({filter:/notifications\/appBadge$/},()=>({path:'badge',namespace:'mock'}));
+b.onLoad({filter:/.*/,namespace:'mock'},a=>({contents:a.path==='push'?'export const usePushSubscription=()=>globalThis.__marketPush;':'export const syncAppBadge=n=>globalThis.__badge(n);'}));
+}}]});
+const m=new Module('market-push-test');m.paths=require.resolve.paths('react');m._compile(out.outputFiles[0].text,'market-push-test');const C=m.exports.MarketNotifications;
+let app;const render=()=>React.createElement(C,{userId:'member',unread:3});
+await act(async()=>{app=create(render())});
+assert.match(JSON.stringify(app.toJSON()),/nicht aktiviert/);await act(async()=>app.root.findByType('button').props.onClick());assert.equal(activated,1);
+globalThis.__marketPush={...__marketPush,isActive:true,permission:'granted'};await act(async()=>app.update(render()));assert.deepEqual(badges,[3]);assert.match(JSON.stringify(app.toJSON()),/deaktivieren/);
+await act(async()=>app.root.findByType('button').props.onClick());assert.equal(deactivated,1);
+globalThis.__marketPush={...__marketPush,isActive:false,permission:'denied'};await act(async()=>app.update(render()));assert.equal(app.root.findAllByType('button').length,0);assert.match(JSON.stringify(app.toJSON()),/Mitteilungen/);
+globalThis.__marketPush={...__marketPush,browserOk:false};await act(async()=>app.update(render()));assert.match(JSON.stringify(app.toJSON()),/Home-Bildschirm/);
+await act(async()=>app.unmount());console.log('PASS: explicit activation, active state, badge count, deactivation, denied settings and install guidance');

@@ -1,3 +1,4 @@
+import {MarketSplash} from '../features/club/MarketSplash';
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Navigate, Route, Routes, useParams, useSearchParams } from 'react-router-dom';
 import { AppLayout } from './layout/AppLayout';
@@ -94,6 +95,9 @@ import { DemoU13TablePage } from '../demo/pages/DemoU13TablePage';
 import { DemoEventPage } from '../demo/pages/DemoEventPage';
 import { DemoTournamentPage } from '../demo/pages/DemoTournamentPage';
 import { DEMO_MATCH_ID_LIVE } from '../demo/demoDataSource';
+
+const PublicExchangePage=React.lazy(()=>import('../features/club/PublicExchangePage'));
+const ClubExchangePage=React.lazy(()=>import('../pages/ClubExchangePage').then(m=>({default:m.ClubExchangePage})));
 
 /** /demo/players/:playerId → produktive TeamPage mit Profil-Modal */
 function DemoPlayerProfileRedirect(): React.ReactElement {
@@ -232,6 +236,11 @@ class AppErrorBoundary extends Component<
 function InternalRoutes(): React.ReactElement {
   return (
     <Routes>
+      <Route path="marktplatz/:clubId/anmelden" element={<LoginPage />} />
+      <Route path="marktplatz/:clubId/registrieren" element={<RegisterPage />} />
+      <Route path="marktplatz/:clubId/passwort-vergessen" element={<ForgotPasswordPage />} />
+      <Route path="marktplatz/:clubId" element={<React.Suspense fallback={<MarketSplash/>}><PublicExchangePage /></React.Suspense>} />
+
       <Route path="app.html" element={<Navigate to="/app" replace />} />
       {/* Öffentliche Trainer-Demo – gemeinsamer Einstieg + produktives Layout, kein Login */}
       <Route path="demo" element={<DemoLayout />}>
@@ -241,6 +250,7 @@ function InternalRoutes(): React.ReactElement {
         <Route path="intro/welcome" element={<WelcomeScreen />} />
         <Route element={<InternalLayout />}>
           <Route path="home" element={<AppHomePage />} />
+<Route path="tauschboerse" element={<React.Suspense fallback={<p>Vereinsmarkt wird geladen…</p>}><ClubExchangePage /></React.Suspense>} />
           <Route path="termine" element={<TermineLayout />}>
             <Route index element={<SchedulePage />} />
             <Route path="calendar" element={<CalendarPage />} />
@@ -292,6 +302,7 @@ function InternalRoutes(): React.ReactElement {
         </Route>
         <Route element={<InternalLayout />}>
         <Route path="home" element={<AppHomePage />} />
+<Route path="tauschboerse" element={<React.Suspense fallback={<p>Vereinsmarkt wird geladen…</p>}><ClubExchangePage /></React.Suspense>} />
         <Route path="platzbelegung" element={<AppPlatzbelegungPage />} />
         <Route path="termine" element={<TermineLayout />}>
           <Route index element={<SchedulePage />} />
@@ -440,6 +451,11 @@ function InternalRoutes(): React.ReactElement {
 function PublicRoutes(): React.ReactElement {
   return (
     <Routes>
+      <Route path="marktplatz/:clubId/anmelden" element={<LoginPage />} />
+      <Route path="marktplatz/:clubId/registrieren" element={<RegisterPage />} />
+      <Route path="marktplatz/:clubId/passwort-vergessen" element={<ForgotPasswordPage />} />
+      <Route path="marktplatz/:clubId" element={<React.Suspense fallback={<MarketSplash/>}><PublicExchangePage /></React.Suspense>} />
+
       <Route path="app.html" element={<Navigate to="/" replace />} />
       <Route path="demo" element={<DemoLayout />}>
         <Route path="desktop" element={<DemoDesktopTrainerPage />} />
@@ -448,6 +464,7 @@ function PublicRoutes(): React.ReactElement {
         <Route path="intro/welcome" element={<WelcomeScreen />} />
         <Route element={<InternalLayout />}>
           <Route path="home" element={<AppHomePage />} />
+<Route path="tauschboerse" element={<React.Suspense fallback={<p>Vereinsmarkt wird geladen…</p>}><ClubExchangePage /></React.Suspense>} />
           <Route path="termine" element={<TermineLayout />}>
             <Route index element={<SchedulePage />} />
             <Route path="calendar" element={<CalendarPage />} />

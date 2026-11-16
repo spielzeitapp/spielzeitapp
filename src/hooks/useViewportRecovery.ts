@@ -1,5 +1,5 @@
 import { useLayoutEffect } from 'react';
-import { standaloneFullscreenHeight } from '../lib/standaloneViewport';
+import { standaloneFullscreenHeight, standalonePageScale } from '../lib/standaloneViewport';
 import { forceReleaseBodyScrollLocks, hasActiveBodyScrollLocks } from '../lib/bodyScrollLock';
 
 /**
@@ -26,14 +26,27 @@ function applyViewportVars(): void {
   const vv = window.visualViewport;
   const active = document.activeElement;
   const editing = active instanceof HTMLElement && (active.isContentEditable || active.matches('input:not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select'));
-  const fullscreenHeight = standaloneFullscreenHeight({
+  // An installed PWA can retain an opaque status bar from its install-time
+  // appearance. A zero top safe area means that bar is OUTSIDE the viewport;
+  // expanding to screen.height would put the navigation underneath the screen.
+  let safeAreaTop: number | undefined;
+  if (root.hasAttribute('data-market-shell')) {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top,0px)';
+    document.body.appendChild(probe);
+    safeAreaTop = Number.parseFloat(getComputedStyle(probe).paddingTop) || 0;
+    probe.remove();
+  }
+  const viewportInput = {
     ios: /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1),
     standalone: window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true,
     screenWidth: window.screen.width, screenHeight: window.screen.height,
     innerWidth: window.innerWidth, innerHeight: innerH,
     visibleHeight: vv?.height ?? innerH, visibleTop: vv?.offsetTop ?? 0,
-    scale: vv?.scale ?? 1, editing,
-  });
+    scale: vv?.scale ?? 1, editing, safeAreaTop,
+  };
+  const fullscreenHeight = standaloneFullscreenHeight(viewportInput);
+  const pageScale = standalonePageScale(viewportInput);
   if (fullscreenHeight !== null) {
     root.dataset.iosStandaloneFullscreen = 'true';
     root.dataset.viewportSource = 'ios-homescreen';
@@ -50,8 +63,9 @@ function applyViewportVars(): void {
       root.style.setProperty('--app-visible-top', '0px');
     }
   }
-  // Keep the last unzoomed height during pinch zoom.
-  if (vv && Number.isFinite(vv.height) && vv.height > 0 && Math.abs((vv.scale ?? 1) - 1) <= 0.01) {
+  // Publish page-zoom CSS heights too; keep the last stable height for actual pinch zoom.
+  // Keyboard heights must still shrink the shell at the user's page-zoom setting.
+  if (vv && Number.isFinite(vv.height) && vv.height > 0 && (pageScale !== null || Math.abs((vv.scale ?? 1) - 1) <= 0.01)) {
     const height = fullscreenHeight ?? vv.height;
     root.style.setProperty('--app-visual-vh', `${height * 0.01}px`);
     root.style.setProperty('--app-visible-height', `${height}px`);

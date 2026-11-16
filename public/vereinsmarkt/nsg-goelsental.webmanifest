@@ -1,0 +1,22 @@
+{
+  "id": "/marktplatz/9c7a8741-6e73-42d5-88d8-46ce5217e8cd",
+  "name": "Vereinsmarkt",
+  "short_name": "Vereinsmarkt",
+  "start_url": "/marktplatz/9c7a8741-6e73-42d5-88d8-46ce5217e8cd",
+  "scope": "/marktplatz/",
+  "display": "standalone",
+  "background_color": "#08080b",
+  "theme_color": "#08080b",
+  "icons": [
+    {
+      "src": "/vereinsmarkt/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/vereinsmarkt/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

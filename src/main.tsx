@@ -1,3 +1,4 @@
+import {MarketThemeSync} from './features/club/MarketThemeSync';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -22,7 +23,7 @@ const isInternalDomain =
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <ManifestSync />
+      <ManifestSync /><MarketThemeSync />
       <DeploymentUpdatePrompt />
       <AuthProvider>
         <SessionProvider>
