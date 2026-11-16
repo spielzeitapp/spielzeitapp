@@ -72,10 +72,17 @@ marketShell=true;safeTop=0;vv.scale=pageZoom.scale;vv.height=955;
 win.dispatchEvent(new Event('spz-viewport-recover'));
 assert.equal(root.dataset.iosStandaloneFullscreen,undefined);
 assert.equal(values.get('--app-visible-height'),'955px');
+assert.equal(values.get('--market-native-bottom-extension'),'0px','opaque status bar needs no native extension');
 assert.equal(values.has('--app-standalone-height'),false);
 const opaqueNavBottom=62+(955-10)*vv.scale;
 assert.ok(opaqueNavBottom<874 && opaqueNavBottom>860,'entire nav remains inside physical screen');
 safeTop=62;vv.dispatchEvent(new Event('resize'));
+assert.ok(Math.abs(Number.parseFloat(values.get('--market-native-bottom-extension'))*vv.scale-(874-955*vv.scale))<0.001);
+win.innerWidth=402;win.innerHeight=812;vv.scale=1;vv.height=812;vv.dispatchEvent(new Event('resize'));
+assert.equal(values.get('--market-native-bottom-extension'),'62px','exact N8 fixed viewport report');
+doc.activeElement=new Element(true);doc.dispatchEvent(new Event('focusin'));
+assert.equal(values.get('--market-native-bottom-extension'),'0px','keyboard must not push nav beneath keyboard');
+doc.activeElement=new Element();win.innerWidth=473;win.innerHeight=955;vv.scale=pageZoom.scale;vv.height=955;vv.dispatchEvent(new Event('resize'));
 assert.equal(root.dataset.iosStandaloneFullscreen,undefined,'market must use visible height even with a nonzero safe area');
 assert.equal(values.get('--app-visible-height'),'955px');
 for (const scale of [0.75, 0.85, 1, 1.25]) {

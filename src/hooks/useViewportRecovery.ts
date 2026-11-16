@@ -39,6 +39,20 @@ function applyViewportVars(): void {
     visibleHeight: vv?.height ?? innerH, visibleTop: vv?.offsetTop ?? 0,
     scale: vv?.scale ?? 1, editing,
   };
+  // N8 device report: fixed viewport 812px on an 874px iPhone. In a
+  // translucent install, the layout viewport omits native top-chrome space.
+  // Compensate only the body-level nav, not the bounded content scroller.
+  let marketBottomExtension = 0;
+  if (marketShell) {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top,0px)';
+    document.body.appendChild(probe);
+    const safeAreaTop = Number.parseFloat(getComputedStyle(probe).paddingTop) || 0;
+    probe.remove();
+    const full = standaloneFullscreenHeight({...viewportInput, safeAreaTop});
+    if (full !== null) marketBottomExtension = Math.max(0, full - viewportInput.visibleHeight);
+  }
+  root.style.setProperty('--market-native-bottom-extension', `${marketBottomExtension}px`);
   const fullscreenHeight = marketShell ? null : standaloneFullscreenHeight(viewportInput);
   const pageScale = standalonePageScale(viewportInput);
   if (fullscreenHeight !== null) {
