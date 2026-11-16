@@ -15,8 +15,9 @@ import {
 } from '../../lib/publicTeamTournament';
 import { TournamentClubLogo } from '../../components/tournament/TournamentClubLogo';
 
-export function PublicTeamTournamentPage(): React.ReactElement {
-  const { publicId = '' } = useParams<{ publicId: string }>();
+export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publicIdOverride?:string;embedded?:boolean} = {}): React.ReactElement {
+  const { publicId: routePublicId = '' } = useParams<{ publicId: string }>();
+  const publicId=publicIdOverride ?? routePublicId;
   const location = useLocation();
   const candidate = (location.state as {returnTo?: unknown} | null)?.returnTo;
   const returnTo = typeof candidate === 'string' && /^\/(app|demo|manager)\//.test(candidate) ? candidate : `/app/events/${encodeURIComponent(publicId)}`;
@@ -30,12 +31,14 @@ export function PublicTeamTournamentPage(): React.ReactElement {
     scrollSurface.current?.scrollTo({ top: 0 });
   }, [publicId, matchId]);
   const [theme, setTheme] = useState<'day' | 'night'>(() => {
+    if (embedded) return 'night';
     try { return localStorage.getItem('sz:public-tournament-theme:v2') === 'night' ? 'night' : 'day'; }
     catch { return 'day'; }
   });
   useEffect(() => {
+    if (embedded) return;
     try { localStorage.setItem('sz:public-tournament-theme:v2', theme); } catch { /* optional preference */ }
-  }, [theme]);
+  }, [theme,embedded]);
   const toggleTheme = () => setTheme(current => current === 'night' ? 'day' : 'night');
   const [page, setPage] = useState<PublicTeamTournamentPageDto | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -115,8 +118,9 @@ export function PublicTeamTournamentPage(): React.ReactElement {
 
   };
   const presentationMode=searchParams.get('modus');
-  if(page && (presentationMode==='screen'||presentationMode==='print')) return <TournamentPresentation page={page} mode={presentationMode} error={error}/>;
-  return <div ref={scrollSurface} data-theme={theme} className={`public-tournament-page bg-[var(--t-bg)] text-[var(--t-text)]`} style={{
+  if(!embedded && page && (presentationMode==='screen'||presentationMode==='print')) return <TournamentPresentation page={page} mode={presentationMode} error={error}/>;
+  const ContentTag=embedded?'div':'main';
+  return <div ref={scrollSurface} data-embedded={embedded || undefined} data-theme={theme} className={`${embedded?'tournament-audience-overview w-full min-w-0':'public-tournament-page bg-[var(--t-bg)]'} text-[var(--t-text)]`} style={{
       '--t-accent': page?.accentColor ?? '#c82333',
       '--t-bg': theme === 'day' ? '#f7f8fa' : '#000000',
       '--t-surface': theme === 'day' ? '#ffffff' : '#0d0d10',
@@ -129,22 +133,22 @@ export function PublicTeamTournamentPage(): React.ReactElement {
       '--t-warning': theme === 'day' ? '#854d0e' : '#fcd34d',
       colorScheme: theme === 'day' ? 'light' : 'dark',
     } as React.CSSProperties}>
-    <main className="mx-auto max-w-2xl space-y-4 px-4 pb-12 pt-[max(1.25rem,env(safe-area-inset-top))]">
-      <header className="flex items-center justify-between gap-2">
+    <ContentTag className={embedded?"space-y-4":"mx-auto max-w-2xl space-y-4 px-4 pb-12 pt-[max(1.25rem,env(safe-area-inset-top))]"}>
+      {!embedded ? <header className="flex items-center justify-between gap-2">
         <Link to={selectedMatch ? location.pathname : returnTo} state={location.state} aria-label="Zurück zum Turnier" className="inline-flex min-h-11 min-w-0 items-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2 text-sm font-bold">← Zurück<span className="ml-1 hidden min-[380px]:inline">zum Turnier</span></Link>
         <div className="flex shrink-0 items-center gap-2">
           <button type="button" onClick={()=>void onShare()} className="flex h-11 items-center gap-2 rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 text-sm font-bold"><Share2 size={18} aria-hidden/>Teilen</button>
           <button type="button" onClick={toggleTheme} aria-label={theme === 'night' ? 'Tagmodus einschalten' : 'Nachtmodus einschalten'} title={theme === 'night' ? 'Tagmodus einschalten' : 'Nachtmodus einschalten'} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)]">{theme === 'night' ? <Sun size={20} aria-hidden/> : <Moon size={20} aria-hidden/>}</button>
         </div>
-      </header>
+      </header> : selectedMatch ? <button type="button" onClick={()=>setSearchParams({})} className="min-h-11 rounded-full border border-[var(--t-border)] px-4 text-sm font-bold">← Zurück zur Turnierübersicht</button> : null}
       {shareHint ? <p role="status" className="text-sm text-[var(--t-muted)]">{shareHint}</p> : null}
       {loading ? <p>Turnier wird geladen…</p> : !page ? <section className={card}><p>{error || 'Turnier nicht verfügbar'}</p><button onClick={()=>void load()} className="mt-3 underline">Erneut laden</button></section> : <>
-        <TournamentPresentationTools page={page} onShare={()=>void onShare()}/>
+        {!embedded?<TournamentPresentationTools page={page} onShare={()=>void onShare()}/>:null}
         {selectedMatch ? <PublicTournamentMatchView page={page} match={selectedMatch} view={matchView} onView={view=>setSearchParams({spiel:selectedMatch.id,ansicht:view})}/> : <>
-        <section className="rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-3">
+        {!embedded ? <section className="rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-3">
           <div className="flex items-center gap-3"><TournamentClubLogo name={page.teamName} logoUrl={page.teamLogoUrl} size="sm"/><div className="min-w-0 flex-1"><h1 className="text-base font-extrabold leading-snug">{page.tournamentName}</h1><p className="mt-1 text-xs text-[var(--t-muted)]">{page.dateLabel} · {page.ageGroupLabel}</p></div></div>
           <details className="mt-2 text-xs text-[var(--t-muted)]"><summary className="cursor-pointer py-1 font-semibold">Turnierinfos & Aktualisierung</summary><p className="mt-2">{[page.teamName,page.seasonLabel].filter(Boolean).join(' · ')}</p><p className="mt-1 flex items-center gap-1"><MapPin size={14}/>{page.venue}</p><p className="mt-1">{page.allMatches.some(m=>m.status==='live')?'Läuft':page.tournamentStatusLabel}{page.syncedAt ? ` · Veranstalterstand ${new Date(page.syncedAt).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'})}` : ''}</p></details>
-        </section>
+        </section> : null}
         {error?<p role="status" className="text-[var(--t-warning)]">Aktualisierung nicht möglich – letzter geladener Stand.</p>:null}
         {featuredMatch ? <section aria-label={featuredMatch.status==='live'?'Aktuelles Livespiel':'Nächstes eigenes Spiel'}>{renderOwnCard(featuredMatch,true)}</section> : null}
         <nav aria-label="Turnierbereiche" className="space-y-1 rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-1">
@@ -168,8 +172,8 @@ export function PublicTeamTournamentPage(): React.ReactElement {
         {tab==='scorers'?<section className={card}><h2 className={heading}>Unsere Torschützenliste</h2>{page.scorers?.some(s=>s.example)?<p className="mb-3 text-sm text-[var(--t-warning)]">TEST-Beispieldaten aus unserem Kader – keine bestätigten historischen Torschützen.</p>:null}{scorerTotals.length?<ol className="space-y-3">{scorerTotals.map((s,i)=><li key={s.name}><TournamentFanPlayerCard player={profileFor(s.name)} clubName={page.ownParticipantName || page.teamName} clubLogo={page.teamLogoUrl} goals={s.goals} rank={i+1}/></li>)}</ol>:<p>Noch keine Torschützen erfasst.</p>}</section>:null}
         {tab==='roster'?<section className={card}><h2 className={heading}>Unser Team</h2>{page.fanRosterExample?<p className="mb-3 text-sm text-[var(--t-muted)]">TEST-Beispiel mit Bildern und Nummern aus unserem aktuellen Kader.</p>:null}{rosterPlayers.length?<ul className="space-y-3">{rosterPlayers.map(player=><li key={player.name}><TournamentFanPlayerCard player={player} clubName={page.ownParticipantName || page.teamName} clubLogo={page.teamLogoUrl}/></li>)}</ul>:<p>Der Turnierkader ist noch nicht festgelegt.</p>}</section>:null}
         </>}
-        <Link to={returnTo} className="block rounded-full bg-[var(--t-accent)] px-5 py-4 text-center text-lg font-bold text-white">Zum Turniercenter in der App</Link>
+        {!embedded ? <Link to={returnTo} className="block rounded-full bg-[var(--t-accent)] px-5 py-4 text-center text-lg font-bold text-white">Zum Turniercenter in der App</Link> : null}
       </>}
-    </main>
+    </ContentTag>
   </div>;
 }

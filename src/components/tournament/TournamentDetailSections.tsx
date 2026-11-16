@@ -1,3 +1,4 @@
+import { PublicTeamTournamentPage } from '../../pages/public/PublicTeamTournamentPage';
 import { tournamentTeamLogos } from '../../../server/lib/tournamentTeamLogos.js';
 import { TournamentLogoContext } from './TournamentClubLogo';
 import { fetchTournamentLineupTemplate } from '../../lib/tournamentLineupTemplates';
@@ -1244,8 +1245,9 @@ export const TournamentDetailSections: React.FC<Props> = ({
       {listError ? <p role="alert" className="text-sm text-red-300">{listError}</p> : null}
       {!canManage ? <section className={TC_CARD}><div className={`${TC_CARD_INNER} space-y-3`}>
         {quickActions ?? (<Link className={addButtonClass} to={publicTeamTournamentPath(tournamentEventId)} state={{returnTo: `${basePath}/events/${tournamentEventId}`}}>Turnierseite ansehen</Link>)}
-        {ownSlots.filter(slot => !tournamentCanceled && slot.match_status === 'live' && slot.match_id).map(slot => <Link key={slot.id} className={addButtonClass} to={`${basePath}/live?matchId=${encodeURIComponent(slot.match_id!)}`}>Unser Spiel läuft · Zum Liveticker</Link>)}
+
       </div></section> : null}
+      {!canManage ? <PublicTeamTournamentPage key={tournamentEventId} publicIdOverride={tournamentEventId} embedded/> : null}
       {canManage ? <TournamentCenterTabBar activeTab={activeTab} onTabChange={setActiveTab} actions={quickActions} /> : null}
       {canManage && activeTab === 'games' ? <div className={`flex flex-col ${TC_STACK_GAP}`}>
         <h2 className="text-[16px] font-bold text-white">Unsere Spiele</h2>
