@@ -95,3 +95,7 @@ html[data-market-shell] .public-exchange main.exchange{
  -webkit-text-size-adjust:100%;text-size-adjust:100%
 }
 .public-market-nav-viewport .public-market-nav a svg{flex-shrink:0}
+
+/* iOS translucent Homescreen can report a shortened fixed viewport (N8).
+   The portal is outside the content scroller so this extension is not clipped. */
+.public-market-nav-viewport{transform:translateY(var(--market-native-bottom-extension,0px))}
