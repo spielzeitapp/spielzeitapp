@@ -109,6 +109,7 @@ export function useViewportRecovery(): void {
     document.addEventListener('focusin', onEditingChange);
     document.addEventListener('focusout', onEditingChange);
 
+    window.addEventListener('spz-viewport-recover', recover);
     window.addEventListener('pageshow', recover);
     window.addEventListener('focus', recover);
     window.addEventListener('orientationchange', recover);
@@ -120,6 +121,7 @@ export function useViewportRecovery(): void {
     return () => {
       cancelAnimationFrame(rafId);
       timeoutIds.forEach(window.clearTimeout);
+      window.removeEventListener('spz-viewport-recover', recover);
       window.removeEventListener('pageshow', recover);
       window.removeEventListener('focus', recover);
       window.removeEventListener('orientationchange', recover);
