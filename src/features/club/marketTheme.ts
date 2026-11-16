@@ -19,7 +19,18 @@ function subscribe(update:()=>void){
  window.addEventListener(EVENT,update);window.addEventListener('storage',storage);
  return()=>{window.removeEventListener(EVENT,update);window.removeEventListener('storage',storage);};
 }
-/** Apply appearance in place: navigation, forms and scroll position stay intact. */
-export function toggleMarketTheme(){setMarketTheme(readMarketTheme()==='dark'?'light':'dark');}
+/** Installed iOS chrome needs a fresh document to adopt the selected appearance.
+ * Persist without publishing an intermediate mixed-theme frame. */
+export function toggleMarketTheme(){
+ const next=readMarketTheme()==='dark'?'light':'dark';
+ if(typeof window==='undefined')return;
+ const nav=window.navigator as Navigator & {standalone?:boolean};
+ const ios=!!nav&&(/iPad|iPhone|iPod/.test(nav.userAgent)||(nav.platform==='MacIntel'&&nav.maxTouchPoints>1));
+ const standalone=nav?.standalone===true||window.matchMedia?.('(display-mode: standalone)').matches===true;
+ if(ios&&standalone&&!storageUnavailable){
+  try{window.localStorage.setItem(MARKET_THEME_KEY,next);fallback=next;window.location.reload();return;}catch{}
+ }
+ setMarketTheme(next);
+}
 export function useMarketTheme(){const theme=useSyncExternalStore(subscribe,readMarketTheme,()=> 'dark' as MarketTheme);return {theme,toggle:toggleMarketTheme};}
 export function isMarketThemeRoute(pathname:string,search:string){return /^\/marktplatz\/[0-9a-f-]{36}(?:\/(?:anmelden|registrieren|passwort-vergessen))?\/?$/i.test(pathname)||(['/login','/register','/forgot-password','/reset-password'].includes(pathname)&&new URLSearchParams(search).get('context')==='vereinsmarkt');}
