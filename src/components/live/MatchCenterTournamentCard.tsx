@@ -180,7 +180,7 @@ export function MatchCenterTournamentCard({
             parts={countdown}
             variant="heroCompact"
             showHeader
-            headerLabel={nextOwnSlot ? 'Countdown bis zu unserem nächsten Spiel' : 'Countdown bis Turnierstart'}
+            headerLabel={nextOwnSlot ? 'Countdown bis zu unserem nächsten Spiel' : 'Countdown bis zum Turnierstart'}
           />
         ) : null}
 
