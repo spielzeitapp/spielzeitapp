@@ -76,8 +76,22 @@ assert.equal(values.has('--app-standalone-height'),false);
 const opaqueNavBottom=62+(955-10)*vv.scale;
 assert.ok(opaqueNavBottom<874 && opaqueNavBottom>860,'entire nav remains inside physical screen');
 safeTop=62;vv.dispatchEvent(new Event('resize'));
-assert.equal(root.dataset.iosStandaloneFullscreen,'true','translucent status bar still recovers fullscreen');
-assert.ok(Math.abs(Number.parseFloat(values.get('--app-visible-height'))*vv.scale-874)<0.001);
+assert.equal(root.dataset.iosStandaloneFullscreen,undefined,'market must use visible height even with a nonzero safe area');
+assert.equal(values.get('--app-visible-height'),'955px');
+for (const scale of [0.75, 0.85, 1, 1.25]) {
+ win.innerWidth=402/scale;win.innerHeight=812/scale;vv.scale=scale;vv.height=812/scale;
+ win.dispatchEvent(new Event('pageshow'));
+ assert.equal(root.dataset.iosStandaloneFullscreen,undefined);
+ assert.ok(Math.abs(Number.parseFloat(values.get('--app-visible-height'))*scale-812)<0.001,'market stays within usable screen at every page zoom');
+ for (const fn of [...timers.values()]) fn();
+ assert.ok(Math.abs(Number.parseFloat(values.get('--app-visible-height'))*scale-812)<0.001,'delayed recovery must not expand market');
+ doc.activeElement=new Element(true);vv.height=450/scale;doc.dispatchEvent(new Event('focusin'));
+ assert.ok(Math.abs(Number.parseFloat(values.get('--app-visible-height'))*scale-450)<0.001,'market keyboard shrinks shell');
+ doc.activeElement=new Element();
+}
+marketShell=false;win.innerWidth=402;win.innerHeight=812;vv.scale=1;vv.height=812;
+win.dispatchEvent(new Event('spz-viewport-recover'));
+assert.equal(values.get('--app-visible-height'),'874px','leaving market preserves existing SpielzeitApp recovery');
 assert.equal(height({...pageZoom,safeAreaTop:0}),null);
 assert.ok(height({...pageZoom,safeAreaTop:62})>1028);
 ctx.cleanup();
