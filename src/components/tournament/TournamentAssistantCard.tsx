@@ -468,7 +468,9 @@ export function TournamentAssistantCard({
   const prepared = preparationChecks.every(check => check.done);
   const gamePhaseStarted = slots.some(slot => ['live', 'finished'].includes(slot.match_status ?? ''));
 
-  if (loading || lineupLoading || squadLoading) {
+  useEffect(() => { setPreparationExpanded(!prepared && !gamePhaseStarted); }, [prepared, gamePhaseStarted, tournamentEventId]);
+
+  if (loading && !slots.length && (lineupLoading || squadLoading)) {
     return (
       <section className={TC_CARD}>
         <div className={TC_CARD_INNER}>
@@ -482,22 +484,12 @@ export function TournamentAssistantCard({
     );
   }
 
-  return (
+  return (<>
     <section className={TC_CARD}>
-      <div className={`${TC_CARD_INNER} flex flex-col gap-3`}>
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="inline-flex items-center gap-1.5 text-[16px] font-bold uppercase tracking-[0.14em] sz-club-accent-text">
-              <ClipboardList className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
-              Turnier-Assistent
-            </p>
-            <StepProgress checks={preparationChecks.map(check => check.done)} />
-          </div>
-        </div>
-
-        {prepared ? <button type="button" aria-expanded={preparationExpanded} className="flex min-h-11 items-center justify-between rounded-xl border border-emerald-400/25 px-3 text-left font-bold text-emerald-300" onClick={() => setPreparationExpanded(v=>!v)}>✓ Vorbereitung abgeschlossen <span>{preparationExpanded ? 'Einklappen' : 'Bearbeiten'}</span></button> : null}
-        <div hidden={prepared && !preparationExpanded}>
-        <p className="text-[16px] leading-relaxed text-white/65">Punkt antippen, bearbeiten und speichern. Erledigte Punkte werden grün.</p>
+      <details open={preparationExpanded} onToggle={e=>setPreparationExpanded(e.currentTarget.open)} className={TC_CARD_INNER}>
+        <summary className="cursor-pointer py-1 text-[17px] font-bold text-white">Turnier-Assistent <span className="text-[14px] text-emerald-300">{prepared ? '· Vorbereitung abgeschlossen' : '· Vorbereitung bearbeiten'}</span></summary>
+        <StepProgress checks={preparationChecks.map(check=>check.done)}/>
+        <p className="my-3 text-[15px] text-white/65">Punkt antippen, bearbeiten und speichern.</p>
         <ol className="space-y-2" aria-label="Turnier vorbereiten">
           {preparationChecks.map((check, index) => <li key={check.label}>
             <button type="button" onClick={check.onClick}
@@ -511,10 +503,13 @@ export function TournamentAssistantCard({
             </button>
           </li>)}
         </ol>
-        </div>
-        {prepared ? <p role="status" className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-[18px] font-bold text-emerald-300">✓ Turnier vorbereitet</p> : null}
-        {prepared || gamePhaseStarted ? <div className="space-y-2 border-t border-white/10 pt-4">
-          <p className="text-[15px] font-bold uppercase tracking-wide sz-club-accent-text">Am Turniertag</p>
+      </details>
+    </section>
+    {prepared || gamePhaseStarted ? <section className={TC_CARD}>
+      <details className={TC_CARD_INNER}>
+        <summary className="cursor-pointer py-1 text-[17px] font-bold text-white">Am Turniertag <span className="text-[14px] text-white/60">· {step.title}</span></summary>
+        <div className="mt-3 space-y-2">
+          <p className="text-[15px] text-white/60">Optionale Aktionen für Aufstellung übernehmen, nächste Runde und Turnierabschluss. Die Spiele stehen direkt darunter.</p>
           {totalMatchCount > 0 && ownMatchCount === 0 ? <>
             <h2 className="text-[21px] font-bold text-white">Eigene Mannschaft zuordnen</h2>
             <p className="text-[16px] text-white/65">Der Spielplan ist geladen. Wähle unsere Mannschaft im Veranstalterplan, damit die eigenen Spiele vorbereitet und gestartet werden können.</p>
@@ -523,7 +518,7 @@ export function TournamentAssistantCard({
           <p className="text-[16px] leading-relaxed text-white/65">{step.description}</p>
           {step.detailLines.map(line => <p key={line} className="text-[15px] text-white/65">{line}</p>)}
           {renderAction(step.action)}</>}
-        </div> : null}
+        </div>
 
         {copyError ? (
           <p className="text-[15px] text-red-300/90" role="alert">
@@ -535,7 +530,7 @@ export function TournamentAssistantCard({
         {step.action.kind === 'complete_tournament' && canCreateReport ? (
           <SecondaryButton label="Zuerst Turnierbericht erstellen" onClick={onCreateReport} disabled={completingTournament} />
         ) : null}
-      </div>
-    </section>
-  );
+      </details>
+    </section> : null}
+  </>);
 }

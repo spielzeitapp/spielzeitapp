@@ -1,7 +1,7 @@
 import { U11_FORMATIONS } from '../../lib/matchFormations';
 import { prepareTournamentMatchFromTemplate, type TournamentTemplateRecord } from '../../lib/tournamentLineupTemplates';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
 import { comparePlayerItems } from '../../lib/rosterPlayer';
 import { saveMatchSquadOnly } from '../../lib/liveMatchService';
@@ -838,6 +838,10 @@ export const MatchPreparationPage: React.FC = () => {
     setSquadMessageDialogOpen(false);
     setSquadPublishMessage('Kader veröffentlicht · Spieler und Eltern wurden benachrichtigt · Feedpost erstellt.');
   };
+
+  if (!matchLoading && matchRow?.status === 'finished' && matchId) {
+    return <Navigate to={`${basePath}/live?matchId=${encodeURIComponent(matchId)}`} replace/>;
+  }
 
   return (
     <div className={dsPageShellClass()}>

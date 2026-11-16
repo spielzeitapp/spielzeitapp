@@ -32,15 +32,19 @@ try {
     assert.deepEqual(calls,['attendance','squad','plan','lineup']);
     assert(!JSON.stringify(view.toJSON()).includes('Feed & Kommunikation'));
     assert(!JSON.stringify(view.toJSON()).includes('Alle 7 Schritte'));
-    assert(!JSON.stringify(view.toJSON()).includes('✓ Turnier vorbereitet'));
+    assert(!JSON.stringify(view.toJSON()).includes('· Vorbereitung abgeschlossen'));
     await act(async()=>view.update(render({...props,attendance:{playerCount:2,yesCount:2,noCount:0,openCount:0}})));
     progress=view.root.findByProps({role:'progressbar'});
     assert.equal(progress.props['aria-valuenow'],4);
     assert.equal(progress.findAllByType('span').filter(s=>s.props.className.includes('bg-emerald-400')).length,4);
-    assert(JSON.stringify(view.toJSON()).includes('✓ Turnier vorbereitet'));
+    assert(JSON.stringify(view.toJSON()).includes('· Vorbereitung abgeschlossen'));
+    const folds=view.root.findAllByType('details');assert.equal(folds.length,2,'assistant and match-day actions must fold separately');assert.equal(folds[0].props.open,false,'completed preparation collapses fully');assert(!folds[1].props.open,'match-day tools start collapsed');
+    await act(async()=>view.update(render({...props,loading:true,attendance:{playerCount:2,yesCount:2,noCount:0,openCount:0}})));assert.equal(view.root.findAllByType('details').length,2,'background refresh retains both sections');
+    await act(async()=>view.update(render({...props,attendance:{playerCount:2,yesCount:2,noCount:0,openCount:0}})));
+
     await act(async()=>view.update(render({...props,attendance:{playerCount:2,yesCount:2,noCount:0,openCount:0},ownMatchCount:0})));
     assert.equal(view.root.findByProps({role:'progressbar'}).props['aria-valuenow'],3);
-    assert(!JSON.stringify(view.toJSON()).includes('✓ Turnier vorbereitet'));
+    assert(!JSON.stringify(view.toJSON()).includes('· Vorbereitung abgeschlossen'));
     await act(async()=>view.update(render({...props,attendance:{playerCount:2,yesCount:2,noCount:0,openCount:0},ownMatchCount:0,totalMatchCount:15})));
     assert.equal(view.root.findByProps({role:'progressbar'}).props['aria-valuenow'],4,'loaded official plan is complete before own-team assignment');
     assert(JSON.stringify(view.toJSON()).includes('15 Spiele geladen'));
