@@ -23,12 +23,20 @@ function subscribe(update:()=>void){
  * Persist first, then reload the same URL so the early document theme is correct.
  * Only an explicit toggle reloads; storage events and ordinary navigation do not. */
 export function toggleMarketTheme(){
- setMarketTheme(readMarketTheme()==='dark'?'light':'dark');
+ const next=readMarketTheme()==='dark'?'light':'dark';
  if(typeof window==='undefined')return;
  const nav=window.navigator as Navigator & {standalone?:boolean};
  const ios=!!nav&&(/iPad|iPhone|iPod/.test(nav.userAgent)||(nav.platform==='MacIntel'&&nav.maxTouchPoints>1));
  const standalone=nav?.standalone===true||window.matchMedia?.('(display-mode: standalone)').matches===true;
- if(ios&&standalone)window.location.reload();
+ if(ios&&standalone&&!storageUnavailable){
+  try{
+   // Keep the current document unchanged until navigation replaces it.
+   // Publishing the store event here renders the new page under old iOS chrome.
+   window.localStorage.setItem(MARKET_THEME_KEY,next);fallback=next;
+   window.location.reload();return;
+  }catch{ /* If persistence or navigation is blocked, keep the toggle usable. */ }
+ }
+ setMarketTheme(next);
 }
 export function useMarketTheme(){const theme=useSyncExternalStore(subscribe,readMarketTheme,()=> 'dark' as MarketTheme);return {theme,toggle:toggleMarketTheme};}
 export function isMarketThemeRoute(pathname:string,search:string){return /^\/marktplatz\/[0-9a-f-]{36}(?:\/(?:anmelden|registrieren|passwort-vergessen))?\/?$/i.test(pathname)||(['/login','/register','/forgot-password','/reset-password'].includes(pathname)&&new URLSearchParams(search).get('context')==='vereinsmarkt');}
