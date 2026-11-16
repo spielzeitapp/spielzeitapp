@@ -14,7 +14,7 @@ function buildWebPushJsonPayload(parts) {
 module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST erforderlich' });
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const url = String(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim().replace(/\/$/, '');
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return res.status(503).json({ error: 'Push derzeit nicht verfügbar' });
   // This preparation must never operate on LIVE, even if an env is misconfigured.
