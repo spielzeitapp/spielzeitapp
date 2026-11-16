@@ -1,3 +1,4 @@
+import {useTournamentScreenAccess, TournamentScreenManagers} from '../../components/tournament/TournamentScreenAccess';
 import {TournamentPresentation, TournamentPresentationTools} from '../../components/tournament/TournamentPresentation';
 import { TournamentFinalRanking } from '../../components/tournament/TournamentFinalRanking';
 import { PublicTournamentMatchView, type PublicMatchView } from '../../components/tournament/PublicTournamentMatchView';
@@ -18,6 +19,7 @@ import { TournamentClubLogo } from '../../components/tournament/TournamentClubLo
 export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publicIdOverride?:string;embedded?:boolean} = {}): React.ReactElement {
   const { publicId: routePublicId = '' } = useParams<{ publicId: string }>();
   const publicId=publicIdOverride ?? routePublicId;
+  const {access:screenAccess,refresh:refreshScreenAccess}=useTournamentScreenAccess(publicId);
   const location = useLocation();
   const candidate = (location.state as {returnTo?: unknown} | null)?.returnTo;
   const returnTo = typeof candidate === 'string' && /^\/(app|demo|manager)\//.test(candidate) ? candidate : `/app/events/${encodeURIComponent(publicId)}`;
@@ -118,7 +120,11 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
 
   };
   const presentationMode=searchParams.get('modus');
-  if(!embedded && page && (presentationMode==='screen'||presentationMode==='print')) return <TournamentPresentation page={page} mode={presentationMode} error={error}/>;
+  if(!embedded && page && presentationMode==='print') return <TournamentPresentation page={page} mode="print" error={error}/>;
+  if(!embedded && page && presentationMode==='screen') {
+    if(screenAccess.canScreen) return <TournamentPresentation page={page} mode="screen" error={error}/>;
+    return <main className="mx-auto max-w-xl space-y-4 p-6 pt-[max(2rem,env(safe-area-inset-top))]"><Link to="?">← Turnierseite</Link><h1 className="text-2xl font-bold">Bildschirmmodus</h1><p role="status">{screenAccess.loading?'Berechtigung wird geprüft…':screenAccess.error?'Berechtigung konnte nicht geprüft werden.':'Nur für Vereinsadmins und die eingeteilte Turnierleitung. Bitte mit dem berechtigten Konto anmelden.'}</p><Link to="/login">Zur Anmeldung</Link><button onClick={()=>void refreshScreenAccess()}>Erneut prüfen</button></main>;
+  }
   const ContentTag=embedded?'div':'main';
   return <div ref={scrollSurface} data-embedded={embedded || undefined} data-theme={theme} className={`${embedded?'tournament-audience-overview w-full min-w-0':'public-tournament-page bg-[var(--t-bg)]'} text-[var(--t-text)]`} style={{
       '--t-accent': page?.accentColor ?? '#c82333',
@@ -143,7 +149,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
       </header> : selectedMatch ? <button type="button" onClick={()=>setSearchParams({})} className="min-h-11 rounded-full border border-[var(--t-border)] px-4 text-sm font-bold">← Zurück zur Turnierübersicht</button> : null}
       {shareHint ? <p role="status" className="text-sm text-[var(--t-muted)]">{shareHint}</p> : null}
       {loading ? <p>Turnier wird geladen…</p> : !page ? <section className={card}><p>{error || 'Turnier nicht verfügbar'}</p><button onClick={()=>void load()} className="mt-3 underline">Erneut laden</button></section> : <>
-        {!embedded?<TournamentPresentationTools page={page} onShare={()=>void onShare()}/>:null}
+        {!embedded?<><TournamentPresentationTools page={page} canScreen={screenAccess.canScreen} onShare={()=>void onShare()}/>{screenAccess.canManage?<TournamentScreenManagers eventId={publicId} onChanged={()=>void refreshScreenAccess()}/>:null}</>:null}
         {selectedMatch ? <PublicTournamentMatchView page={page} match={selectedMatch} view={matchView} onView={view=>setSearchParams({spiel:selectedMatch.id,ansicht:view})}/> : <>
         {!embedded ? <section className="rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-3">
           <div className="flex items-center gap-3"><TournamentClubLogo name={page.teamName} logoUrl={page.teamLogoUrl} size="sm"/><div className="min-w-0 flex-1"><h1 className="text-base font-extrabold leading-snug">{page.tournamentName}</h1><p className="mt-1 text-xs text-[var(--t-muted)]">{page.dateLabel} · {page.ageGroupLabel}</p></div></div>

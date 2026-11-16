@@ -12,9 +12,9 @@ export function TournamentQr({publicId,onSettled}:{publicId:string;onSettled?:()
  useEffect(()=>{let active=true;setSrc('');setError(false);void QRCode.toDataURL(url,{width:480,margin:4,errorCorrectionLevel:'M',color:{dark:'#000000',light:'#ffffff'}}).then(value=>{if(active){setSrc(value);onSettled?.()}}).catch(()=>{if(active){setError(true);onSettled?.()}});return()=>{active=false}},[url,onSettled]);
  return <div className="tournament-qr">{src?<img src={src} width={240} height={240} alt="QR-Code zur öffentlichen Turnierseite"/>:<p role="status">{error?'QR-Code nicht verfügbar – Link verwenden.':'QR-Code wird erstellt…'}</p>}<strong>Turnier live am Handy verfolgen</strong><p>Scannen · ohne App und Anmeldung</p><a href={url}>{url}</a></div>;
 }
-export function TournamentPresentationTools({page,onShare}:{page:PublicTeamTournamentPageDto;onShare:()=>void}) {
+export function TournamentPresentationTools({page,onShare,canScreen=false}:{page:PublicTeamTournamentPageDto;onShare:()=>void;canScreen?:boolean}) {
  const [open,setOpen]=useState(false);
- return <section className="tournament-presentation-tools"><div className="flex flex-wrap gap-2"><button type="button" onClick={()=>setOpen(!open)} aria-expanded={open}><QrCode size={18}/>QR-Code</button><Link to="?modus=screen"><Monitor size={18}/>Bildschirm</Link><Link to="?modus=print"><Printer size={18}/>Drucken / PDF</Link></div>{open?<div className="mt-4"><TournamentQr publicId={page.publicId}/><button type="button" onClick={onShare}><Share2 size={18}/>Link teilen</button></div>:null}</section>;
+ return <section className="tournament-presentation-tools"><div className="flex flex-wrap gap-2"><button type="button" onClick={()=>setOpen(!open)} aria-expanded={open}><QrCode size={18}/>QR-Code</button>{canScreen?<Link to="?modus=screen"><Monitor size={18}/>Bildschirm</Link>:null}<Link to="?modus=print"><Printer size={18}/>Drucken / PDF</Link></div>{open?<div className="mt-4"><TournamentQr publicId={page.publicId}/><button type="button" onClick={onShare}><Share2 size={18}/>Link teilen</button></div>:null}</section>;
 }
 export function tournamentPresentationRows(page:PublicTeamTournamentPageDto) {
  const own=page.ownParticipantName||page.teamName;
