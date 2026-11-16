@@ -1,4 +1,5 @@
 import { UscClubStart, USC_START_PHOTO } from "./UscClubStart";
+import { ClubShop } from "./ClubShop";
 import { UscFanshop } from "./UscFanshop";
 import { UscClubLive } from "./UscClubLive";
 import { useUscLiveMatches } from "./uscLive";
@@ -744,7 +745,7 @@ export function UscClubApp() {
           </>
         )}
         {tab === "verein" ? (
-          clubSection === "fanshop" ? <UscFanshop onBack={() => openClub("ueber")} /> :
+          clubSection === "fanshop" ? isStagingApp() ? <ClubShop clubId={USC_CLUB_ID} clubName="USC Rohrbach" onBack={() => openClub("ueber")} /> : <UscFanshop onBack={() => openClub("ueber")} /> :
           <section className="usc-club-section">
             {clubSection !== 'tauschboerse' ? <><span className="usc-eyebrow">USC Rohrbach</span>
             <h1>Unser Verein.</h1>
@@ -753,7 +754,7 @@ export function UscClubApp() {
                 ["ueber", "Gemeinsam stark"],
                 ["funktionaere", "Funktionäre"],
                 ["sponsoren", "Sponsoren"],
-                ["fanshop", "Fanshop"],
+                ["fanshop", "Vereinsshop"],
                 ...(isStagingApp() ? [["tauschboerse", "Vereinsmarkt"]] : []),
               ].map(([id, label]) => (
                 <button
@@ -806,7 +807,7 @@ export function UscClubApp() {
                 </>
               ) : (
                 <>
-                  <h2>USC Fanshop.</h2>
+                  <h2>USC Vereinsshop.</h2>
                   <p>
                     Für diese erste Version ist noch kein Shop verknüpft. Sobald
                     der Verein einen Shop hinterlegt, kann er hier eingebunden
@@ -878,7 +879,7 @@ export function UscClubApp() {
           <button onClick={() => setTab("tabelle")}>Tabelle</button>
           <button onClick={() => openClub("funktionaere")}>Funktionäre</button>
           <button onClick={() => openClub("sponsoren")}>Sponsoren</button>
-          <button onClick={() => openClub("fanshop")}>Fanshop</button>
+          <button onClick={() => openClub("fanshop")}>Vereinsshop</button>
           {isStagingApp() && user ? <button onClick={() => openClub("tauschboerse")}>Vereinsmarkt</button> : null}
           {user ? (
             <button

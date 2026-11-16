@@ -12,7 +12,8 @@
     "test:platform-admin": "node scripts/platform-admin-dashboard-test.mjs",
     "test:player-onboarding": "node scripts/player-onboarding-active-season-test.mjs",
     "test:parent-onboarding-label": "node scripts/parent-onboarding-team-label-test.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:club-shop": "node scripts/club-shop-test.mjs"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "1.2.2",

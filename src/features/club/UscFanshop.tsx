@@ -65,16 +65,16 @@ export function UscFanshop({ onBack }: { onBack: () => void }) {
     setNotice(`${product.name} wurde zum Warenkorb hinzugefügt.`);
   };
   const back = () => { setNotice(""); if (showCart) setShowCart(false); else if (product) setProduct(null); else onBack(); };
-  return <section className="usc-shop" aria-label="USC Fanshop">
+  return <section className="usc-shop" aria-label="USC Vereinsshop">
     <div className="usc-shop-toolbar">
-      <button className="usc-icon-button" onClick={back} aria-label={showCart || product ? "Zurück zum Fanshop" : "Zurück zum Verein"}><ArrowLeft size={21} /></button>
+      <button className="usc-icon-button" onClick={back} aria-label={showCart || product ? "Zurück zum Vereinsshop" : "Zurück zum Verein"}><ArrowLeft size={21} /></button>
       <span>USC ROHRBACH</span>
       <button className="usc-icon-button usc-shop-basket" aria-label={`Warenkorb, ${count} Artikel`} onClick={() => { setShowCart(true); setNotice(""); }}><ShoppingBag size={21} />{count > 0 ? <b>{count}</b> : null}</button>
     </div>
     <div className="usc-shop-demo"><span>VORSCHAU</span> Beispielprodukte und Beispielpreise. Keine echten Bestellungen.</div>
     {showCart ? <>
       <h1>Dein Warenkorb.</h1><p className="usc-shop-subtitle">Dein Verein. Dein Look.</p>
-      {cart.length === 0 ? <div className="usc-shop-empty"><ShoppingBag size={38} /><h2>Noch nichts im Warenkorb</h2><p>Entdecke unsere Beispielkollektion.</p><button className="usc-shop-primary" onClick={() => { setShowCart(false); setProduct(null); }}>Zum Fanshop</button></div> : <>
+      {cart.length === 0 ? <div className="usc-shop-empty"><ShoppingBag size={38} /><h2>Noch nichts im Warenkorb</h2><p>Entdecke unsere Beispielkollektion.</p><button className="usc-shop-primary" onClick={() => { setShowCart(false); setProduct(null); }}>Zum Vereinsshop</button></div> : <>
         <div className="usc-shop-cart-list">{cart.map((item, index) => {
           const p = products.find(candidate => candidate.id === item.productId)!;
           return <article className="usc-shop-cart-item" key={JSON.stringify([item.productId, item.size, item.name, item.number])}>
@@ -98,7 +98,7 @@ export function UscFanshop({ onBack }: { onBack: () => void }) {
       <div role="status" className="usc-shop-status">{notice ? <><Check size={18} />{notice}</> : null}</div>
       {notice ? <button className="usc-shop-secondary" onClick={() => setShowCart(true)}>Warenkorb ansehen</button> : null}
     </> : <>
-      <h1>Fanshop.</h1><p className="usc-shop-subtitle">Dein Verein. Dein Look.</p>
+      <h1>Vereinsshop.</h1><p className="usc-shop-subtitle">Dein Verein. Dein Look.</p>
       <div className="usc-shop-hero"><div><span className="usc-eyebrow">SCHWARZ. WEISS. USC.</span><h2>Unsere Farben.<br />Dein Verein.</h2><span className="usc-shop-hero-tag">Kollektion entdecken</span></div><ProductArt product={products[0]} /></div>
       <div className="usc-shop-categories" aria-label="Produktkategorien">{["Alle", "Bekleidung", "Zubehör"].map(value => <button key={value} aria-pressed={value === category} onClick={() => setCategory(value)}>{value}</button>)}</div>
       <div className="usc-shop-grid">{products.filter(p => category === "Alle" || p.category === category).map(item => <button className="usc-shop-card" key={item.id} onClick={() => openProduct(item)}><ProductArt product={item} /><span className="usc-shop-card-copy"><strong>{item.name}</strong><span>{money(item.price)}</span><small>{item.sizes.length > 1 ? "Kinder- & Erwachsenengrößen" : "Einheitsgröße"}</small></span></button>)}</div>
