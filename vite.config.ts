@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           main: resolve(__dirname, "index.html"),
+          tournamentAudience: resolve(__dirname, "turniere.html"),
           market: resolve(__dirname, "markt.html"),
           comparison: resolve(__dirname, "vereinszentrale.html"),
           preview: resolve(__dirname, "preview.html"),

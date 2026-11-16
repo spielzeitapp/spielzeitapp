@@ -188,6 +188,15 @@
           "value": "no-cache, no-store, must-revalidate"
         }
       ]
+    },
+    {
+      "source": "/turnier-app/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
     }
   ],
   "rewrites": [
@@ -318,6 +327,18 @@
     {
       "source": "/manager/(.*)",
       "destination": "/manager.html"
+    },
+    {
+      "source": "/turnier-app",
+      "destination": "/turniere.html"
+    },
+    {
+      "source": "/turnier-app/",
+      "destination": "/turniere.html"
+    },
+    {
+      "source": "/turnier-app/:publicId",
+      "destination": "/turniere.html"
     },
     {
       "source": "/(.*)",
