@@ -68,7 +68,8 @@ assert.equal(Number.parseFloat(values.get('--app-visible-height')),fullZoomHeigh
 assert.equal(root.dataset.iosStandaloneFullscreen,undefined);
 // Reinstalled opaque status bar reserves 62 physical px outside viewport.
 marketShell=true;safeTop=0;vv.scale=pageZoom.scale;vv.height=955;
-vv.dispatchEvent(new Event('resize'));
+// Enter market from SpielzeitApp without resize: discard the previous fullscreen height.
+win.dispatchEvent(new Event('spz-viewport-recover'));
 assert.equal(root.dataset.iosStandaloneFullscreen,undefined);
 assert.equal(values.get('--app-visible-height'),'955px');
 assert.equal(values.has('--app-standalone-height'),false);
