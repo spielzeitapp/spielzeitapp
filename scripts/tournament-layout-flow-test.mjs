@@ -53,6 +53,11 @@ export {React,TestRenderer,act,MemoryRouter,Routes,Route,PublicTeamTournamentPag
  for(const [i,id] of ['live','next1','next2','recent','old'].entries())assert(articles[i].includes(id),'public cards must be ordered '+id);
  assert.equal(view.root.findAllByProps({'aria-label':'Aktuelles Livespiel'}).length,1);
  assert(!view.root.findAllByType('article').some(a=>a.props.className?.includes('tournament-fixture-row')),'pairings must use readable cards');
+ page.schedule.push(...[{id:'sched-old',homeTeam:'Rohrbach',awayTeam:'old',time:'17:14',homeGoals:1,awayGoals:0},{id:'sched-next',homeTeam:'Rohrbach',awayTeam:'next2',time:'19:48',homeGoals:null,awayGoals:null},{id:'sched-recent',homeTeam:'Rohrbach',awayTeam:'recent',time:'18:10',homeGoals:1,awayGoals:0}]);
+ await act(async()=>view.root.findAllByType('button').find(b=>b.children.includes('Alle Spiele')).props.onClick());
+ const buttonText=b=>text(b);assert(view.root.findByProps({'aria-label':'Spielplan oder Ergebnisse'}));assert.equal(view.root.findAllByType('article').length,2,'schedule shows live hero and upcoming game only');
+ await act(async()=>view.root.findAllByType('button').find(b=>buttonText(b).startsWith('Ergebnisse')).props.onClick());const results=view.root.findAllByType('article').map(text);assert.equal(results.length,3);assert(results[1].includes('recent'));assert(results[2].includes('old'),'results sorted newest first');assert(!results.some(t=>t.includes('next2')),'results exclude upcoming games');
+ page.schedule.splice(0);await act(async()=>view.root.findAllByType('button').find(b=>buttonText(b).startsWith('Spielplan')).props.onClick());await act(async()=>view.root.findAllByType('button').find(b=>buttonText(b).startsWith('Ergebnisse')).props.onClick());assert(view.root.findAllByType('p').some(p=>text(p).includes('Noch keine Ergebnisse vorhanden')),'empty results have a clear state');
  await act(async()=>view.unmount());
  page.allMatches=page.allMatches.map(m=>m.status==='live'?{...m,status:'finished',scoreOur:0,scoreOpp:0}:m);
  await act(async()=>{view=TestRenderer.create(React.createElement(MemoryRouter,{initialEntries:['/turnier/test']},React.createElement(Routes,null,React.createElement(Route,{path:'/turnier/:publicId',element:React.createElement(PublicTeamTournamentPage)}))))});
