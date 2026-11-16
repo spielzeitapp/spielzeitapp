@@ -26,26 +26,20 @@ function applyViewportVars(): void {
   const vv = window.visualViewport;
   const active = document.activeElement;
   const editing = active instanceof HTMLElement && (active.isContentEditable || active.matches('input:not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select'));
-  // An installed PWA can retain an opaque status bar from its install-time
-  // appearance. A zero top safe area means that bar is OUTSIDE the viewport;
-  // expanding to screen.height would put the navigation underneath the screen.
-  let safeAreaTop: number | undefined;
-  if (root.hasAttribute('data-market-shell')) {
-    const probe = document.createElement('div');
-    probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top,0px)';
-    document.body.appendChild(probe);
-    safeAreaTop = Number.parseFloat(getComputedStyle(probe).paddingTop) || 0;
-    probe.remove();
-  }
+  // The market owns a bounded, fixed shell. Keep it inside the actual browser
+  // viewport: screen.height also includes native status-bar space on iOS.
+  // env(safe-area-inset-top) cannot reliably tell whether that space is outside
+  // the viewport (including installs that retained older status-bar settings).
+  const marketShell = root.hasAttribute('data-market-shell');
   const viewportInput = {
     ios: /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1),
     standalone: window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true,
     screenWidth: window.screen.width, screenHeight: window.screen.height,
     innerWidth: window.innerWidth, innerHeight: innerH,
     visibleHeight: vv?.height ?? innerH, visibleTop: vv?.offsetTop ?? 0,
-    scale: vv?.scale ?? 1, editing, safeAreaTop,
+    scale: vv?.scale ?? 1, editing,
   };
-  const fullscreenHeight = standaloneFullscreenHeight(viewportInput);
+  const fullscreenHeight = marketShell ? null : standaloneFullscreenHeight(viewportInput);
   const pageScale = standalonePageScale(viewportInput);
   if (fullscreenHeight !== null) {
     root.dataset.iosStandaloneFullscreen = 'true';
