@@ -33,7 +33,8 @@ function isInternalAppDeepLink(path: string | null | undefined): boolean {
   if (clean === '/app/parent-invite' || clean.startsWith('/app/parent-invite/')) return false;
   if (clean === '/app') return false;
   return clean === '/manager' || clean.startsWith('/manager/') ||
-    clean.startsWith('/app/') || clean.startsWith('/demo/');
+    clean.startsWith('/app/') || clean.startsWith('/demo/') ||
+    /^\/marktplatz\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clean);
 }
 
 /**
