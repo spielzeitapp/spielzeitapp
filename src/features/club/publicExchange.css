@@ -87,3 +87,11 @@ html[data-market-shell] .public-exchange main.exchange{
  width:48px;height:48px;min-width:48px;min-height:48px;padding:5px
 }
 .public-exchange .public-market-app-switch img{width:36px;height:36px}
+
+/* Each label stays inside its own grid cell, including iOS text sizing. */
+.public-market-nav-viewport .public-market-nav{grid-template-columns:repeat(5,minmax(0,1fr));gap:2px}
+.public-market-nav-viewport .public-market-nav a{
+ width:100%;min-width:0;font-size:9px;line-height:1.25;letter-spacing:0;
+ -webkit-text-size-adjust:100%;text-size-adjust:100%
+}
+.public-market-nav-viewport .public-market-nav a svg{flex-shrink:0}
