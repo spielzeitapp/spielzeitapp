@@ -7,6 +7,14 @@ function readLayout(): string {
   const card = nav?.classList.contains('public-market-nav') ? nav : nav?.firstElementChild;
   const shell = document.querySelector<HTMLElement>('.public-exchange');
   const shellStyle = shell ? getComputedStyle(shell) : null;
+  const host = document.querySelector<HTMLElement>('.public-market-nav-viewport');
+  const hostStyle = host ? getComputedStyle(host) : null;
+  const bodyStyle = getComputedStyle(document.body);
+  const nativeProbe = document.createElement('div');
+  nativeProbe.style.cssText = 'position:fixed;inset:0;visibility:hidden;pointer-events:none';
+  document.body.appendChild(nativeProbe);
+  const nativeRect = nativeProbe.getBoundingClientRect();
+  nativeProbe.remove();
   const rect = (el: Element | null | undefined) => {
     if (!el) return '—';
     const r = el.getBoundingClientRect();
@@ -19,7 +27,7 @@ function readLayout(): string {
   probe.remove();
   const build = Array.from(document.scripts).find(s => s.type === 'module' && s.src.includes('/assets/main-'))?.src.split('/').pop() ?? 'lokal';
   return [
-    'Anzeigeprüfung Markt N7 · ' + build,
+    'Anzeigeprüfung Markt N8 · ' + build,
     `Fenster: ${innerWidth} × ${innerHeight}`,
     `Sichtbar: ${vv ? Math.round(vv.width) + ' × ' + Math.round(vv.height) + ', oben ' + Math.round(vv.offsetTop) + ', Zoom ' + vv.scale : '—'}`,
     `Bildschirm: ${screen.width} × ${screen.height}`,
@@ -30,6 +38,10 @@ function readLayout(): string {
     'Rahmen CSS: ' + (shellStyle ? `Höhe ${shellStyle.height}, max ${shellStyle.maxHeight}, unten ${shellStyle.bottom}, Padding ${shellStyle.paddingBottom}` : '—'),
     'Markt aktiv: ' + document.documentElement.hasAttribute('data-market-shell'),
     'Aktives Feld: ' + (document.activeElement?.tagName ?? '—'),
+    'Fester Fensterrahmen: ' + Math.round(nativeRect.top) + ' bis ' + Math.round(nativeRect.bottom),
+    'Navi-Verankerung: ' + rect(host),
+    'Navi CSS: ' + (hostStyle ? 'Position '+hostStyle.position+', unten '+hostStyle.bottom+', Höhe '+hostStyle.height+', Padding '+hostStyle.paddingBottom+', Transform '+hostStyle.transform : '—'),
+    'Dokument CSS: Position '+bodyStyle.position+', Höhe '+bodyStyle.height+', Padding '+bodyStyle.paddingBottom+', Transform '+bodyStyle.transform,
     'Navigation: ' + rect(nav),
     'Sichtbare Leiste: ' + rect(card),
     'Abstand unter Leiste: ' + (nav && card ? Math.round(nav.getBoundingClientRect().bottom - card.getBoundingClientRect().bottom) + ' px' : '—'),
