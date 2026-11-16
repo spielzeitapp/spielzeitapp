@@ -165,3 +165,125 @@ create policy exchange_photos_create on storage.objects for insert to authentica
  and l.owner_id::text=(storage.foldername(name))[2] and l.id::text=(storage.foldername(name))[3]));
 create policy exchange_photos_delete on storage.objects for delete to authenticated using(
  bucket_id='exchange-photos' and (storage.foldername(name))[2]=auth.uid()::text);
+
+-- Optimistic concurrency: two devices must not overwrite newer edits silently.
+-- Owners can clean up their own objects after deleting a listing.
+alter policy exchange_photos_read on storage.objects using(
+ bucket_id='exchange-photos' and ((storage.foldername(name))[2]=auth.uid()::text or exists(
+ select 1 from public.exchange_listings l where l.club_id::text=(storage.foldername(name))[1]
+ and l.owner_id::text=(storage.foldername(name))[2] and l.id::text=(storage.foldername(name))[3])));
+alter table public.exchange_listings add column revision integer not null default 0;
+create function private.exchange_revision() returns trigger language plpgsql set search_path='' as $$
+begin new.revision:=old.revision+1; return new; end; $$;
+revoke all on function private.exchange_revision() from public,anon,authenticated;
+create trigger exchange_revision before update on public.exchange_listings for each row execute function private.exchange_revision();
+
+create table public.exchange_blocks (
+ club_id uuid not null references public.clubs(id) on delete cascade,
+ blocker_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+ blocked_id uuid not null references auth.users(id) on delete cascade,
+ primary key(club_id,blocker_id,blocked_id),
+ check(blocker_id<>blocked_id)
+);
+alter table public.exchange_blocks enable row level security;
+grant select,insert,delete on public.exchange_blocks to authenticated;
+create policy exchange_blocks_read on public.exchange_blocks for select to authenticated using(blocker_id=auth.uid());
+create policy exchange_blocks_create on public.exchange_blocks for insert to authenticated with check(
+ blocker_id=auth.uid() and private.exchange_member(club_id) and exists(
+ select 1 from public.exchange_threads t join public.exchange_listings l on l.id=t.listing_id
+ where l.club_id=exchange_blocks.club_id and
+ ((l.owner_id=auth.uid() and t.requester_id=blocked_id) or (t.requester_id=auth.uid() and l.owner_id=blocked_id))));
+create policy exchange_blocks_delete on public.exchange_blocks for delete to authenticated using(blocker_id=auth.uid());
+create function private.exchange_pair_blocked(c uuid,u uuid) returns boolean
+ language sql stable security definer set search_path='' as $$
+ select auth.uid() is null or exists(select 1 from public.exchange_blocks b where b.club_id=c
+ and ((b.blocker_id=auth.uid() and b.blocked_id=u) or (b.blocker_id=u and b.blocked_id=auth.uid())));
+$$;
+revoke all on function private.exchange_pair_blocked(uuid,uuid) from public,anon;
+grant execute on function private.exchange_pair_blocked(uuid,uuid) to authenticated;
+alter policy exchange_threads_create on public.exchange_threads with check(
+ requester_id=auth.uid() and exists(select 1 from public.exchange_listings l where l.id=listing_id
+ and l.owner_id<>auth.uid() and l.status='Verfügbar' and not private.exchange_pair_blocked(l.club_id,l.owner_id)));
+alter policy exchange_messages_create on public.exchange_messages with check(
+ sender_id=auth.uid() and exists(select 1 from public.exchange_threads t join public.exchange_listings l on l.id=t.listing_id
+ where t.id=thread_id and not private.exchange_pair_blocked(l.club_id,case when l.owner_id=auth.uid() then t.requester_id else l.owner_id end)));
+
+-- Supabase default privileges can grant table-wide UPDATE/TRUNCATE. RLS alone
+-- does not constrain TRUNCATE or immutable columns; reset defaults explicitly.
+revoke all on public.exchange_partner_teams,public.exchange_listings,public.exchange_threads,
+ public.exchange_messages,public.exchange_blocks,public.exchange_push_queue from public,anon,authenticated;
+grant select,insert,delete on public.exchange_partner_teams,public.exchange_blocks to authenticated;
+grant select,insert,delete on public.exchange_listings to authenticated;
+grant update(title,category,size,condition,offer,price,description,team_label,status,photo_paths) on public.exchange_listings to authenticated;
+grant select,insert on public.exchange_threads,public.exchange_messages to authenticated;
+grant all on public.exchange_partner_teams,public.exchange_listings,public.exchange_threads,
+ public.exchange_messages,public.exchange_blocks,public.exchange_push_queue to service_role;
+
+-- Canonical authenticated SpielzeitApp destination, for every club. Both app
+-- surfaces share the same listings/threads; no copy and no client-chosen recipient.
+create or replace function private.exchange_message_notify() returns trigger
+ language plpgsql security definer set search_path='' as $$
+declare recipient uuid; path text; club uuid;
+begin
+ select case when new.sender_id=l.owner_id then t.requester_id else l.owner_id end,l.club_id
+ into recipient,club from public.exchange_threads t join public.exchange_listings l on l.id=t.listing_id where t.id=new.thread_id;
+ path:='/app/tauschboerse?club='||club::text||'&thread='||new.thread_id::text;
+ insert into public.notifications(user_id,title,message,link,type,event_type,kind)
+ values(recipient,'Tauschbörse','Du hast eine neue Anfrage oder Nachricht zu einem Inserat.',path,'auto','exchange','exchange:'||new.thread_id::text);
+ insert into public.exchange_push_queue(message_id,sender_id,recipient_id,link) values(new.id,new.sender_id,recipient,path);
+ return new;
+end; $$;
+revoke all on function private.exchange_message_notify() from public,anon,authenticated;
+
+-- A composite primary key on both FKs makes PostgREST infer a second teams->clubs
+-- relationship. Existing teams(...clubs(...)) embeds then fail with PGRST201.
+-- Keep the pair unique, but give this configuration table its own primary key.
+alter table public.exchange_partner_teams add column id uuid not null default gen_random_uuid();
+alter table public.exchange_partner_teams drop constraint exchange_partner_teams_pkey;
+alter table public.exchange_partner_teams add constraint exchange_partner_teams_pkey primary key(id);
+alter table public.exchange_partner_teams add constraint exchange_partner_teams_club_team_key unique(club_id,team_id);
+notify pgrst,'reload schema';
+
+-- No existing listing becomes public. Client table/storage grants stay private.
+alter table public.exchange_listings add column is_public boolean not null default false;
+alter table public.exchange_listings add column public_confirmed_at timestamptz;
+grant update(is_public) on public.exchange_listings to authenticated;
+create function private.exchange_public_confirmation() returns trigger language plpgsql set search_path='' as $$
+begin
+ if new.is_public then
+   if tg_op='INSERT' then new.public_confirmed_at:=now();
+   elsif not old.is_public then new.public_confirmed_at:=now();
+   else new.public_confirmed_at:=old.public_confirmed_at; end if;
+ else new.public_confirmed_at:=null; end if;
+ return new;
+end; $$;
+revoke all on function private.exchange_public_confirmation() from public,anon,authenticated;
+create trigger exchange_public_confirmation before insert or update on public.exchange_listings for each row execute function private.exchange_public_confirmation();
+
+-- Personal bookmark IDs only. This never grants access to listing content.
+create function private.exchange_can_save(p_listing uuid) returns boolean
+language sql stable security definer set search_path='' as $$
+ select auth.uid() is not null and exists(select 1 from public.exchange_listings l
+ where l.id=p_listing and l.status in ('Verfügbar','Reserviert') and public.club_is_operable(l.club_id)
+ and ((l.is_public and l.public_confirmed_at is not null) or private.exchange_member(l.club_id)));
+$$;
+revoke all on function private.exchange_can_save(uuid) from public,anon;
+grant execute on function private.exchange_can_save(uuid) to authenticated;
+create table public.exchange_saved_listings(
+ id uuid primary key default gen_random_uuid(),
+ user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+ listing_id uuid not null references public.exchange_listings(id) on delete cascade,
+ created_at timestamptz not null default now(),unique(user_id,listing_id)
+);
+alter table public.exchange_saved_listings enable row level security;
+revoke all on public.exchange_saved_listings from public,anon,authenticated;
+grant select,delete on public.exchange_saved_listings to authenticated;
+grant insert(user_id,listing_id) on public.exchange_saved_listings to authenticated;
+grant all on public.exchange_saved_listings to service_role;
+create policy exchange_saved_read on public.exchange_saved_listings for select to authenticated using(user_id=(select auth.uid()));
+create policy exchange_saved_create on public.exchange_saved_listings for insert to authenticated with check(user_id=(select auth.uid()) and private.exchange_can_save(listing_id));
+create policy exchange_saved_remove on public.exchange_saved_listings for delete to authenticated using(user_id=(select auth.uid()));
+
+-- Extend article choices without rewriting existing listings or changing access.
+alter table public.exchange_listings drop constraint exchange_listings_category_check;
+alter table public.exchange_listings add constraint exchange_listings_category_check check (category in ('T-Shirt','Hose','Pulli','Trainingsanzug','Jacke','Schuhe','Zubehör','Sonstiges','Fußballschuhe','Hallenschuhe','Laufschuhe','Schienbeinschoner','Torwarthandschuhe','Sporttaschen','Rucksäcke','Bälle','Trinkflaschen','Trainingszubehör'));
