@@ -1,4 +1,3 @@
-import { isStagingApp } from '../../lib/appEnvironment';
 import { marketSwitchEntry } from '../../features/club/marketSwitch';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -24,7 +23,7 @@ function AppHeaderBrand({ compactDemo = false }: { compactDemo?: boolean }) {
       <SpielzeitAppBrand
         className="min-w-0 max-w-[10.75rem] max-[359px]:max-w-[2.25rem] sm:max-w-[12rem]"
         iconClassName={compactDemo ? 'h-11 w-11 max-[399px]:h-9 max-[399px]:w-9 sm:h-12 sm:w-12' : 'h-11 w-11 sm:h-12 sm:w-12'}
-        wordmarkClassName={compactDemo ? 'w-[7.8rem] max-[399px]:w-[6.2rem] max-[359px]:hidden sm:w-[9.1rem]' : 'w-[7.8rem] max-[359px]:hidden sm:w-[9.1rem]'}
+        wordmarkClassName={compactDemo ? 'w-[7.8rem] max-[399px]:w-[6.2rem] max-[359px]:hidden sm:w-[9.1rem]' : 'w-[7.8rem] max-[430px]:w-[6rem] max-[399px]:w-[5rem] max-[374px]:hidden sm:w-[9.1rem]'}
       />
     </span>
   );
@@ -258,7 +257,7 @@ export const Header: React.FC = () => {
                   {authLoading || !user ? null : pathname.startsWith('/app') ? (
                     <>
                       {(teamSeasons?.length ?? 0) > 0 ? <TeamSwitcher iconOnly /> : null}
-                      {isStagingApp()&&!isRoleChoice&&<Link to={marketSwitchEntry(pathname+search)} className={dsGlassIconButtonClass()} aria-label="Zum Vereinsmarkt wechseln" title="Vereinsmarkt"><img src="/vereinsmarkt/icon-180.png" width="28" height="28" className="h-7 w-7 rounded-full object-contain" alt=""/></Link>}
+                      {!isRoleChoice&&<Link to={marketSwitchEntry(pathname+search)} className={dsGlassIconButtonClass().replace('h-9 w-9','h-11 w-11').replace('sm:h-10 sm:w-10','sm:h-11 sm:w-11')} aria-label="Zum Vereinsmarkt wechseln" title="Vereinsmarkt"><img src="/vereinsmarkt/icon-180.png" width="36" height="36" className="h-9 w-9 rounded-full object-contain" alt=""/></Link>}
                       {showManagerShortcut(effectiveRole, backendRole, memberships ?? []) ? (
                         <Link
                           to="/manager"
