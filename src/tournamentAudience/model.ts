@@ -12,5 +12,5 @@ export function audienceFixtures(page:PublicTeamTournamentPageDto):AudienceFixtu
  });
  return [...scheduled,...local.filter(m=>!scheduled.some(s=>s.id===m.id||(s.time===m.time&&s.home===m.home&&s.away===m.away)))].sort((a,b)=>a.time.localeCompare(b.time));
 }
-export function readAudiencePreference(id:string){try{const value=JSON.parse(localStorage.getItem(`sz:audience:v1:${id}`)||'null');return value&&typeof value.team==='string'&&typeof value.color==='string'&&/^#[a-f\d]{6}$/i.test(value.color)?value as {team:string;color:string}:null}catch{return null}}
-export function saveAudiencePreference(id:string,team:string,color:string){try{localStorage.setItem(`sz:audience:v1:${id}`,JSON.stringify({team,color}));localStorage.setItem('sz:audience:last',id)}catch{/* Browser storage is optional. */}}
+export function readAudiencePreference(id:string){try{const value=JSON.parse(localStorage.getItem(`sz:audience:v1:${id}`)||'null');return value&&typeof value.team==='string'&&typeof value.color==='string'&&/^#[a-f\d]{6}$/i.test(value.color)?value as {team:string;color:string;secondary?:string;neutral?:boolean}:null}catch{return null}}
+export function saveAudiencePreference(id:string,team:string,color:string,secondary='#ffffff',neutral=false){try{localStorage.setItem(`sz:audience:v1:${id}`,JSON.stringify({team,color,secondary,neutral}));localStorage.setItem('sz:audience:last',id)}catch{/* Browser storage is optional. */}}
