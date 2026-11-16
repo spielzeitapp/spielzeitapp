@@ -19,6 +19,16 @@ export function isValidLogoUrl(url?: string | null): url is string {
       return original.startsWith('https://vereine.oefb.at/netzwerk/imagedownload/') && displayLogoUrl(original) === value;
     } catch { return false; }
   }
+  const tournamentPrefix = '/api/tournament-plan-analyze?logo=';
+  if (value.startsWith(tournamentPrefix)) {
+    try {
+      const original = decodeURIComponent(value.slice(tournamentPrefix.length));
+      const source = new URL(original);
+      return source.protocol === 'https:' && source.host === 'tournej.com' &&
+        !source.username && !source.password && source.pathname.startsWith('/data/images/') &&
+        displayLogoUrl(original) === value;
+    } catch { return false; }
+  }
   const lower = value.toLowerCase();
   if (lower.startsWith('http://') || lower.startsWith('https://')) {
     return LOGO_EXT_RE.test(lower);
@@ -50,7 +60,7 @@ export function toLogoFile(nameOrSlug: string): string {
 export function getLogoUrl(slugOrFilename?: string | null): string {
   const value = (slugOrFilename ?? '').trim();
 
-  if (isValidLogoUrl(value) && (value.startsWith('http') || value.startsWith('/api/oefb/table?view=logo&'))) return displayLogoUrl(value);
+  if (isValidLogoUrl(value) && (value.startsWith('http') || value.startsWith('/api/oefb/table?view=logo&') || value.startsWith('/api/tournament-plan-analyze?logo='))) return displayLogoUrl(value);
   if (isValidLogoUrl(value) && value.includes('/logos/')) return value;
   if (!value) return SHIELD_PLACEHOLDER;
 
