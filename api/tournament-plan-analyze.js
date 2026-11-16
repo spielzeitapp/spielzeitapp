@@ -3,6 +3,7 @@ import { loadPublicTeamTournamentPage } from '../server/lib/publicTeamTournament
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
+  if (req.query?.audiencePush) { const {default: audiencePush} = await import('../server/lib/tournamentAudiencePush.js'); return audiencePush(req,res); }
   if (req.method === 'GET' && req.query?.logo) { const { default: logo } = await import('../server/lib/tournamentLogo.cjs'); return logo(req,res); }
   if (req.query?.debugPing === '1') {
     return res.status(200).json({

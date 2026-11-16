@@ -1,14 +1,19 @@
 import type {PublicTeamTournamentPageDto} from '../lib/publicTeamTournament';
 export type AudienceFixture={id:string;matchId?:string;home:string;away:string;time:string;group:string;status:string;homeGoals:number|null;awayGoals:number|null};
 export const audiencePath=(id:string)=>`/turnier-app/${encodeURIComponent(id)}`;
+export function canonicalAudienceTeam(page:PublicTeamTournamentPageDto,name:string):string{
+ const own=page.ownParticipantName||page.teamName;
+ return [own,page.teamName,...page.allMatches.map(m=>m.ourTeamName)].includes(name)?own:name;
+}
 export function audienceTeams(page:PublicTeamTournamentPageDto):string[]{
- return [...new Set([page.ownParticipantName||page.teamName,...(page.schedule??[]).flatMap(m=>[m.homeTeam,m.awayTeam]),...page.allMatches.flatMap(m=>[m.homeName||m.ourTeamName,m.awayName||m.opponentName]),...(page.groupTables??[]).flatMap(g=>g.rows.map(r=>r.teamName))].filter(Boolean))].sort((a,b)=>a.localeCompare(b,'de'));
+ return [...new Set([page.ownParticipantName||page.teamName,...(page.schedule??[]).flatMap(m=>[m.homeTeam,m.awayTeam]),...page.allMatches.flatMap(m=>[m.homeName||m.ourTeamName,m.awayName||m.opponentName]),...(page.groupTables??[]).flatMap(g=>g.rows.map(r=>r.teamName))].filter(Boolean).map(name=>canonicalAudienceTeam(page,name)))].sort((a,b)=>a.localeCompare(b,'de'));
 }
 export function audienceFixtures(page:PublicTeamTournamentPageDto):AudienceFixture[]{
- const local=page.allMatches.map(m=>({id:m.id,matchId:m.id,home:m.homeName||(m.ourIsHome?m.ourTeamName:m.opponentName),away:m.awayName||(m.ourIsHome?m.opponentName:m.ourTeamName),time:m.kickoffTimeLabel,group:m.groupLabel?`Gruppe ${m.groupLabel}`:'Turnierspiel',status:m.status,homeGoals:m.ourIsHome?m.scoreOur:m.scoreOpp,awayGoals:m.ourIsHome?m.scoreOpp:m.scoreOur}));
+ const canonical=(name:string)=>canonicalAudienceTeam(page,name);
+ const local=page.allMatches.map(m=>({id:m.id,matchId:m.id,home:canonical(m.homeName||(m.ourIsHome?m.ourTeamName:m.opponentName)),away:canonical(m.awayName||(m.ourIsHome?m.opponentName:m.ourTeamName)),time:m.kickoffTimeLabel,group:m.groupLabel?`Gruppe ${m.groupLabel}`:'Turnierspiel',status:m.status,homeGoals:m.ourIsHome?m.scoreOur:m.scoreOpp,awayGoals:m.ourIsHome?m.scoreOpp:m.scoreOur}));
  const scheduled=(page.schedule??[]).map(m=>{
-  const own=local.find(o=>o.time===m.time&&o.home===m.homeTeam&&o.away===m.awayTeam);
-  return own??{id:m.id,home:m.homeTeam,away:m.awayTeam,time:m.time,group:m.roundLabel||(m.groupLabel?`Gruppe ${m.groupLabel}`:'Turnierspiel'),status:m.homeGoals!=null&&m.awayGoals!=null?'finished':'upcoming',homeGoals:m.homeGoals,awayGoals:m.awayGoals};
+  const own=local.find(o=>o.time===m.time&&o.home===canonical(m.homeTeam)&&o.away===canonical(m.awayTeam));
+  return own??{id:m.id,home:canonical(m.homeTeam),away:canonical(m.awayTeam),time:m.time,group:m.roundLabel||(m.groupLabel?`Gruppe ${m.groupLabel}`:'Turnierspiel'),status:m.homeGoals!=null&&m.awayGoals!=null?'finished':'upcoming',homeGoals:m.homeGoals,awayGoals:m.awayGoals};
  });
  return [...scheduled,...local.filter(m=>!scheduled.some(s=>s.id===m.id||(s.time===m.time&&s.home===m.home&&s.away===m.away)))].sort((a,b)=>a.time.localeCompare(b.time));
 }
