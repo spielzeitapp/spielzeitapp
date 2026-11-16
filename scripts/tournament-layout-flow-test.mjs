@@ -53,6 +53,9 @@ export {React,TestRenderer,act,MemoryRouter,Routes,Route,PublicTeamTournamentPag
  for(const [i,id] of ['live','next1','next2','recent','old'].entries())assert(articles[i].includes(id),'public cards must be ordered '+id);
  assert.equal(view.root.findAllByProps({'aria-label':'Aktuelles Livespiel'}).length,1);
  assert(!view.root.findAllByType('article').some(a=>a.props.className?.includes('tournament-fixture-row')),'pairings must use readable cards');
+ const tournamentNav=view.root.findByProps({'aria-label':'Turnierbereiche'});assert(!tournamentNav.props.className.includes('overflow-x-auto'),'all tournament sections must be visible without horizontal scrolling');
+ await act(async()=>tournamentNav.findAllByType('button').find(b=>b.children.includes('Torschützen')).props.onClick());assert(view.root.findAllByType('h2').some(h=>text(h).includes('Unsere Torschützenliste')),'scorers can be opened directly');
+ await act(async()=>tournamentNav.findAllByType('button').find(b=>b.children.includes('Unsere Spiele')).props.onClick());
  page.schedule.push(...[{id:'sched-old',homeTeam:'Rohrbach',awayTeam:'old',time:'17:14',homeGoals:1,awayGoals:0},{id:'sched-next',homeTeam:'Rohrbach',awayTeam:'next2',time:'19:48',homeGoals:null,awayGoals:null},{id:'sched-recent',homeTeam:'Rohrbach',awayTeam:'recent',time:'18:10',homeGoals:1,awayGoals:0}]);
  await act(async()=>view.root.findAllByType('button').find(b=>b.children.includes('Alle Spiele')).props.onClick());
  const buttonText=b=>text(b);assert(view.root.findByProps({'aria-label':'Spielplan oder Ergebnisse'}));assert.equal(view.root.findAllByType('article').length,2,'schedule shows live hero and upcoming game only');
