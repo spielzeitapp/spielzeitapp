@@ -1,3 +1,4 @@
+import {TournamentPresentation, TournamentPresentationTools} from '../../components/tournament/TournamentPresentation';
 import { TournamentFinalRanking } from '../../components/tournament/TournamentFinalRanking';
 import { PublicTournamentMatchView, type PublicMatchView } from '../../components/tournament/PublicTournamentMatchView';
 import { TournamentFanPlayerCard } from '../../components/tournament/TournamentFanPlayerCard';
@@ -112,6 +113,8 @@ export function PublicTeamTournamentPage(): React.ReactElement {
     return own ? <Link key={fixture.id || index} to={`?spiel=${encodeURIComponent(own.id)}`} className="block rounded-xl" aria-label={`${own.opponentName} · Zum Spiel, Aufstellung und Spielverlauf`}>{content}</Link> : <React.Fragment key={fixture.id || index}>{content}</React.Fragment>;
 
   };
+  const presentationMode=searchParams.get('modus');
+  if(page && (presentationMode==='screen'||presentationMode==='print')) return <TournamentPresentation page={page} mode={presentationMode} error={error}/>;
   return <div ref={scrollSurface} data-theme={theme} className={`public-tournament-page bg-[var(--t-bg)] text-[var(--t-text)]`} style={{
       '--t-accent': page?.accentColor ?? '#c82333',
       '--t-bg': theme === 'day' ? '#f7f8fa' : '#000000',
@@ -135,6 +138,7 @@ export function PublicTeamTournamentPage(): React.ReactElement {
       </header>
       {shareHint ? <p role="status" className="text-sm text-[var(--t-muted)]">{shareHint}</p> : null}
       {loading ? <p>Turnier wird geladen…</p> : !page ? <section className={card}><p>{error || 'Turnier nicht verfügbar'}</p><button onClick={()=>void load()} className="mt-3 underline">Erneut laden</button></section> : <>
+        <TournamentPresentationTools page={page} onShare={()=>void onShare()}/>
         {selectedMatch ? <PublicTournamentMatchView page={page} match={selectedMatch} view={matchView} onView={view=>setSearchParams({spiel:selectedMatch.id,ansicht:view})}/> : <>
         <section className="rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-3">
           <div className="flex items-center gap-3"><TournamentClubLogo name={page.teamName} logoUrl={page.teamLogoUrl} size="sm"/><div className="min-w-0 flex-1"><h1 className="text-base font-extrabold leading-snug">{page.tournamentName}</h1><p className="mt-1 text-xs text-[var(--t-muted)]">{page.dateLabel} · {page.ageGroupLabel}</p></div></div>
