@@ -61,7 +61,8 @@
     "supabase/migrations/20261113185405_internal_training_matches.sql": "6c2e2014edee367cd6d078f3d971cae4bf82d658",
     "supabase/migrations/20261117072207_exchange_market_invitations.sql": "73f39e1fa1568a7d252434ff20f67f50a327b92a",
     "supabase/migrations/20261117212312_exchange_self_selected_teams.sql": "270bfb629934dbae1b01a09c071caec5e2882b87",
-    "supabase/migrations/20261117212326_exchange_direct_market_join.sql": "f06aeb85d51aa376c85b0c7925a6707873cb028a"
+    "supabase/migrations/20261117212326_exchange_direct_market_join.sql": "f06aeb85d51aa376c85b0c7925a6707873cb028a",
+    "supabase/migrations/20261117215729_market_registration_choices.sql": "a5038ab9067e890debacb4c8fa24327a2008245f"
   },
   "functions": {
     "supabase/functions/generate-club-communications/index.ts": "8f84887c9197b0bcc6c050e436b211dca44a01e8"

@@ -23,9 +23,9 @@ const m=new Module('registration-test');m.paths=require.resolve.paths('react');m
 const club='3db6fce2-a4c1-44a5-a333-19d1d4d62e6a',next=`/marktplatz/${club}?view=member&invite=${'a'.repeat(64)}`;
 let app;
 const mount=()=>act(async()=>{app=create(React.createElement(MemoryRouter,{initialEntries:[`/marktplatz/${club}/registrieren?context=vereinsmarkt&next=${encodeURIComponent(next)}`],future:{v7_startTransition:true,v7_relativeSplatPath:true}},React.createElement(m.exports.RegisterPage)));});
-const fill=()=>act(async()=>{for(const [id,value] of [['reg-first-name','Anna'],['reg-last-name','Test'],['reg-email','test@example.com'],['reg-password','secret123'],['reg-confirm-password','secret123']])app.root.findByProps({id}).props.onChange({target:{value}});});
+const fill=()=>act(async()=>{for(const [id,value] of [['reg-first-name','Anna'],['reg-last-name','Test'],['reg-email','test@example.com'],['reg-password','secret123'],['reg-confirm-password','secret123']])app.root.findByProps({id}).props.onChange({target:{value}});app.root.findByProps({id:'reg-market-terms'}).props.onChange({target:{checked:true}});});
 const submit=()=>act(async()=>{await app.root.findByType('form').props.onSubmit({preventDefault(){}});});
-await mount();await fill();await submit();
+await mount();assert.ok(app.root.findAllByType('a').some(a=>a.props.href==='/vereinsmarkt/datenschutz.html'));assert.equal(app.root.findByProps({id:'reg-market-terms'}).props.required,true);assert.equal(app.root.findByProps({id:'reg-market-show-team'}).props.required,undefined);assert.equal(app.root.findByProps({id:'reg-market-terms'}).props.checked,false);assert.equal(app.root.findByProps({id:'reg-market-show-team'}).props.checked,false);await submit();assert.equal(state.calls,0,'terms are required before signup');await fill();await submit();
 assert.equal(state.calls,1);assert.equal(app.root.findAllByType('form').length,0);
 assert.ok(!JSON.stringify(app.toJSON()).includes('E-Mail bestätigen'),'repeated signup must not claim confirmation delivery');
 for(const label of ['Zur Anmeldung','Passwort vergessen']){const link=app.root.findAllByType('a').find(a=>a.children.includes(label));assert.ok(link);assert.equal(new URL(link.props.href,'https://test').searchParams.get('next'),next,'preserve club invitation across recovery');}
@@ -40,10 +40,12 @@ field.getBoundingClientRect=()=>({top:50,bottom:98});viewport.dispatchEvent(new 
 await act(async()=>app.unmount());document.activeElement=null;
 state.result={data:{user:{identities:[{id:'new'}]},session:null},error:null};await mount();await fill();await submit();
 assert.ok(JSON.stringify(app.toJSON()).includes('E-Mail für den Vereinsmarkt bestätigen'),'new accounts retain market confirmation flow');
-assert.equal(state.payload.options.data.auth_entry,'vereinsmarkt','email branding context is sent on signup');
+assert.equal(state.payload.options.data.auth_entry,'vereinsmarkt','email branding context is sent on signup');assert.equal(state.payload.options.data.market_terms_version,'2026-11-17');assert.equal(state.payload.options.data.market_show_team,false,'sharing is optional and off by default');
 assert.ok(app.root.findAllByType('div').some(d=>String(d.props.className).includes('market-auth-confirmation')),'confirmation uses market theme');
 await act(async()=>app.unmount());
 state.result={data:{user:null,session:null},error:{message:'Email rate limit exceeded'}};await mount();await fill();await submit();
 assert.ok(JSON.stringify(app.toJSON()).includes('Zu viele Versuche'));assert.equal(app.root.findAllByType('form').length,1);
 await act(async()=>app.unmount());
 console.log('PASS: existing account recovery, invitation retained, new signup confirmation, API error, keyboard reveal without focus changes');
+
+state.result={data:{user:{identities:[{id:'opt-in'}]},session:null},error:null};await mount();await fill();await act(async()=>app.root.findByProps({id:'reg-market-show-team'}).props.onChange({target:{checked:true}}));await submit();assert.equal(state.payload.options.data.market_show_team,true);await act(async()=>app.unmount());console.log('PASS: explicit terms, separate privacy link, sharing off by default and saved explicit opt-in');

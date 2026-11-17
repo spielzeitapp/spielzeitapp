@@ -116,6 +116,8 @@ export const RegisterPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [marketTermsAccepted, setMarketTermsAccepted] = useState(false);
+  const [marketShowTeam, setMarketShowTeam] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
@@ -178,6 +180,10 @@ export const RegisterPage: React.FC = () => {
     const trimmedFirst = firstName.trim();
     const trimmedLast = lastName.trim();
     const trimmedEmail = email.trim().toLowerCase();
+    if (market && !marketTermsAccepted) {
+      setError('Bitte akzeptiere die Nutzungsbedingungen für den Vereinsmarkt.');
+      return;
+    }
     const lockedEmail =
       (searchParams.get('email') ?? '').trim().toLowerCase() ||
       (readStashedParentInviteEmail() ?? '').trim().toLowerCase() ||
@@ -226,6 +232,7 @@ export const RegisterPage: React.FC = () => {
             first_name: trimmedFirst,
             last_name: trimmedLast,
             spielzeit_parent_invite: true,
+            ...(market ? {auth_entry:'vereinsmarkt',market_terms_version:'2026-11-17',market_show_team:marketShowTeam} : {}),
             ...(inviteToken ? { spielzeit_parent_invite_token: inviteToken } : {}),
           },
         });
@@ -288,7 +295,7 @@ export const RegisterPage: React.FC = () => {
         email: trimmedEmail,
         password,
         options: {
-          data: { first_name: trimmedFirst, last_name: trimmedLast, ...(market ? { auth_entry: 'vereinsmarkt' } : {}) },
+          data: { first_name: trimmedFirst, last_name: trimmedLast, ...(market ? { auth_entry: 'vereinsmarkt', market_terms_version: '2026-11-17', market_show_team: marketShowTeam } : {}) },
           emailRedirectTo: getAuthRedirectUrl(emailRedirectPath),
           ...(captchaToken ? { captchaToken } : {}),
         },
@@ -635,6 +642,13 @@ export const RegisterPage: React.FC = () => {
             </div>
           </div>
 
+          {market && <fieldset className="market-registration-choices">
+            <legend className="sr-only">Nutzungsbedingungen und freiwillige Mannschaftsanzeige</legend>
+            <label className="market-registration-choice"><input id="reg-market-terms" type="checkbox" required checked={marketTermsAccepted} onChange={e=>setMarketTermsAccepted(e.target.checked)}/><span>Ich akzeptiere die <a href="/vereinsmarkt/nutzungsbedingungen.html" target="_blank" rel="noopener noreferrer">Nutzungsbedingungen</a>. <small>Erforderlich</small></span></label>
+            <p>Wie wir deine Daten verwenden, erfährst du in den <a href="/vereinsmarkt/datenschutz.html" target="_blank" rel="noopener noreferrer">Datenschutzinformationen</a>.</p>
+            <label className="market-registration-choice"><input id="reg-market-show-team" type="checkbox" checked={marketShowTeam} onChange={e=>setMarketShowTeam(e.target.checked)}/><span>Meine Mannschaft bei meinen Inseraten und privaten Nachrichten anzeigen. <small>Freiwillig · nur für berechtigte Vereinsmitglieder. Im Profil jederzeit ausschaltbar. Keine Kindernamen.</small></span></label>
+          </fieldset>}
+
           {!hasInviteSession && !isParentInviteFlow ? (
             <TurnstileWidget
               onTokenChange={setCaptchaToken}
@@ -654,6 +668,7 @@ export const RegisterPage: React.FC = () => {
             fullWidth
             disabled={
               loading ||
+              Boolean(market && !marketTermsAccepted) ||
               (!hasInviteSession &&
                 !isParentInviteFlow &&
                 isTurnstileConfigured &&
