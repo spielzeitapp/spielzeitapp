@@ -11,12 +11,12 @@ export function MarketThemeSync(){
   const root=document.documentElement;
   if(!active){root.removeAttribute('data-market-theme');return;}
   const meta=document.querySelector('meta[name="theme-color"]');const before=meta?.getAttribute('data-market-original-color')??meta?.getAttribute('content');
-  const apple=document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');const beforeApple=apple?.getAttribute('data-market-original-style')??apple?.getAttribute('content');
-  // Legacy iOS status-bar overrides lock installed apps to black/default.
-  // Let WebKit derive chrome from the document's current appearance instead.
-  apple?.remove();
+  // Preserve the native status-bar mode of the current installed window.
+  // Removing SpielzeitApp's black-translucent meta during an SPA route change
+  // changes WebKit's viewport geometry. The standalone market entry already
+  // omits this meta in markt.html, so it needs no runtime removal here.
   root.setAttribute('data-market-theme',theme);meta?.setAttribute('content',theme==='light'?'#ffffff':'#08080b');
-  return()=>{root.removeAttribute('data-market-theme');if(meta){if(before===null||before===undefined)meta.removeAttribute('content');else meta.setAttribute('content',before);}if(apple){if(beforeApple===null||beforeApple===undefined)apple.removeAttribute('content');else apple.setAttribute('content',beforeApple);document.head.appendChild(apple);}};
+  return()=>{root.removeAttribute('data-market-theme');if(meta){if(before===null||before===undefined)meta.removeAttribute('content');else meta.setAttribute('content',before);}};
  },[active,theme]);
  // WebKit samples real fixed edge elements for native chrome tint. Keep this
  // separate from the scrolling shell and replace its layer on appearance changes.
