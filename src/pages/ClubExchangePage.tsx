@@ -1,3 +1,4 @@
+import { MarketJoinPanel } from '../features/club/MarketJoinPanel';
 import { publicMarketForClub } from '../features/club/marketSwitch';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
@@ -18,6 +19,7 @@ export function ClubExchangePage({embedded=false,embeddedClubId}:{embedded?:bool
   const { user } = useAuth();
   const { selectedTeamSeason, teamSeasons, memberships, effectiveRole } = useSession();
   const [params, setParams] = useSearchParams();
+  const [marketClubs,setMarketClubs]=useState<Array<{club_id:string;name:string;team_labels?:string[]}>>([]);
   const [partners, setPartners] = useState<Partner[] | null>(null);
   const [seasons, setSeasons] = useState<ClubSeason[]>([]);
   const [loadedClub, setLoadedClub] = useState('');
@@ -28,19 +30,20 @@ export function ClubExchangePage({embedded=false,embeddedClubId}:{embedded?:bool
     return teamSeasons.filter(s => ids.has(s.id) && (!s.status || s.status === 'active'));
   }, [teamSeasons, memberships, effectiveRole]);
   useEffect(() => {
-    if (!user || !isStagingApp()) return;
+    if (!user) return;
     let active = true;
     setPartners(null); setError('');
     void (async () => {
-      const result = await supabase.from('exchange_partner_teams').select('club_id,team_id,club:clubs(name)');
+      const [result,clubs] = await Promise.all([supabase.from('exchange_partner_teams').select('club_id,team_id,club:clubs(name)'),supabase.rpc('exchange_my_clubs')]);
       if (!active) return;
-      if (result.error) { setError('Die Vereinszuordnung konnte nicht geladen werden.'); return; }
+      if (result.error || clubs.error) { setError('Die Vereinszuordnung konnte nicht geladen werden.'); return; }
+      setMarketClubs((clubs.data || []) as Array<{club_id:string;name:string;team_labels?:string[]}>);
       setPartners((result.data || []) as unknown as Partner[]);
     })().catch(() => { if (active) setError('Die Vereinszuordnung konnte nicht geladen werden.'); });
     return () => { active = false; };
   }, [user?.id, retry]);
   const contexts = useMemo(() => {
-    const result = new Map<string, string>();
+    const result = new Map<string, string>(marketClubs.map(c=>[c.club_id,c.name]));
     for (const season of ownSeasons) {
       const team = season.team;
       const partner = partners?.find(p => p.team_id === team.id);
@@ -49,17 +52,17 @@ export function ClubExchangePage({embedded=false,embeddedClubId}:{embedded?:bool
       if (clubId) result.set(clubId, partner?.club?.name || club?.name || team.name);
     }
     return result;
-  }, [ownSeasons, partners]);
+  }, [ownSeasons, partners, marketClubs]);
   const selectedTeam = selectedTeamSeason?.team;
   const selectedClub = partners?.find(p => p.team_id === selectedTeam?.id)?.club_id || selectedTeam?.club_id;
   const clubId = embeddedClubId || params.get('club') || (selectedClub && contexts.has(selectedClub) ? selectedClub : '') || contexts.keys().next().value || '';
   const ownClubSeasons = ownSeasons.filter(s => (partners?.find(p => p.team_id === s.team.id)?.club_id || s.team.club_id) === clubId);
-  const ownTeamLabels = [...new Set(ownClubSeasons.map(s => s.age_group || s.display_name || s.team.name))];
+  const ownTeamLabels = [...new Set([...ownClubSeasons.map(s => s.age_group || s.display_name || s.team.name),...(marketClubs.find(c=>c.club_id===clubId)?.team_labels||[])])];
   const defaultSeason = ownClubSeasons.find(s => s.id === selectedTeamSeason?.id) || ownClubSeasons[0];
-  const defaultTeamLabel = defaultSeason ? defaultSeason.age_group || defaultSeason.display_name || defaultSeason.team.name : '';
+  const defaultTeamLabel = defaultSeason ? defaultSeason.age_group || defaultSeason.display_name || defaultSeason.team.name : ownTeamLabels[0] || '';
   const permittedContext = contexts.has(clubId);
   useEffect(() => {
-    if (!user || !clubId || !permittedContext || partners === null || !isStagingApp()) return;
+    if (!user || !clubId || !permittedContext || partners === null) return;
     let active = true;
     setError(''); setLoadedClub(''); setSeasons([]);
     void (async () => {
@@ -67,6 +70,8 @@ export function ClubExchangePage({embedded=false,embeddedClubId}:{embedded?:bool
       const access = await supabase.rpc('exchange_access', { p_club_id: clubId });
       if (access.error) throw Error('Der Vereinszugang konnte nicht geprüft werden.');
       if (!access.data) { if (active) setLoadedClub(clubId); return; }
+      // Market-only members need no roster lookup and gain no team access.
+      if (!ownClubSeasons.length) { if(active)setLoadedClub(clubId); return; }
       const select = 'id,team_id,age_group,display_name,status,team:teams!inner(name,club_id),season:seasons(name)';
       const partnerIds = partners.filter(p => p.club_id === clubId).map(p => p.team_id);
       const results = await Promise.all([
@@ -81,12 +86,12 @@ export function ClubExchangePage({embedded=false,embeddedClubId}:{embedded?:bool
     })().catch(e => { if (active) setError(e instanceof Error ? e.message : 'Vereinsmarkt konnte nicht geladen werden.'); });
     return () => { active = false; };
   }, [user?.id, clubId, permittedContext, partners, retry]);
-  if(!embedded&&isStagingApp()&&params.get('public')==='1'&&partners!==null&&permittedContext)return <Navigate replace to={publicMarketForClub(clubId,params.get('returnTo'))}/>;
+  if(!embedded&&params.get('public')==='1'&&partners!==null&&permittedContext)return <Navigate replace to={publicMarketForClub(clubId,params.get('returnTo'))}/>;
   const content = <>
     {!embedded&&<Link className="inline-flex items-center gap-2 text-sm text-white/60" to="/app/mehr"><ArrowLeft size={17} /> Zurück zu Mehr</Link>}
-    {!isStagingApp() ? <p className="mt-5 text-white/70">Der Vereinsmarkt wird derzeit in TEST vorbereitet.</p> : !user ? <p>Bitte melde dich an.</p> : <>
+    {!user ? <p>Bitte melde dich an.</p> : <>
       {!embedded && partners !== null && contexts.size > 1 ? <details className="exchange-context-picker"><summary aria-label="Verein für den Vereinsmarkt wechseln"><ShieldCheck size={16} /><span>{contexts.get(clubId) || 'Deinen Verein wählen'}</span><ChevronDown size={15}/></summary><div aria-label="Deine Vereine">{[...contexts].map(([id,name]) => <button type="button" key={id} aria-pressed={clubId === id} onClick={e => { setParams({club:id}); e.currentTarget.closest('details')?.removeAttribute('open'); }}>{name}</button>)}</div></details> : partners !== null && contexts.size === 1 ? <div className="exchange-context-chip"><ShieldCheck size={15}/><span>{contexts.values().next().value}</span><small>Dein Verein</small></div> : null}
-      {error ? <p role="alert" className="exchange-alert">{error} <button onClick={() => setRetry(n => n + 1)}>Erneut versuchen</button></p> : partners === null ? <p role="status">Vereinszuordnung wird geladen…</p> : !clubId ? <p className="exchange-hint">Für den Vereinsmarkt brauchst du eine aktive Eltern-, Trainer- oder Vereinszuordnung. Favoriten zählen nicht als Vereinszuordnung.</p> : !permittedContext ? <p className="exchange-hint">Diese Anfrage gehört nicht zu deinen zugeordneten Vereinen. <Link to={embedded?`/marktplatz/${contexts.keys().next().value||clubId}`:"/app/tauschboerse"}>Zum eigenen Vereinsmarkt</Link></p> : loadedClub !== clubId ? <p role="status">Vereinsmarkt wird geladen…</p> : <React.Suspense fallback={<p role="status">Vereinsmarkt wird geladen…</p>}><Exchange key={`${user.id}:${clubId}:${params.get('mode')==='requests'?'requests':params.get('mode')==='mine'?'mine':'all'}`} clubId={clubId} userId={user.id} seasons={seasons} defaultTeamLabel={defaultTeamLabel} ownTeamLabels={ownTeamLabels} /></React.Suspense>}
+      {error ? <p role="alert" className="exchange-alert">{error} <button onClick={() => setRetry(n => n + 1)}>Erneut versuchen</button></p> : partners === null ? <p role="status">Vereinszuordnung wird geladen…</p> : !clubId ? <p className="exchange-hint">Für den Vereinsmarkt brauchst du eine aktive Eltern-, Trainer- oder Vereinszuordnung. Favoriten zählen nicht als Vereinszuordnung.</p> : !permittedContext ? <MarketJoinPanel clubId={clubId} onJoined={()=>setRetry(n=>n+1)}/> : loadedClub !== clubId ? <p role="status">Vereinsmarkt wird geladen…</p> : <React.Suspense fallback={<p role="status">Vereinsmarkt wird geladen…</p>}><Exchange key={`${user.id}:${clubId}:${params.get('mode')==='requests'?'requests':params.get('mode')==='mine'?'mine':'all'}`} clubId={clubId} userId={user.id} seasons={seasons} defaultTeamLabel={defaultTeamLabel} ownTeamLabels={ownTeamLabels} /></React.Suspense>}
     </>}
   </>;
   return embedded?<div className="exchange-member-content">{content}</div>:<PageShell background="more" className="exchange-main px-3 py-5 sm:px-4" contentClassName="mx-auto w-full max-w-3xl">{content}</PageShell>;

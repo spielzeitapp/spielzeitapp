@@ -15,7 +15,7 @@ const result=await build({entryPoints:['src/pages/ClubExchangePage.tsx'],bundle:
   env:`exports.isStagingApp=()=>true;`,
   ui:`const React=require('react');exports.PageShell=p=>React.createElement('main',null,p.children);`,
   exchange:`const React=require('react');exports.ClubExchange=p=>React.createElement('section',{'data-club':p.clubId,'data-user':p.userId,'data-teams':p.seasons.length,'data-default':p.defaultTeamLabel});`,
-  db:`exports.supabase={rpc:async()=>({data:global.__exchangeMain.access,error:null}),from:table=>{const q={select(){return q},eq(){return q},in(){return q},then(resolve,reject){if(table==='team_seasons')global.__exchangeMain.teamReads++;return Promise.resolve({data:table==='exchange_partner_teams'?[{club_id:'usc',team_id:'spg-u12',club:{name:'USC Rohrbach'}}]:[],error:null}).then(resolve,reject)}};return q;}};`,
+  db:`exports.supabase={rpc:async(name)=>({data:name==='exchange_my_clubs'?(global.__exchangeMain.marketClubs||[]):global.__exchangeMain.access,error:null}),from:table=>{const q={select(){return q},eq(){return q},in(){return q},then(resolve,reject){if(table==='team_seasons')global.__exchangeMain.teamReads++;return Promise.resolve({data:table==='exchange_partner_teams'?[{club_id:'usc',team_id:'spg-u12',club:{name:'USC Rohrbach'}}]:[],error:null}).then(resolve,reject)}};return q;}};`,
  };
  const rules=[[/AuthProvider$/,'auth'],[/useSession$/,'session'],[/appEnvironment$/,'env'],[/supabaseClient$/,'db'],[/^\.\.\/ui$/,'ui'],[/features\/club\/ClubExchange$/,'exchange']];
  for(const[filter,path]of rules)b.onResolve({filter},()=>({path,namespace:'fixture'}));
@@ -54,5 +54,8 @@ try{
  state.access=false;state.teamReads=0;
  await mount('/app/tauschboerse?club=unrelated');
  assert.equal(state.teamReads,0,'no team data queried before authorization');
+ await renderer.act(async()=>app.unmount());state.access=true;state.seasons=[];state.memberships=[];state.marketClubs=[{club_id:'nsg',name:'NSG Gölsental',team_labels:['U12']}];state.teamReads=0;
+ await mount('/marktplatz/nsg?view=member',{embedded:true,embeddedClubId:'nsg'});
+ assert.equal(app.root.findByType('section').props['data-club'],'nsg','new parent enters with market-only membership');assert.equal(app.root.findByType('section').props['data-default'],'U12','self-selected team prefills listing');assert.equal(state.teamReads,0,'no roster is needed for a new parent');
  console.log('PASS: one parent club hides picker, favourites excluded, two parent clubs enable switching, team prefill, SPG/USC scope, notification scope, unauthorized team reads blocked');
 }finally{if(app)await renderer.act(async()=>app.unmount());delete global.__exchangeMain;}
