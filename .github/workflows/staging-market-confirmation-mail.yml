@@ -1,0 +1,32 @@
+name: Update TEST market confirmation email
+on:
+  push:
+    branches: [develop]
+    paths:
+      - scripts/market-confirmation-mail.mjs
+      - supabase/templates/confirmation.html
+      - .github/workflows/staging-market-confirmation-mail.yml
+permissions:
+  contents: read
+concurrency:
+  group: staging-market-confirmation-email
+  cancel-in-progress: false
+jobs:
+  confirmation-email:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: false
+      - name: Validate Go email template
+        run: go run scripts/market-confirmation-template-test.go
+      - name: Apply and read back TEST email template
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: node scripts/market-confirmation-mail.mjs

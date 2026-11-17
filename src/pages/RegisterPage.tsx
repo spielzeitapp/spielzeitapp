@@ -287,7 +287,7 @@ export const RegisterPage: React.FC = () => {
         email: trimmedEmail,
         password,
         options: {
-          data: { first_name: trimmedFirst, last_name: trimmedLast },
+          data: { first_name: trimmedFirst, last_name: trimmedLast, ...(market ? { auth_entry: 'vereinsmarkt' } : {}) },
           emailRedirectTo: getAuthRedirectUrl(emailRedirectPath),
           ...(captchaToken ? { captchaToken } : {}),
         },
@@ -404,7 +404,7 @@ export const RegisterPage: React.FC = () => {
             <p className="usc-confirm-heading mt-5 text-[11px] font-bold uppercase tracking-[0.18em] text-red-400">
               Fast geschafft
             </p>
-            <h1 className="mt-1 text-[28px] font-black leading-tight text-white">E-Mail bestätigen</h1>
+            <h1 className="mt-1 text-[28px] font-black leading-tight text-white">{market ? 'E-Mail für den Vereinsmarkt bestätigen' : 'E-Mail bestätigen'}</h1>
             <p className="mt-3 text-[15px] leading-6 text-white/70">
               Wenn die Adresse neu ist, erhältst du hier den Bestätigungslink:
             </p>

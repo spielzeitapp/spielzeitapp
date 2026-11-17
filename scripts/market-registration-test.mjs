@@ -14,7 +14,7 @@ const state=globalThis.registrationTest={result:{data:{user:{identities:[]},sess
 const mocks={
  postAuthDestination:"export const resolvePostAuthDestination=async()=>({path:'/app/home',kind:'deep_link'});",
  AuthProvider:"export const useAuth=()=>({user:null,session:null,loading:false});",
- supabaseClient:"export const supabase={auth:{signUp:async()=>{globalThis.registrationTest.calls++;return globalThis.registrationTest.result;}}};",
+ supabaseClient:"export const supabase={auth:{signUp:async(payload)=>{globalThis.registrationTest.payload=payload;globalThis.registrationTest.calls++;return globalThis.registrationTest.result;}}};",
  TurnstileWidget:"export const isTurnstileConfigured=false;export const TurnstileWidget=()=>null;",
  parentLinkInvites:"export const buildParentInviteAuthQuery=()=>'';export const ensureParentInviteContextFromNext=()=>{};export const extractInviteTokenFromNext=()=>null;export const readStashedParentInviteEmail=()=>null;export const readStashedParentInviteToken=()=>null;export const resolvePendingParentInvitePath=()=>null;export const stashParentInviteEmail=()=>{};export const stashParentInviteToken=()=>{};",
 };
@@ -39,7 +39,8 @@ viewport.dispatchEvent(new Event('resize'));flushFrames();assert.equal(page.scro
 field.getBoundingClientRect=()=>({top:50,bottom:98});viewport.dispatchEvent(new Event('resize'));flushFrames();assert.equal(page.scrollTop,22,'visible input must not jump');
 await act(async()=>app.unmount());document.activeElement=null;
 state.result={data:{user:{identities:[{id:'new'}]},session:null},error:null};await mount();await fill();await submit();
-assert.ok(JSON.stringify(app.toJSON()).includes('E-Mail bestätigen'),'new accounts retain confirmation flow');
+assert.ok(JSON.stringify(app.toJSON()).includes('E-Mail für den Vereinsmarkt bestätigen'),'new accounts retain market confirmation flow');
+assert.equal(state.payload.options.data.auth_entry,'vereinsmarkt','email branding context is sent on signup');
 assert.ok(app.root.findAllByType('div').some(d=>String(d.props.className).includes('market-auth-confirmation')),'confirmation uses market theme');
 await act(async()=>app.unmount());
 state.result={data:{user:null,session:null},error:{message:'Email rate limit exceeded'}};await mount();await fill();await submit();
