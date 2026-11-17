@@ -1,0 +1,54 @@
+-- TEST only. All fixtures are synthetic and rolled back; no mail or push is sent.
+begin;
+create temp table join_probe as select gen_random_uuid() c,gen_random_uuid() other_c,gen_random_uuid() team,gen_random_uuid() other_team,
+ gen_random_uuid() admin_id,gen_random_uuid() parent_id,gen_random_uuid() trusted_id,gen_random_uuid() outsider_id,gen_random_uuid() unconfirmed_id,gen_random_uuid() season_id,gen_random_uuid() team_season_id;
+grant select on join_probe to authenticated;
+insert into public.clubs(id,name,status) select c,'Synthetic self join','active' from join_probe union all select other_c,'Synthetic other club','active' from join_probe;
+insert into public.teams(id,club_id,name,age_group) select team,c,'U12 Test','U12' from join_probe union all select other_team,other_c,'U13 Other','U13' from join_probe;
+insert into public.seasons(id,name) select season_id,'2098/99 self-join test' from join_probe;
+insert into public.team_seasons(id,team_id,season_id,status) select team_season_id,team,season_id,'active' from join_probe;
+insert into auth.users(id,email,email_confirmed_at) select u,u::text||'@self-join.invalid',case when u=unconfirmed_id then null else now() end from join_probe,lateral unnest(array[admin_id,parent_id,trusted_id,outsider_id,unconfirmed_id])u;
+insert into public.user_roles(user_id,role) select admin_id,'admin' from join_probe;
+insert into public.memberships(user_id,team_season_id,role) select trusted_id,team_season_id,'parent'::public.membership_role from join_probe;
+create function pg_temp.check(ok boolean,label text) returns void language plpgsql as $$begin if ok is not true then raise exception 'FAILED: %',label;end if;end$$;
+
+insert into private.exchange_join_settings(club_id,self_join_enabled) select c,true from join_probe;
+select pg_temp.check(not has_table_privilege('authenticated','private.exchange_join_settings','update'),'parents cannot enable self join');
+select pg_temp.check(not has_function_privilege('anon','public.exchange_self_join(uuid,boolean,uuid[])','execute'),'guests cannot self join');
+create function pg_temp.denied(q text,label text) returns void language plpgsql as $$begin
+ begin execute q;exception when raise_exception or insufficient_privilege then return;end;
+ raise exception 'FAILED expected rejection: %',label;
+end$$;
+select set_config('request.jwt.claim.sub',unconfirmed_id::text,true) from join_probe;
+set local role authenticated;
+select pg_temp.denied(format('select public.exchange_self_join(%L,true,array[%L]::uuid[])',c,team),'unconfirmed') from join_probe;
+select pg_temp.denied(format('select public.exchange_team_options(%L,%L)',c,''),'unconfirmed options') from join_probe;
+select set_config('request.jwt.claim.sub',parent_id::text,true) from join_probe;
+select pg_temp.check(jsonb_array_length(public.exchange_team_options(c,''))=1,'team choices without invite') from join_probe;
+select pg_temp.denied(format('select public.exchange_self_join(%L,false,array[%L]::uuid[])',c,team),'consent') from join_probe;
+select pg_temp.denied(format('select public.exchange_self_join(%L,true,array[]::uuid[])',c),'empty teams') from join_probe;
+select pg_temp.denied(format('select public.exchange_self_join(%L,true,array[%L]::uuid[])',c,other_team),'foreign team') from join_probe;
+select pg_temp.denied(format('select public.exchange_self_join(%L,true,array[%L]::uuid[])',other_c,other_team),'closed club') from join_probe;
+select pg_temp.check(public.exchange_self_join(c,true,array[team,team]),'self join') from join_probe;
+select pg_temp.check(public.exchange_self_join(c,true,array[team]),'repeatable') from join_probe;
+select pg_temp.check(public.exchange_access(c),'market access') from join_probe;
+reset role;
+select pg_temp.check((select count(*)=1 from private.exchange_member_teams where user_id=(select parent_id from join_probe)),'deduplicated');
+select pg_temp.check(not exists(select 1 from public.memberships where user_id=(select parent_id from join_probe)),'no app access');
+select pg_temp.check(not exists(select 1 from public.player_guardians where user_id=(select parent_id from join_probe)),'no child access');
+update private.exchange_join_settings set self_join_enabled=false where club_id=(select c from join_probe);
+set local role authenticated;
+select pg_temp.denied(format('select public.exchange_self_join(%L,true,array[%L]::uuid[])',c,team),'disabled after team load') from join_probe;
+reset role;
+update private.exchange_join_settings set self_join_enabled=true where club_id=(select c from join_probe);
+select set_config('request.jwt.claim.sub',admin_id::text,true) from join_probe;
+set local role authenticated;
+select public.exchange_revoke(c,parent_id) from join_probe;
+select set_config('request.jwt.claim.sub',parent_id::text,true) from join_probe;
+select pg_temp.check(not public.exchange_access(c),'admin suspension') from join_probe;
+select pg_temp.denied(format('select public.exchange_self_join(%L,true,array[%L]::uuid[])',c,team),'cannot bypass suspension') from join_probe;
+select set_config('request.jwt.claim.sub','',true);
+select pg_temp.denied(format('select public.exchange_self_join(%L,true,array[%L]::uuid[])',c,team),'no authenticated identity') from join_probe;
+reset role;
+select 'PASS: direct join, confirmed identity, consent/teams, club isolation, repeatability, stale settings, suspension and no app/child access' as result;
+rollback;

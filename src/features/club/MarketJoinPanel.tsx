@@ -15,16 +15,16 @@ export function MarketJoinPanel({clubId, clubName='deinem Verein', onJoined}: {c
  const token=marketInviteToken(params.get('invite'));
  const [accepted,setAccepted]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const [teams,setTeams]=useState<Array<{id:string;name:string;age_group:string|null}>>([]),[chosen,setChosen]=useState<string[]>([]),[loading,setLoading]=useState(false),[reload,setReload]=useState(0);
- useEffect(()=>{setChosen([]);setAccepted(false);setError('');setTeams([]);if(!user||!token)return;let active=true;setLoading(true);
+ useEffect(()=>{setChosen([]);setAccepted(false);setError('');setTeams([]);if(!user)return;let active=true;setLoading(true);
   void supabase.rpc('exchange_team_options',{p_club_id:clubId,p_token:token}).then(r=>{if(!active)return;if(r.error)setError(r.error.message);else setTeams(r.data||[]);setLoading(false);},()=>{if(active){setError('Mannschaften konnten nicht geladen werden.');setLoading(false);}});
   return()=>{active=false;};
  },[clubId,user?.id,token,reload]);
  const next=`/marktplatz/${clubId}?${new URLSearchParams({...Object.fromEntries(params),view:'member'})}`;
  const query=new URLSearchParams({context:'vereinsmarkt',marketClub:clubId,next}).toString();
  async function join(){
-  if(busy||!accepted||!token||!chosen.length||loading)return;setBusy(true);setError('');
+  if(busy||!accepted||!chosen.length||loading)return;setBusy(true);setError('');
   try {
-   const result=await supabase.rpc('exchange_join',{p_club_id:clubId,p_token:token,p_accepted:accepted,p_team_ids:chosen});
+   const result=await supabase.rpc(token?'exchange_join':'exchange_self_join',{p_club_id:clubId,...(token?{p_token:token}:{}),p_accepted:accepted,p_team_ids:chosen});
    if(result.error)throw result.error;
    if(result.data!==true)throw new Error('Beitritt fehlgeschlagen. Bitte erneut versuchen.');
    setParams(old=>{const p=new URLSearchParams(old);p.delete('invite');p.set('view','member');return p;},{replace:true});
@@ -37,7 +37,7 @@ export function MarketJoinPanel({clubId, clubName='deinem Verein', onJoined}: {c
   <p className="public-market-eyebrow">Alle Eltern. Ein Vereinsmarkt.</p>
   <h2>Willkommen im Vereinsmarkt {clubName==='deinem Verein'?'':clubName}</h2>
   <p>Trainingssachen anbieten, tauschen und weitergeben – auch wenn die Mannschaft oder dein Kind noch nicht in SpielzeitApp angelegt ist.</p>
-  {!token?<p className="exchange-hint">Bitte öffne den Einladungslink aus deiner Elterngruppe oder frage deinen Trainer danach. Ein Konto allein gibt noch keinen Vereinszugang.</p>:!user?<>
+  {!user?<>
    <Link className="public-market-cta" to={marketAuthPath('register',query)}>Neu? Jetzt registrieren</Link>
    <Link className="public-market-register" to={marketAuthPath('login',query)}>Schon ein Konto? Anmelden</Link>
    <small>Ein Konto für Vereinsmarkt und SpielzeitApp. Nach der E-Mail-Bestätigung kannst du hier beitreten.</small>

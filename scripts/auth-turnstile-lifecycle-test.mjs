@@ -97,3 +97,8 @@ assert.match(renderer.root.findByProps({ role: 'alert' }).children.join(''), /Si
 assert.doesNotMatch(renderer.root.findByProps({ role: 'alert' }).children.join(''), /timeout-or-duplicate/);
 act(() => renderer.unmount());
 console.log('auth-login-single-submit-test: OK');
+assert.match(errorModule.exports.authErrorMessage({message:'Invalid login credentials',code:'invalid_credentials'}),/E-Mail-Adresse oder Passwort ist falsch/);
+assert.match(errorModule.exports.authErrorMessage({message:'Email not confirmed',code:'email_not_confirmed'}),/bestätige zuerst/);
+assert.match(errorModule.exports.authErrorMessage({message:'Email rate limit exceeded'}),/Zu viele Versuche/);
+assert.doesNotMatch(errorModule.exports.authErrorMessage({message:'Unknown provider internal error'}),/Unknown|internal/);
+console.log('PASS: German credential, confirmation, rate-limit and safe fallback messages');

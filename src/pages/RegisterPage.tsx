@@ -1,3 +1,4 @@
+import {authErrorMessage} from '../lib/authErrorMessage';
 import { marketAuthContext, marketAuthPath } from '../features/club/marketAuth';
 import { MarketAuthBrand } from '../features/club/MarketAuthBrand';
 import { MarketLegalLinks } from '../features/club/MarketLegalLinks';
@@ -229,8 +230,8 @@ export const RegisterPage: React.FC = () => {
           },
         });
         if (updateError) {
-          setError(updateError.message);
-          setMessage({ type: 'error', text: updateError.message });
+          setError(authErrorMessage(updateError));
+          setMessage({ type: 'error', text: authErrorMessage(updateError) });
           setLoading(false);
           return;
         }
@@ -299,8 +300,8 @@ export const RegisterPage: React.FC = () => {
       const { data, error: signUpError } = result;
 
       if (signUpError) {
-        setError(signUpError.message);
-        setMessage({ type: 'error', text: signUpError.message });
+        setError(authErrorMessage(signUpError));
+        setMessage({ type: 'error', text: authErrorMessage(signUpError) });
         setLoading(false);
         return;
       }
@@ -344,7 +345,7 @@ export const RegisterPage: React.FC = () => {
       });
       setLoading(false);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = authErrorMessage(err instanceof Error ? err : {message:String(err)});
       setError(msg);
       setMessage({ type: 'error', text: msg });
       setLoading(false);
@@ -462,7 +463,7 @@ export const RegisterPage: React.FC = () => {
             </button>
 
             <p className="mt-4 text-center text-[12px] leading-5 text-white/45">
-              {market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle über eure Vereinseinladung die Mannschaft deiner Familie. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
+              {market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend die Mannschaft deiner Familie. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
                 ? 'Nach der Bestätigung öffnet sich deine persönliche Einladung.'
                 : 'Nach der Bestätigung geht es automatisch zur Rollenwahl.'}
               {' '}Dein Passwort bleibt gespeichert.
@@ -504,7 +505,7 @@ export const RegisterPage: React.FC = () => {
           {existingAccount ? 'Anmeldung verwenden' : market ? 'Für den Vereinsmarkt registrieren' : hasInviteSession ? 'Konto vervollständigen' : clubReturnTo ? 'Für USC Rohrbach registrieren' : 'Registrieren'}
         </h1>
         <p className="mt-1 text-sm text-white/60">
-          {existingAccount ? 'Wenn du bereits ein Konto bei SpielzeitApp hast, kannst du es auch für den Vereinsmarkt verwenden. Eine erneute Registrierung versendet keine Bestätigungsmail.' : market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle über eure Vereinseinladung die Mannschaft deiner Familie. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
+          {existingAccount ? 'Wenn du bereits ein Konto bei SpielzeitApp hast, kannst du es auch für den Vereinsmarkt verwenden. Eine erneute Registrierung versendet keine Bestätigungsmail.' : market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend die Mannschaft deiner Familie. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
             ? hasInviteSession
               ? 'Name und Passwort setzen. Danach geht es direkt zur Einladung — ohne Rollen- oder Mannschaftswahl.'
               : 'Konto mit der eingeladenen E-Mail anlegen. Nach der Bestätigung kannst du die Einladung annehmen — ohne Vereins- oder Kindauswahl.'

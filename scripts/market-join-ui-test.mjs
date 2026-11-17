@@ -37,7 +37,10 @@ state.error=null;await click(button('Dem Vereinsmarkt beitreten'));assert.equal(
 assert.deepEqual(joinCalls().at(-1).args,{p_club_id:club,p_token:token,p_accepted:true,p_team_ids:['u12','u13']});
 const q=new URLSearchParams(app.root.findByType('output').children.join(''));assert.equal(q.has('invite'),false);assert.equal(q.get('mode'),'create');await unmount();
 state.teams=[];await mount(`invite=${token}`);assert.equal(button('Dem Vereinsmarkt beitreten').props.disabled,true);assert.ok(JSON.stringify(app.toJSON()).includes('keine Mannschaften'));await unmount();
-await mount('view=member');assert.equal(app.root.findAllByType('button').length,0);await unmount();
+state.teams=[{id:'u12',name:'Rohrbach U12',age_group:'U12'}];
+await mount('view=member');assert.ok(app.root.findByType('fieldset'));assert.ok(!JSON.stringify(app.toJSON()).includes('Einladungslink aus'));
+await renderer.act(async()=>{app.root.findByType('fieldset').findByType('input').props.onChange({target:{checked:true}});consent().props.onChange({target:{checked:true}});});
+await click(button('Dem Vereinsmarkt beitreten'));assert.deepEqual(state.calls.filter(c=>c.name==='exchange_self_join').at(-1).args,{p_club_id:club,p_accepted:true,p_team_ids:['u12']});await unmount();
 state.allowed=false;await mount('view=profil',true);assert.equal(app.root.findAllByProps({'aria-label':'Vereinsmarkt-Mitglieder verwalten'}).length,0);await unmount();
 state.allowed=true;await mount('view=profil',true);assert.ok(button('Zugang sperren'));const before=state.calls.length;
 await click(button('Zugang sperren'));assert.equal(state.calls.length,before,'suspension requires concrete confirmation');

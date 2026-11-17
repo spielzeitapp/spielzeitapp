@@ -1,3 +1,4 @@
+import {authErrorMessage} from '../lib/authErrorMessage';
 import { marketAuthContext } from '../features/club/marketAuth';
 import { MarketAuthBrand } from '../features/club/MarketAuthBrand';
 import {uscAuthTarget} from '../features/club/uscAuth';
@@ -97,7 +98,7 @@ export const SetPasswordPage: React.FC = () => {
     const { error: updateError } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (updateError) {
-      setError(updateError.message);
+      setError(authErrorMessage(updateError));
       submitRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
       return;
     }
