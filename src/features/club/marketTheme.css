@@ -33,8 +33,6 @@ html[data-market-theme=light] .public-exchange .exchange .exchange-card{backgrou
 html[data-market-theme=light] .exchange-card-copy h3,html[data-market-theme=light] .exchange-empty h3{color:#211d25}
 html[data-market-theme=light] .exchange-card-copy p,html[data-market-theme=light] .exchange-card-copy small,html[data-market-theme=light] .exchange .exchange-empty p,html[data-market-theme=light] .exchange .exchange-back,html[data-market-theme=light] .exchange-owner,html[data-market-theme=light] .exchange-privacy{color:#625b68}
 html[data-market-theme=light] .exchange .exchange-card-copy strong,html[data-market-theme=light] .exchange-item-head strong{color:#b42343}
-html[data-market-theme=light] .exchange .market-save-button{background:#fff;color:#49354b;border-color:#cfc2d2;box-shadow:0 2px 6px #1b101226}
-html[data-market-theme=light] .exchange .market-save-button[aria-pressed=true]{background:#fff0f4;color:#af1f41;border-color:#b52e4b}
 html[data-market-theme=light] .exchange .exchange-chat,html[data-market-theme=light] .exchange-dialog,html[data-market-theme=light] .exchange-filter-sheet{background:#fff;border-color:#d6ceda;box-shadow:0 12px 36px #26142629}
 html[data-market-theme=light] .exchange-dialog::backdrop,html[data-market-theme=light] .exchange-filter-sheet::backdrop{background:#21142559}
 html[data-market-theme=light] .exchange-dialog .exchange-editor-form>.exchange-heading,html[data-market-theme=light] .exchange-dialog .exchange-editor-footer,html[data-market-theme=light] .exchange-filter-sheet footer{background:#faf8fb;border-color:#e0d8e3;box-shadow:none}
