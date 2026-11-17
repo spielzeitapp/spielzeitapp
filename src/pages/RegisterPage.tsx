@@ -504,10 +504,10 @@ export const RegisterPage: React.FC = () => {
       <div className={`${AUTH_PAGE_CARD_CLASS} ${market ? 'market-auth-card' : clubReturnTo ? 'usc-auth-card' : ''}`}>
         {market ? <MarketAuthBrand back={market.back}/> : tournamentReturnTo ? <TournamentAuthBrand back={tournamentReturnTo}/> : clubReturnTo ? <UscAuthBrand/> : null}
         <h1 className="text-xl font-semibold text-white">
-          {existingAccount ? 'Anmeldung verwenden' : market ? 'Für den Vereinsmarkt registrieren' : tournamentReturnTo ? 'Für das Turnier registrieren' : hasInviteSession ? 'Konto vervollständigen' : clubReturnTo ? 'Für USC Rohrbach registrieren' : 'Registrieren'}
+          {existingAccount ? 'Du hast bereits ein Konto' : market ? 'Für den Vereinsmarkt registrieren' : tournamentReturnTo ? 'Für das Turnier registrieren' : hasInviteSession ? 'Konto vervollständigen' : clubReturnTo ? 'Für USC Rohrbach registrieren' : 'Registrieren'}
         </h1>
         <p className="mt-1 text-sm text-white/60">
-          {existingAccount ? tournamentReturnTo ? 'Du kannst deinen bestehenden SpielzeitApp-Zugang auch für die Turniermeldung verwenden. Bitte anmelden.' : 'Wenn du bereits ein Konto bei SpielzeitApp hast, kannst du es auch für den Vereinsmarkt verwenden. Eine erneute Registrierung versendet keine Bestätigungsmail.' : market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend die Mannschaft deiner Familie. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
+          {existingAccount ? tournamentReturnTo ? 'Du kannst deinen bestehenden SpielzeitApp-Zugang auch für die Turniermeldung verwenden. Bitte anmelden.' : 'Für diese E-Mail-Adresse gibt es bereits ein Konto. Du kannst dich damit auch beim Vereinsmarkt anmelden. Tippe auf „Zur Anmeldung“ und verwende dein bisheriges Passwort. Weißt du es nicht mehr? Wähle „Passwort vergessen“. Eine neue Registrierung ist nicht nötig.' : market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend die Mannschaft deiner Familie. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
             ? hasInviteSession
               ? 'Name und Passwort setzen. Danach geht es direkt zur Einladung — ohne Rollen- oder Mannschaftswahl.'
               : 'Konto mit der eingeladenen E-Mail anlegen. Nach der Bestätigung kannst du die Einladung annehmen — ohne Vereins- oder Kindauswahl.'
@@ -671,7 +671,7 @@ export const RegisterPage: React.FC = () => {
           </Button>
         </form>}
 
-        <p className="mt-6 border-t border-white/10 pt-4 text-center text-sm text-white/60">
+        {!existingAccount&&<p className="mt-6 border-t border-white/10 pt-4 text-center text-sm text-white/60">
           Bereits registriert?{' '}
           <Link
             to={
@@ -686,7 +686,7 @@ export const RegisterPage: React.FC = () => {
           >
             Anmelden
           </Link>
-        </p>
+        </p>}
         {market&&<div className="market-auth-footer"><MarketLegalLinks/><p>Stöbern geht auch ohne Anmeldung.</p></div>}
         {clubReturnTo ? <UscAuthFooter/> : null}
       </div>

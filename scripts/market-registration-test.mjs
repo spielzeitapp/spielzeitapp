@@ -44,6 +44,6 @@ assert.equal(state.payload.options.data.auth_entry,'vereinsmarkt','email brandin
 assert.ok(app.root.findAllByType('div').some(d=>String(d.props.className).includes('market-auth-confirmation')),'confirmation uses market theme');
 await act(async()=>app.unmount());
 state.result={data:{user:null,session:null},error:{message:'Email rate limit exceeded'}};await mount();await fill();await submit();
-assert.ok(JSON.stringify(app.toJSON()).includes('Email rate limit exceeded'));assert.equal(app.root.findAllByType('form').length,1);
+assert.ok(JSON.stringify(app.toJSON()).includes('Zu viele Versuche'));assert.equal(app.root.findAllByType('form').length,1);
 await act(async()=>app.unmount());
 console.log('PASS: existing account recovery, invitation retained, new signup confirmation, API error, keyboard reveal without focus changes');
