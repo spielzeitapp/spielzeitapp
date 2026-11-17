@@ -99,3 +99,9 @@ html[data-market-shell] .public-exchange main.exchange{
 /* iOS translucent Homescreen can report a shortened fixed viewport (N8).
    The portal is outside the content scroller so this extension is not clipped. */
 .public-market-nav-viewport{transform:translateY(var(--market-native-bottom-extension,0px))}
+
+/* Larger return target and larger visible app crest in both appearances. */
+.public-exchange .public-market-header .public-market-app-switch{
+ width:54px;height:54px;min-width:54px;min-height:54px;padding:3px
+}
+.public-exchange .public-market-header .public-market-app-switch img{width:44px;height:44px}
