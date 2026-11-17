@@ -108,8 +108,8 @@ export const SetPasswordPage: React.FC = () => {
 
   if (checking || !allowed) {
     return (
-      <div className={`py-2 ${clubReturnTo ? 'usc-auth-page usc-auth-recovery' : ''}`}>
-        <Card>
+      <div className={`py-2 ${market ? 'market-auth-page market-auth-recovery' : clubReturnTo ? 'usc-auth-page usc-auth-recovery' : ''}`}>
+        <Card className={market ? 'market-auth-card' : ''}>
         {market ? <MarketAuthBrand back={market.back}/> : clubReturnTo ? <UscAuthBrand/> : null}
           <CardTitle>Weiterleitung…</CardTitle>
           <p className="mt-1 text-sm text-[var(--text-sub)]">Einen Moment bitte.</p>
@@ -119,8 +119,8 @@ export const SetPasswordPage: React.FC = () => {
   }
 
   return (
-    <div className={`py-2 ${clubReturnTo ? 'usc-auth-page usc-auth-recovery' : ''}`}>
-      <Card>
+    <div className={`py-2 ${market ? 'market-auth-page market-auth-recovery' : clubReturnTo ? 'usc-auth-page usc-auth-recovery' : ''}`}>
+      <Card className={market ? 'market-auth-card' : ''}>
         {market ? <MarketAuthBrand back={market.back}/> : clubReturnTo ? <UscAuthBrand/> : null}
         <CardTitle>Passwort festlegen</CardTitle>
         <p className="mt-1 text-sm text-[var(--text-sub)]">

@@ -6,6 +6,8 @@ const require = createRequire(import.meta.url),
   { act, create } = require("react-test-renderer"),
   { MemoryRouter, useLocation } = require("react-router-dom");
 const store = new Map();
+globalThis.requestAnimationFrame=()=>0;
+globalThis.cancelAnimationFrame=()=>{};
 globalThis.window = {
   location: {
     hostname: "app.spielzeitapp.at",
@@ -276,6 +278,14 @@ assert.equal(tree.root.findByType('output').children.join(''),marketNext);await 
 await mount(register.RegisterPage,'/marktplatz/'+marketClub+'/registrieren?'+marketQuery);assert.match(json(),/Für den Vereinsmarkt registrieren/);assert.ok(hrefs().includes('/marktplatz/'+marketClub+'/anmelden?'+marketQuery));await act(async()=>tree.unmount());
 await mount(forgot.ForgotPasswordPage,'/marktplatz/'+marketClub+'/passwort-vergessen?'+marketQuery);assert.match(json(),/market-auth-brand/);assert.ok(hrefs().includes('/marktplatz/'+marketClub+'/anmelden?'+marketQuery));await change('forgot-email','market@example.test');await act(async()=>tree.root.findByType('form').props.onSubmit({preventDefault(){}}));
 const marketReset=globalThis.__uscAuthCalls.filter(c=>c[0]==='reset').at(-1);assert.equal(new URL(marketReset[2].redirectTo).searchParams.get('next'),marketNext);await act(async()=>tree.unmount());
+window.location.hash='#type=recovery';
+await mount(setPassword.SetPasswordPage,'/app/set-password?'+marketQuery);
+await act(async()=>{await new Promise(resolve=>setTimeout(resolve,75));});
+assert.match(json(),/market-auth-page market-auth-recovery/);assert.match(json(),/market-auth-card/);assert.match(json(),/market-auth-brand/);
+await change('set-password','fixture-password');await change('set-password-confirm','fixture-password');
+await act(async()=>tree.root.findByType('form').props.onSubmit({preventDefault(){}}));
+await act(async()=>{await new Promise(resolve=>setTimeout(resolve,850));});
+assert.equal(tree.root.findByType('output').children.join(''),marketNext);await act(async()=>tree.unmount());window.location.hash='';
 console.log('PASS Vereinsmarkt: own auth brand, no player/demo controls, safe market back link, signup/reset continuity, original sign-in and selected listing retained.');
 
 const marketHelpers=mods.at(-1);

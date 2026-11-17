@@ -1,0 +1,29 @@
+name: Configure TEST contextual auth email sender
+on:
+  push:
+    branches: [develop]
+    paths:
+      - api/auth/email-hook.js
+      - server/lib/authEmailHook.js
+      - scripts/staging-auth-email-hook.mjs
+      - .github/workflows/staging-auth-email-hook.yml
+permissions:
+  contents: read
+concurrency:
+  group: staging-auth-email-hook
+  cancel-in-progress: false
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify email signatures and contextual messages
+        run: node scripts/auth-email-hook-test.mjs
+      - name: Verify deployed transport before enabling TEST hook
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: node scripts/staging-auth-email-hook.mjs

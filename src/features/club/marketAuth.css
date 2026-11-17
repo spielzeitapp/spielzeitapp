@@ -8,3 +8,5 @@ html[data-market-theme=light] .market-auth-action{border-color:#d7cedc;color:#79
 html[data-market-theme=light] .market-auth-confirmation [class*="text-emerald-"]{color:#146345}
 html[data-market-theme=light] .market-auth-confirmation [class*="text-amber-"]{color:#785000}
 html[data-market-theme=light] .market-auth-confirmation .usc-confirm-resend{color:#fff;background:#98243f}
+
+.market-auth-recovery{padding: max(24px,env(safe-area-inset-top)) 16px max(32px,env(safe-area-inset-bottom))!important}.market-auth-recovery>.market-auth-card{max-width:480px;margin:0 auto;padding:24px}.market-auth-recovery .market-auth-card input{color:var(--market-text,#fff)}
