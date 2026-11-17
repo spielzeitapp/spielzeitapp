@@ -6,7 +6,7 @@ import './marketNotifications.css';
 export function MarketNotifications({userId,unread}:{userId:string;unread:number}){
  const push=usePushSubscription(userId);
  useEffect(()=>{if(push.isActive)void syncAppBadge(unread);},[push.isActive,unread]);
- useEffect(()=>{if(typeof window==='undefined'||typeof document==='undefined')return;const sync=()=>{if(!document.hidden)void push.syncFromBrowser();};window.addEventListener('focus',sync);document.addEventListener('visibilitychange',sync);return()=>{window.removeEventListener('focus',sync);document.removeEventListener('visibilitychange',sync);};},[push.syncFromBrowser]);
+ useEffect(()=>{const sync=()=>{if(!document.hidden)void push.syncFromBrowser();};window.addEventListener('focus',sync);document.addEventListener('visibilitychange',sync);return()=>{window.removeEventListener('focus',sync);document.removeEventListener('visibilitychange',sync);};},[push.syncFromBrowser]);
  const blocked=push.permission==='denied';
  const status=!push.initDone?'Wird geprüft…':blocked?'In iOS oder im Browser blockiert':push.isActive?'Auf diesem Gerät aktiviert':'Auf diesem Gerät nicht aktiviert';
  return <section className="market-notifications" aria-labelledby="market-notifications-title">

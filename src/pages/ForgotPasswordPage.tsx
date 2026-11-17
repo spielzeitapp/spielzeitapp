@@ -1,3 +1,4 @@
+import {authErrorMessage} from '../lib/authErrorMessage';
 import { MarketLegalLinks } from '../features/club/MarketLegalLinks';
 import { marketAuthContext, marketAuthPath } from '../features/club/marketAuth';
 import { MarketAuthBrand } from '../features/club/MarketAuthBrand';
@@ -56,7 +57,7 @@ export const ForgotPasswordPage: React.FC = () => {
     setCaptchaResetKey((value) => value + 1);
     setLoading(false);
     if (error) {
-      setMessage({ type: 'error', text: error.message });
+      setMessage({ type: 'error', text: authErrorMessage(error) });
       return;
     }
     setMessage({

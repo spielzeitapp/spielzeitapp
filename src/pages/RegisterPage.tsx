@@ -1,3 +1,4 @@
+import {authErrorMessage} from '../lib/authErrorMessage';
 import { marketAuthContext, marketAuthPath } from '../features/club/marketAuth';
 import { MarketAuthBrand } from '../features/club/MarketAuthBrand';
 import { MarketLegalLinks } from '../features/club/MarketLegalLinks';
@@ -121,6 +122,7 @@ export const RegisterPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
+  const [existingAccount, setExistingAccount] = useState(false);
   const [confirmationEmailSent, setConfirmationEmailSent] = useState<boolean | null>(null);
   const [resendingConfirmation, setResendingConfirmation] = useState(false);
   const [resendStatus, setResendStatus] = useState<{
@@ -228,8 +230,8 @@ export const RegisterPage: React.FC = () => {
           },
         });
         if (updateError) {
-          setError(updateError.message);
-          setMessage({ type: 'error', text: updateError.message });
+          setError(authErrorMessage(updateError));
+          setMessage({ type: 'error', text: authErrorMessage(updateError) });
           setLoading(false);
           return;
         }
@@ -286,7 +288,7 @@ export const RegisterPage: React.FC = () => {
         email: trimmedEmail,
         password,
         options: {
-          data: { first_name: trimmedFirst, last_name: trimmedLast },
+          data: { first_name: trimmedFirst, last_name: trimmedLast, ...(market ? { auth_entry: 'vereinsmarkt' } : {}) },
           emailRedirectTo: getAuthRedirectUrl(emailRedirectPath),
           ...(captchaToken ? { captchaToken } : {}),
         },
@@ -298,8 +300,8 @@ export const RegisterPage: React.FC = () => {
       const { data, error: signUpError } = result;
 
       if (signUpError) {
-        setError(signUpError.message);
-        setMessage({ type: 'error', text: signUpError.message });
+        setError(authErrorMessage(signUpError));
+        setMessage({ type: 'error', text: authErrorMessage(signUpError) });
         setLoading(false);
         return;
       }
@@ -325,19 +327,25 @@ export const RegisterPage: React.FC = () => {
         return;
       }
 
+      // Supabase deliberately returns an obfuscated user for repeated signups.
+      // Do not claim a confirmation email was sent for that response.
+      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        setExistingAccount(true);
+        setLoading(false);
+        return;
+      }
+
       setNeedsEmailConfirmation(true);
       setConfirmationEmailSent(null);
       setMessage({
         type: 'success',
-        text: market
-          ? 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach geht es zurück zum Vereinsmarkt, wo du mit der Vereinseinladung beitreten kannst.'
-          : isParentInviteFlow
+        text: market ? 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach wählst du die Mannschaft deiner Familie im Vereinsmarkt.' : isParentInviteFlow
           ? 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach geht es direkt mit der Einladung weiter — ohne Rollen- oder Mannschaftswahl.'
           : 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach geht es mit der Rollenwahl weiter — ohne erneutes Passwort.',
       });
       setLoading(false);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = authErrorMessage(err instanceof Error ? err : {message:String(err)});
       setError(msg);
       setMessage({ type: 'error', text: msg });
       setLoading(false);
@@ -380,14 +388,14 @@ export const RegisterPage: React.FC = () => {
     setConfirmationEmailSent(true);
     setResendStatus({
       type: 'success',
-      text: 'Neue Bestätigungs-E-Mail wurde versendet.',
+      text: 'Falls die Adresse noch nicht bestätigt ist, erhältst du eine neue Bestätigungs-E-Mail.',
     });
   };
 
   if (needsEmailConfirmation) {
     return (
       <div className={`${AUTH_PAGE_SHELL_CLASS} ${market ? 'market-auth-page' : clubReturnTo ? 'usc-auth-page' : ''}`}>
-        <div className="mx-auto w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(155deg,rgba(30,30,33,0.98),rgba(8,8,10,0.98))] shadow-[0_24px_70px_rgba(0,0,0,0.5)]">
+        <div className={`mx-auto w-full max-w-md shrink-0 overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(155deg,rgba(30,30,33,0.98),rgba(8,8,10,0.98))] shadow-[0_24px_70px_rgba(0,0,0,0.5)] ${market ? 'market-auth-card market-auth-confirmation' : ''}`}>
           <div className={`h-1 bg-gradient-to-r from-red-800 via-red-500 to-red-800 ${clubReturnTo ? 'usc-auth-accent' : ''}`} aria-hidden />
           <div className="px-5 py-6 sm:px-7 sm:py-8">
             {market ? <MarketAuthBrand back={market.back}/> : clubReturnTo ? <UscAuthBrand/> : null}
@@ -397,9 +405,9 @@ export const RegisterPage: React.FC = () => {
             <p className="usc-confirm-heading mt-5 text-[11px] font-bold uppercase tracking-[0.18em] text-red-400">
               Fast geschafft
             </p>
-            <h1 className="mt-1 text-[28px] font-black leading-tight text-white">E-Mail bestätigen</h1>
-            <p className="mt-3 text-[15px] leading-6 text-white/68">
-              Wir haben den Bestätigungslink an diese Adresse gesendet:
+            <h1 className="mt-1 text-[28px] font-black leading-tight text-white">{market ? 'E-Mail für den Vereinsmarkt bestätigen' : 'E-Mail bestätigen'}</h1>
+            <p className="mt-3 text-[15px] leading-6 text-white/70">
+              Wenn die Adresse neu ist, erhältst du hier den Bestätigungslink:
             </p>
             <div className="mt-3 break-all rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-center text-[15px] font-bold text-white">
               {email.trim().toLowerCase()}
@@ -420,7 +428,7 @@ export const RegisterPage: React.FC = () => {
             <div className="mt-5 rounded-xl border border-white/8 bg-black/20 px-4 py-3">
               <p className="text-[13px] font-semibold text-white/80">Keine E-Mail erhalten?</p>
               <p className="mt-1 text-[12px] leading-5 text-white/55">
-                Warte kurz und prüfe auch Spam, Junk oder Werbung.
+                Prüfe auch Spam oder Werbung. Bereits bei SpielzeitApp registriert? Verwende unten „Zur Anmeldung“ oder „Passwort vergessen“.
               </p>
             </div>
 
@@ -455,7 +463,7 @@ export const RegisterPage: React.FC = () => {
             </button>
 
             <p className="mt-4 text-center text-[12px] leading-5 text-white/45">
-              {market ? 'Erstelle dein Vereinsmarkt-Konto – ohne App-Installation. Es gilt auch für SpielzeitApp. Hast du dort bereits einen Zugang? Melde dich damit an. Mit der Vereinseinladung kannst du direkt dem Vereinsmarkt beitreten – ohne Mannschafts- oder Kindzuordnung.' : isParentInviteFlow
+              {market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend die Mannschaft deiner Familie. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
                 ? 'Nach der Bestätigung öffnet sich deine persönliche Einladung.'
                 : 'Nach der Bestätigung geht es automatisch zur Rollenwahl.'}
               {' '}Dein Passwort bleibt gespeichert.
@@ -472,6 +480,7 @@ export const RegisterPage: React.FC = () => {
             >
               Zur Anmeldung
             </Link>
+            <Link className="mt-3 block font-semibold text-white/70 hover:underline" to={market ? marketAuthPath('forgot-password', location.search) : clubReturnTo ? uscAuthPath('passwort-vergessen', clubReturnTo) : '/forgot-password'}>Passwort vergessen</Link>
             </div>
           </div>
 
@@ -493,17 +502,24 @@ export const RegisterPage: React.FC = () => {
       <div className={`${AUTH_PAGE_CARD_CLASS} ${market ? 'market-auth-card' : clubReturnTo ? 'usc-auth-card' : ''}`}>
         {market ? <MarketAuthBrand back={market.back}/> : clubReturnTo ? <UscAuthBrand/> : null}
         <h1 className="text-xl font-semibold text-white">
-          {market ? 'Für den Vereinsmarkt registrieren' : hasInviteSession ? 'Konto vervollständigen' : clubReturnTo ? 'Für USC Rohrbach registrieren' : 'Registrieren'}
+          {existingAccount ? 'Du hast bereits ein Konto' : market ? 'Für den Vereinsmarkt registrieren' : hasInviteSession ? 'Konto vervollständigen' : clubReturnTo ? 'Für USC Rohrbach registrieren' : 'Registrieren'}
         </h1>
         <p className="mt-1 text-sm text-white/60">
-          {market ? 'Erstelle dein Vereinsmarkt-Konto – ohne App-Installation. Es gilt auch für SpielzeitApp. Hast du dort bereits einen Zugang? Melde dich damit an. Mit der Vereinseinladung kannst du direkt dem Vereinsmarkt beitreten – ohne Mannschafts- oder Kindzuordnung.' : isParentInviteFlow
+          {existingAccount ? 'Für diese E-Mail-Adresse gibt es bereits ein Konto. Du kannst dich damit auch beim Vereinsmarkt anmelden. Tippe auf „Zur Anmeldung“ und verwende dein bisheriges Passwort. Weißt du es nicht mehr? Wähle „Passwort vergessen“. Eine neue Registrierung ist nicht nötig.' : market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend die Mannschaft deiner Familie. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
             ? hasInviteSession
               ? 'Name und Passwort setzen. Danach geht es direkt zur Einladung — ohne Rollen- oder Mannschaftswahl.'
               : 'Konto mit der eingeladenen E-Mail anlegen. Nach der Bestätigung kannst du die Einladung annehmen — ohne Vereins- oder Kindauswahl.'
             : clubReturnTo ? 'Ein Konto für deine Vereinsapp. Bereits bei SpielzeitApp registriert? Verwende deine bestehenden Zugangsdaten.' : 'Konto anlegen – danach kannst du Rolle, Team und Kind verknüpfen.'}
         </p>
 
-        <form onSubmit={handleRegister} className="mt-6 space-y-4">
+        {existingAccount ? (
+          <div className="mt-6 space-y-4" role="status">
+            <p className="break-all rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-white">{email.trim().toLowerCase()}</p>
+            <Link className="market-auth-action" to={market ? marketAuthPath('login', location.search) : clubReturnTo ? uscAuthPath('anmelden', clubReturnTo) : `/login?${buildParentInviteAuthQuery({ next: nextSafe || '', email })}`}>Zur Anmeldung</Link>
+            <Link className="market-auth-action" to={market ? marketAuthPath('forgot-password', location.search) : clubReturnTo ? uscAuthPath('passwort-vergessen', clubReturnTo) : '/forgot-password'}>Passwort vergessen</Link>
+            <button type="button" className="min-h-12 w-full text-sm text-white/80 underline" onClick={() => { setExistingAccount(false); setPassword(''); setConfirmPassword(''); }}>Andere E-Mail-Adresse verwenden</button>
+          </div>
+        ) : <form onSubmit={handleRegister} className="mt-6 space-y-4">
           
           <div>
             <label htmlFor="reg-first-name" className="mb-1 block text-sm font-medium text-white/80">
@@ -651,9 +667,9 @@ export const RegisterPage: React.FC = () => {
                 ? 'Speichern und weiter'
                 : 'Konto anlegen'}
           </Button>
-        </form>
+        </form>}
 
-        <p className="mt-6 border-t border-white/10 pt-4 text-center text-sm text-white/60">
+        {!existingAccount&&<p className="mt-6 border-t border-white/10 pt-4 text-center text-sm text-white/60">
           Bereits registriert?{' '}
           <Link
             to={
@@ -668,7 +684,7 @@ export const RegisterPage: React.FC = () => {
           >
             Anmelden
           </Link>
-        </p>
+        </p>}
         {market&&<div className="market-auth-footer"><MarketLegalLinks/><p>Stöbern geht auch ohne Anmeldung.</p></div>}
         {clubReturnTo ? <UscAuthFooter/> : null}
       </div>

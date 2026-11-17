@@ -9,6 +9,9 @@
  * Secrets stay server-side. Invite origin is bound to the Supabase project ref.
  * Client Host/Origin headers are never trusted.
  */
+import authEmailHook from '../../server/lib/authEmailEndpoint.js';
+export const config={api:{bodyParser:false}};
+
 import { createClient } from '@supabase/supabase-js';
 import { sendParentInviteEmail, sendStaffInviteEmail } from '../../server/lib/sendParentInviteEmail.js';
 
@@ -310,7 +313,13 @@ async function handleCompleteSignup(req, res, { supabaseUrl, serviceKey, admin }
 }
 
 export default async function handler(req, res) {
+  // Auth hook requires the exact signed bytes; existing invitation calls are parsed below.
+  if(req.query?.auth_email_hook==='1')return authEmailHook(req,res);
   try {
+    if(req.method==='POST'&&req.body===undefined){
+      let raw='';for await(const chunk of req){raw+=chunk.toString();if(Buffer.byteLength(raw)>131072)return res.status(413).json({ok:false,error:'Payload too large'});}
+      req.body=raw;
+    }
     if (req.method !== 'POST') {
       return res.status(405).json({ ok: false, error: 'Method not allowed' });
     }

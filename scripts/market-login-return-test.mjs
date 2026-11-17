@@ -16,5 +16,5 @@ assert.equal((await resolve({from:market+'?view=saved',consciousLogin:true})).ki
 for(const bad of ['https://evil.test'+market,'//evil.test'+market,market+'/../../app',market+'/anmelden','/marktplatz/bad'])assert.equal(safe(bad),false);
 assert.equal((await resolve({consciousLogin:true})).kind,'branded_entry');
 assert.equal((await resolve({next:'/manager',consciousLogin:true})).path,'/manager');
-globalThis.invite='/app/parent-invite';assert.equal((await resolve({next:market,consciousLogin:true})).kind,'parent_invite');
+globalThis.invite='/app/parent-invite';assert.equal((await resolve({next:market,consciousLogin:true})).kind,'deep_link');assert.equal((await resolve({next:market,consciousLogin:true,parentInviteFlowHint:true})).kind,'parent_invite');
 console.log('PASS: market login retains start, listing, own listings and chat; external/traversal rejected; app splash and invite precedence preserved.');
