@@ -10,7 +10,7 @@ module.exports=async function(req,res){
  if(!UUID.test(club)||(listing&&!UUID.test(listing)))return res.status(400).json({error:'Ungültiger Link'});
  if(req.query.manifest==='1'){
   res.setHeader('Content-Type','application/manifest+json');
-  return res.status(200).json({id:`/marktplatz/${club}`,name:'Vereinsmarkt · SpielzeitApp',short_name:'Vereinsmarkt',start_url:`/marktplatz/${club}`,scope:'/marktplatz/',display:'standalone',background_color:'#08080b',theme_color:'#08080b',icons:[{src:'/vereinsmarkt/icon-192.png',sizes:'192x192',type:'image/png'},{src:'/vereinsmarkt/icon-512.png',sizes:'512x512',type:'image/png'}]});
+  return res.status(200).json({id:`/marktplatz/${club}`,name:'Vereinsmarkt · SpielzeitApp',short_name:'Vereinsmarkt',start_url:`/marktplatz/${club}`,scope:'/',display:'standalone',background_color:'#08080b',theme_color:'#08080b',icons:[{src:'/vereinsmarkt/icon-192.png',sizes:'192x192',type:'image/png'},{src:'/vereinsmarkt/icon-512.png',sizes:'512x512',type:'image/png'}]});
  }
  const ids=req.query.ids===undefined?null:String(req.query.ids).split(',');
  if(ids&&(!ids.length||ids.length>50||ids.some(id=>!UUID.test(id))))return res.status(400).json({error:'Ungültige Inserat-Auswahl'});
