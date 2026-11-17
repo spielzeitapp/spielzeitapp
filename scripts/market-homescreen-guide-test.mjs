@@ -10,11 +10,18 @@ const built=await build({entryPoints:['src/features/club/MarketHomeScreenGuide.t
 const m=new Module('home-guide');m.paths=require.resolve.paths('react');m._compile(built.outputFiles[0].text,'home-guide');const {MarketHomeScreenGuide}=m.exports;
 let app;const mount=(club='one',alwaysAvailable=false)=>act(async()=>{app=create(React.createElement(MarketHomeScreenGuide,{clubId:club,alwaysAvailable}));});
 const text=()=>JSON.stringify(app.toJSON());const button=label=>app.root.findAllByType('button').find(b=>b.children.includes(label));const unmount=()=>act(async()=>app.unmount());
-await mount();assert.ok(text().includes('So geht’s'));await act(async()=>button('So geht’s').props.onClick());assert.ok(text().includes('Safari'));assert.ok(text().includes('Zum Home-Bildschirm'));assert.ok(text().includes('nicht sicher erkennen'));
+await mount();assert.ok(text().includes('So geht’s'));await act(async()=>button('So geht’s').props.onClick());assert.ok(text().includes('Safari'));await act(async()=>app.root.findByProps({'aria-label':'Schritt 3: Zum Home-Bildschirm'}).props.onClick());assert.ok(text().includes('Zum Home-Bildschirm'));assert.ok(text().includes('nicht sicher erkennen'));
+const slides=()=>app.root.findByProps({'aria-label':'Wischbare Installationsanleitung'});
+const swipe=async(x,y)=>act(async()=>{slides().props.onTouchStart({touches:[{clientX:200,clientY:100}]});slides().props.onTouchEnd({changedTouches:[{clientX:x,clientY:y}]});});
+await swipe(100,105);assert.ok(text().includes('Fertig!'));assert.equal(app.root.findByProps({'aria-label':'Nächster Schritt'}).props.disabled,true);
+await swipe(100,105);assert.ok(text().includes('Fertig!'),'last step is bounded');
+await swipe(290,100);assert.ok(text().includes('Zum Home-Bildschirm'));
+await swipe(195,230);assert.equal(app.root.findAllByProps({'aria-current':'step'})[0].props['aria-label'],'Schritt 3: Zum Home-Bildschirm','vertical page scroll must not change slides');
+
 await act(async()=>button('Icon bereits vorhanden').props.onClick());assert.equal(app.toJSON(),null);await unmount();await mount();assert.equal(app.toJSON(),null);await unmount();
 await mount('two');assert.ok(text().includes('So geht’s'),'another club remains independent');await unmount();await mount('one',true);assert.ok(text().includes('Icon schon vorhanden'));await unmount();
 standalone=true;await mount('two');assert.equal(app.toJSON(),null);await unmount();await mount('two',true);assert.ok(text().includes('Über das App-Icon geöffnet'));assert.ok(!text().includes('So geht’s'));await unmount();
-standalone=false;navigator.userAgent='Android';await mount('three');await act(async()=>button('So geht’s').props.onClick());assert.ok(text().includes('Chrome'));assert.ok(text().includes('Zum Startbildschirm hinzufügen'));
+standalone=false;navigator.userAgent='Android';await mount('three');await act(async()=>button('So geht’s').props.onClick());assert.ok(text().includes('Chrome'));await act(async()=>app.root.findByProps({'aria-label':'Schritt 3: App hinzufügen'}).props.onClick());assert.ok(text().includes('Zum Startbildschirm hinzufügen'));
 let called=0;const event=new Event('beforeinstallprompt',{cancelable:true});event.prompt=async()=>{called++};event.userChoice=Promise.resolve({outcome:'accepted'});await act(async()=>events.dispatchEvent(event));assert.equal(event.defaultPrevented,true);await act(async()=>button('Vereinsmarkt installieren').props.onClick());assert.equal(called,1);assert.ok(text().includes('Installation bestätigt'));
 await act(async()=>events.dispatchEvent(new Event('appinstalled')));assert.equal(app.toJSON(),null);await unmount();
 blocked=true;await mount('four');await act(async()=>button('Icon bereits vorhanden').props.onClick());assert.equal(app.toJSON(),null);await unmount();

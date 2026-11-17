@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {CheckCircle2, Share, Smartphone, X} from 'lucide-react';
 import {isStandaloneDisplayMode} from '../../lib/pwaDisplayMode';
 import './marketHomeScreenGuide.css';
+import {MarketInstallSlides} from './MarketInstallSlides';
 type InstallEvent=Event&{prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 /** A saved preference is self-reported; Safari cannot inspect the Home Screen. */
 export function MarketHomeScreenGuide({clubId,alwaysAvailable=false}:{clubId:string;alwaysAvailable?:boolean}){
@@ -25,8 +26,7 @@ export function MarketHomeScreenGuide({clubId,alwaysAvailable=false}:{clubId:str
   {standalone?<p className="market-home-guide-status"><CheckCircle2 size={18}/>Keine weitere Installation nötig.</p>:<>
    {message&&<p role="status">{message}</p>}
    {!expanded?<div className="market-home-guide-actions"><button type="button" onClick={()=>setExpanded(true)}><Smartphone size={18}/>So geht’s</button>{!hidden&&<button type="button" onClick={()=>dismiss(true)}>Icon bereits vorhanden</button>}</div>:<>
-    <h3>{ios?'iPhone / iPad':'Android / andere Geräte'}</h3>
-    {ios?<ol><li>Diese Vereinsmarkt-Seite in <strong>Safari</strong> öffnen. Aus WhatsApp oder Gmail zuerst „In Safari öffnen“ wählen.</li><li>Auf <strong>Teilen</strong> <Share size={16} aria-label="Teilen-Symbol"/> tippen, im Menü nach oben wischen und <strong>„Zum Home-Bildschirm“</strong> wählen.</li><li>Falls angezeigt, <strong>„Als Web-App öffnen“</strong> einschalten. Mit <strong>„Hinzufügen“</strong> bestätigen.</li><li>Danach das <strong>Vereinsmarkt-Icon</strong> am Home-Bildschirm öffnen.</li></ol>:<ol><li>Diese Vereinsmarkt-Seite am Handy in <strong>Chrome</strong> öffnen.</li><li>Im Menü <strong>⋮</strong> auf <strong>„App installieren“</strong> oder <strong>„Zum Startbildschirm hinzufügen“</strong> tippen.</li><li>Bestätigen und danach das <strong>Vereinsmarkt-Icon</strong> öffnen.</li></ol>}
+    <MarketInstallSlides ios={ios}/>
     <p className="market-home-guide-note">Schon ein Vereinsmarkt-Icon vorhanden? Öffne dieses. Im Browser lässt sich am iPhone nicht sicher erkennen, ob das Icon bereits hinzugefügt wurde. Stöbern geht auch hier im Browser.</p>
     {prompt&&<button type="button" className="market-home-guide-install" onClick={async()=>{try{await prompt.prompt();const choice=await prompt.userChoice;setMessage(choice.outcome==='accepted'?'Installation bestätigt. Öffne danach das Vereinsmarkt-Icon.':'Du kannst den Vereinsmarkt später hinzufügen.');}catch{setMessage('Bitte verwende die Anleitung über das Browsermenü.');}setPrompt(null);}}>Vereinsmarkt installieren</button>}
     <div className="market-home-guide-actions"><button type="button" onClick={()=>setExpanded(false)}>Anleitung schließen</button>{!alwaysAvailable&&<button type="button" onClick={()=>dismiss(true)}>Icon bereits vorhanden</button>}</div>
