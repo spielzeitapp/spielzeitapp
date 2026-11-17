@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {CheckCircle2, Share, Smartphone, X} from 'lucide-react';
 import {isStandaloneDisplayMode} from '../../lib/pwaDisplayMode';
 import './marketHomeScreenGuide.css';
-import {MarketInstallSlides} from './MarketInstallSlides';
+import {MarketInstallDialog} from './MarketInstallDialog';
 type InstallEvent=Event&{prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 /** A saved preference is self-reported; Safari cannot inspect the Home Screen. */
 export function MarketHomeScreenGuide({clubId,alwaysAvailable=false}:{clubId:string;alwaysAvailable?:boolean}){
@@ -26,7 +26,7 @@ export function MarketHomeScreenGuide({clubId,alwaysAvailable=false}:{clubId:str
   {standalone?<p className="market-home-guide-status"><CheckCircle2 size={18}/>Keine weitere Installation nötig.</p>:<>
    {message&&<p role="status">{message}</p>}
    {!expanded?<div className="market-home-guide-actions"><button type="button" onClick={()=>setExpanded(true)}><Smartphone size={18}/>So geht’s</button>{!hidden&&<button type="button" onClick={()=>dismiss(true)}>Icon bereits vorhanden</button>}</div>:<>
-    <MarketInstallSlides ios={ios}/>
+    <MarketInstallDialog ios={ios} onClose={()=>setExpanded(false)}/>
     <p className="market-home-guide-note">Schon ein Vereinsmarkt-Icon vorhanden? Öffne dieses. Im Browser lässt sich am iPhone nicht sicher erkennen, ob das Icon bereits hinzugefügt wurde. Stöbern geht auch hier im Browser.</p>
     {prompt&&<button type="button" className="market-home-guide-install" onClick={async()=>{try{await prompt.prompt();const choice=await prompt.userChoice;setMessage(choice.outcome==='accepted'?'Installation bestätigt. Öffne danach das Vereinsmarkt-Icon.':'Du kannst den Vereinsmarkt später hinzufügen.');}catch{setMessage('Bitte verwende die Anleitung über das Browsermenü.');}setPrompt(null);}}>Vereinsmarkt installieren</button>}
     <div className="market-home-guide-actions"><button type="button" onClick={()=>setExpanded(false)}>Anleitung schließen</button>{!alwaysAvailable&&<button type="button" onClick={()=>dismiss(true)}>Icon bereits vorhanden</button>}</div>
