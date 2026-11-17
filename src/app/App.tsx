@@ -1,3 +1,5 @@
+import {TournamentRegistrationPage} from '../features/tournamentRegistration/RegistrationPage';
+import {TournamentRegistrationAdminPage} from '../features/tournamentRegistration/AdminPage';
 import {MarketSplash} from '../features/club/MarketSplash';
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Navigate, Route, Routes, useParams, useSearchParams } from 'react-router-dom';
@@ -288,6 +290,8 @@ function InternalRoutes(): React.ReactElement {
       <Route path="/" element={<Navigate to="/app" replace />} />
       {/* TURNIER.1 – öffentliche Team-Turnierseite (ohne Login) */}
       <Route path="turnier/:publicId" element={<PublicTeamTournamentPage />} />
+      <Route path="turnier-meldung/:token" element={<TournamentRegistrationPage />} />
+      <Route path="turnier-verwaltung/:eventId" element={<TournamentRegistrationAdminPage />} />
       <Route path="login" element={<LoginPage />} />
       <Route path="register" element={<RegisterPage />} />
       <Route path="forgot-password" element={<ForgotPasswordPage />} />
@@ -504,6 +508,8 @@ function PublicRoutes(): React.ReactElement {
       </Route>
       {/* TURNIER.1 – öffentliche Team-Turnierseite auch auf der Public-Domain */}
       <Route path="turnier/:publicId" element={<PublicTeamTournamentPage />} />
+      <Route path="turnier-meldung/:token" element={<TournamentRegistrationPage />} />
+      <Route path="turnier-verwaltung/:eventId" element={<TournamentRegistrationAdminPage />} />
       <Route path="app" element={<Navigate to="/" replace />} />
       <Route path="app/*" element={<Navigate to="/" replace />} />
       <Route path="/admin" element={<Navigate to="/" replace />} />

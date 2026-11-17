@@ -1,3 +1,4 @@
+import {TournamentRegistrationAdminLink} from '../../features/tournamentRegistration/AdminLink';
 import { PublicTeamTournamentPage } from '../../pages/public/PublicTeamTournamentPage';
 import { tournamentTeamLogos } from '../../../server/lib/tournamentTeamLogos.js';
 import { TournamentLogoContext } from './TournamentClubLogo';
@@ -1274,6 +1275,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
           ) : null}
 
           <TournamentTeamsTab participants={participants} loading={loading} />
+          <TournamentRegistrationAdminLink eventId={tournamentEventId} />
 
           {canManage && !tournamentCanceled && participants.length > 0 ? (
             <section className={TC_CARD}>

@@ -28,6 +28,8 @@ export function isSafeAuthRedirectPath(path: string): boolean {
   if (trimmed.includes('\\') || trimmed.includes('@')) return false;
   const pathname = trimmed.split(/[?#]/, 1)[0];
   if (/^\/marktplatz\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pathname)) return true;
+  if (/^\/turnier-meldung\/[a-f0-9]{64}$/.test(pathname)) return true;
+  if (/^\/turnier-verwaltung\/[a-f0-9-]{36}$/.test(pathname)) return true;
   return ALLOWED_APP_PATH_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`) || (p === '/app' && pathname.startsWith('/app')),
   );

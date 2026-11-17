@@ -1,3 +1,4 @@
+import {isStagingApp} from '../../lib/appEnvironment';
 import {useTournamentScreenAccess, TournamentScreenManagers} from '../../components/tournament/TournamentScreenAccess';
 import {TournamentPresentation, TournamentPresentationTools} from '../../components/tournament/TournamentPresentation';
 import { TournamentFinalRanking } from '../../components/tournament/TournamentFinalRanking';
@@ -149,7 +150,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
       </header> : selectedMatch ? <button type="button" onClick={()=>setSearchParams({})} className="min-h-11 rounded-full border border-[var(--t-border)] px-4 text-sm font-bold">← Zurück zur Turnierübersicht</button> : null}
       {shareHint ? <p role="status" className="text-sm text-[var(--t-muted)]">{shareHint}</p> : null}
       {loading ? <p>Turnier wird geladen…</p> : !page ? <section className={card}><p>{error || 'Turnier nicht verfügbar'}</p><button onClick={()=>void load()} className="mt-3 underline">Erneut laden</button></section> : <>
-        {!embedded?<><TournamentPresentationTools page={page} canScreen={screenAccess.canScreen} onShare={()=>void onShare()}/>{screenAccess.canManage?<TournamentScreenManagers eventId={publicId} onChanged={()=>void refreshScreenAccess()}/>:null}</>:null}
+        {!embedded?<><TournamentPresentationTools page={page} canScreen={screenAccess.canScreen} onShare={()=>void onShare()}/>{screenAccess.canManage?<><TournamentScreenManagers eventId={publicId} onChanged={()=>void refreshScreenAccess()}/>{(isStagingApp()||import.meta.env.DEV)?<Link className="mt-3 inline-flex min-h-12 items-center rounded-full border border-[var(--t-border)] px-4 font-bold" to={'/turnier-verwaltung/'+publicId}>Mannschaften einladen & Meldungen prüfen</Link>:null}</>:null}</>:null}
         {selectedMatch ? <PublicTournamentMatchView page={page} match={selectedMatch} view={matchView} onView={view=>setSearchParams({spiel:selectedMatch.id,ansicht:view})}/> : <>
         {!embedded ? <section className="rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-3">
           <div className="flex items-center gap-3"><TournamentClubLogo name={page.teamName} logoUrl={page.teamLogoUrl} size="sm"/><div className="min-w-0 flex-1"><h1 className="text-base font-extrabold leading-snug">{page.tournamentName}</h1><p className="mt-1 text-xs text-[var(--t-muted)]">{page.dateLabel} · {page.ageGroupLabel}</p></div></div>

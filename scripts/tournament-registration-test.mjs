@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import ts from 'typescript';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const source=fs.readFileSync('src/features/tournamentRegistration/api.ts','utf8');
+const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+const context={exports:{},require:()=>({supabase:{}})};vm.runInNewContext(js,context);
+const {validateRegistrationPlayers:validate,registrationPath:path}=context.exports;
+assert.equal(validate([]),'Bitte mindestens einen Spieler auswählen.');
+assert.equal(validate([{id:'a',number:''}]),'Bitte Rückennummern von 0 bis 99 ergänzen.');
+for(const number of [-1,100,1.5,'1e1','NaN'])assert.ok(validate([{id:'a',number}]));
+assert.ok(validate([{id:'a',number:1},{id:'a',number:2}]));
+assert.ok(validate([{id:'a',number:'01'},{id:'b',number:1}]));
+assert.equal(validate([{id:'a',number:0},{id:'b',number:99}]),null);
+assert.equal(path('abc'),'/turnier-meldung/abc');
+console.log('Tournament registration validation: passed');
