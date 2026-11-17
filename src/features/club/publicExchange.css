@@ -105,3 +105,15 @@ html[data-market-shell] .public-exchange main.exchange{
  width:42px;height:42px;min-width:42px;min-height:42px;padding:0
 }
 .public-exchange .public-market-header .public-market-app-switch img{width:44px;height:44px;max-width:none;flex:none}
+
+/* Match SpielzeitApp N5 exactly for an in-app market route: recover the
+   document frame, then anchor absolutely to it, never to stale fixed bounds. */
+html[data-market-shell][data-viewport-entry=app][data-ios-standalone-fullscreen],
+html[data-market-shell][data-viewport-entry=app][data-ios-standalone-fullscreen] body,
+html[data-market-shell][data-viewport-entry=app][data-ios-standalone-fullscreen] #root{
+ height:var(--app-standalone-height);min-height:0!important;max-height:var(--app-standalone-height)
+}
+html[data-market-shell][data-viewport-entry=app][data-ios-standalone-fullscreen] body{position:relative}
+html[data-market-shell][data-viewport-entry=app][data-ios-standalone-fullscreen] .public-market-nav-viewport{
+ position:absolute;bottom:0;transform:none
+}

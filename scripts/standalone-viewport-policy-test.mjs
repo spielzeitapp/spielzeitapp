@@ -69,14 +69,13 @@ assert.equal(Number.parseFloat(values.get('--app-visible-height')),fullZoomHeigh
 assert.equal(root.dataset.iosStandaloneFullscreen,undefined);
 // Reinstalled opaque status bar reserves 62 physical px outside viewport.
 marketShell=true;safeTop=0;vv.scale=pageZoom.scale;vv.height=955;
-// Enter market from SpielzeitApp without resize: discard the previous fullscreen height.
+// The in-app market shares SpielzeitApp's recovered frame and absolute nav anchor.
 win.dispatchEvent(new Event('spz-viewport-recover'));
-assert.equal(root.dataset.iosStandaloneFullscreen,undefined);
-assert.equal(values.get('--app-visible-height'),'955px');
-assert.equal(values.get('--market-native-bottom-extension'),'0px','opaque status bar needs no native extension');
-assert.equal(values.has('--app-standalone-height'),false);
-const opaqueNavBottom=62+(955-10)*vv.scale;
-assert.ok(opaqueNavBottom<874 && opaqueNavBottom>860,'entire nav remains inside physical screen');
+assert.equal(root.dataset.iosStandaloneFullscreen,'true');
+assert.equal(root.dataset.viewportEntry,'app');
+assert.ok(Math.abs(Number.parseFloat(values.get('--app-visible-height'))*vv.scale-874)<0.001);
+assert.equal(values.get('--market-native-bottom-extension'),'0px');
+assert.equal(values.has('--app-standalone-height'),true);
 safeTop=62;vv.dispatchEvent(new Event('resize'));
 assert.equal(values.get('--market-native-bottom-extension'),'0px','SpielzeitApp header switch must not use standalone market extension');
 ctx.cleanup();win.location.pathname='/marktplatz/9c7a8741-6e73-42d5-88d8-46ce5217e8cd';
