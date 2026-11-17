@@ -15,12 +15,14 @@ export function buildAuthEmails(payload){
  const {user,email_data:d}=payload;
  if(!user?.email||!d)throw Error('Invalid payload');
  const type=d.email_action_type;
+ const notices={password_changed_notification:'Dein Passwort wurde geändert',email_changed_notification:'Deine E-Mail-Adresse wurde geändert',phone_changed_notification:'Deine Telefonnummer wurde geändert',identity_linked_notification:'Ein Anmeldedienst wurde verknüpft',identity_unlinked_notification:'Ein Anmeldedienst wurde entfernt',mfa_factor_enrolled_notification:'Ein zusätzlicher Anmeldefaktor wurde hinzugefügt',mfa_factor_unenrolled_notification:'Ein zusätzlicher Anmeldefaktor wurde entfernt'};
  const subjects={signup:'E-Mail-Adresse bestätigen',recovery:'Neues Passwort festlegen',invite:'Einladung annehmen',magiclink:'Jetzt anmelden',email:'Jetzt anmelden',email_change:'E-Mail-Änderung bestätigen',reauthentication:'Anmeldung bestätigen'};
- if(!subjects[type])throw Error('Unsupported action');
+ if(!subjects[type]&&!notices[type])throw Error('Unsupported action');
  let target=new URL(d.redirect_to||d.site_url||TEST_ORIGIN);
  if(target.origin!==TEST_ORIGIN)throw Error('Unexpected redirect origin');
  const market=target.searchParams.get('context')==='vereinsmarkt'||/^\/marktplatz\/[0-9a-f-]{36}(?:\/|$)/i.test(target.pathname);
  const brand=market?'Vereinsmarkt':'SpielzeitApp';
+ if(notices[type]){const title=notices[type],message='Falls du diese Änderung nicht vorgenommen hast, wende dich bitte umgehend an den Support.';return [{to:type==='email_changed_notification'?(d.old_email||user.email):user.email,senderName:brand,subject:`${title} · ${brand}`,text:`${title} · ${brand}\n\n${message}`,html:`<div style="font-family:Arial,sans-serif;padding:24px"><h1>${brand}</h1><h2>${title}</h2><p>${message}</p></div>`}];}
  const targets=type==='email_change'?(d.token_hash_new?[{to:user.email,hash:d.token_hash_new,token:d.token},{to:user.new_email,hash:d.token_hash,token:d.token_new}]:[{to:user.new_email,hash:d.token_hash,token:d.token_new||d.token}]):[{to:user.email,hash:d.token_hash,token:d.token}];
  return targets.map(item=>{
   if(!item.to||!item.hash&&type!=='reauthentication')throw Error('Missing email token');

@@ -33,3 +33,6 @@ process.env.SUPABASE_URL='https://acbaecjzoabafbsjrzvr.supabase.co';process.env.
 assert.equal((await request('{}',{query:{auth_email_hook:'1'}})).status,401);
 assert.equal((await request(raw,{query:{auth_email_hook:'1'},headers})).status,503,'no configured transport must block activation');
 console.log('PASS: shared serverless endpoint preserves JSON validation, method/size guards and signed hook isolation');
+
+for(const type of ['password_changed_notification','email_changed_notification','phone_changed_notification','identity_linked_notification','identity_unlinked_notification','mfa_factor_enrolled_notification','mfa_factor_unenrolled_notification']){const [notice]=buildAuthEmails({user:{email:'current@example.invalid'},email_data:{email_action_type:type,site_url:TEST_ORIGIN,old_email:'old@example.invalid'}});assert.equal(notice.to,type==='email_changed_notification'?'old@example.invalid':'current@example.invalid');assert.doesNotMatch(notice.text,/verify|token=/);}
+console.log('PASS: all Supabase security notification types remain deliverable without verification tokens');
