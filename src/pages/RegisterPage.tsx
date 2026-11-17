@@ -329,7 +329,9 @@ export const RegisterPage: React.FC = () => {
       setConfirmationEmailSent(null);
       setMessage({
         type: 'success',
-        text: isParentInviteFlow
+        text: market
+          ? 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach geht es zurück zum Vereinsmarkt, wo du mit der Vereinseinladung beitreten kannst.'
+          : isParentInviteFlow
           ? 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach geht es direkt mit der Einladung weiter — ohne Rollen- oder Mannschaftswahl.'
           : 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach geht es mit der Rollenwahl weiter — ohne erneutes Passwort.',
       });
@@ -453,7 +455,7 @@ export const RegisterPage: React.FC = () => {
             </button>
 
             <p className="mt-4 text-center text-[12px] leading-5 text-white/45">
-              {market ? 'Erstelle dein Vereinsmarkt-Konto – ohne App-Installation. Es gilt auch für SpielzeitApp. Hast du dort bereits einen Zugang? Melde dich damit an. Zum Inserieren und für private Anfragen brauchst du eine Vereinszuordnung.' : isParentInviteFlow
+              {market ? 'Erstelle dein Vereinsmarkt-Konto – ohne App-Installation. Es gilt auch für SpielzeitApp. Hast du dort bereits einen Zugang? Melde dich damit an. Mit der Vereinseinladung kannst du direkt dem Vereinsmarkt beitreten – ohne Mannschafts- oder Kindzuordnung.' : isParentInviteFlow
                 ? 'Nach der Bestätigung öffnet sich deine persönliche Einladung.'
                 : 'Nach der Bestätigung geht es automatisch zur Rollenwahl.'}
               {' '}Dein Passwort bleibt gespeichert.
@@ -494,7 +496,7 @@ export const RegisterPage: React.FC = () => {
           {market ? 'Für den Vereinsmarkt registrieren' : hasInviteSession ? 'Konto vervollständigen' : clubReturnTo ? 'Für USC Rohrbach registrieren' : 'Registrieren'}
         </h1>
         <p className="mt-1 text-sm text-white/60">
-          {market ? 'Erstelle dein Vereinsmarkt-Konto – ohne App-Installation. Es gilt auch für SpielzeitApp. Hast du dort bereits einen Zugang? Melde dich damit an. Zum Inserieren und für private Anfragen brauchst du eine Vereinszuordnung.' : isParentInviteFlow
+          {market ? 'Erstelle dein Vereinsmarkt-Konto – ohne App-Installation. Es gilt auch für SpielzeitApp. Hast du dort bereits einen Zugang? Melde dich damit an. Mit der Vereinseinladung kannst du direkt dem Vereinsmarkt beitreten – ohne Mannschafts- oder Kindzuordnung.' : isParentInviteFlow
             ? hasInviteSession
               ? 'Name und Passwort setzen. Danach geht es direkt zur Einladung — ohne Rollen- oder Mannschaftswahl.'
               : 'Konto mit der eingeladenen E-Mail anlegen. Nach der Bestätigung kannst du die Einladung annehmen — ohne Vereins- oder Kindauswahl.'

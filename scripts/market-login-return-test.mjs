@@ -8,7 +8,7 @@ b.onLoad({filter:/.*/,namespace:'mock'},({path})=>({contents:path==='intro'?"exp
 const m={exports:{}};new Function('module','exports',r.outputFiles[0].text)(m,m.exports);
 const {resolvePostAuthDestination:resolve,isSafeAuthRedirectPath:safe}=m.exports;
 const market='/marktplatz/9c7a8741-6e73-42d5-88d8-46ce5217e8cd';
-for(const suffix of ['?view=start','?view=member&mode=mine','?view=member&thread=keep','?listing=keep']){
+for(const suffix of ['?view=start','?view=member&mode=mine','?view=member&thread=keep','?listing=keep','?view=member&invite='+ 'a'.repeat(64)]){
  const target=market+suffix;assert.equal(safe(target),true);
  assert.deepEqual(await resolve({next:target,consciousLogin:true}),{path:target,kind:'deep_link',hardReplace:false});
 }

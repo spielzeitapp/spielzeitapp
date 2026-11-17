@@ -15,7 +15,7 @@ const result=await build({entryPoints:['src/pages/ClubExchangePage.tsx'],bundle:
   env:`exports.isStagingApp=()=>true;`,
   ui:`const React=require('react');exports.PageShell=p=>React.createElement('main',null,p.children);`,
   exchange:`const React=require('react');exports.ClubExchange=p=>React.createElement('section',{'data-club':p.clubId,'data-user':p.userId,'data-teams':p.seasons.length,'data-default':p.defaultTeamLabel});`,
-  db:`exports.supabase={rpc:async()=>({data:global.__exchangeMain.access,error:null}),from:table=>{const q={select(){return q},eq(){return q},in(){return q},then(resolve,reject){if(table==='team_seasons')global.__exchangeMain.teamReads++;return Promise.resolve({data:table==='exchange_partner_teams'?[{club_id:'usc',team_id:'spg-u12',club:{name:'USC Rohrbach'}}]:[],error:null}).then(resolve,reject)}};return q;}};`,
+  db:`exports.supabase={rpc:async(name)=>({data:name==='exchange_my_clubs'?global.__exchangeMain.marketOnly?[{club_id:'usc',name:'USC Rohrbach'}]:global.__exchangeMain.memberships.filter(m=>m.role==='parent').map(m=>({club_id:m.team_season_id==='u12'?'usc':'melk',name:m.team_season_id==='u12'?'USC Rohrbach':'SC Melk'})):global.__exchangeMain.access,error:null}),from:table=>{const q={select(){return q},eq(){return q},in(){return q},then(resolve,reject){if(table==='team_seasons')global.__exchangeMain.teamReads++;return Promise.resolve({data:table==='exchange_partner_teams'?[{club_id:'usc',team_id:'spg-u12',club:{name:'USC Rohrbach'}}]:[],error:null}).then(resolve,reject)}};return q;}};`,
  };
  const rules=[[/AuthProvider$/,'auth'],[/useSession$/,'session'],[/appEnvironment$/,'env'],[/supabaseClient$/,'db'],[/^\.\.\/ui$/,'ui'],[/features\/club\/ClubExchange$/,'exchange']];
  for(const[filter,path]of rules)b.onResolve({filter},()=>({path,namespace:'fixture'}));
@@ -51,6 +51,12 @@ try{
  await renderer.act(async()=>app.unmount());
  await mount('/app/tauschboerse?public=1&returnTo='+encodeURIComponent('/app/team?teamSeason=keep'));
  const destination=app.root.findByType('output').children.join('');assert.ok(destination.startsWith('/marktplatz/usc?'));assert.equal(new URL(destination,'https://test.invalid').searchParams.get('returnTo'),'/app/team?teamSeason=keep');await renderer.act(async()=>app.unmount());
+ state.marketOnly=true;state.memberships=[];state.seasons=[];state.teamReads=0;
+ await mount('/marktplatz/usc?view=member',{embedded:true,embeddedClubId:'usc'});
+ assert.equal(app.root.findByType('section').props['data-club'],'usc','market-only parent opens exchange without roster');
+ assert.equal(state.teamReads,0,'market-only parent never loads team data');
+ assert.equal(app.root.findByType('section').props['data-default'],'','no fabricated team label');
+ await renderer.act(async()=>app.unmount());
  state.access=false;state.teamReads=0;
  await mount('/app/tauschboerse?club=unrelated');
  assert.equal(state.teamReads,0,'no team data queried before authorization');
