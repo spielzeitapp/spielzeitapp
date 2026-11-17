@@ -1,3 +1,4 @@
+import {TournamentAuthBrand,tournamentAuthTarget} from '../features/tournamentRegistration/AuthBrand';
 import {authErrorMessage} from '../lib/authErrorMessage';
 import { marketAuthContext, marketAuthPath } from '../features/club/marketAuth';
 import { MarketAuthBrand } from '../features/club/MarketAuthBrand';
@@ -134,6 +135,7 @@ export const RegisterPage: React.FC = () => {
 
   const nextRaw = market?.next ?? clubReturnTo ?? searchParams.get('next') ?? '';
   const nextSafe = isSafeAuthRedirectPath(nextRaw) ? nextRaw : null;
+  const tournamentReturnTo=tournamentAuthTarget(nextSafe);
   const pendingInvitePath = resolvePendingParentInvitePath();
   const emailRedirectPath = pendingInvitePath || nextSafe || AUTH_EMAIL_CONFIRM_PATH;
   const isParentInviteFlow = Boolean(
@@ -339,7 +341,7 @@ export const RegisterPage: React.FC = () => {
       setConfirmationEmailSent(null);
       setMessage({
         type: 'success',
-        text: isParentInviteFlow
+        text: tournamentReturnTo ? 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach geht es direkt zur Mannschaftsmeldung.' : isParentInviteFlow
           ? 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach geht es direkt mit der Einladung weiter — ohne Rollen- oder Mannschaftswahl.'
           : 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach geht es mit der Rollenwahl weiter — ohne erneutes Passwort.',
       });
@@ -398,7 +400,7 @@ export const RegisterPage: React.FC = () => {
         <div className={`mx-auto w-full max-w-md shrink-0 overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(155deg,rgba(30,30,33,0.98),rgba(8,8,10,0.98))] shadow-[0_24px_70px_rgba(0,0,0,0.5)] ${market ? 'market-auth-card market-auth-confirmation' : ''}`}>
           <div className={`h-1 bg-gradient-to-r from-red-800 via-red-500 to-red-800 ${clubReturnTo ? 'usc-auth-accent' : ''}`} aria-hidden />
           <div className="px-5 py-6 sm:px-7 sm:py-8">
-            {market ? <MarketAuthBrand back={market.back}/> : clubReturnTo ? <UscAuthBrand/> : null}
+            {market ? <MarketAuthBrand back={market.back}/> : tournamentReturnTo ? <TournamentAuthBrand back={tournamentReturnTo}/> : clubReturnTo ? <UscAuthBrand/> : null}
             <div className="usc-confirm-icon grid h-14 w-14 place-items-center rounded-2xl border border-red-400/20 bg-red-500/10 text-red-300 shadow-[0_0_28px_rgba(220,38,38,0.16)]">
               <MailCheck className="h-7 w-7" aria-hidden />
             </div>
@@ -465,7 +467,7 @@ export const RegisterPage: React.FC = () => {
             <p className="mt-4 text-center text-[12px] leading-5 text-white/45">
               {market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend die Mannschaft deiner Familie. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
                 ? 'Nach der Bestätigung öffnet sich deine persönliche Einladung.'
-                : 'Nach der Bestätigung geht es automatisch zur Rollenwahl.'}
+                : tournamentReturnTo ? 'Nach der Bestätigung geht es direkt zur Mannschaftsmeldung. Ein Vereinssetup ist nicht erforderlich.' : 'Nach der Bestätigung geht es automatisch zur Rollenwahl.'}
               {' '}Dein Passwort bleibt gespeichert.
             </p>
 
@@ -500,16 +502,16 @@ export const RegisterPage: React.FC = () => {
   return (
     <div className={`${AUTH_PAGE_SHELL_CLASS} ${market ? 'market-auth-page' : clubReturnTo ? 'usc-auth-page' : ''}`}>
       <div className={`${AUTH_PAGE_CARD_CLASS} ${market ? 'market-auth-card' : clubReturnTo ? 'usc-auth-card' : ''}`}>
-        {market ? <MarketAuthBrand back={market.back}/> : clubReturnTo ? <UscAuthBrand/> : null}
+        {market ? <MarketAuthBrand back={market.back}/> : tournamentReturnTo ? <TournamentAuthBrand back={tournamentReturnTo}/> : clubReturnTo ? <UscAuthBrand/> : null}
         <h1 className="text-xl font-semibold text-white">
-          {existingAccount ? 'Anmeldung verwenden' : market ? 'Für den Vereinsmarkt registrieren' : hasInviteSession ? 'Konto vervollständigen' : clubReturnTo ? 'Für USC Rohrbach registrieren' : 'Registrieren'}
+          {existingAccount ? 'Anmeldung verwenden' : market ? 'Für den Vereinsmarkt registrieren' : tournamentReturnTo ? 'Für das Turnier registrieren' : hasInviteSession ? 'Konto vervollständigen' : clubReturnTo ? 'Für USC Rohrbach registrieren' : 'Registrieren'}
         </h1>
         <p className="mt-1 text-sm text-white/60">
-          {existingAccount ? 'Wenn du bereits ein Konto bei SpielzeitApp hast, kannst du es auch für den Vereinsmarkt verwenden. Eine erneute Registrierung versendet keine Bestätigungsmail.' : market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend die Mannschaft deiner Familie. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
+          {existingAccount ? tournamentReturnTo ? 'Du kannst deinen bestehenden SpielzeitApp-Zugang auch für die Turniermeldung verwenden. Bitte anmelden.' : 'Wenn du bereits ein Konto bei SpielzeitApp hast, kannst du es auch für den Vereinsmarkt verwenden. Eine erneute Registrierung versendet keine Bestätigungsmail.' : market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend die Mannschaft deiner Familie. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
             ? hasInviteSession
               ? 'Name und Passwort setzen. Danach geht es direkt zur Einladung — ohne Rollen- oder Mannschaftswahl.'
               : 'Konto mit der eingeladenen E-Mail anlegen. Nach der Bestätigung kannst du die Einladung annehmen — ohne Vereins- oder Kindauswahl.'
-            : clubReturnTo ? 'Ein Konto für deine Vereinsapp. Bereits bei SpielzeitApp registriert? Verwende deine bestehenden Zugangsdaten.' : 'Konto anlegen – danach kannst du Rolle, Team und Kind verknüpfen.'}
+            : clubReturnTo ? 'Ein Konto für deine Vereinsapp. Bereits bei SpielzeitApp registriert? Verwende deine bestehenden Zugangsdaten.' : tournamentReturnTo ? 'Ein Trainerzugang genügt. Bestätige deine E-Mail und melde anschließend deine Mannschaft mit ihrer Spielerliste.' : 'Konto anlegen – danach kannst du Rolle, Team und Kind verknüpfen.'}
         </p>
 
         {existingAccount ? (
