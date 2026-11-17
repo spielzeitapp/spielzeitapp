@@ -173,7 +173,7 @@ export async function sendDirectInviteEmail(opts) {
         },
       });
       const mail = {
-        from: smtp.from,
+        from: opts.senderName === 'Vereinsmarkt' ? {name:'Vereinsmarkt',address: /<([^>]+)>/.exec(smtp.from)?.[1] || smtp.from} : smtp.from,
         to,
         subject,
         text,
@@ -207,7 +207,7 @@ export async function sendDirectInviteEmail(opts) {
           Authorization: `Bearer ${resendKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ from, to: [to], subject, html, text }),
+        body: JSON.stringify({ from: opts.senderName === 'Vereinsmarkt' ? `Vereinsmarkt <${/<([^>]+)>/.exec(from)?.[1] || from}>` : from, to: [to], subject, html, text }),
       });
       if (res.ok) {
         return { ok: true, provider: 'resend', error: null, configured: true };

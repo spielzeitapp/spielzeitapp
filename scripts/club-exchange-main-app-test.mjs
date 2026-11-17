@@ -8,7 +8,7 @@ const state=global.__exchangeMain={access:true,teamReads:0,seasons:[
  {id:'u12',age_group:'U12',status:'active',team:{id:'spg-u12',club_id:'nsg',name:'SPG Rohrbach',clubs:{name:'NSG Gölsental'}}},
  {id:'melk',age_group:'U16',status:'active',team:{id:'melk-team',club_id:'melk',name:'SC Melk',clubs:{name:'SC Melk'}}},
 ],memberships:[{team_season_id:'u12',role:'parent'},{team_season_id:'melk',role:'fan'}]};
-const result=await build({entryPoints:['src/pages/ClubExchangePage.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,logLevel:'silent',loader:{'.css':'empty'},plugins:[{name:'main-fixtures',setup(b){
+const result=await build({entryPoints:['src/pages/ClubExchangePage.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,logLevel:'silent',loader:{'.css':'empty'},plugins:[{name:'main-fixtures',setup(b){b.onResolve({filter:/MarketHomeScreenGuide$/},()=>({path:'guide',namespace:'guide'}));b.onLoad({filter:/.*/,namespace:'guide'},()=>({contents:'export const MarketHomeScreenGuide=()=>null;export const requestMarketHomeGuide=()=>{};',loader:'js'}));
  const modules={
   auth:`exports.useAuth=()=>({user:{id:'parent'}});`,
   session:`exports.useSession=()=>({selectedTeamSeason:global.__exchangeMain.seasons[0],teamSeasons:global.__exchangeMain.seasons,memberships:global.__exchangeMain.memberships,effectiveRole:'parent'});`,

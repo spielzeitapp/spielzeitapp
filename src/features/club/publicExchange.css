@@ -117,3 +117,7 @@ html[data-market-shell][data-viewport-entry=app][data-ios-standalone-fullscreen]
 html[data-market-shell][data-viewport-entry=app][data-ios-standalone-fullscreen] .public-market-nav-viewport{
  position:absolute;bottom:0;transform:none
 }
+
+/* Keep the test label visible above the market header without moving its nav. */
+.public-market-test-notice{flex:0 0 auto;padding-top:env(safe-area-inset-top,0px);background:#fcd34d;color:#451a03}
+.public-exchange .public-market-test-notice+.public-market-header{padding-top:16px}
