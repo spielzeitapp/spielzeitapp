@@ -1,3 +1,4 @@
+import {requestMarketHomeGuide} from './MarketHomeScreenGuide';
 import React, {useEffect, useState} from 'react';
 import {Link, useSearchParams} from 'react-router-dom';
 import {supabase} from '../../lib/supabaseClient';
@@ -28,6 +29,7 @@ export function MarketJoinPanel({clubId, clubName='deinem Verein', onJoined}: {c
    if(result.error)throw result.error;
    if(result.data!==true)throw new Error('Beitritt fehlgeschlagen. Bitte erneut versuchen.');
    setParams(old=>{const p=new URLSearchParams(old);p.delete('invite');p.set('view','member');return p;},{replace:true});
+   requestMarketHomeGuide(clubId);
    onJoined();
   }catch(e){setError(e&&typeof e==='object'&&'message' in e?String(e.message):'Beitritt fehlgeschlagen. Bitte erneut versuchen.');}
   finally{setBusy(false);}

@@ -5,9 +5,9 @@ const require=createRequire(import.meta.url),React=require('react'),{act,create}
 const events=new EventTarget(),mediaEvents=new EventTarget(),storage=new Map();let standalone=false,blocked=false;
 Object.defineProperty(globalThis,'navigator',{value:{userAgent:'iPhone',platform:'iPhone',maxTouchPoints:1},configurable:true});
 globalThis.localStorage={getItem:k=>storage.get(k)??null,setItem(k,v){if(blocked)throw Error('blocked');storage.set(k,v);}};
-globalThis.window={navigator:globalThis.navigator,matchMedia:()=>({get matches(){return standalone;},addEventListener:mediaEvents.addEventListener.bind(mediaEvents),removeEventListener:mediaEvents.removeEventListener.bind(mediaEvents)}),addEventListener:events.addEventListener.bind(events),removeEventListener:events.removeEventListener.bind(events)};
+globalThis.window={navigator:globalThis.navigator,matchMedia:()=>({get matches(){return standalone;},addEventListener:mediaEvents.addEventListener.bind(mediaEvents),removeEventListener:mediaEvents.removeEventListener.bind(mediaEvents)}),addEventListener:events.addEventListener.bind(events),removeEventListener:events.removeEventListener.bind(events),dispatchEvent:events.dispatchEvent.bind(events)};
 const built=await build({entryPoints:['src/features/club/MarketHomeScreenGuide.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,loader:{'.css':'empty'}});
-const m=new Module('home-guide');m.paths=require.resolve.paths('react');m._compile(built.outputFiles[0].text,'home-guide');const {MarketHomeScreenGuide}=m.exports;
+const m=new Module('home-guide');m.paths=require.resolve.paths('react');m._compile(built.outputFiles[0].text,'home-guide');const {MarketHomeScreenGuide,requestMarketHomeGuide}=m.exports;
 let app;const mount=(club='one',alwaysAvailable=false)=>act(async()=>{app=create(React.createElement(MarketHomeScreenGuide,{clubId:club,alwaysAvailable}));});
 const text=()=>JSON.stringify(app.toJSON());const button=label=>app.root.findAllByType('button').find(b=>b.children.includes(label));const unmount=()=>act(async()=>app.unmount());
 await mount();assert.ok(text().includes('So geht’s'));await act(async()=>button('So geht’s').props.onClick());assert.ok(text().includes('Safari'));await act(async()=>app.root.findByProps({'aria-label':'Schritt 3: Zum Home-Bildschirm'}).props.onClick());assert.ok(text().includes('Zum Home-Bildschirm'));assert.ok(text().includes('nicht sicher erkennen'));
@@ -26,3 +26,16 @@ let called=0;const event=new Event('beforeinstallprompt',{cancelable:true});even
 await act(async()=>events.dispatchEvent(new Event('appinstalled')));assert.equal(app.toJSON(),null);await unmount();
 blocked=true;await mount('four');await act(async()=>button('Icon bereits vorhanden').props.onClick());assert.equal(app.toJSON(),null);await unmount();
 console.log('PASS: iPhone and Android instructions, standalone detection, self-reported icon, club isolation, profile access, install events, blocked storage');
+
+blocked=false;standalone=false;navigator.userAgent='iPhone';
+const pending=new Map();globalThis.sessionStorage={getItem:k=>pending.get(k)||null,setItem:(k,v)=>pending.set(k,v),removeItem:k=>pending.delete(k)};
+const mountAfter=club=>act(async()=>{app=create(React.createElement(MarketHomeScreenGuide,{clubId:club,afterJoinOnly:true}));});
+await mountAfter('auto');assert.equal(app.toJSON(),null,'no unsolicited guide before join');
+await act(async()=>requestMarketHomeGuide('different'));assert.equal(app.toJSON(),null,'another club cannot open the guide');
+await act(async()=>requestMarketHomeGuide('auto'));assert.ok(text().includes('Wischbare Installationsanleitung'));assert.ok(text().includes('Nach links wischen'));
+await act(async()=>button('Icon bereits vorhanden').props.onClick());assert.equal(app.toJSON(),null);await unmount();
+await mountAfter('auto');await act(async()=>requestMarketHomeGuide('auto'));assert.equal(app.toJSON(),null,'self-reported installed icon suppresses post-join guide');await unmount();
+standalone=true;await mountAfter('installed');await act(async()=>requestMarketHomeGuide('installed'));assert.equal(app.toJSON(),null,'standalone never opens installation');await unmount();standalone=false;
+pending.set('vereinsmarkt-guide-after-join:reload','1');await mountAfter('reload');assert.ok(text().includes('Wischbare Installationsanleitung'),'pending join survives remount');await act(async()=>button('Zum Vereinsmarkt').props.onClick());assert.equal(app.toJSON(),null);await unmount();await mountAfter('reload');assert.equal(app.toJSON(),null,'consumed join does not reopen');await unmount();
+storage.set('vereinsmarkt-home-guide:snoozed',String(Date.now()+86400000));await mountAfter('snoozed');await act(async()=>requestMarketHomeGuide('snoozed'));assert.equal(app.toJSON(),null,'deferred guide respected');await unmount();
+console.log('PASS: successful join opens swipe guide once; club isolation, deferred/already-present/standalone suppression and remount recovery');
