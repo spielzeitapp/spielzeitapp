@@ -103,7 +103,12 @@ for (const scale of [0.75, 0.85, 1, 1.25]) {
 }
 marketShell=false;win.innerWidth=402;win.innerHeight=812;vv.scale=1;vv.height=812;
 win.dispatchEvent(new Event('spz-viewport-recover'));
-assert.equal(values.get('--app-visible-height'),'874px','leaving market preserves existing SpielzeitApp recovery');
+assert.equal(values.get('--app-visible-height'),'812px','market-launched window stays bounded on SpielzeitApp routes');
+assert.equal(root.dataset.iosStandaloneFullscreen,undefined,'do not place app nav below the market-installed window');
+assert.equal(values.has('--app-standalone-height'),false);
+marketShell=true;win.dispatchEvent(new Event('spz-viewport-recover'));
+marketShell=false;win.dispatchEvent(new Event('spz-viewport-recover'));
+assert.equal(values.get('--app-visible-height'),'812px','repeated roundtrips preserve the installed window geometry');
 assert.equal(height({...pageZoom,safeAreaTop:0}),null);
 assert.ok(height({...pageZoom,safeAreaTop:62})>1028);
 ctx.cleanup();

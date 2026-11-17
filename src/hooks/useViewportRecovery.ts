@@ -72,7 +72,9 @@ function applyViewportVars(entry: 'market' | 'app'): void {
     if (full !== null) marketBottomExtension = Math.max(0, full - viewportInput.visibleHeight);
   }
   root.style.setProperty('--market-native-bottom-extension', `${marketBottomExtension}px`);
-  const fullscreenHeight = marketShell && entry === 'market' ? null : standaloneFullscreenHeight(viewportInput);
+  // The installed window keeps its original status-bar geometry across routes.
+  // A market-launched window must stay bounded after switching to /app too.
+  const fullscreenHeight = entry === 'market' ? null : standaloneFullscreenHeight(viewportInput);
   const pageScale = standalonePageScale(viewportInput);
   if (fullscreenHeight !== null) {
     root.dataset.iosStandaloneFullscreen = 'true';
