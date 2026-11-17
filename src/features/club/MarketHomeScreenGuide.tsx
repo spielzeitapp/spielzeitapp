@@ -30,9 +30,9 @@ export function MarketHomeScreenGuide({clubId,alwaysAvailable=false,afterJoinOnl
    let requested=event?.type==='vereinsmarkt:joined'&&(event as CustomEvent).detail?.clubId===clubId;try{requested=requested||sessionStorage.getItem(pending)==='1';}catch{}
    if(!requested)return;
    try{sessionStorage.removeItem(pending);}catch{}
-   let dismissed=false;try{const value=localStorage.getItem(key);dismissed=value==='present'||Number(value)>Date.now();}catch{}
    const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-   if(isMobile&&!isStandaloneDisplayMode()&&!dismissed)setExpanded(true);
+   // A fresh club join starts onboarding again, even after a previous test account or dismissal.
+   if(isMobile&&!isStandaloneDisplayMode())setExpanded(true);
   };
   offer();window.addEventListener('vereinsmarkt:joined',offer);
   return()=>window.removeEventListener('vereinsmarkt:joined',offer);
