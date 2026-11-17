@@ -48,3 +48,31 @@ assert.ok(!liveMail.html.includes('app.spielzeitapp.at'));
 assert.throws(()=>liveModule.buildAuthEmails({user:{email:'synthetic@example.invalid'},email_data:{email_action_type:'signup',token_hash:'hash',redirect_to:'https://app.spielzeitapp.at/'}},liveProject));
 assert.notDeepEqual(liveModule.hookKey('synthetic',liveProject.ref),liveModule.hookKey('synthetic'));
 console.log('PASS: LIVE links, contextual sender, TEST/LIVE origin and signature-key isolation');
+// A deployment may hold another valid service credential from the same project.
+// Only a server-verified admin credential may bootstrap the derived hook key.
+const originalFetch=globalThis.fetch;
+const setupRaw=JSON.stringify({probe:true,setup:true});
+let adminLookups=0;
+globalThis.fetch=async(url,opts)=>{
+ const u=String(url);
+ if(u.includes('/auth/v1/admin/users/')){
+  adminLookups++;
+  assert.equal(u,'https://acbaecjzoabafbsjrzvr.supabase.co/auth/v1/admin/users/00000000-0000-0000-0000-000000000000');
+  const authorization=new Headers(opts?.headers).get('Authorization');
+  return new Response(JSON.stringify(authorization==='Bearer valid-synthetic-admin'?{code:'user_not_found',msg:'User not found'}:{code:'not_admin',msg:'Not authorized'}),{status:authorization==='Bearer valid-synthetic-admin'?404:403,headers:{'Content-Type':'application/json','x-supabase-api-version':'2024-01-01'}});
+ }
+ if(u==='https://api.resend.com/domains')return new Response('{}',{status:200});
+ throw Error('Unexpected external request in fixture');
+};
+process.env.RESEND_API_KEY='synthetic-resend';
+assert.equal((await request(setupRaw,{query:{auth_email_hook:'1'}})).status,401);
+assert.equal(adminLookups,0);
+assert.equal((await request(setupRaw,{query:{auth_email_hook:'1'},headers:{authorization:'Bearer wrong-project-or-anon'}})).status,401);
+const bootstrap=await request(setupRaw,{query:{auth_email_hook:'1'},headers:{authorization:'Bearer valid-synthetic-admin'}});
+assert.equal(bootstrap.status,200);assert.equal(bootstrap.body.ok,true);
+assert.equal(bootstrap.body.webhookSecret,hookKey('fixture-server-key').toString('base64'));
+const normalProbe=await request(raw,{query:{auth_email_hook:'1'},headers});
+assert.equal(normalProbe.status,200);assert.equal(normalProbe.body.webhookSecret,undefined);
+assert.equal((await request(JSON.stringify({email_data:{email_action_type:'signup'}}),{query:{auth_email_hook:'1'},headers:{authorization:'Bearer valid-synthetic-admin'}})).status,401,'admin bootstrap cannot substitute for an auth-mail signature');
+globalThis.fetch=originalFetch;delete process.env.RESEND_API_KEY;
+console.log('PASS: admin-verified deployment bootstrap, wrong credentials rejected, no key in normal probes, mail signatures remain mandatory');
