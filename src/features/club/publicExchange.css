@@ -100,8 +100,8 @@ html[data-market-shell] .public-exchange main.exchange{
    The portal is outside the content scroller so this extension is not clipped. */
 .public-market-nav-viewport{transform:translateY(var(--market-native-bottom-extension,0px))}
 
-/* Larger return target and larger visible app crest in both appearances. */
+/* Same outer circle as day/night; retain the large crest. */
 .public-exchange .public-market-header .public-market-app-switch{
- width:54px;height:54px;min-width:54px;min-height:54px;padding:3px
+ width:42px;height:42px;min-width:42px;min-height:42px;padding:0
 }
-.public-exchange .public-market-header .public-market-app-switch img{width:44px;height:44px}
+.public-exchange .public-market-header .public-market-app-switch img{width:44px;height:44px;max-width:none;flex:none}
