@@ -20,10 +20,10 @@ const bundle=await build({entryPoints:['src/features/tournamentRegistration/Regi
  b.onResolve({filter:/AuthProvider|supabaseClient|appEnvironment|react-router-dom$/},a=>({path:a.path,namespace:'fixture'}));
  b.onLoad({filter:/.*/,namespace:'fixture'},a=>({contents:a.path.includes('AuthProvider')?'export const useAuth=()=>({user:{id:"test-user"},loading:false});':a.path.includes('supabaseClient')?'export const supabase=globalThis.fixtureSupabase;':a.path.includes('appEnvironment')?'export const isStagingApp=()=>true;':`import React from 'react';export const useParams=()=>({token:'${token}',eventId:'${id}'});export const useLocation=()=>({pathname:'/turnier-verwaltung/${id}'});export const Link=({to,children,...p})=>React.createElement('a',{href:to,...p},children);`,loader:'jsx'}));
 }}]});
-function evaluate(file){const context={exports:{},require,console,setTimeout,clearTimeout,fixtureSupabase:{rpc},window:{location:{origin:'https://test.example.invalid',reload(){}}}};context.module={exports:context.exports};context.globalThis=context;vm.runInNewContext(file.text,context);return context.module.exports;}
+function evaluate(file){const context={exports:{},require,console,setTimeout,clearTimeout,fixtureSupabase:{rpc},window:{setTimeout,scrollTo(){},location:{origin:'https://test.example.invalid',reload(){}}}};context.module={exports:context.exports};context.globalThis=context;vm.runInNewContext(file.text,context);return context.module.exports;}
 const {TournamentRegistrationPage}=evaluate(bundle.outputFiles.find(f=>f.path.endsWith('RegistrationPage.js')));
 let tree;await act(async()=>{tree=Renderer.create(React.createElement(TournamentRegistrationPage))});
-const button=text=>tree.root.findAllByType('button').find(b=>b.children.join('')===text);
+const button=text=>tree.root.findAllByType('button').find(b=>b.props['aria-label']===text||b.children.filter(c=>typeof c==='string').join('').trim()===text);
 const inputs=()=>tree.root.findAllByType('input');
 await act(async()=>tree.root.findByType('select').props.onChange({target:{value:sid}}));
 await act(async()=>{inputs()[0].props.onChange({target:{value:'Testtrainer'}});inputs()[2].props.onChange({target:{value:'Rot / Schwarz'}})});
@@ -33,7 +33,12 @@ await act(async()=>button('Weiter zur Prüfung').props.onClick());
 await act(async()=>inputs().find(i=>i.props.type==='checkbox').props.onChange({target:{checked:true}}));
 await act(async()=>button('Meldung einreichen').props.onClick());
 assert.equal(saves.length,1);assert.equal(saves[0].players[0].id,id);assert.equal(saves[0].players[0].number,'7');assert.equal(saves[0].submit,true);assert.equal(saves[0].authorized,true);
-assert.match(JSON.stringify(tree.toJSON()),/Meldung eingereicht/);await act(async()=>tree.unmount());
+assert.match(JSON.stringify(tree.toJSON()),/Meldung eingereicht/);
+assert.equal(tree.root.findAllByType('select').length,0,'Submitted registration shows receipt instead of editable form');
+await act(async()=>button('Meldung bearbeiten').props.onClick());
+assert.equal(tree.root.findAllByType('select').length,1,'Trainer can reopen form without changing the registration');
+assert.equal(saves.length,1,'Opening edit view must not resubmit');
+await act(async()=>tree.unmount());
 const {TournamentRegistrationAdminPage}=evaluate(bundle.outputFiles.find(f=>f.path.endsWith('AdminPage.js')));
 await act(async()=>{tree=Renderer.create(React.createElement(TournamentRegistrationAdminPage))});
 assert.ok(button('Meldung bestätigen'));await act(async()=>button('Meldung bestätigen').props.onClick());await act(async()=>tree.unmount());

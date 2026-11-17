@@ -14,3 +14,8 @@ assert.ok(validate([{id:'a',number:'01'},{id:'b',number:1}]));
 assert.equal(validate([{id:'a',number:0},{id:'b',number:99}]),null);
 assert.equal(path('abc'),'/turnier-meldung/abc');
 console.log('Tournament registration validation: passed');
+
+const label=context.exports.registrationTeamLabel;
+assert.equal(label({name:'SPG Rohrbach · U12 · 2026/27',ageGroup:'U12',season:'2026/27'}),'SPG Rohrbach · U12 · 2026/27');
+assert.equal(label({name:'SPG Rohrbach U12',ageGroup:'U12',season:'2026/27'}),'SPG Rohrbach U12 · 2026/27');
+assert.equal(label({name:'SPG Rohrbach',ageGroup:'U12',season:'2026/27'}),'SPG Rohrbach · U12 · 2026/27');

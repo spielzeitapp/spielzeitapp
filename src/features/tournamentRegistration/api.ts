@@ -18,3 +18,14 @@ export function validateRegistrationPlayers(players:{id:string;number:unknown}[]
  if(new Set(players.map(p=>Number(p.number))).size!==players.length)return 'Jede Rückennummer darf nur einmal vergeben werden.';
  return null;
 }
+
+/** Display names may already include age group and season. Add each label only once. */
+export function registrationTeamLabel(team:TeamOption):string {
+ const parts=String(team.name??'').split(/\s*[·|]\s*/).map(s=>s.trim()).filter(Boolean);
+ for(const extra of [team.ageGroup,team.season]){
+  if(!extra?.trim())continue;
+  const escaped=extra.trim().replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  if(!new RegExp(`(?:^|\\s)${escaped}(?:\\s|$)`,'i').test(parts.join(' ')))parts.push(extra.trim());
+ }
+ return [...new Set(parts)].join(' · ');
+}
