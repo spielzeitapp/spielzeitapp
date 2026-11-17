@@ -1,11 +1,11 @@
 import {supabase} from '../../lib/supabaseClient';
 export type RegistrationPlayer={id:string;firstName:string;lastName:string;birthYear:number|null;number:number|null};
-export type TeamOption={id:string;name:string;ageGroup:string;season:string};
-export type Registration={id:string;eventId:string;teamName:string;teams:TeamOption[];revision:number;status:string;sourceTeamSeasonId:string|null;contactName:string;contactPhone:string;jerseyColors:string;players:RegistrationPlayer[];registrationMode?:'app'|'guest';guestDetails?:{clubName:string;teamName:string}};
+export type TeamOption={id:string;name:string;ageGroup:string;season:string;logoUrl?:string|null};
+export type Registration={id:string;eventId:string;teamName:string;teams:TeamOption[];revision:number;status:string;sourceTeamSeasonId:string|null;contactName:string;contactPhone:string;jerseyColors:string;players:RegistrationPlayer[];logo?:string|null;logoChoice?:string;registrationMode?:'app'|'guest';guestDetails?:{clubName:string;teamName:string}};
 export type RegistrationEntry=Registration&{participantId:string;revoked:boolean;expiresAt:string|null};
 export const statusLabel:Record<string,string>={not_invited:'Noch nicht eingeladen',invited:'Einladung offen',draft:'Entwurf',submitted:'Meldung prüfen',confirmed:'Bestätigt'};
 export async function registrationApi<T>(action:string,args:Record<string,unknown>):Promise<T>{
- const {data,error}=await supabase.rpc('tournament_registration_v2',{p_action:action,p_args:args});
+ const {data,error}=await supabase.rpc('tournament_registration_v3',{p_action:action,p_args:args});
  if(error)throw new Error(error.code==='PGRST202'?'Die Mannschaftsmeldung ist hier noch nicht verfügbar.':error.message);
  return data as T;
 }
