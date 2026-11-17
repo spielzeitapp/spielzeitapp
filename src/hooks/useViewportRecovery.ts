@@ -19,7 +19,26 @@ import { forceReleaseBodyScrollLocks, hasActiveBodyScrollLocks } from '../lib/bo
  * noch stale Höhen meldet.
  */
 
-function applyViewportVars(): void {
+const VIEWPORT_ENTRY_KEY = 'sz_viewport_entry_v1';
+/** An installed market window and an in-app route share URLs, not native geometry.
+ * sessionStorage belongs to the current window and survives a theme reload. */
+function viewportEntry(): 'market' | 'app' {
+  const marketPath = /^\/marktplatz\//i.test(window.location.pathname);
+  try {
+    if (!marketPath) {
+      window.sessionStorage.setItem(VIEWPORT_ENTRY_KEY, 'app');
+      return 'app';
+    }
+    const previous = window.sessionStorage.getItem(VIEWPORT_ENTRY_KEY);
+    const entry = previous === 'app' ? 'app' : 'market';
+    window.sessionStorage.setItem(VIEWPORT_ENTRY_KEY, entry);
+    return entry;
+  } catch {
+    return marketPath ? 'market' : 'app';
+  }
+}
+
+function applyViewportVars(entry: 'market' | 'app'): void {
   const root = document.documentElement;
 
   const innerH = window.innerHeight;
@@ -43,7 +62,7 @@ function applyViewportVars(): void {
   // translucent install, the layout viewport omits native top-chrome space.
   // Compensate only the body-level nav, not the bounded content scroller.
   let marketBottomExtension = 0;
-  if (marketShell) {
+  if (marketShell && entry === 'market') {
     const probe = document.createElement('div');
     probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top,0px)';
     document.body.appendChild(probe);
@@ -86,11 +105,13 @@ function applyViewportVars(): void {
 /** Zentral in App einhängen — pflegt --app-vh/--app-visual-vh über den App-Lebenszyklus. */
 export function useViewportRecovery(): void {
   useLayoutEffect(() => {
+    const entry = viewportEntry();
+    document.documentElement.dataset.viewportEntry = entry;
     let rafId = 0;
     let timeoutIds: number[] = [];
 
     const recalc = () => {
-      applyViewportVars();
+      applyViewportVars(entry);
     };
 
     /** Measure before paint, then after iOS startup/rotation has settled. */
