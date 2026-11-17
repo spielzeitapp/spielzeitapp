@@ -17,3 +17,19 @@ const mails=buildAuthEmails(base);assert.equal(mails.length,2);assert.equal(mail
 delete base.email_data.token_hash_new;assert.equal(buildAuthEmails(base).length,1);
 assert.throws(()=>buildAuthEmails({user:{email:'a'},email_data:{email_action_type:'recovery',redirect_to:'https://evil.invalid',token_hash:'hash'}}));
 console.log('PASS: signed payloads, tamper/expiry rejection, contextual sender, recovery return/invite, all auth mail actions and secure email-change token mapping');
+// Shared Vercel function keeps invitation JSON parsing and rejects unsigned hook calls.
+const {Readable}=await import('node:stream');
+const {default:handler,config}=await import('../api/parent/send-invite.js');
+assert.equal(config.api.bodyParser,false);
+async function request(raw,{method='POST',query={},headers={}}={}){
+ const req=Readable.from([raw]);Object.assign(req,{method,query,headers});
+ const result={};const res={setHeader(){},status(code){result.status=code;return this;},json(body){result.body=body;return this;},end(){return this;}};
+ await handler(req,res);return result;
+}
+assert.equal((await request('{')).status,400);
+assert.equal((await request('x'.repeat(131073))).status,413);
+assert.equal((await request('',{method:'GET'})).status,405);
+process.env.SUPABASE_URL='https://acbaecjzoabafbsjrzvr.supabase.co';process.env.SUPABASE_SERVICE_ROLE_KEY='fixture-server-key';
+assert.equal((await request('{}',{query:{auth_email_hook:'1'}})).status,401);
+assert.equal((await request(raw,{query:{auth_email_hook:'1'},headers})).status,503,'no configured transport must block activation');
+console.log('PASS: shared serverless endpoint preserves JSON validation, method/size guards and signed hook isolation');

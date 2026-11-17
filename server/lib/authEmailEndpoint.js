@@ -1,6 +1,5 @@
-import {hookKey,verifyHook,buildAuthEmails,TEST_REF} from '../../server/lib/authEmailHook.js';
-import {isDirectMailConfigured,getWorld4YouSmtpConfig,sendDirectInviteEmail} from '../../server/lib/sendParentInviteEmail.js';
-export const config={api:{bodyParser:false}};
+import {hookKey,verifyHook,buildAuthEmails,TEST_REF} from './authEmailHook.js';
+import {isDirectMailConfigured,getWorld4YouSmtpConfig,sendDirectInviteEmail} from './sendParentInviteEmail.js';
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');
  if(req.method!=='POST')return res.status(405).end();

@@ -5,7 +5,7 @@ if(!token)throw Error('Missing Supabase access token');
 const call=async(path,options={})=>{const r=await fetch(`https://api.supabase.com/v1/projects/${TEST_REF}${path}`,{...options,headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'}});if(!r.ok)throw Error(`Management request: ${r.status}`);return r.json();};
 const project=await call('');if(project.name!=='spielzeitapp-staging')throw Error('Unexpected project');
 const keys=await call('/api-keys');const role=keys.find(k=>k.name==='service_role')?.api_key;if(!role)throw Error('Missing server key');
-const key=hookKey(role),uri=`${TEST_ORIGIN}/api/auth/email-hook`;
+const key=hookKey(role),uri=`${TEST_ORIGIN}/api/parent/send-invite?auth_email_hook=1`;
 let ready=false;
 for(let attempt=0;attempt<30;attempt++){
  const raw=JSON.stringify({probe:true}),id=crypto.randomUUID(),stamp=String(Math.floor(Date.now()/1000));
