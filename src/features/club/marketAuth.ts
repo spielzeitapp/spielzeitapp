@@ -1,7 +1,7 @@
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DEFAULT_CLUB='9c7a8741-6e73-42d5-88d8-46ce5217e8cd';
 /** Presentation context only; never grants membership or changes auth checks. */
-export function marketAuthContext(search:string,pathname=typeof window!=='undefined'?window.location.pathname||'':''){
+export function marketAuthContext(search:string,pathname=typeof window!=='undefined'?window.location?.pathname||'':''){
  const route=pathname.match(/^\/marktplatz\/([0-9a-f-]{36})\/(?:anmelden|registrieren|passwort-vergessen)\/?$/i);
  const p=new URLSearchParams(search);if(route&&UUID.test(route[1])){p.set('context','vereinsmarkt');p.set('marketClub',route[1]);}
  const raw=p.get('next')||'';let next='';let club=p.get('marketClub')||'';

@@ -89,7 +89,7 @@ export function ClubExchangePage({embedded=false,embeddedClubId}:{embedded?:bool
   }, [user?.id, clubId, permittedContext, partners, retry]);
   if(!embedded&&params.get('public')==='1'&&partners!==null&&permittedContext)return <Navigate replace to={publicMarketForClub(clubId,params.get('returnTo'))}/>;
   const content = <>
-    {!embedded&&user&&clubId&&<MarketHomeScreenGuide clubId={clubId} afterJoinOnly/>}
+    {!embedded&&user&&clubId&&<MarketHomeScreenGuide clubId={clubId} userId={user.id} afterJoinOnly/>}
     {!embedded&&<Link className="inline-flex items-center gap-2 text-sm text-white/60" to="/app/mehr"><ArrowLeft size={17} /> Zurück zu Mehr</Link>}
     {!user ? <p>Bitte melde dich an.</p> : <>
       {!embedded && partners !== null && contexts.size > 1 ? <details className="exchange-context-picker"><summary aria-label="Verein für den Vereinsmarkt wechseln"><ShieldCheck size={16} /><span>{contexts.get(clubId) || 'Deinen Verein wählen'}</span><ChevronDown size={15}/></summary><div aria-label="Deine Vereine">{[...contexts].map(([id,name]) => <button type="button" key={id} aria-pressed={clubId === id} onClick={e => { setParams({club:id}); e.currentTarget.closest('details')?.removeAttribute('open'); }}>{name}</button>)}</div></details> : partners !== null && contexts.size === 1 ? <div className="exchange-context-chip"><ShieldCheck size={15}/><span>{contexts.values().next().value}</span><small>Dein Verein</small></div> : null}

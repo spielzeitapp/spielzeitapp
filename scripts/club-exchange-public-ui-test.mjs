@@ -1,4 +1,4 @@
-globalThis.window=new EventTarget();globalThis.document=new EventTarget();
+globalThis.window=new EventTarget();window.navigator={};globalThis.document=new EventTarget();
 import fs from 'node:fs/promises';import os from 'node:os';import path from 'node:path';import assert from 'node:assert/strict';import {build} from 'esbuild';import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),React=require('react'),renderer=require('react-test-renderer'),{MemoryRouter,Routes,Route}=require('react-router-dom');
 const tmp=await fs.mkdtemp(path.join(os.tmpdir(),'public-exchange-'));const file=path.join(tmp,'ui.cjs');
