@@ -30,3 +30,7 @@ Produktpreise und Größen werden serverseitig geprüft und bei Bestellung gespe
 ## Grenzen der ersten Version
 
 Manuelle Überweisungen und manuelle Zahlungseingangsbestätigung; keine Bankanbindung, Onlinezahlung oder automatische Rückerstattung. Monatsrunden werden bewusst manuell eröffnet/freigegeben. Noch keine automatischen Shop-Pushnachrichten. Rechnungen werden per geschütztem HTTPS-Link hinterlegt, nicht als Datei in SpielzeitApp hochgeladen. Bei Nichtlieferbarkeit/Preisänderung ist zunächst Rücksprache außerhalb dieses Workflows erforderlich; keine stille Ersatzlieferung. Für einen öffentlichen Verkaufsstart müssen Sortiment, Preise, Kontodaten und die konkreten Verkaufs-/Stornobedingungen des Vereins festgelegt sein.
+
+## Marktgestaltung auf TEST (18.11.2026)
+
+Eingebetteter Shop verwendet den bestehenden Vereinsmarkt-Kopf, dessen Theme und Navigation. Runde Artikelkarten, weinrote Akzente, gemeinsame Bestellrunde und Vorauskassa-Hinweis. Artikelsuche nach Name; keine Änderung an Zahlungs-/Freigaberechten, Sortiment oder echten Kontodaten. Ohne hinterlegte Produkte wird kein Beispielsortiment zum Verkauf gestellt. Lagerware und Sammelbestellware sind weiterhin nicht getrennt implementiert.

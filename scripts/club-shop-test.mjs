@@ -15,7 +15,7 @@ assert.equal(button('Verwaltung'),undefined);assert.equal(button('Händlerportal
 await click(tree.root.findByProps({className:'club-shop-product'}));
 assert.equal(button('In den Warenkorb').props.disabled,true);
 await act(async()=>tree.root.findAllByType('select').find(n=>n.props.value==='').props.onChange({target:{value:'140'}}));
-await act(async()=>tree.root.findAllByType('input')[0].props.onChange({target:{value:'Daniel'}}));
+await act(async()=>tree.root.findAllByType('input').find(n=>n.props.maxLength===24).props.onChange({target:{value:'Daniel'}}));
 await click(button('In den Warenkorb'));
 assert.match(text(),/39,00/);
 await click(button('Zahlungspflichtig bestellen · Vorauskassa'));
