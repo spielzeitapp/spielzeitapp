@@ -19,3 +19,9 @@ const label=context.exports.registrationTeamLabel;
 assert.equal(label({name:'SPG Rohrbach · U12 · 2026/27',ageGroup:'U12',season:'2026/27'}),'SPG Rohrbach · U12 · 2026/27');
 assert.equal(label({name:'SPG Rohrbach U12',ageGroup:'U12',season:'2026/27'}),'SPG Rohrbach U12 · 2026/27');
 assert.equal(label({name:'SPG Rohrbach',ageGroup:'U12',season:'2026/27'}),'SPG Rohrbach · U12 · 2026/27');
+
+const years=context.exports.validateRegistrationYears;
+assert.equal(years([{birthYear:2015}],true),null);
+assert.equal(years([{birthYear:2015}],false),null);
+assert.equal(years([{birthYear:""}],false),null);
+for (const birthYear of ["",2999,"abc",2015.5,"2e3"]) assert.ok(years([{birthYear}],true));

@@ -8,7 +8,7 @@ import Renderer,{act} from 'react-test-renderer';
 const require=createRequire(import.meta.url);
 const token='a'.repeat(64),sid='11111111-1111-4111-8111-111111111111',id='22222222-2222-4222-8222-222222222222';
 const png='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aYd8AAAAASUVORK5CYII=';
-const roster=[{id,firstName:'Test',lastName:'Spieler',birthYear:2015,number:7}];let revision=0,saves=[],guestFixture=false;
+const roster=[{id,firstName:'Test',lastName:'Spieler',birthYear:null,number:7}];let revision=0,saves=[],guestFixture=false;
 const rpc=async(_,{p_action:a,p_args:p})=>{
  let data;
  if(a==='open')data={id,eventId:id,teamName:'TEST U12',teams:guestFixture?[]:[{id:sid,name:'Testverein',ageGroup:'U12',season:'2026/27',logoUrl:'https://example.invalid/club.png'}],registrationMode:guestFixture?'guest':'app',guestDetails:{clubName:'',teamName:''},revision,status:'invited',sourceTeamSeasonId:null,contactName:'',contactPhone:'',jerseyColors:'',players:[]};
@@ -34,10 +34,11 @@ assert.equal(logoField().props.inheritedLogo,'https://example.invalid/club.png')
 await act(async()=>logoField().props.onChange(png));
 await act(async()=>button('Weiter zu Spielern').props.onClick());
 await act(async()=>button('Gesamten aktiven Kader auswählen').props.onClick());
+await act(async()=>tree.root.findAllByType('input').find(i=>i.props['aria-label']==='Jahrgang Test Spieler').props.onChange({target:{value:'2015'}}));
 await act(async()=>button('Weiter zur Prüfung').props.onClick());
 await act(async()=>inputs().find(i=>i.props.type==='checkbox').props.onChange({target:{checked:true}}));
 await act(async()=>button('Meldung einreichen').props.onClick());
-assert.equal(saves.length,1);assert.equal(saves[0].players[0].id,id);assert.equal(saves[0].players[0].number,'7');assert.equal(saves[0].logoChoice,png);assert.equal(saves[0].submit,true);assert.equal(saves[0].authorized,true);
+assert.equal(saves.length,1);assert.equal(saves[0].players[0].id,id);assert.equal(saves[0].players[0].number,'7');assert.equal(saves[0].players[0].birthYear,'2015');assert.equal(saves[0].logoChoice,png);assert.equal(saves[0].submit,true);assert.equal(saves[0].authorized,true);
 assert.match(JSON.stringify(tree.toJSON()),/Meldung eingereicht/);
 assert.equal(tree.root.findAllByType('select').length,0,'Submitted registration shows receipt instead of editable form');
 await act(async()=>button('Meldung bearbeiten').props.onClick());
