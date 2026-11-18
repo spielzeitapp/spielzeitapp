@@ -122,3 +122,9 @@ html[data-market-shell][data-viewport-entry=app][data-ios-standalone-fullscreen]
 .public-market-test-notice{flex:0 0 auto;padding-top:env(safe-area-inset-top,0px);background:#fcd34d;color:#451a03}
 .public-exchange .public-market-test-notice+.public-market-header{padding-top:16px}
 .market-profile-membership{text-align:left;border:1px solid var(--market-border,#ffffff25);border-radius:20px;padding:22px;margin:24px 0;background:var(--market-panel,#ffffff05)}.market-profile-membership h2{margin-top:0;font-size:20px}.market-profile-membership>small{display:block;line-height:1.6;opacity:.8;margin-top:12px}.market-profile-team-chips{display:flex;flex-wrap:wrap;gap:8px}.market-profile-team-chips span{padding:8px 14px;border-radius:999px;background:#9b22452a;border:1px solid #b3385855;font-weight:750}.market-profile-membership input{accent-color:#a62344}
+
+.public-market-footer{flex-direction:column;justify-content:center;text-align:center;gap:12px;padding:18px 0 24px}
+.public-market-footer>button{display:inline-flex;justify-content:center;align-items:baseline;flex-wrap:wrap;gap:7px;margin-inline:auto}
+.public-market-legal-links{justify-content:center;align-items:center;gap:4px 18px;margin-top:0;text-align:center}
+.public-market-legal-links a{justify-content:center;min-height:44px}
+.public-market-legal-links a:last-child{flex-basis:100%}
