@@ -128,3 +128,17 @@ html[data-market-shell][data-viewport-entry=app][data-ios-standalone-fullscreen]
 .public-market-legal-links{justify-content:center;align-items:center;gap:4px 18px;margin-top:0;text-align:center}
 .public-market-legal-links a{justify-content:center;min-height:44px}
 .public-market-legal-links a:last-child{flex-basis:100%}
+.public-market-delete{border:1px solid #dc526755;border-radius:20px;padding:22px;margin:24px 0;text-align:left;background:#ffffff04}
+.public-market-delete h2{display:flex;align-items:center;gap:10px;font-size:20px}
+.public-market-delete p{font-size:14px;line-height:1.65;color:inherit}
+.public-market-delete form{display:grid;gap:16px;margin-top:16px}
+.public-market-delete label{display:grid;gap:8px;font-size:14px;line-height:1.5}
+.public-market-delete label:has(input[type=checkbox]){display:flex;align-items:flex-start;gap:10px}
+.public-market-delete input:not([type=checkbox]){width:100%;box-sizing:border-box;border:1px solid #8887;border-radius:10px;padding:12px;background:transparent;color:inherit;font:inherit}
+.public-market-delete button{border:1px solid #b23a50;border-radius:12px;padding:12px 16px;background:transparent;color:inherit;font:inherit;min-height:44px}
+.public-market-delete button[type=submit]{background:#9d2036;color:white;font-weight:700}
+.public-market-delete button:disabled{opacity:.5;cursor:default}
+.public-market-delete-actions{display:flex;flex-wrap:wrap;gap:12px}
+.public-market-delete>a{display:inline-block;margin-top:18px;color:inherit;font-size:14px;text-decoration:underline}
+.public-market-delete [role=alert]{color:#ff758a}
+html[data-market-theme=light] .public-market-delete [role=alert]{color:#941d35}
