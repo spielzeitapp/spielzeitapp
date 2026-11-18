@@ -40,7 +40,8 @@ field.getBoundingClientRect=()=>({top:50,bottom:98});viewport.dispatchEvent(new 
 await act(async()=>app.unmount());document.activeElement=null;
 state.result={data:{user:{identities:[{id:'new'}]},session:null},error:null};await mount();await fill();await submit();
 assert.ok(JSON.stringify(app.toJSON()).includes('E-Mail für den Vereinsmarkt bestätigen'),'new accounts retain market confirmation flow');
-assert.equal(state.payload.options.data.auth_entry,'vereinsmarkt','email branding context is sent on signup');assert.equal(state.payload.options.data.market_terms_version,'2026-11-17');assert.equal(state.payload.options.data.market_show_team,false,'sharing is optional and off by default');
+assert.ok(JSON.stringify(app.toJSON()).includes('mehreren Kindern in verschiedenen U-Teams'),'confirmation explains multiple child teams');
+assert.equal(state.payload.options.data.auth_entry,'vereinsmarkt','email branding context is sent on signup');assert.equal(state.payload.options.data.market_terms_version,'2026-11-18');assert.equal(state.payload.options.data.market_show_team,false,'sharing is optional and off by default');
 assert.ok(app.root.findAllByType('div').some(d=>String(d.props.className).includes('market-auth-confirmation')),'confirmation uses market theme');
 await act(async()=>app.unmount());
 state.result={data:{user:null,session:null},error:{message:'Email rate limit exceeded'}};await mount();await fill();await submit();

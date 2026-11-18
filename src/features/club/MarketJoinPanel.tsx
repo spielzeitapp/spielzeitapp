@@ -35,17 +35,18 @@ export function MarketJoinPanel({clubId, clubName='deinem Verein', onJoined}: {c
   finally{setBusy(false);}
  }
  return <section className="market-join" aria-label="Dem Vereinsmarkt beitreten">
-  <ol className="market-join-steps" aria-label="Anmeldung"><li data-current={!user}>1 Konto</li><li data-current={Boolean(user)}>2 Mannschaft</li><li>3 Loslegen</li></ol>
+  <ol className="market-join-steps" aria-label="Anmeldung"><li data-current={!user}>1 Konto</li><li data-current={Boolean(user)}>2 Mannschaften</li><li>3 Loslegen</li></ol>
   <p className="public-market-eyebrow">Alle Eltern. Ein Vereinsmarkt.</p>
   <h2>Willkommen im Vereinsmarkt {clubName==='deinem Verein'?'':clubName}</h2>
   <p>Trainingssachen anbieten, tauschen und weitergeben – auch wenn die Mannschaft oder dein Kind noch nicht in SpielzeitApp angelegt ist.</p>
   {!user?<>
    <Link className="public-market-cta" to={marketAuthPath('register',query)}>Neu? Jetzt registrieren</Link>
    <Link className="public-market-register" to={marketAuthPath('login',query)}>Schon ein Konto? Anmelden</Link>
-   <small>Ein Konto für Vereinsmarkt und SpielzeitApp. Nach der E-Mail-Bestätigung kannst du hier beitreten.</small>
+   <small>Ein Konto für Vereinsmarkt und SpielzeitApp. Nach der E-Mail-Bestätigung wählst du alle passenden Mannschaften deiner Kinder aus. Ein Elternkonto reicht auch bei mehreren Kindern.</small>
   </>:<>
-   <h3>Zu welcher Mannschaft gehört deine Familie?</h3><p>Wähle eine oder mehrere Mannschaften. Namen deiner Kinder brauchst du hier nicht.</p>
+   <h3>Wähle die Mannschaften deiner Kinder</h3><p>Mehrere Kinder in verschiedenen U-Teams? Wähle alle passenden Mannschaften aus, zum Beispiel U9 und U12. Ein Elternkonto reicht. Namen deiner Kinder brauchst du hier nicht.</p>
    {loading?<p role="status">Mannschaften werden geladen…</p>:teams.length?<fieldset className="market-team-picker" disabled={busy}><legend className="sr-only">Deine Mannschaften</legend>{teams.map(t=><label key={t.id} className={chosen.includes(t.id)?'is-selected':''}><input type="checkbox" checked={chosen.includes(t.id)} onChange={e=>setChosen(old=>e.target.checked?[...old,t.id]:old.filter(id=>id!==t.id))}/><span>{t.age_group||t.name}</span>{t.age_group&&<small>{t.name}</small>}</label>)}</fieldset>:<p className="exchange-hint">Hier sind noch keine Mannschaften angelegt. Bitte wende dich an die Vereinsverwaltung oder lade die Liste später erneut.</p>}
+   {!loading&&teams.length>0&&<p role="status" aria-live="polite">{chosen.length} {chosen.length===1?'Mannschaft ausgewählt':'Mannschaften ausgewählt'}</p>}
    {!loading&&<button type="button" className="market-text-button" disabled={busy} onClick={()=>setReload(n=>n+1)}>Mannschaften neu laden</button>}
    <label className="exchange-check"><input type="checkbox" checked={accepted} disabled={busy} onChange={e=>setAccepted(e.target.checked)}/>Ich bin erwachsen und meine Familie gehört zu diesem Verein bzw. dieser Spielgemeinschaft.</label>
    <button type="button" className="public-market-cta" disabled={!accepted||busy||loading||!chosen.length} onClick={()=>void join()}>{busy?'Beitritt wird gespeichert…':'Dem Vereinsmarkt beitreten'}</button>
