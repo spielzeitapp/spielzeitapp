@@ -4,6 +4,8 @@ import { useAuth } from '../../auth/AuthProvider';
 import { supabase } from '../../lib/supabaseClient';
 import { marketAuthPath } from './marketAuth';
 import './clubShop.css';
+import { ShopTrialCatalog } from './ShopTrialCatalog';
+import { isStagingApp } from '../../lib/appEnvironment';
 
 type Product={id:string;name:string;price_cents:number;sizes:string[];image_url:string;personalizable:boolean;active:boolean};
 type Item={productId:string;size:string;name:string;number:string;quantity:number;title?:string;price_cents?:number};
@@ -63,6 +65,7 @@ export function ClubShop({clubId,clubName,onBack,embedded=false}:{clubId:string;
   <header className="club-shop-header"><button aria-label="Zurück zum Verein" onClick={onBack}><ArrowLeft/></button><span>{embedded?'Zurück zum Vereinsmarkt':clubName}{!embedded&&<small>Vereinsshop</small>}</span>{user&&<button aria-label="Shop aktualisieren" disabled={busy||loading} onClick={()=>void reload()}><RefreshCw size={20}/></button>}</header>
   <div className="club-shop-intro"><p className="club-shop-eyebrow">{clubName} · Unsere Kollektion</p><h1>Vereinsshop</h1><p className="club-shop-muted">Unser Verein. Unser Look.</p></div>
   <div className="club-shop-hero"><div className="club-shop-hero-icon"><ShoppingBag size={30}/></div><div><strong>Gemeinsam bestellen.</strong><p>Neue Vereinskleidung und Fanartikel – gesammelt für unseren Verein.</p><span>Auswählen · Vorauszahlen · Abholen</span></div></div>
+  {isStagingApp()&&!loading&&(!user||view==='shop')&&!products.some(p=>p.active)&&<ShopTrialCatalog/>}
   {!user?<article className="club-shop-panel"><ShoppingBag/><h2>Mit deinem Vereinskonto bestellen</h2><p>Bestellungen, Vorauskassa und Abholung bleiben an einem Ort.</p><a className="club-shop-button" href={marketAuthPath('login',new URLSearchParams({next:window.location.pathname+window.location.search,context:'vereinsmarkt',marketClub:clubId}).toString())}>Anmelden</a></article>:<>
   <nav className="club-shop-tabs" aria-label="Vereinsshop Bereiche">{[['shop','Shop'],['orders','Meine Bestellungen'],...(state.staff?[['manage','Verwaltung']]:[]),...(state.dealer?[['dealer','Händlerportal']]:[])].map(([id,label])=><button key={id} aria-current={view===id?'page':undefined} onClick={()=>{setView(id);setSelected(null);}}>{label}</button>)}</nav>
   {error&&<p role="alert" className="club-shop-error">{error}</p>}{notice&&<p role="status" className="club-shop-notice"><Check size={18}/>{notice}</p>}

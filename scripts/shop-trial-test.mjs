@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),React=require('react'),{create,act}=require('react-test-renderer');
+const out=await build({entryPoints:['src/features/club/ShopTrialCatalog.tsx'],bundle:true,write:false,platform:'node',format:'cjs',external:['react']});
+const mod={exports:{}};new Function('require','module','exports',out.outputFiles[0].text)(require,mod,mod.exports);
+let tree;act(()=>{tree=create(React.createElement(mod.exports.ShopTrialCatalog));});
+const button=label=>tree.root.findAllByType('button').find(n=>n.children.filter(c=>typeof c==='string').join('')===label);
+const click=n=>{assert.ok(n);act(()=>n.props.onClick());};
+click(tree.root.findAllByProps({className:'club-shop-product'})[0]);
+assert.equal(button('Bitte Größe wählen').props.disabled,true);click(button('140'));
+act(()=>tree.root.findAllByType('input')[0].props.onChange({target:{value:'Daniel'}}));
+click(button('Zum Probe-Warenkorb hinzufügen'));assert.match(JSON.stringify(tree.toJSON()),/Daniel/);
+click(button('Alle Probeartikel'));click(tree.root.findAllByProps({className:'club-shop-product'})[1]);click(button('M'));click(button('Zum Probe-Warenkorb hinzufügen'));
+assert.match(JSON.stringify(tree.toJSON()),/94,98/);
+assert.equal(tree.root.findAllByType('form').length,0);
+assert.equal(tree.root.findAllByType('button').some(n=>/zahlungspflichtig|bezahlen/i.test(n.children.join(''))),false);
+act(()=>tree.unmount());console.log('PASS: trial sizes, child/adult prices, personalization and local cart; no order or payment action.');

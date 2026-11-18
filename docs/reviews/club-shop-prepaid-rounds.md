@@ -34,3 +34,9 @@ Manuelle Überweisungen und manuelle Zahlungseingangsbestätigung; keine Bankanb
 ## Marktgestaltung auf TEST (18.11.2026)
 
 Eingebetteter Shop verwendet den bestehenden Vereinsmarkt-Kopf, dessen Theme und Navigation. Runde Artikelkarten, weinrote Akzente, gemeinsame Bestellrunde und Vorauskassa-Hinweis. Artikelsuche nach Name; keine Änderung an Zahlungs-/Freigaberechten, Sortiment oder echten Kontodaten. Ohne hinterlegte Produkte wird kein Beispielsortiment zum Verkauf gestellt. Lagerware und Sammelbestellware sind weiterhin nicht getrennt implementiert.
+
+## JAKO-Probeartikel (18.11.2026)
+
+Auf TEST zeigt der noch leere Shop zwei reine Vorschauvarianten (Kinder/Erwachsene) des vom Nutzer verlinkten JAKO Ziptop Dynamic, Artikel 8670 / Farbe 114. Quelle und Originalproduktfoto: https://www.jako.com/de-de/ziptop-dynamic-p13949/?color=114 bzw. https://cdn.jako.com/userdata/dcshop/images/normal/8670_114.jpg. Beispielpreise 44,99 / 49,99 EUR werden ausdrücklich nicht als zugesagte Vereins-/Händlerpreise dargestellt. Keine Behauptung über inkludierte Veredelung oder Verfügbarkeit beim Verein. Produktbild bleibt unverändert.
+
+Die Vorschau ist auf Staging und leeres aktives Sortiment begrenzt, auch ohne Login sichtbar. Probe-Warenkorb ausschließlich im Komponentenstate, ohne RPC, Kontoangaben, Freigabe oder Bestellung. Sobald reale aktive Produkte vorhanden sind, verschwindet das Beispielsortiment. Tests: `node scripts/shop-trial-test.mjs` (Größen, Kinder-/Erwachsenenpreise, Aufdruckeingabe, Summen, kein Zahlungs-/Bestellabschluss) und bestehender Shoptest.
