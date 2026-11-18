@@ -1,3 +1,4 @@
+import {ManagerMarketPage} from '../manager/ManagerMarketPage';
 import {MarketSplash} from '../features/club/MarketSplash';
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Navigate, Route, Routes, useParams, useSearchParams } from 'react-router-dom';
@@ -393,6 +394,7 @@ function InternalRoutes(): React.ReactElement {
       >
         <Route index element={<ManagerHomeRoute />} />
         <Route path="dashboard" element={<ManagerDashboardPage />} />
+        <Route path="vereinsmarkt" element={<ManagerMarketPage />} />
         <Route path="termine" element={<ManagerMobileSchedulePage />} />
         <Route path="teams" element={<ManagerMobileTeamsPage />} />
         <Route path="team" element={<ManagerAppWorkspace><TeamPage /></ManagerAppWorkspace>} />

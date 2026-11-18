@@ -1,3 +1,4 @@
+import {MarketTeamSettings} from '../features/club/MarketTeamSettings';
 import { isStagingApp } from '../lib/appEnvironment';
 import {ManagerClubProfileFormat} from './ManagerClubProfileFormat';
 import {ManagerClubPhotoTemplate} from './ManagerClubPhotoTemplate';
@@ -475,7 +476,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
           <ManagerSetupChecklist detail={detail} seasonId={setupSeasonId} onSelect={selectSetupSeason} onAction={setupAction} hideSelector initialStep={new URLSearchParams(location.search).get('setupStep')}
             preview={appPreviewOpen && selectedSeason ? <ManagerAppPreviewPanel key={setupSeasonId} clubId={clubId} teamSeasonId={setupSeasonId} branding={branding} logoFile={logoFile} compact onClose={() => setAppPreviewOpen(false)} /> : undefined} />
 
-          <ManagerClubPhotoTemplate key={clubId+setupSeasonId} clubId={clubId} seasonId={setupSeasonId} />
+          <MarketTeamSettings key={clubId} clubId={clubId}/><ManagerClubPhotoTemplate key={clubId+setupSeasonId} clubId={clubId} seasonId={setupSeasonId} />
           <details className="rounded-2xl border border-slate-200 bg-white">
             <summary className="cursor-pointer p-4 font-semibold text-slate-900">Vereinsdaten · Name, Logo &amp; Farben für alle Mannschaften</summary>
           <ManagerClubProfileFormat key={clubId} clubId={clubId} />

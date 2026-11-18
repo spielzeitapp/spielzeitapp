@@ -232,7 +232,7 @@ export const RegisterPage: React.FC = () => {
             first_name: trimmedFirst,
             last_name: trimmedLast,
             spielzeit_parent_invite: true,
-            ...(market ? {auth_entry:'vereinsmarkt',market_terms_version:'2026-11-17',market_show_team:marketShowTeam} : {}),
+            ...(market ? {auth_entry:'vereinsmarkt',market_terms_version:'2026-11-18',market_show_team:marketShowTeam} : {}),
             ...(inviteToken ? { spielzeit_parent_invite_token: inviteToken } : {}),
           },
         });
@@ -295,7 +295,7 @@ export const RegisterPage: React.FC = () => {
         email: trimmedEmail,
         password,
         options: {
-          data: { first_name: trimmedFirst, last_name: trimmedLast, ...(market ? { auth_entry: 'vereinsmarkt', market_terms_version: '2026-11-17', market_show_team: marketShowTeam } : {}) },
+          data: { first_name: trimmedFirst, last_name: trimmedLast, ...(market ? { auth_entry: 'vereinsmarkt', market_terms_version: '2026-11-18', market_show_team: marketShowTeam } : {}) },
           emailRedirectTo: getAuthRedirectUrl(emailRedirectPath),
           ...(captchaToken ? { captchaToken } : {}),
         },
