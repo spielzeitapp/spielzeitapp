@@ -43,23 +43,20 @@ export function MarketHomeScreenGuide({clubId,alwaysAvailable=false,afterJoinOnl
   if(typeof window==='undefined'||!autoOnFirstVisit||isStandaloneDisplayMode()||firstVisitOffered.has(clubId))return;
   const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   if(!isMobile)return;
-  // The previous flag only meant the choice was shown, not the illustrated guide.
-  const visited=`vereinsmarkt-guide-slides-v2:${clubId}`;
+  // Offer the new optional welcome flow once, including after testing the older guide.
+  const visited=`vereinsmarkt-guide-choice-v3:${clubId}`;
   try{const preference=localStorage.getItem(key);if(localStorage.getItem(visited)==='1'||preference==='present')return;}catch{}
   firstVisitOffered.add(clubId);try{localStorage.setItem(visited,'1');}catch{}
   setExpanded(true);
  },[autoOnFirstVisit,clubId,key]);
  const dismiss=(present=false)=>{setHidden(true);setExpanded(false);try{localStorage.setItem(key,present?'present':String(Date.now()+7*86400000));}catch{}};
- if(afterJoinOnly)return <>
-  {autoOnFirstVisit&&mobile&&!standalone&&<div className="market-home-guide-entry"><img src="/vereinsmarkt/icon-180.png" width="36" height="36" alt=""/><span>Direkt über dein App-Icon öffnen</span><button type="button" onClick={()=>setExpanded(true)}><Smartphone size={18}/>App-Icon hinzufügen</button></div>}
-  {expanded&&!standalone&&<MarketInstallDialog ios={ios} closeLabel="Jetzt stöbern" onClose={()=>setExpanded(false)} onPresent={()=>dismiss(true)}/>}
- </>;
+ if(afterJoinOnly)return expanded&&!standalone?<MarketInstallDialog ios={ios} showChoice={autoOnFirstVisit} closeLabel="Jetzt stöbern" onClose={()=>setExpanded(false)} onPresent={()=>dismiss(true)}/>:null;
  if(!alwaysAvailable&&(!mobile||standalone||hidden))return null;
  return <section className="market-home-guide" aria-label="Vereinsmarkt am Home-Bildschirm">
   <div className="market-home-guide-heading"><img src="/vereinsmarkt/icon-180.png" width="44" height="44" alt="Vereinsmarkt-Icon"/><div><h2>{standalone?'Über das App-Icon geöffnet':'Vereinsmarkt direkt am Handy'}</h2><p>{standalone?'Du nutzt bereits die App-Ansicht.':hidden?'Icon schon vorhanden? Öffne den Vereinsmarkt künftig darüber.':'Mit eigenem Icon öffnen – ohne App Store.'}</p></div>{!alwaysAvailable&&<button type="button" className="market-home-guide-close" aria-label="Homescreen-Hinweis schließen" onClick={()=>dismiss()}><X size={18}/></button>}</div>
   {standalone?<p className="market-home-guide-status"><CheckCircle2 size={18}/>Keine weitere Installation nötig.</p>:<>
    {message&&<p role="status">{message}</p>}
-   {!expanded?<div className="market-home-guide-actions"><button type="button" onClick={()=>setExpanded(true)}><Smartphone size={18}/>So geht’s</button>{!hidden&&<button type="button" onClick={()=>dismiss(true)}>Icon bereits vorhanden</button>}</div>:<>
+   {!expanded?<div className="market-home-guide-actions"><button type="button" onClick={()=>setExpanded(true)}><Smartphone size={18}/>App-Icon hinzufügen</button>{!hidden&&<button type="button" onClick={()=>dismiss(true)}>Icon bereits vorhanden</button>}</div>:<>
     <MarketInstallDialog ios={ios} onClose={()=>setExpanded(false)}/>
     <p className="market-home-guide-note">Schon ein Vereinsmarkt-Icon vorhanden? Öffne dieses. Im Browser lässt sich am iPhone nicht sicher erkennen, ob das Icon bereits hinzugefügt wurde. Stöbern geht auch hier im Browser.</p>
     {prompt&&<button type="button" className="market-home-guide-install" onClick={async()=>{try{await prompt.prompt();const choice=await prompt.userChoice;setMessage(choice.outcome==='accepted'?'Installation bestätigt. Öffne danach das Vereinsmarkt-Icon.':'Du kannst den Vereinsmarkt später hinzufügen.');}catch{setMessage('Bitte verwende die Anleitung über das Browsermenü.');}setPrompt(null);}}>Vereinsmarkt installieren</button>}
