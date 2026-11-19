@@ -11,7 +11,7 @@ export function requestMarketHomeGuide(clubId:string){
 }
 /** A saved preference is self-reported; Safari cannot inspect the Home Screen. */
 export function MarketHomeScreenGuide({clubId,userId,alwaysAvailable=false,afterJoinOnly=false,autoOnFirstVisit=false}:{clubId:string;userId?:string;alwaysAvailable?:boolean;afterJoinOnly?:boolean;autoOnFirstVisit?:boolean}){
- const [standalone,setStandalone]=useState(isStandaloneDisplayMode),[hidden,setHidden]=useState(false),[expanded,setExpanded]=useState(false),[manualGuide,setManualGuide]=useState(false),[mobile,setMobile]=useState(false),[ios,setIos]=useState(false),[prompt,setPrompt]=useState<InstallEvent|null>(null),[message,setMessage]=useState('');
+ const [standalone,setStandalone]=useState(isStandaloneDisplayMode),[hidden,setHidden]=useState(false),[expanded,setExpanded]=useState(false),[mobile,setMobile]=useState(false),[ios,setIos]=useState(false),[prompt,setPrompt]=useState<InstallEvent|null>(null),[message,setMessage]=useState('');
  const key=`vereinsmarkt-home-guide:${clubId}`;
  useEffect(()=>{
   setIos(/iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1));
@@ -42,15 +42,16 @@ export function MarketHomeScreenGuide({clubId,userId,alwaysAvailable=false,after
   if(!autoOnFirstVisit||isStandaloneDisplayMode()||firstVisitOffered.has(clubId))return;
   const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   if(!isMobile)return;
-  const visited=`vereinsmarkt-guide-visited:${clubId}`;
-  try{const preference=localStorage.getItem(key);if(localStorage.getItem(visited)==='1'||preference==='present'||Number(preference)>Date.now())return;}catch{}
+  // The previous flag only meant the choice was shown, not the illustrated guide.
+  const visited=`vereinsmarkt-guide-slides-v2:${clubId}`;
+  try{const preference=localStorage.getItem(key);if(localStorage.getItem(visited)==='1'||preference==='present')return;}catch{}
   firstVisitOffered.add(clubId);try{localStorage.setItem(visited,'1');}catch{}
   setExpanded(true);
  },[autoOnFirstVisit,clubId,key]);
  const dismiss=(present=false)=>{setHidden(true);setExpanded(false);try{localStorage.setItem(key,present?'present':String(Date.now()+7*86400000));}catch{}};
  if(afterJoinOnly)return <>
-  {autoOnFirstVisit&&mobile&&!standalone&&<div className="market-home-guide-entry"><img src="/vereinsmarkt/icon-180.png" width="36" height="36" alt=""/><span>Direkt über dein App-Icon öffnen</span><button type="button" onClick={()=>{setManualGuide(true);setExpanded(true);}}><Smartphone size={18}/>App-Icon hinzufügen</button></div>}
-  {expanded&&!standalone&&<MarketInstallDialog ios={ios} showChoice={autoOnFirstVisit&&!manualGuide} onClose={()=>{setExpanded(false);setManualGuide(false);}} onPresent={()=>dismiss(true)}/>}
+  {autoOnFirstVisit&&mobile&&!standalone&&<div className="market-home-guide-entry"><img src="/vereinsmarkt/icon-180.png" width="36" height="36" alt=""/><span>Direkt über dein App-Icon öffnen</span><button type="button" onClick={()=>setExpanded(true)}><Smartphone size={18}/>App-Icon hinzufügen</button></div>}
+  {expanded&&!standalone&&<MarketInstallDialog ios={ios} closeLabel="Jetzt stöbern" onClose={()=>setExpanded(false)} onPresent={()=>dismiss(true)}/>}
  </>;
  if(!alwaysAvailable&&(!mobile||standalone||hidden))return null;
  return <section className="market-home-guide" aria-label="Vereinsmarkt am Home-Bildschirm">
