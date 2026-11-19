@@ -42,7 +42,7 @@ state.error=null;await click(button('Dem Vereinsmarkt beitreten'));assert.equal(
 assert.deepEqual(joinCalls().at(-1).args,{p_club_id:club,p_token:token,p_accepted:true,p_team_ids:['u12','u13']});
 const q=new URLSearchParams(app.root.findByType('output').children.join(''));assert.equal(q.has('invite'),false);assert.equal(q.get('mode'),'create');await unmount();
 state.teamError={message:'Die Mannschaftsauswahl ist für diesen Vereinsmarkt nicht verfügbar.'};await mount('view=member');assert.ok(JSON.stringify(app.toJSON()).includes('Teamauswahl'));assert.ok(!JSON.stringify(app.toJSON()).includes('keine Teams'));await unmount();state.teamError=null;
-const available=state.teams;state.teams=[];await mount(`invite=${token}`);assert.equal(button('Dem Vereinsmarkt beitreten'),undefined);assert.ok(JSON.stringify(app.toJSON()).includes('kein Teams'));await unmount();state.teams=available;
+const available=state.teams;state.teams=[];await mount(`invite=${token}`);assert.equal(button('Dem Vereinsmarkt beitreten'),undefined);assert.ok(JSON.stringify(app.toJSON()).includes('keine Teams'));await unmount();state.teams=available;
 await mount('view=member');
 await click(button('U12'));await click(teamButton('Hainfeld U12'));await click(button('Nein, Auswahl prüfen'));
 await click(app.root.findByProps({'aria-label':'Hainfeld U12 entfernen'}));
