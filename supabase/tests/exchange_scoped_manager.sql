@@ -1,0 +1,35 @@
+begin;
+do $test$
+declare c uuid:=(select id from public.clubs where name ilike '%gölsen%' or name ilike '%rohrbach%' order by case when name ilike '%gölsen%' then 0 else 1 end limit 1); a uuid:=(select user_id from public.user_roles where role::text='admin' limit 1); m uuid:=gen_random_uuid();t uuid:=gen_random_uuid();x uuid:=gen_random_uuid();l uuid:=gen_random_uuid();res jsonb;denied boolean;
+begin
+ insert into auth.users(id,email,raw_user_meta_data,raw_app_meta_data,created_at,updated_at) values(m,m::text||'@manager-test.invalid','{}','{}',now(),now()),(t,t::text||'@manager-test.invalid','{}','{}',now(),now()),(x,x::text||'@manager-test.invalid','{}','{}',now(),now());
+ insert into private.exchange_members(club_id,user_id) values(c,m),(c,t),(c,x);
+ insert into public.exchange_listings(id,club_id,owner_id,title,category,size,condition,offer,description,status,photo_paths) values(l,c,x,'Managerprüfung','Pulli','128','Sehr gut','Gratis','','Verfügbar',array[c::text||'/'||x::text||'/'||l::text||'/test.jpg']);
+ perform set_config('request.jwt.claim.sub',a::text,true);perform set_config('request.jwt.claim.role','authenticated',true);
+ perform public.exchange_manager_assign(c,m,true,false);perform public.exchange_manager_assign(c,t,false,true);
+ perform set_config('request.jwt.claim.sub',m::text,true);
+ if not public.can_manage_exchange(c,'market') or public.can_manage_exchange(c,'teams') or public.can_manage_club_venues(c) or public.is_platform_admin() then raise exception 'Role isolation failed';end if;
+ if jsonb_array_length(public.exchange_manager_clubs())<>1 then raise exception 'Club scope failed';end if;
+ denied:=false;begin perform public.exchange_parent_teams_admin(c);exception when others then denied:=true;end;if not denied then raise exception 'Market-only role managed teams';end if;
+ denied:=false;begin perform public.exchange_manager_assign(c,m,true,true);exception when others then denied:=true;end;if not denied then raise exception 'Delegate escalated own rights';end if;
+ denied:=false;begin perform public.exchange_manager_candidates(c);exception when others then denied:=true;end;if not denied then raise exception 'Delegate read role admin candidates';end if;
+ denied:=false;begin perform public.exchange_revoke(c,a);exception when others then denied:=true;end;if not denied then raise exception 'Delegate revoked administrator';end if;
+ if jsonb_array_length(public.exchange_manager_listings(c))=0 then raise exception 'Moderation list missing';end if;
+ perform public.exchange_manager_hide_listing(c,l,0);
+ if not exists(select 1 from public.exchange_listings where id=l and status='Entwurf' and is_public=false) then raise exception 'Moderation failed';end if;
+ denied:=false;begin perform public.exchange_manager_hide_listing(c,l,0);exception when others then denied:=true;end;if not denied then raise exception 'Stale moderation accepted';end if;
+ denied:=false;begin perform public.exchange_manager_listings(gen_random_uuid());exception when others then denied:=true;end;if not denied then raise exception 'Cross-club list accepted';end if;
+ perform set_config('request.jwt.claim.sub',t::text,true);
+ if not public.can_manage_exchange(c,'teams') or public.can_manage_exchange(c,'market') or public.can_manage_club_venues(c) then raise exception 'Team-only role isolation failed';end if;
+ perform public.exchange_parent_teams_admin(c);
+ res:=public.exchange_manager_create_team(c,'U7 Prüfung '||gen_random_uuid()::text,'U7');if res->>'status'<>'created' then raise exception 'Delegated create failed';end if;
+ denied:=false;begin perform public.exchange_manager_listings(c);exception when others then denied:=true;end;if not denied then raise exception 'Team-only role moderated market';end if;
+ perform set_config('request.jwt.claim.sub',x::text,true);
+ if jsonb_array_length(public.exchange_manager_clubs())<>0 then raise exception 'Ordinary member sees management';end if;
+ denied:=false;begin perform public.exchange_manager_listings(c);exception when others then denied:=true;end;if not denied then raise exception 'Ordinary member can moderate';end if;
+ perform set_config('request.jwt.claim.sub',a::text,true);perform public.exchange_manager_assign(c,m,false,false);perform set_config('request.jwt.claim.sub',m::text,true);
+ if public.can_manage_exchange(c,'market') then raise exception 'Revocation failed';end if;
+ if has_function_privilege('anon','public.exchange_manager_clubs()','EXECUTE') or has_table_privilege('authenticated','private.exchange_manager_assignments','SELECT') or has_table_privilege('authenticated','private.exchange_manager_assignments','UPDATE') then raise exception 'Private permissions exposed';end if;
+end $test$;
+select 'PASS market-only/team-only separation, no general club access, club scope, administrator protection, self-escalation denial, moderation with revision check, revocation and private table grants' result;
+rollback;

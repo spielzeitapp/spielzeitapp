@@ -1,3 +1,4 @@
+import {MarketManagerShortcut} from '../marketManager/MarketManagerShortcut';
 import { useInternalBasePath } from '../../demo/demoPaths';
 import { notifyNotificationsReadChanged, INBOX_SYNC_EVENT } from '../../lib/notificationsReadState';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -488,6 +489,7 @@ export const HomePage: React.FC = () => {
       className="page app-home min-h-[60vh] w-full max-w-none min-w-0 px-3 pb-[max(9rem,calc(7.5rem+env(safe-area-inset-bottom,0px)))] pt-4 sm:px-4 sm:pt-5 md:px-0"
       contentClassName="mx-auto w-full min-w-0 max-w-none space-y-3 md:max-w-3xl lg:max-w-4xl"
     >
+      {!isDemoMode&&<MarketManagerShortcut/>}
       {sessionPending && !teamSeasonId && <p className="text-sm text-white/50">Laden…</p>}
 
       {!sessionPending && !teamSeasonId && !FEED_DEMO && (

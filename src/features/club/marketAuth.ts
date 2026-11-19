@@ -5,7 +5,7 @@ export function marketAuthContext(search:string,pathname=typeof window!=='undefi
  const route=pathname.match(/^\/(?:vereinsmarkt|marktplatz)\/([0-9a-f-]{36})\/(?:anmelden|registrieren|passwort-vergessen)\/?$/i);
  const p=new URLSearchParams(search);if(route&&UUID.test(route[1])){p.set('context','vereinsmarkt');p.set('marketClub',route[1]);}
  const raw=p.get('next')||'';let next='';let club=p.get('marketClub')||'';
- try{const u=new URL(raw,'https://market.invalid');if(raw.startsWith('/')&&!raw.startsWith('//')&&!/[\\\s]/.test(raw)&&u.origin==='https://market.invalid'&&(['/app/tauschboerse','/app/profile'].includes(u.pathname)||/^\/(?:vereinsmarkt|marktplatz)\/[0-9a-f-]{36}$/i.test(u.pathname))){next=u.pathname.replace(/^\/marktplatz\//,'/vereinsmarkt/')+u.search+u.hash;if(!UUID.test(club))club=u.searchParams.get('club')||u.pathname.split('/')[2]||'';}}catch{}
+ try{const u=new URL(raw,'https://market.invalid');if(raw.startsWith('/')&&!raw.startsWith('//')&&!/[\\\s]/.test(raw)&&u.origin==='https://market.invalid'&&(['/app/tauschboerse','/app/profile'].includes(u.pathname)||/^\/vereinsmarkt-manager(?:\/[0-9a-f-]{36})?$/.test(u.pathname)||/^\/(?:vereinsmarkt|marktplatz)\/[0-9a-f-]{36}$/i.test(u.pathname))){next=u.pathname.replace(/^\/marktplatz\//,'/vereinsmarkt/')+u.search+u.hash;if(!UUID.test(club))club=u.searchParams.get('club')||u.pathname.split('/')[2]||'';}}catch{}
  const active=p.get('context')==='vereinsmarkt'||next.startsWith('/app/tauschboerse')||(next.startsWith('/vereinsmarkt/')||next.startsWith('/marktplatz/'));
  if(!active)return null;
  if(!UUID.test(club))club=DEFAULT_CLUB;
