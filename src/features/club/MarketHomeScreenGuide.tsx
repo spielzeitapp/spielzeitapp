@@ -1,18 +1,20 @@
 import React, {useEffect, useState} from 'react';
-import {CheckCircle2, Share, Smartphone, X} from 'lucide-react';
+import {CheckCircle2, Smartphone, X} from 'lucide-react';
 import {isStandaloneDisplayMode} from '../../lib/pwaDisplayMode';
 import './marketHomeScreenGuide.css';
 import {MarketInstallDialog} from './MarketInstallDialog';
+const firstVisitOffered=new Set<string>();
 type InstallEvent=Event&{prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
 export function requestMarketHomeGuide(clubId:string){
  try{sessionStorage.setItem(`vereinsmarkt-guide-after-join:${clubId}`,'1');}catch{}
  window.dispatchEvent(new CustomEvent('vereinsmarkt:joined',{detail:{clubId}}));
 }
 /** A saved preference is self-reported; Safari cannot inspect the Home Screen. */
-export function MarketHomeScreenGuide({clubId,alwaysAvailable=false,afterJoinOnly=false}:{clubId:string;alwaysAvailable?:boolean;afterJoinOnly?:boolean}){
+export function MarketHomeScreenGuide({clubId,alwaysAvailable=false,afterJoinOnly=false,autoOnFirstVisit=false}:{clubId:string;alwaysAvailable?:boolean;afterJoinOnly?:boolean;autoOnFirstVisit?:boolean}){
  const [standalone,setStandalone]=useState(isStandaloneDisplayMode),[hidden,setHidden]=useState(false),[expanded,setExpanded]=useState(false),[mobile,setMobile]=useState(false),[ios,setIos]=useState(false),[prompt,setPrompt]=useState<InstallEvent|null>(null),[message,setMessage]=useState('');
  const key=`vereinsmarkt-home-guide:${clubId}`;
  useEffect(()=>{
+  if(typeof window==='undefined')return;
   setIos(/iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1));
   setMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1));
   try{setHidden(localStorage.getItem(key)==='present'||Number(localStorage.getItem(key))>Date.now());}catch{}
@@ -24,7 +26,7 @@ export function MarketHomeScreenGuide({clubId,alwaysAvailable=false,afterJoinOnl
   return()=>{media?.removeEventListener?.('change',refresh);window.removeEventListener('pageshow',refresh);window.removeEventListener('beforeinstallprompt',offer);window.removeEventListener('appinstalled',installed);};
  },[key]);
  useEffect(()=>{
-  if(!afterJoinOnly)return;
+  if(!afterJoinOnly||typeof window==='undefined')return;
   const offer=(event?:Event)=>{
    const pending=`vereinsmarkt-guide-after-join:${clubId}`;
    let requested=event?.type==='vereinsmarkt:joined'&&(event as CustomEvent).detail?.clubId===clubId;try{requested=requested||sessionStorage.getItem(pending)==='1';}catch{}
@@ -37,8 +39,17 @@ export function MarketHomeScreenGuide({clubId,alwaysAvailable=false,afterJoinOnl
   offer();window.addEventListener('vereinsmarkt:joined',offer);
   return()=>window.removeEventListener('vereinsmarkt:joined',offer);
  },[afterJoinOnly,clubId,key]);
+ useEffect(()=>{
+  if(typeof window==='undefined'||!autoOnFirstVisit||isStandaloneDisplayMode()||firstVisitOffered.has(clubId))return;
+  const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(!isMobile)return;
+  const visited=`vereinsmarkt-guide-visited:${clubId}`;
+  try{const preference=localStorage.getItem(key);if(localStorage.getItem(visited)==='1'||preference==='present'||Number(preference)>Date.now())return;}catch{}
+  firstVisitOffered.add(clubId);try{localStorage.setItem(visited,'1');}catch{}
+  setExpanded(true);
+ },[autoOnFirstVisit,clubId,key]);
  const dismiss=(present=false)=>{setHidden(true);setExpanded(false);try{localStorage.setItem(key,present?'present':String(Date.now()+7*86400000));}catch{}};
- if(afterJoinOnly)return expanded&&!standalone?<MarketInstallDialog ios={ios} onClose={()=>setExpanded(false)} onPresent={()=>dismiss(true)}/>:null;
+ if(afterJoinOnly)return expanded&&!standalone?<MarketInstallDialog ios={ios} showChoice={autoOnFirstVisit} onClose={()=>setExpanded(false)} onPresent={()=>dismiss(true)}/>:null;
  if(!alwaysAvailable&&(!mobile||standalone||hidden))return null;
  return <section className="market-home-guide" aria-label="Vereinsmarkt am Home-Bildschirm">
   <div className="market-home-guide-heading"><img src="/vereinsmarkt/icon-180.png" width="44" height="44" alt="Vereinsmarkt-Icon"/><div><h2>{standalone?'Über das App-Icon geöffnet':'Vereinsmarkt direkt am Handy'}</h2><p>{standalone?'Du nutzt bereits die App-Ansicht.':hidden?'Icon schon vorhanden? Öffne den Vereinsmarkt künftig darüber.':'Mit eigenem Icon öffnen – ohne App Store.'}</p></div>{!alwaysAvailable&&<button type="button" className="market-home-guide-close" aria-label="Homescreen-Hinweis schließen" onClick={()=>dismiss()}><X size={18}/></button>}</div>
