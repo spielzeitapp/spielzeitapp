@@ -3,7 +3,7 @@ import React, {useEffect} from 'react';
 import {Link} from 'react-router-dom';
 import {ArrowLeft} from 'lucide-react';
 import './marketAuth.css';
-export function MarketAuthBrand({back}:{back:string}){
+export function MarketAuthBrand({back,manager=false}:{back:string;manager?:boolean}){
  useEffect(()=>{
   let frame=0;
   const reveal=()=>{
@@ -24,4 +24,4 @@ export function MarketAuthBrand({back}:{back:string}){
   window.visualViewport?.addEventListener('scroll',reveal);
   return()=>{cancelAnimationFrame(frame);document.removeEventListener('focusin',reveal);window.visualViewport?.removeEventListener('resize',reveal);window.visualViewport?.removeEventListener('scroll',reveal);};
  },[]);
- return <><div className="market-auth-top"><Link className="market-auth-back" to={back}><ArrowLeft size={18}/>Zurück zum Vereinsmarkt</Link><MarketThemeToggle/></div><div className="market-auth-brand"><img src="/vereinsmarkt/icon-180.png" width="64" height="64" alt=""/><div><strong>Vereins<span>markt</span></strong><small>powered by SpielzeitApp</small></div></div></>;}
+ return <><div className="market-auth-top"><Link className="market-auth-back" to={back}><ArrowLeft size={18}/>{manager?'Zum Vereinsmarkt-Manager':'Zurück zum Vereinsmarkt'}</Link><MarketThemeToggle/></div><div className="market-auth-brand"><img src={manager?'/vereinsmarkt-manager/shield-m-180.png':'/vereinsmarkt/icon-180.png'} width="64" height="64" alt=""/><div><strong>Vereins<span>markt</span></strong><small>{manager?'Manager · powered by SpielzeitApp':'powered by SpielzeitApp'}</small></div></div></>;}

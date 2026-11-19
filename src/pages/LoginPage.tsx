@@ -94,7 +94,7 @@ function pathLooksLikeParentInvite(path: string | null | undefined): boolean {
 
 export const LoginPage: React.FC = () => {
   const location = useLocation();
-  const market=marketAuthContext(location.search);
+  const market=marketAuthContext(location.search,location.pathname);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
@@ -134,7 +134,7 @@ export const LoginPage: React.FC = () => {
   const orphanTokenValid = isParentInviteTokenShape(normalizeParentInviteToken(orphanT ?? ''));
   const metaToken = readParentInviteTokenFromUserMetadata(user);
   const isParentInviteFlow = Boolean(
-    !parentInviteDismissed && (
+    !market?.manager && !parentInviteDismissed && (
       pendingInvitePath ||
       (nextSafe && pathLooksLikeParentInvite(nextSafe)) ||
       orphanTokenValid ||
@@ -166,7 +166,7 @@ export const LoginPage: React.FC = () => {
 
   const playerLoginEnabled = isPlayerQrAccessEnabled();
   const lockedInviteEmail = useMemo(() => {
-    if (parentInviteDismissed) return '';
+    if (market?.manager || parentInviteDismissed) return '';
     const fromQuery = (searchParams.get('email') ?? '').trim().toLowerCase();
     if (fromQuery) return fromQuery;
     const stashed = (readStashedParentInviteEmail() ?? '').trim().toLowerCase();
@@ -174,7 +174,7 @@ export const LoginPage: React.FC = () => {
     const fromUser = (user?.email ?? '').trim().toLowerCase();
     if (isParentInviteFlow && fromUser) return fromUser;
     return '';
-  }, [searchParams, user?.email, isParentInviteFlow, parentInviteDismissed]);
+  }, [searchParams, user?.email, isParentInviteFlow, parentInviteDismissed,market?.manager]);
 
   const inviteEmailLocked = Boolean(lockedInviteEmail);
 
@@ -322,7 +322,7 @@ export const LoginPage: React.FC = () => {
         <div className={`pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-red-600/10 blur-3xl ${isUscLogin ? 'usc-auth-glow' : ''}`} />
 
         <header className="relative">
-          {market ? <MarketAuthBrand back={market.back}/> : tournamentReturnTo ? <TournamentAuthBrand back={tournamentReturnTo}/> : isUscLogin ? <UscAuthBrand/> : isManagerLogin ? (
+          {market ? <MarketAuthBrand back={market.back} manager={market.manager}/> : tournamentReturnTo ? <TournamentAuthBrand back={tournamentReturnTo}/> : isUscLogin ? <UscAuthBrand/> : isManagerLogin ? (
             <div className="flex items-center gap-3" aria-label="Spielzeit Manager">
               <img src="/manager-icon-192.png" alt="" className="h-[4.25rem] w-[4.25rem] rounded-2xl" />
               <span className="text-xl font-black tracking-tight text-white">Spielzeit <span className="text-red-500">Manager</span></span>
@@ -335,12 +335,12 @@ export const LoginPage: React.FC = () => {
             />
           )}
           <h1 className="mt-3 text-2xl font-bold tracking-tight text-white">
-            {market ? 'Willkommen im Vereinsmarkt' : tournamentReturnTo ? 'Zum Turnier anmelden' : isUscLogin ? 'Beim USC Rohrbach anmelden' : 'Willkommen zurück'}
+            {market?.manager ? 'Beim Vereinsmarkt-Manager anmelden' : market ? 'Willkommen im Vereinsmarkt' : tournamentReturnTo ? 'Zum Turnier anmelden' : isUscLogin ? 'Beim USC Rohrbach anmelden' : 'Willkommen zurück'}
           </h1>
         </header>
 
         <p className="relative mt-4 text-sm leading-6 text-white/60">
-          {market ? 'Melde dich mit deinem Vereinsmarkt- oder SpielzeitApp-Konto an. Beide Zugänge funktionieren hier.' : showInviteConfirmedHint
+          {market?.manager ? 'Melde dich mit deinem bestehenden Konto an. Dein Vereinsadmin schaltet deine Verwaltungsaufgaben frei.' : market ? 'Melde dich mit deinem Vereinsmarkt- oder SpielzeitApp-Konto an. Beide Zugänge funktionieren hier.' : showInviteConfirmedHint
             ? 'E-Mail bestätigt. Melde dich jetzt an, um die Einladung anzunehmen.'
             : isParentInviteFlow
               ? 'Mit der eingeladenen E-Mail anmelden, um die Eltern-Einladung fortzusetzen.'
@@ -437,7 +437,7 @@ export const LoginPage: React.FC = () => {
               <span>Angemeldet bleiben</span>
             </label>
             <Link
-              to={market ? marketAuthPath('forgot-password',location.search) : isUscLogin ? uscAuthPath('passwort-vergessen',clubReturnTo!) : '/forgot-password'}
+              to={market ? marketAuthPath('forgot-password',location.search,location.pathname) : isUscLogin ? uscAuthPath('passwort-vergessen',clubReturnTo!) : '/forgot-password'}
               className="shrink-0 rounded text-sm font-semibold text-red-300 hover:text-red-200 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/50"
             >
               Passwort vergessen?
@@ -501,7 +501,7 @@ export const LoginPage: React.FC = () => {
             </>
           ) : null}
 
-          {!isParentInviteFlow && !isManagerLogin ? (
+          {!market?.manager && !isParentInviteFlow && !isManagerLogin ? (
             <p className="mt-1 text-center text-sm text-white/55">
               Noch kein Konto?{' '}
               <Link
@@ -517,7 +517,7 @@ export const LoginPage: React.FC = () => {
             </p>
           ) : null}
         </div>
-        {market&&<div className="market-auth-footer"><MarketLegalLinks/><p>Stöbern geht auch ohne Anmeldung.</p></div>}
+        {market&&<div className="market-auth-footer"><MarketLegalLinks/><p>{market.manager?'Manager-Zugang erhältst du von deinem Vereinsadmin.':'Stöbern geht auch ohne Anmeldung.'}</p></div>}
         {isUscLogin ? <UscAuthFooter/> : null}
       </div>
     </div>

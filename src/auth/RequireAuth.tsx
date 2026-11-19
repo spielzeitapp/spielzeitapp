@@ -33,6 +33,7 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({ children, allowedBacke
     // Preserve full location (path + search) so parent-invite tokens in from-state survive.
     // The iOS home-screen app can lose router state on a cold start. Keep the
     // Manager destination in the URL so signing in returns to its own icon.
+    if(location.pathname==='/manager/vereinsmarkt'&&new URLSearchParams(location.search).get('from')==='vereinsmarkt-manager'){const c=new URLSearchParams(location.search).get('club');const target='/vereinsmarkt-manager'+(c&&/^[0-9a-f-]{36}$/i.test(c)?'/'+c:'');return <Navigate replace to={target+'/anmelden'}/>;}
     if (location.pathname === '/manager' || location.pathname.startsWith('/manager/')) {
       const next = `${location.pathname}${location.search}`;
       return <Navigate to={`/manager/login?next=${encodeURIComponent(next)}`} state={{ from: location }} replace />;

@@ -29,7 +29,7 @@ const inputClass =
 export const ForgotPasswordPage: React.FC = () => {
   const location=useLocation();
   const clubReturnTo=uscAuthTarget(location.pathname,location.search);
-  const market=marketAuthContext(location.search);
+  const market=marketAuthContext(location.search,location.pathname);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -50,7 +50,7 @@ export const ForgotPasswordPage: React.FC = () => {
     }
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
-      redirectTo: getAuthRedirectUrl(market ? `${AUTH_PASSWORD_RECOVERY_PATH}?${new URLSearchParams({context:'vereinsmarkt',marketClub:market.club,next:market.next})}` : clubReturnTo ? `${AUTH_PASSWORD_RECOVERY_PATH}?next=${encodeURIComponent(clubReturnTo)}` : AUTH_PASSWORD_RECOVERY_PATH),
+      redirectTo: getAuthRedirectUrl(market ? `${AUTH_PASSWORD_RECOVERY_PATH}?${new URLSearchParams({context:market.manager?'vereinsmarkt-manager':'vereinsmarkt',marketClub:market.club,next:market.next})}` : clubReturnTo ? `${AUTH_PASSWORD_RECOVERY_PATH}?next=${encodeURIComponent(clubReturnTo)}` : AUTH_PASSWORD_RECOVERY_PATH),
       captchaToken: captchaToken ?? undefined,
     });
     setCaptchaToken(null);
@@ -69,7 +69,7 @@ export const ForgotPasswordPage: React.FC = () => {
   return (
     <div className={`${AUTH_PAGE_SHELL_CLASS} ${market ? 'market-auth-page' : clubReturnTo ? 'usc-auth-page' : ''}`}>
       <div className={`${AUTH_PAGE_CARD_CLASS} ${market ? 'market-auth-card' : clubReturnTo ? 'usc-auth-card' : ''}`}>
-        {market ? <MarketAuthBrand back={market.back}/> : clubReturnTo ? <UscAuthBrand/> : null}
+        {market ? <MarketAuthBrand back={market.back} manager={market.manager}/> : clubReturnTo ? <UscAuthBrand/> : null}
         <h1 className="text-xl font-semibold text-white">Passwort zurücksetzen</h1>
         <p className="mt-1 text-sm text-white/60">
           E-Mail eingeben – wir schicken dir einen Link zum Festlegen eines neuen Passworts.
@@ -114,7 +114,7 @@ export const ForgotPasswordPage: React.FC = () => {
         </form>
 
         <p className="mt-6 border-t border-white/10 pt-4 text-center text-sm text-white/60">
-          <Link to={market ? marketAuthPath('login',location.search) : clubReturnTo ? uscAuthPath('anmelden',clubReturnTo) : '/login'} className="text-white/80 hover:text-white hover:underline">
+          <Link to={market ? marketAuthPath('login',location.search,location.pathname) : clubReturnTo ? uscAuthPath('anmelden',clubReturnTo) : '/login'} className="text-white/80 hover:text-white hover:underline">
             Zurück zur Anmeldung
           </Link>
         </p>

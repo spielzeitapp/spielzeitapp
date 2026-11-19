@@ -1,4 +1,4 @@
-import { marketSwitchEntry } from '../../features/club/marketSwitch';
+import {MarketQuickSwitch} from '../../features/marketManager/MarketQuickSwitch';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Bell, MoreHorizontal } from 'lucide-react';
@@ -257,7 +257,7 @@ export const Header: React.FC = () => {
                   {authLoading || !user ? null : pathname.startsWith('/app') ? (
                     <>
                       {(teamSeasons?.length ?? 0) > 0 ? <TeamSwitcher iconOnly /> : null}
-                      {!isRoleChoice&&<Link to={marketSwitchEntry(pathname+search)} className={dsGlassIconButtonClass().replace('h-9 w-9','h-11 w-11').replace('sm:h-10 sm:w-10','sm:h-11 sm:w-11')} aria-label="Zum Vereinsmarkt wechseln" title="Vereinsmarkt"><img src="/vereinsmarkt/icon-180.png" width="36" height="36" className="h-9 w-9 rounded-full object-contain" alt=""/></Link>}
+                      {!isRoleChoice&&<MarketQuickSwitch userId={user.id} staff={isStaff} returnTo={pathname+search} className={dsGlassIconButtonClass().replace('h-9 w-9','h-11 w-11').replace('sm:h-10 sm:w-10','sm:h-11 sm:w-11')}/>}
                       {showManagerShortcut(effectiveRole, backendRole, memberships ?? []) ? (
                         <Link
                           to="/manager"

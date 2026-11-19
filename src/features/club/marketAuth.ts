@@ -1,14 +1,15 @@
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DEFAULT_CLUB='3db6fce2-a4c1-44a5-a333-19d1d4d62e6a';
 /** Presentation context only; never grants membership or changes auth checks. */
-export function marketAuthContext(search:string){
- const p=new URLSearchParams(search),raw=p.get('next')||'';let next='';let club=p.get('marketClub')||'';
+export function marketAuthContext(search:string,pathname=''){
+ const p=new URLSearchParams(search),raw=p.get('next')||'';const manager=p.get('context')==='vereinsmarkt-manager'||/^\/vereinsmarkt-manager(?:\/[0-9a-f-]{36})?\/(?:anmelden|passwort-vergessen)\/?$/i.test(pathname);const pathClub=pathname.match(/^\/vereinsmarkt-manager\/([0-9a-f-]{36})\//i)?.[1];let next='';let club=pathClub||p.get('marketClub')||'';const managerBack=UUID.test(club)?'/vereinsmarkt-manager/'+club:'/vereinsmarkt-manager';
  try{const u=new URL(raw,'https://market.invalid');if(raw.startsWith('/')&&!raw.startsWith('//')&&!/[\\\s]/.test(raw)&&u.origin==='https://market.invalid'&&(['/app/tauschboerse','/app/profile'].includes(u.pathname)||/^\/vereinsmarkt-manager(?:\/[0-9a-f-]{36})?$/.test(u.pathname)||/^\/(?:vereinsmarkt|marktplatz)\/[0-9a-f-]{36}$/i.test(u.pathname))){next=u.pathname.replace(/^\/marktplatz\//,'/vereinsmarkt/')+u.search+u.hash;if(!UUID.test(club))club=u.searchParams.get('club')||u.pathname.split('/')[2]||'';}}catch{}
- const active=p.get('context')==='vereinsmarkt'||next.startsWith('/app/tauschboerse')||(next.startsWith('/vereinsmarkt/')||next.startsWith('/marktplatz/'));
+ if(manager&&!/^\/vereinsmarkt-manager(?:\/[0-9a-f-]{36})?(?:[?#]|$)/i.test(next))next='';
+ const active=manager||p.get('context')==='vereinsmarkt'||next.startsWith('/app/tauschboerse')||(next.startsWith('/vereinsmarkt/')||next.startsWith('/marktplatz/'));
  if(!active)return null;
- if(!UUID.test(club))club=DEFAULT_CLUB;
- const back=`/vereinsmarkt/${club}`;
+ if(!UUID.test(club))club=manager?'':DEFAULT_CLUB;
+ const back=manager?managerBack:`/vereinsmarkt/${club}`;
  if(next.startsWith('/app/')){const old=new URL(next,'https://market.invalid');const q=new URLSearchParams({view:old.pathname==='/app/profile'?'start':'member',club});for(const key of ['listing','thread','mode']){const v=old.searchParams.get(key);if(v)q.set(key,v);}if(old.searchParams.get('view')==='requests')q.set('mode','requests');next=back+'?'+q;}
- return {club,back,next:next||back+'?view=start'};
+ return {club,back,manager,next:next||(manager?back:back+'?view=start')};
 }
-export function marketAuthPath(screen:'login'|'register'|'forgot-password',search:string){const c=marketAuthContext(search);if(!c)return '/'+screen;const q=new URLSearchParams({context:'vereinsmarkt',marketClub:c.club,next:c.next});const segment={login:'anmelden',register:'registrieren','forgot-password':'passwort-vergessen'}[screen];return c.back+'/'+segment+'?'+q;}
+export function marketAuthPath(screen:'login'|'register'|'forgot-password',search:string,pathname=''){const c=marketAuthContext(search,pathname);if(!c)return '/'+screen;if(c.manager&&screen!=='register'){const segment=screen==='login'?'anmelden':'passwort-vergessen';return c.back+'/'+segment+'?'+new URLSearchParams({context:'vereinsmarkt-manager',marketClub:c.club,next:c.next});}const q=new URLSearchParams({context:'vereinsmarkt',marketClub:c.club,next:c.next});const segment={login:'anmelden',register:'registrieren','forgot-password':'passwort-vergessen'}[screen];return (c.manager?'/vereinsmarkt/'+c.club:c.back)+'/'+segment+'?'+q;}

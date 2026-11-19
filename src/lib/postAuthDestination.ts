@@ -32,6 +32,7 @@ function isInternalAppDeepLink(path: string | null | undefined): boolean {
   if (clean === '/login' || clean === '/register' || clean === '/forgot-password') return false;
   if (clean === '/app/parent-invite' || clean.startsWith('/app/parent-invite/')) return false;
   if (clean === '/app') return false;
+  if(/^\/vereinsmarkt-manager(?:\/[0-9a-f-]{36})?$/i.test(clean))return true;
   return clean === '/manager' || clean.startsWith('/manager/') ||
     clean.startsWith('/app/') || clean.startsWith('/demo/') ||
     clean.startsWith('/turnier-meldung/') || clean.startsWith('/turnier-verwaltung/') ||
@@ -54,7 +55,7 @@ export async function resolvePostAuthDestination(opts: {
   parentInviteFlowHint?: boolean;
 }): Promise<PostAuthDestination> {
   // An explicit marketplace login stays in its own shell; membership checks run there.
-  if (!opts.parentInviteFlowHint && opts.next && isSafeAuthRedirectPath(opts.next) && /^\/(?:vereinsmarkt|marktplatz)\/[0-9a-f-]{36}(?:[?#]|$)/i.test(opts.next)) {
+  if (!opts.parentInviteFlowHint && opts.next && isSafeAuthRedirectPath(opts.next) && (/^(?:\/vereinsmarkt-manager(?:\/[0-9a-f-]{36})?)(?:[?#]|$)/i.test(opts.next)||/^\/(?:vereinsmarkt|marktplatz)\/[0-9a-f-]{36}(?:[?#]|$)/i.test(opts.next))) {
     return {path:opts.next,kind:'deep_link',hardReplace:false};
   }
   const invitePath = resolvePendingParentInvitePath(opts.user);
