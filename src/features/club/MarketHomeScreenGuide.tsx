@@ -11,7 +11,7 @@ export function requestMarketHomeGuide(clubId:string){
 }
 /** A saved preference is self-reported; Safari cannot inspect the Home Screen. */
 export function MarketHomeScreenGuide({clubId,userId,alwaysAvailable=false,afterJoinOnly=false,autoOnFirstVisit=false}:{clubId:string;userId?:string;alwaysAvailable?:boolean;afterJoinOnly?:boolean;autoOnFirstVisit?:boolean}){
- const [standalone,setStandalone]=useState(isStandaloneDisplayMode),[hidden,setHidden]=useState(false),[expanded,setExpanded]=useState(false),[mobile,setMobile]=useState(false),[ios,setIos]=useState(false),[prompt,setPrompt]=useState<InstallEvent|null>(null),[message,setMessage]=useState('');
+ const [standalone,setStandalone]=useState(isStandaloneDisplayMode),[hidden,setHidden]=useState(false),[expanded,setExpanded]=useState(false),[manualGuide,setManualGuide]=useState(false),[mobile,setMobile]=useState(false),[ios,setIos]=useState(false),[prompt,setPrompt]=useState<InstallEvent|null>(null),[message,setMessage]=useState('');
  const key=`vereinsmarkt-home-guide:${clubId}`;
  useEffect(()=>{
   setIos(/iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1));
@@ -48,7 +48,10 @@ export function MarketHomeScreenGuide({clubId,userId,alwaysAvailable=false,after
   setExpanded(true);
  },[autoOnFirstVisit,clubId,key]);
  const dismiss=(present=false)=>{setHidden(true);setExpanded(false);try{localStorage.setItem(key,present?'present':String(Date.now()+7*86400000));}catch{}};
- if(afterJoinOnly)return expanded&&!standalone?<MarketInstallDialog ios={ios} showChoice={autoOnFirstVisit} onClose={()=>setExpanded(false)} onPresent={()=>dismiss(true)}/>:null;
+ if(afterJoinOnly)return <>
+  {autoOnFirstVisit&&mobile&&!standalone&&<div className="market-home-guide-entry"><img src="/vereinsmarkt/icon-180.png" width="36" height="36" alt=""/><span>Direkt über dein App-Icon öffnen</span><button type="button" onClick={()=>{setManualGuide(true);setExpanded(true);}}><Smartphone size={18}/>App-Icon hinzufügen</button></div>}
+  {expanded&&!standalone&&<MarketInstallDialog ios={ios} showChoice={autoOnFirstVisit&&!manualGuide} onClose={()=>{setExpanded(false);setManualGuide(false);}} onPresent={()=>dismiss(true)}/>}
+ </>;
  if(!alwaysAvailable&&(!mobile||standalone||hidden))return null;
  return <section className="market-home-guide" aria-label="Vereinsmarkt am Home-Bildschirm">
   <div className="market-home-guide-heading"><img src="/vereinsmarkt/icon-180.png" width="44" height="44" alt="Vereinsmarkt-Icon"/><div><h2>{standalone?'Über das App-Icon geöffnet':'Vereinsmarkt direkt am Handy'}</h2><p>{standalone?'Du nutzt bereits die App-Ansicht.':hidden?'Icon schon vorhanden? Öffne den Vereinsmarkt künftig darüber.':'Mit eigenem Icon öffnen – ohne App Store.'}</p></div>{!alwaysAvailable&&<button type="button" className="market-home-guide-close" aria-label="Homescreen-Hinweis schließen" onClick={()=>dismiss()}><X size={18}/></button>}</div>
