@@ -252,6 +252,10 @@
       "destination": "/api/push/router?pushAction=test"
     },
     {
+      "source": "/api/account/delete",
+      "destination": "/api/exchange/push?accountAction=delete"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },

@@ -12,6 +12,7 @@ function buildWebPushJsonPayload(parts) {
  * Entries remain pending on failure; another request retries them with a stable tag.
  */
 module.exports = async function handler(req, res) {
+  if (req.query?.accountAction === 'delete') return require('../../server/account-delete.cjs')(req, res);
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST erforderlich' });
   const url = String(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim().replace(/\/$/, '');
