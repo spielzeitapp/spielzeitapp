@@ -24,7 +24,8 @@ export interface ProfileRow {
   display_name: string | null;
 }
 
-const PROFILE_SELECT = 'id, first_name, last_name, full_name, display_name';
+// full_name is a derived UI field; the profiles table stores first_name/last_name.
+const PROFILE_SELECT = 'id, first_name, last_name, display_name';
 
 export const APP_NAME_PLACEHOLDER = /^spielzeitapp$/i;
 
@@ -133,7 +134,7 @@ export function useProfile(userId: string | undefined | null): {
 
         setLoading(false);
         setError(null);
-        setProfile(data);
+        setProfile(data ? {...data, full_name: [data.first_name, data.last_name].filter(Boolean).join(' ').trim() || data.display_name || null} : null);
       } catch (e: unknown) {
         if (cancelled) return;
         console.error('[useProfile] profile fetch failed', e);
