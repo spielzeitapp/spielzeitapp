@@ -1,0 +1,49 @@
+{
+  "scope": "Vereinsmarkt, own manager, team contributions and cash ledger",
+  "common_sha256": {
+    "src/features/club/ClubExchange.tsx": "a90f19631c387475433a5469e4e513209b0f8bee1dc04f734dceeba2e7742def",
+    "src/features/club/MarketAccountSettings.tsx": "d31e725e2b4168cd95c215a6f529cf92155ff6d0d6fdf98fb8cfaefb6def3897",
+    "src/features/club/MarketHomeScreenGuide.tsx": "4b3c285e3396d66e094ee05adea3b5f99576d0b5c733c208a435ad8c618c20cd",
+    "src/features/club/MarketInstallDialog.tsx": "7719c9ec7f64de939c5df265f91d8a83716d9410af3169b1bfc63c656205cb20",
+    "src/features/club/MarketInstallSlides.tsx": "bb4f717f30b0fdb4336e176851cf7cc026b06d9e7129067a6da4ba7fbf968583",
+    "src/features/club/MarketJoinPanel.tsx": "7065089b10d5131c8ba2c265b37e916164812fc9968c3b73b2126baec028307a",
+    "src/features/club/MarketNotifications.tsx": "7dc9a8f70d44f0adbc9bc5a25e562206c4a861a5e0a653525644d1a4eb8fdfa6",
+    "src/features/club/PublicExchangePage.tsx": "8a164ac64ad57ee8ef1de6a278838be2eb36f21f96d332468b5a78e9fc1e12dd",
+    "src/features/club/marketAuth.css": "861fbfc1910c28d85b460efe404be105ec967f41bf8cb226d68c75f5034adb03",
+    "src/features/club/marketAuth.ts": "0e3142c2f4e07e59ac18b72720af46046b940181e159a17e9987990a67ed00da",
+    "src/features/club/marketNotifications.css": "e23e9da089462cb7412dfbe05e661751d1b50f11954f3c5f3cbb44ab32269b50",
+    "src/features/club/publicExchange.css": "5d79ae75d7e34afffe5ed6a29dddad55d2ef2116f9d874f6d1d716ea8c1b679b",
+    "src/features/club/useMarketAppSwitch.ts": "dcc1d9c93c59ec701abaf1cdbaac5814a2f3661e5260858120641b4b080511e3",
+    "src/features/club/TeamFundFields.tsx": "55d66831101723829cecd7698eb161d88eacd68e9eacba0cef12da5edeb66b86",
+    "src/features/club/teamFund.ts": "a563e2ff8a14f781cb49036f83fbb2c318b86c0b1a7ee9da68142d3ea13d4ff1",
+    "src/features/club/teamFund.css": "a1d1c907ba6c099b02779b182e5da38376265240c42da60e0e3762943e4f12d9",
+    "src/pages/ClubExchangePage.tsx": "beaec8c2d91355dc1c8f0a2c45900e8bf915e5d7ab0952a8e543a70a21db1392",
+    "src/features/marketManager/MarketManagerShortcut.tsx": "765daa77722a30c4bc9cb7083967eed833c17a9310e862731cd70ed30611e8cc",
+    "src/features/marketManager/marketQuickSwitch.css": "d6c84428c6c7b57fb1a938063eafc336976032f21361126f587e6b4fe7b332da",
+    "src/features/marketManager/MarketManagerSplash.tsx": "eb8779033425ade74cbdc6c7b1726f5185b48e5f9c4ae1de27198dbbafa12ea7",
+    "src/features/marketManager/useMarketManagerAccess.ts": "97327d7bfb26480ed63811dfbe176f63999accae0a963d4420a16b52c2b56784",
+    "src/features/marketManager/marketManagerNav.css": "cf7b3bee84385d4d9ee91ee426a59eadc39e52eeb8342fac0fd3096f856cda02",
+    "src/features/marketManager/MarketManagerPage.tsx": "89e474da1077bf8fbf94f1cf5cb5452678e705f7495e2bf93237d605feac1d0f",
+    "src/features/marketManager/MarketQuickSwitch.tsx": "1dfeca551c384f5f663788fd9b793cf28692ba2adfcbce4d630ac25cb8811f1a",
+    "src/features/marketManager/marketManager.css": "c859841eb2e1a8c05a80f917288aa80982e7945409e660a2adcf4c6fa9227936",
+    "src/features/marketManager/MarketManagerDashboard.tsx": "c33e48d996da5b32c15c7e03e9d9d68b1b08dfe13b7e5ba6292e360c3ae3020c",
+    "src/features/marketManager/MarketTeamCash.tsx": "517dcd1890e67e261e80feaa8015b160dc73ddb4e597966b738c24c3b89aadfb",
+    "src/features/marketManager/MarketManagerNav.tsx": "124873f356c82a93db9d5ee0ead9e2dd96e4e375c72d709f39d7190da71182b7"
+  },
+  "intentional_differences": [
+    "TEST environment label, club IDs, users, offers and credentials",
+    "API handlers on TEST reject LIVE Supabase; LIVE accepts its configured project",
+    "TEST tournament branding outside market; market registration consent is shared",
+    "ClubShop is TEST-only preview; LIVE shop backend absent, no preview orders copied"
+  ],
+  "release_requires": [
+    "Vercel build success and actual domain version verification",
+    "LIVE registration/email/team wizard, normal parent and restricted manager smoke test",
+    "Club admin sets payment information and explicit person/team cash grants before use"
+  ],
+  "not_claimed": [
+    "Full SpielzeitApp branch parity",
+    "LIVE club-shop ordering",
+    "Physical iPhone/Android end-to-end test"
+  ]
+}

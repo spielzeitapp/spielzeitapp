@@ -1,3 +1,5 @@
+import {ClubShop} from './ClubShop';
+import {marketDisplayName} from './marketIdentity';
 import {fundPrice} from './teamFund';
 import {MarketManagerShortcut} from '../marketManager/MarketManagerShortcut';
 import {MarketAccessPrompt} from './MarketAccessPrompt';
@@ -75,7 +77,7 @@ function PublicExchangeContent(){
  const shown=selectExchangeItems(catalog,'all','',filters,search,sort);
  useEffect(()=>{let active=true;const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),12000);setLoading(true);setError('');void(async()=>{
    const r=await fetch(`/api/exchange/public?club=${encodeURIComponent(clubId)}`,{cache:'no-store',signal:controller.signal});const body=await r.json();if(!r.ok)throw Error(body.error||'Laden fehlgeschlagen');
-   if(active){setClub(body.club.name);setItems(body.items);}
+   if(active){setClub(marketDisplayName(clubId,body.club.name));setItems(body.items);}
  })().catch(e=>{if(active)setError(e.name==='AbortError'?'Die Verbindung dauert zu lange. Bitte erneut versuchen.':e.message);}).finally(()=>{clearTimeout(timeout);if(active){setSettledClub(clubId);setLoading(false);}});return()=>{active=false;clearTimeout(timeout);controller.abort();};},[clubId,retry,view==='member']);
  const go=(next:string)=>setParams({...returnQuery,view:next});
  const activeNav=view==='member'?(params.get('mode')==='mine'?'mine':params.get('mode')==='requests'?'nachrichten':params.get('mode')==='create'?'inserieren':'start'):view==='saved'?'saved':view==='start'||view==='suchen'?'start':'';
@@ -101,7 +103,7 @@ function PublicExchangeContent(){
  {user&&<MarketHomeScreenGuide clubId={clubId} userId={user.id} alwaysAvailable/>}
  {user&&<><MarketNotifications userId={user.id} unread={unreadMessages}/><MarketInviteAdmin clubId={clubId} userId={user.id}/><MarketMembersAdmin clubId={clubId} userId={user.id}/></>}
  <div className="public-market-profile-links"><Link to={login(savedPath)}>Meine Merkliste <Heart size={20}/></Link><Link to={login(memberPath+'&mode=mine')}>Meine Inserate <Shirt size={20}/></Link><Link to={login(memberPath+'&mode=requests')}>Meine Anfragen <MessageCircle size={20}/></Link></div>
- </section>:view==='shop'?<section className="public-market-panel"><Shirt size={32}/><h1>Lieber neu?</h1><p>Hier kann dein Verein später neue Vereinskleidung oder den Shop seines Ausrüsters anbieten.</p><strong>Noch kein Shop freigeschaltet.</strong><button onClick={()=>go('start')}>Zum Vereinsmarkt</button></section>:view==='app'?<section className="public-market-panel"><h1>Mehr Verein. Eine App.</h1><p>Termine, Mannschaften und Vereinsleben an einem Ort.</p><a className="public-market-cta" href="https://spielzeitapp.at/landingpage">SpielzeitApp kennenlernen</a></section>:<>
+ </section>:view==='shop'?isStagingApp()?<ClubShop clubId={clubId} clubName={club} onBack={()=>go('start')}/>:<section className="public-market-panel"><Shirt size={32}/><h1>Lieber neu?</h1><p>Hier kann dein Verein später neue Vereinskleidung oder den Shop seines Ausrüsters anbieten.</p><strong>Noch kein Shop freigeschaltet.</strong><button onClick={()=>go('start')}>Zum Vereinsmarkt</button></section>:view==='app'?<section className="public-market-panel"><h1>Mehr Verein. Eine App.</h1><p>Termine, Mannschaften und Vereinsleben an einem Ort.</p><a className="public-market-cta" href="https://spielzeitapp.at/landingpage">SpielzeitApp kennenlernen</a></section>:<>
  {view==='start'&&<><p className="public-market-eyebrow">Alle Teams. Ein Verein.</p><h1>Vereinsmarkt</h1><p className="public-market-intro">Fußballsachen weitergeben. Im Verein verbunden.</p></>}
  <div className="exchange-search"><Search size={20}/><input aria-label="Öffentliche Angebote suchen" placeholder="Was suchst du?" type="search" value={search} onChange={e=>{setSearch(e.target.value);}}/></div>
  <div className="public-market-categories">{[{label:'Alle Artikel',Icon:Shirt,category:''},{label:'Schuhe',Icon:MarketShoesIcon,category:'Schuhe'},{label:'Zubehör',Icon:ShinGuardIcon,category:'Zubehör'},{label:'Neu im Shop',Icon:ShoppingBag,category:'shop'}].map(({label,Icon,category})=><button key={label} onClick={()=>{if(category==='shop')go('shop');else{setFilters({...EMPTY_EXCHANGE_FILTERS,category});go('suchen');}}}><Icon size={23}/>{label}</button>)}</div>
