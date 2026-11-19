@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+const require=createRequire(new URL('../package.json',import.meta.url));
+const {transformSync}=require('esbuild');
+const {readFileSync}=await import('node:fs');
+const source=readFileSync(new URL('../src/features/club/marketAccountIdentity.ts',import.meta.url),'utf8');
+const code=transformSync(source,{loader:'ts',format:'cjs'}).code;
+const module={exports:{}};new Function('module','exports',code)(module,module.exports);
+const identity=module.exports.marketAccountIdentity;
+assert.deepEqual(identity({first_name:'Johannes',last_name:'Baumann'},{}),{name:'Johannes Baumann',initials:'JB'});
+assert.deepEqual(identity(null,{full_name:'  Anna Maria Müller  '}),{name:'Anna Maria Müller',initials:'AM'});
+assert.deepEqual(identity(null,{first_name:'Özlem'}),{name:'Özlem',initials:'Ö'});
+assert.deepEqual(identity({full_name:'SpielzeitApp'},{first_name:'Johannes',last_name:'Baumann'}),{name:'Johannes Baumann',initials:'JB'});
+assert.deepEqual(identity(null,{email:'private@example.com',first_name:42}),{name:'',initials:''});
+assert.deepEqual(identity(null,null),{name:'',initials:''});
+console.log('PASS profile/metadata initials, Unicode, missing-name and email-safe fallback');
