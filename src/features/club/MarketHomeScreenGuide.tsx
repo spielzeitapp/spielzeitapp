@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {CheckCircle2, Smartphone, X} from 'lucide-react';
+import {CheckCircle2, Share, Smartphone, X} from 'lucide-react';
 import {isStandaloneDisplayMode} from '../../lib/pwaDisplayMode';
 import './marketHomeScreenGuide.css';
 import {MarketInstallDialog} from './MarketInstallDialog';
@@ -10,11 +10,10 @@ export function requestMarketHomeGuide(clubId:string){
  window.dispatchEvent(new CustomEvent('vereinsmarkt:joined',{detail:{clubId}}));
 }
 /** A saved preference is self-reported; Safari cannot inspect the Home Screen. */
-export function MarketHomeScreenGuide({clubId,alwaysAvailable=false,afterJoinOnly=false,autoOnFirstVisit=false}:{clubId:string;alwaysAvailable?:boolean;afterJoinOnly?:boolean;autoOnFirstVisit?:boolean}){
+export function MarketHomeScreenGuide({clubId,userId,alwaysAvailable=false,afterJoinOnly=false,autoOnFirstVisit=false}:{clubId:string;userId?:string;alwaysAvailable?:boolean;afterJoinOnly?:boolean;autoOnFirstVisit?:boolean}){
  const [standalone,setStandalone]=useState(isStandaloneDisplayMode),[hidden,setHidden]=useState(false),[expanded,setExpanded]=useState(false),[mobile,setMobile]=useState(false),[ios,setIos]=useState(false),[prompt,setPrompt]=useState<InstallEvent|null>(null),[message,setMessage]=useState('');
  const key=`vereinsmarkt-home-guide:${clubId}`;
  useEffect(()=>{
-  if(typeof window==='undefined')return;
   setIos(/iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1));
   setMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1));
   try{setHidden(localStorage.getItem(key)==='present'||Number(localStorage.getItem(key))>Date.now());}catch{}
@@ -26,7 +25,7 @@ export function MarketHomeScreenGuide({clubId,alwaysAvailable=false,afterJoinOnl
   return()=>{media?.removeEventListener?.('change',refresh);window.removeEventListener('pageshow',refresh);window.removeEventListener('beforeinstallprompt',offer);window.removeEventListener('appinstalled',installed);};
  },[key]);
  useEffect(()=>{
-  if(!afterJoinOnly||typeof window==='undefined')return;
+  if(!afterJoinOnly)return;
   const offer=(event?:Event)=>{
    const pending=`vereinsmarkt-guide-after-join:${clubId}`;
    let requested=event?.type==='vereinsmarkt:joined'&&(event as CustomEvent).detail?.clubId===clubId;try{requested=requested||sessionStorage.getItem(pending)==='1';}catch{}
@@ -40,7 +39,7 @@ export function MarketHomeScreenGuide({clubId,alwaysAvailable=false,afterJoinOnl
   return()=>window.removeEventListener('vereinsmarkt:joined',offer);
  },[afterJoinOnly,clubId,key]);
  useEffect(()=>{
-  if(typeof window==='undefined'||!autoOnFirstVisit||isStandaloneDisplayMode())return;
+  if(!autoOnFirstVisit||isStandaloneDisplayMode())return;
   const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   if(!isMobile)return;
   // Offer the new optional welcome flow once, including after testing the older guide.
@@ -67,7 +66,7 @@ export function MarketHomeScreenGuide({clubId,alwaysAvailable=false,afterJoinOnl
   {standalone?<p className="market-home-guide-status"><CheckCircle2 size={18}/>Keine weitere Installation nötig.</p>:<>
    {message&&<p role="status">{message}</p>}
    {!expanded?<div className="market-home-guide-actions"><button type="button" onClick={()=>setExpanded(true)}><Smartphone size={18}/>App-Icon hinzufügen</button>{!hidden&&<button type="button" onClick={()=>dismiss(true)}>Icon bereits vorhanden</button>}</div>:<>
-    <MarketInstallDialog ios={ios} onClose={()=>setExpanded(false)}/>
+    <MarketInstallDialog ios={ios} userId={userId} onClose={()=>setExpanded(false)}/>
     <p className="market-home-guide-note">Schon ein Vereinsmarkt-Icon vorhanden? Öffne dieses. Im Browser lässt sich am iPhone nicht sicher erkennen, ob das Icon bereits hinzugefügt wurde. Stöbern geht auch hier im Browser.</p>
     {prompt&&<button type="button" className="market-home-guide-install" onClick={async()=>{try{await prompt.prompt();const choice=await prompt.userChoice;setMessage(choice.outcome==='accepted'?'Installation bestätigt. Öffne danach das Vereinsmarkt-Icon.':'Du kannst den Vereinsmarkt später hinzufügen.');}catch{setMessage('Bitte verwende die Anleitung über das Browsermenü.');}setPrompt(null);}}>Vereinsmarkt installieren</button>}
     <div className="market-home-guide-actions"><button type="button" onClick={()=>setExpanded(false)}>Anleitung schließen</button>{!alwaysAvailable&&<button type="button" onClick={()=>dismiss(true)}>Icon bereits vorhanden</button>}</div>

@@ -15,7 +15,7 @@ const m=new Module('market-push-test');m.paths=require.resolve.paths('react');m.
 let app;const render=()=>React.createElement(C,{userId:'member',unread:3});
 await act(async()=>{app=create(render())});
 assert.match(JSON.stringify(app.toJSON()),/nicht aktiviert/);await act(async()=>app.root.findByType('button').props.onClick());assert.equal(activated,1);
-globalThis.__marketPush={...__marketPush,isActive:true,permission:'granted'};await act(async()=>app.update(render()));assert.deepEqual(badges,[3]);assert.match(JSON.stringify(app.toJSON()),/deaktivieren/);
+globalThis.__marketPush={...__marketPush,isActive:true,permission:'granted'};await act(async()=>app.update(render()));assert.deepEqual(badges,[3]);assert.match(JSON.stringify(app.toJSON()),/ausschalten/);
 await act(async()=>app.root.findByType('button').props.onClick());assert.equal(deactivated,1);
 globalThis.__marketPush={...__marketPush,isActive:false,permission:'denied'};await act(async()=>app.update(render()));assert.equal(app.root.findAllByType('button').length,0);assert.match(JSON.stringify(app.toJSON()),/Mitteilungen/);
 globalThis.__marketPush={...__marketPush,browserOk:false};await act(async()=>app.update(render()));assert.match(JSON.stringify(app.toJSON()),/Home-Bildschirm/);

@@ -117,6 +117,8 @@ export const RegisterPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [marketTermsAccepted, setMarketTermsAccepted] = useState(false);
+  const [marketShowTeam, setMarketShowTeam] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
@@ -180,6 +182,10 @@ export const RegisterPage: React.FC = () => {
     const trimmedFirst = firstName.trim();
     const trimmedLast = lastName.trim();
     const trimmedEmail = email.trim().toLowerCase();
+    if (market && !marketTermsAccepted) {
+      setError('Bitte akzeptiere die Nutzungsbedingungen für den Vereinsmarkt.');
+      return;
+    }
     const lockedEmail =
       (searchParams.get('email') ?? '').trim().toLowerCase() ||
       (readStashedParentInviteEmail() ?? '').trim().toLowerCase() ||
@@ -228,6 +234,7 @@ export const RegisterPage: React.FC = () => {
             first_name: trimmedFirst,
             last_name: trimmedLast,
             spielzeit_parent_invite: true,
+            ...(market ? {auth_entry:'vereinsmarkt',market_terms_version:'2026-11-18',market_show_team:marketShowTeam} : {}),
             ...(inviteToken ? { spielzeit_parent_invite_token: inviteToken } : {}),
           },
         });
@@ -290,7 +297,7 @@ export const RegisterPage: React.FC = () => {
         email: trimmedEmail,
         password,
         options: {
-          data: { first_name: trimmedFirst, last_name: trimmedLast, ...(market ? { auth_entry: 'vereinsmarkt' } : {}) },
+          data: { first_name: trimmedFirst, last_name: trimmedLast, ...(market ? { auth_entry: 'vereinsmarkt', market_terms_version: '2026-11-18', market_show_team: marketShowTeam } : {}) },
           emailRedirectTo: getAuthRedirectUrl(emailRedirectPath),
           ...(captchaToken ? { captchaToken } : {}),
         },
@@ -465,7 +472,7 @@ export const RegisterPage: React.FC = () => {
             </button>
 
             <p className="mt-4 text-center text-[12px] leading-5 text-white/45">
-              {market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend die Mannschaft deiner Familie. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
+              {market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend alle passenden Teams deiner Kinder. Mehrere Teams sind möglich. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
                 ? 'Nach der Bestätigung öffnet sich deine persönliche Einladung.'
                 : tournamentReturnTo ? 'Nach der Bestätigung geht es direkt zur Mannschaftsmeldung. Ein Vereinssetup ist nicht erforderlich.' : 'Nach der Bestätigung geht es automatisch zur Rollenwahl.'}
               {' '}Dein Passwort bleibt gespeichert.
@@ -507,7 +514,7 @@ export const RegisterPage: React.FC = () => {
           {existingAccount ? 'Du hast bereits ein Konto' : market ? 'Für den Vereinsmarkt registrieren' : tournamentReturnTo ? 'Für das Turnier registrieren' : hasInviteSession ? 'Konto vervollständigen' : clubReturnTo ? 'Für USC Rohrbach registrieren' : 'Registrieren'}
         </h1>
         <p className="mt-1 text-sm text-white/60">
-          {existingAccount ? tournamentReturnTo ? 'Du kannst deinen bestehenden SpielzeitApp-Zugang auch für die Turniermeldung verwenden. Bitte anmelden.' : 'Für diese E-Mail-Adresse gibt es bereits ein Konto. Du kannst dich damit auch beim Vereinsmarkt anmelden. Tippe auf „Zur Anmeldung“ und verwende dein bisheriges Passwort. Weißt du es nicht mehr? Wähle „Passwort vergessen“. Eine neue Registrierung ist nicht nötig.' : market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend die Mannschaft deiner Familie. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
+          {existingAccount ? tournamentReturnTo ? 'Du kannst deinen bestehenden SpielzeitApp-Zugang auch für die Turniermeldung verwenden. Bitte anmelden.' : 'Für diese E-Mail-Adresse gibt es bereits ein Konto. Du kannst dich damit auch beim Vereinsmarkt anmelden. Tippe auf „Zur Anmeldung“ und verwende dein bisheriges Passwort. Weißt du es nicht mehr? Wähle „Passwort vergessen“. Eine neue Registrierung ist nicht nötig.' : market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend alle passenden Teams deiner Kinder. Mehrere Teams sind möglich. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
             ? hasInviteSession
               ? 'Name und Passwort setzen. Danach geht es direkt zur Einladung — ohne Rollen- oder Mannschaftswahl.'
               : 'Konto mit der eingeladenen E-Mail anlegen. Nach der Bestätigung kannst du die Einladung annehmen — ohne Vereins- oder Kindauswahl.'
@@ -637,6 +644,13 @@ export const RegisterPage: React.FC = () => {
             </div>
           </div>
 
+          {market && <fieldset className="market-registration-choices">
+            <legend className="sr-only">Nutzungsbedingungen und freiwillige Teamanzeige</legend>
+            <label className="market-registration-choice"><input id="reg-market-terms" type="checkbox" required checked={marketTermsAccepted} onChange={e=>setMarketTermsAccepted(e.target.checked)}/><span>Ich akzeptiere die <a href="/vereinsmarkt/nutzungsbedingungen.html" target="_blank" rel="noopener noreferrer">Nutzungsbedingungen</a>. <small>Erforderlich</small></span></label>
+            <p>Wie wir deine Daten verwenden, erfährst du in den <a href="/vereinsmarkt/datenschutz.html" target="_blank" rel="noopener noreferrer">Datenschutzinformationen</a>.</p>
+            <label className="market-registration-choice"><input id="reg-market-show-team" type="checkbox" checked={marketShowTeam} onChange={e=>setMarketShowTeam(e.target.checked)}/><span>Meine ausgewählten Teams bei meinen Inseraten und privaten Nachrichten anzeigen. <small>Freiwillig · nur für berechtigte Vereinsmitglieder. Im Profil jederzeit ausschaltbar. Keine Kindernamen.</small></span></label>
+          </fieldset>}
+
           {!hasInviteSession && !isParentInviteFlow ? (
             <TurnstileWidget
               onTokenChange={setCaptchaToken}
@@ -656,6 +670,7 @@ export const RegisterPage: React.FC = () => {
             fullWidth
             disabled={
               loading ||
+              Boolean(market && !marketTermsAccepted) ||
               (!hasInviteSession &&
                 !isParentInviteFlow &&
                 isTurnstileConfigured &&

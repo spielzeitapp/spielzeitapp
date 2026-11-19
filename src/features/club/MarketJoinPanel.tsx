@@ -36,14 +36,14 @@ export function MarketJoinPanel({clubId, clubName='deinem Verein', onJoined}: {c
   finally{setBusy(false);}
  }
  return <section className="market-join" aria-label="Dem Vereinsmarkt beitreten">
-  <ol className="market-join-steps" aria-label="Anmeldung"><li data-current={!user}>1 Konto</li><li data-current={Boolean(user)}>2 Team</li><li>3 Loslegen</li></ol>
+  <ol className="market-join-steps" aria-label="Anmeldung"><li data-current={!user}>1 Konto</li><li data-current={Boolean(user)}>2 Teams</li><li>3 Loslegen</li></ol>
   <p className="public-market-eyebrow">Alle Eltern. Ein Vereinsmarkt.</p>
   <h2>Willkommen im Vereinsmarkt {clubName==='deinem Verein'?'':clubName}</h2>
   <p>Trainingssachen anbieten, tauschen und weitergeben – auch wenn das Team oder dein Kind noch nicht in SpielzeitApp angelegt ist.</p>
   {!user?<>
    <Link className="public-market-cta" to={marketAuthPath('register',query)}>Neu? Jetzt registrieren</Link>
    <Link className="public-market-register" to={marketAuthPath('login',query)}>Schon ein Konto? Anmelden</Link>
-   <small>Ein Konto für Vereinsmarkt und SpielzeitApp. Nach der E-Mail-Bestätigung kannst du hier beitreten.</small>
+   <small>Ein Konto für Vereinsmarkt und SpielzeitApp. Nach der E-Mail-Bestätigung wählst du alle passenden Teams deiner Kinder aus. Ein Elternkonto reicht auch bei mehreren Kindern.</small>
   </>:<>
    {loading?<p role="status">Teams werden geladen…</p>:teams.length?<MarketTeamWizard key={`${clubId}:${user.id}:${reload}`} teams={teams} chosen={chosen} onChange={ids=>{setChosen(ids);setAccepted(false);}} busy={busy}>
    <label className="exchange-check"><input type="checkbox" checked={accepted} disabled={busy} onChange={e=>setAccepted(e.target.checked)}/>Ich bin erwachsen und meine Familie gehört zu diesem Verein bzw. dieser Spielgemeinschaft.</label>

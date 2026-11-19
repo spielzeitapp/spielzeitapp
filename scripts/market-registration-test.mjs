@@ -3,7 +3,7 @@ import {build} from 'esbuild';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),React=require('react'),{act,create}=require('react-test-renderer'),{MemoryRouter}=require('react-router-dom'),Module=require('module');
 const events=new EventTarget(),viewport=new EventTarget();
-globalThis.window={visualViewport:viewport,addEventListener(){},removeEventListener(){},localStorage:{getItem(){return null;}},location:{origin:'https://test'}};
+globalThis.window={visualViewport:viewport,addEventListener(){},removeEventListener(){},localStorage:{getItem(){return null;}},location:{origin:'https://test',hostname:'app.spielzeitapp.at'}};
 globalThis.document={addEventListener:events.addEventListener.bind(events),removeEventListener:events.removeEventListener.bind(events),activeElement:null};
 const frames=new Map();let frame=0;
 globalThis.requestAnimationFrame=fn=>{frames.set(++frame,fn);return frame;};
@@ -23,7 +23,7 @@ const m=new Module('registration-test');m.paths=require.resolve.paths('react');m
 const club='3db6fce2-a4c1-44a5-a333-19d1d4d62e6a',next=`/vereinsmarkt/${club}?view=member&invite=${'a'.repeat(64)}`;
 let app;
 const mount=()=>act(async()=>{app=create(React.createElement(MemoryRouter,{initialEntries:[`/vereinsmarkt/${club}/registrieren?context=vereinsmarkt&next=${encodeURIComponent(next)}`],future:{v7_startTransition:true,v7_relativeSplatPath:true}},React.createElement(m.exports.RegisterPage)));});
-const fill=()=>act(async()=>{for(const [id,value] of [['reg-first-name','Anna'],['reg-last-name','Test'],['reg-email','test@example.com'],['reg-password','secret123'],['reg-confirm-password','secret123']])app.root.findByProps({id}).props.onChange({target:{value}});});
+const fill=()=>act(async()=>{for(const [id,value] of [['reg-first-name','Anna'],['reg-last-name','Test'],['reg-email','test@example.com'],['reg-password','secret123'],['reg-confirm-password','secret123']])app.root.findByProps({id}).props.onChange({target:{value}});app.root.findByProps({id:'reg-market-terms'}).props.onChange({target:{checked:true}});});
 const submit=()=>act(async()=>{await app.root.findByType('form').props.onSubmit({preventDefault(){}});});
 await mount();await fill();await submit();
 assert.equal(state.calls,1);assert.equal(app.root.findAllByType('form').length,0);

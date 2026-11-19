@@ -1,7 +1,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {X,Check,Smartphone,ThumbsUp,MoreHorizontal,ArrowRight} from 'lucide-react';
 import {MarketInstallSlides} from './MarketInstallSlides';
-export function MarketInstallDialog({ios,onClose,onPresent,showChoice=false,closeLabel}:{ios:boolean;onClose:()=>void;onPresent?:()=>void;showChoice?:boolean;closeLabel?:string}){
+export function MarketInstallDialog({ios,onClose,onPresent,showChoice=false,closeLabel,userId,initialStep=0,reminder=false}:{ios:boolean;onClose:()=>void;onPresent?:()=>void;showChoice?:boolean;closeLabel?:string;userId?:string;initialStep?:number;reminder?:boolean}){
  const [screen,setScreen]=useState<'choice'|'slides'|'later'>(showChoice?'choice':'slides');
  const showSlides=screen==='slides';
  const ref=useRef<HTMLDialogElement>(null);
@@ -9,8 +9,8 @@ export function MarketInstallDialog({ios,onClose,onPresent,showChoice=false,clos
  return <dialog ref={ref} className={showSlides?'market-install-dialog':'market-install-dialog market-onboarding-choice market-install-welcome'} aria-labelledby="market-install-title" onCancel={e=>{e.preventDefault();onClose();}} onClose={onClose}>
   {showSlides?<>
    <header><img src="/vereinsmarkt/icon-180.png" width="44" height="44" alt=""/><div><h2 id="market-install-title">Vereinsmarkt am Handy</h2><small>Nach links wischen · Schritt für Schritt zum Icon</small></div><button type="button" onClick={onClose} aria-label="Installationsanleitung schließen"><X/></button></header>
-   <MarketInstallSlides ios={ios}/>
-   <button className="market-install-done" type="button" onClick={onClose}>{closeLabel??'Zum Vereinsmarkt'}</button>
+   <MarketInstallSlides ios={ios} userId={userId} initialStep={initialStep}/>
+   <button className="market-install-done" type="button" onClick={onClose}>{closeLabel??(reminder?'Später erinnern':'Zum Vereinsmarkt')}</button>
    {onPresent&&<button className="market-install-done market-onboarding-later" type="button" onClick={onPresent}>Icon bereits vorhanden</button>}
    <p className="market-install-disclaimer">Die Bilder zeigen dir die Schritte. Führe sie im Browsermenü deines Handys aus. Die Anleitung allein installiert noch kein Icon.</p>
   </>:<>
