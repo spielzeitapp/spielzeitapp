@@ -243,6 +243,7 @@ function InternalRoutes(): React.ReactElement {
       <Route path="vereinsmarkt/:clubId/anmelden" element={<LoginPage />} />
       <Route path="vereinsmarkt/:clubId/registrieren" element={<RegisterPage />} />
       <Route path="vereinsmarkt/:clubId/passwort-vergessen" element={<ForgotPasswordPage />} />
+      <Route path="vereinsmarkt-manager/anmelden" element={<LoginPage/>}/><Route path="vereinsmarkt-manager/:clubId/anmelden" element={<LoginPage/>}/><Route path="vereinsmarkt-manager/passwort-vergessen" element={<ForgotPasswordPage/>}/><Route path="vereinsmarkt-manager/:clubId/passwort-vergessen" element={<ForgotPasswordPage/>}/>
       <Route path="vereinsmarkt-manager" element={<MarketManagerPage/>}/><Route path="vereinsmarkt-manager/:clubId" element={<MarketManagerPage/>}/>
       <Route path="vereinsmarkt/:clubId" element={<React.Suspense fallback={<MarketSplash/>}><PublicExchangePage /></React.Suspense>} />
 
@@ -462,6 +463,7 @@ function PublicRoutes(): React.ReactElement {
       <Route path="vereinsmarkt/:clubId/anmelden" element={<LoginPage />} />
       <Route path="vereinsmarkt/:clubId/registrieren" element={<RegisterPage />} />
       <Route path="vereinsmarkt/:clubId/passwort-vergessen" element={<ForgotPasswordPage />} />
+      <Route path="vereinsmarkt-manager/anmelden" element={<LoginPage/>}/><Route path="vereinsmarkt-manager/:clubId/anmelden" element={<LoginPage/>}/><Route path="vereinsmarkt-manager/passwort-vergessen" element={<ForgotPasswordPage/>}/><Route path="vereinsmarkt-manager/:clubId/passwort-vergessen" element={<ForgotPasswordPage/>}/>
       <Route path="vereinsmarkt-manager" element={<MarketManagerPage/>}/><Route path="vereinsmarkt-manager/:clubId" element={<MarketManagerPage/>}/>
       <Route path="vereinsmarkt/:clubId" element={<React.Suspense fallback={<MarketSplash/>}><PublicExchangePage /></React.Suspense>} />
 
