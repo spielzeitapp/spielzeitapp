@@ -18,7 +18,7 @@ export function MarketJoinPanel({clubId, clubName='deinem Verein', onJoined}: {c
  const [accepted,setAccepted]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const [teams,setTeams]=useState<Array<{id:string;name:string;age_group:string|null}>>([]),[chosen,setChosen]=useState<string[]>([]),[loading,setLoading]=useState(false),[reload,setReload]=useState(0);
  useEffect(()=>{setChosen([]);setAccepted(false);setError('');setTeams([]);if(!user)return;let active=true;setLoading(true);
-  void supabase.rpc('exchange_team_options',{p_club_id:clubId,p_token:token}).then(r=>{if(!active)return;if(r.error)setError(r.error.message);else setTeams(r.data||[]);setLoading(false);},()=>{if(active){setError('Mannschaften konnten nicht geladen werden.');setLoading(false);}});
+  void supabase.rpc('exchange_team_options',{p_club_id:clubId,p_token:token}).then(r=>{if(!active)return;if(r.error)setError(r.error.message.replace(/Mannschaftsauswahl/g,'Teamauswahl'));else setTeams(r.data||[]);setLoading(false);},()=>{if(active){setError('Teams konnten nicht geladen werden.');setLoading(false);}});
   return()=>{active=false;};
  },[clubId,user?.id,token,reload]);
  const next=`/vereinsmarkt/${clubId}?${new URLSearchParams({...Object.fromEntries(params),view:'member'})}`;
@@ -36,22 +36,22 @@ export function MarketJoinPanel({clubId, clubName='deinem Verein', onJoined}: {c
   finally{setBusy(false);}
  }
  return <section className="market-join" aria-label="Dem Vereinsmarkt beitreten">
-  <ol className="market-join-steps" aria-label="Anmeldung"><li data-current={!user}>1 Konto</li><li data-current={Boolean(user)}>2 Mannschaft</li><li>3 Loslegen</li></ol>
+  <ol className="market-join-steps" aria-label="Anmeldung"><li data-current={!user}>1 Konto</li><li data-current={Boolean(user)}>2 Team</li><li>3 Loslegen</li></ol>
   <p className="public-market-eyebrow">Alle Eltern. Ein Vereinsmarkt.</p>
   <h2>Willkommen im Vereinsmarkt {clubName==='deinem Verein'?'':clubName}</h2>
-  <p>Trainingssachen anbieten, tauschen und weitergeben – auch wenn die Mannschaft oder dein Kind noch nicht in SpielzeitApp angelegt ist.</p>
+  <p>Trainingssachen anbieten, tauschen und weitergeben – auch wenn das Team oder dein Kind noch nicht in SpielzeitApp angelegt ist.</p>
   {!user?<>
    <Link className="public-market-cta" to={marketAuthPath('register',query)}>Neu? Jetzt registrieren</Link>
    <Link className="public-market-register" to={marketAuthPath('login',query)}>Schon ein Konto? Anmelden</Link>
    <small>Ein Konto für Vereinsmarkt und SpielzeitApp. Nach der E-Mail-Bestätigung kannst du hier beitreten.</small>
   </>:<>
-   {loading?<p role="status">Mannschaften werden geladen…</p>:teams.length?<MarketTeamWizard key={`${clubId}:${user.id}:${reload}`} teams={teams} chosen={chosen} onChange={ids=>{setChosen(ids);setAccepted(false);}} busy={busy}>
+   {loading?<p role="status">Teams werden geladen…</p>:teams.length?<MarketTeamWizard key={`${clubId}:${user.id}:${reload}`} teams={teams} chosen={chosen} onChange={ids=>{setChosen(ids);setAccepted(false);}} busy={busy}>
    <label className="exchange-check"><input type="checkbox" checked={accepted} disabled={busy} onChange={e=>setAccepted(e.target.checked)}/>Ich bin erwachsen und meine Familie gehört zu diesem Verein bzw. dieser Spielgemeinschaft.</label>
    <button type="button" className="public-market-cta" disabled={!accepted||busy||loading||!chosen.length} onClick={()=>void join()}>{busy?'Beitritt wird gespeichert…':'Dem Vereinsmarkt beitreten'}</button>
-   {!loading&&!busy&&(!chosen.length||!accepted)&&<p className="market-join-action-hint">{!chosen.length?'Wähle mindestens eine Mannschaft. Danach kannst du beitreten.':'Bitte bestätige oben, dass deine Familie zum Verein gehört.'}</p>}
-   </MarketTeamWizard>:<p className="exchange-hint">Hier sind noch keine Mannschaften angelegt. Bitte wende dich an die Vereinsverwaltung oder lade die Liste später erneut.</p>}
-   {!loading&&<button type="button" className="market-text-button" disabled={busy} onClick={()=>setReload(n=>n+1)}>Mannschaften neu laden</button>}
-   <small>Du kannst sofort loslegen – ohne Trainerfreigabe. Diese Auswahl gilt nur für den Vereinsmarkt. Mannschaft und Kind verknüpfst du später bei Bedarf in SpielzeitApp.</small>
+   {!loading&&!busy&&(!chosen.length||!accepted)&&<p className="market-join-action-hint">{!chosen.length?'Wähle mindestens ein Team. Danach kannst du beitreten.':'Bitte bestätige oben, dass deine Familie zum Verein gehört.'}</p>}
+   </MarketTeamWizard>:<p className="exchange-hint">Hier sind noch kein Teams angelegt. Bitte wende dich an die Vereinsverwaltung oder lade die Liste später erneut.</p>}
+   {!loading&&<button type="button" className="market-text-button" disabled={busy} onClick={()=>setReload(n=>n+1)}>Teams neu laden</button>}
+   <small>Du kannst sofort loslegen – ohne Trainerfreigabe. Diese Auswahl gilt nur für den Vereinsmarkt. Team und Kind verknüpfst du später bei Bedarf in SpielzeitApp.</small>
   </>}
   {error&&<p role="alert" className="exchange-alert">{error}</p>}
  </section>;
@@ -72,11 +72,11 @@ export function MarketMembersAdmin({clubId,userId}:{clubId:string;userId:string}
  }catch{setError('Der Zugang konnte nicht geändert werden. Bitte erneut versuchen.');}finally{setBusy('');}}
  if(!allowed)return null;
  const shown=members.filter(m=>(filter==='all'||(filter==='blocked'?m.blocked:!m.blocked))&&`${m.name} ${m.teams.join(' ')}`.toLocaleLowerCase('de').includes(search.toLocaleLowerCase('de')));
- return <section className="market-join market-members" aria-label="Vereinsmarkt-Mitglieder verwalten"><p className="public-market-eyebrow">Nur für die Vereinsverwaltung</p><h2>Mitglieder verwalten</h2><p>{members.filter(m=>!m.blocked).length} aktiv · {members.filter(m=>m.blocked).length} gesperrt</p><small>Eine Sperre gilt nur für diesen Vereinsmarkt. SpielzeitApp-Konto und bestehende Mannschafts- oder Kinderzuordnungen bleiben erhalten.</small>
-  <label>Name oder Mannschaft<input className="market-invite-link" type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Mitglied suchen…"/></label>
+ return <section className="market-join market-members" aria-label="Vereinsmarkt-Mitglieder verwalten"><p className="public-market-eyebrow">Nur für die Vereinsverwaltung</p><h2>Mitglieder verwalten</h2><Link className="public-market-register" to={`/manager/vereinsmarkt?club=${clubId}`}>Teams für Eltern freischalten →</Link><p>{members.filter(m=>!m.blocked).length} aktiv · {members.filter(m=>m.blocked).length} gesperrt</p><small>Eine Sperre gilt nur für diesen Vereinsmarkt. SpielzeitApp-Konto und bestehende Team- oder Kinderzuordnungen bleiben erhalten.</small>
+  <label>Name oder Team<input className="market-invite-link" type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Mitglied suchen…"/></label>
   <label>Zugänge anzeigen<select className="market-invite-link" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">Alle Mitglieder</option><option value="active">Aktiv</option><option value="blocked">Gesperrt</option></select></label>
   <button type="button" className="market-text-button" onClick={()=>setReload(n=>n+1)} disabled={loading||Boolean(busy)}>Liste neu laden</button>
-  {loading?<p role="status">Mitglieder werden geladen…</p>:shown.length?<ul className="market-member-list">{shown.map(m=><li key={m.user_id}><div><strong>{m.name}</strong><span className={m.blocked?'market-member-blocked':'market-member-active'}>{m.blocked?'Gesperrt':'Aktiv'}</span></div><p>{m.teams.length?m.teams.join(' · '):'Keine Mannschaft angegeben'}</p>
+  {loading?<p role="status">Mitglieder werden geladen…</p>:shown.length?<ul className="market-member-list">{shown.map(m=><li key={m.user_id}><div><strong>{m.name}</strong><span className={m.blocked?'market-member-blocked':'market-member-active'}>{m.blocked?'Gesperrt':'Aktiv'}</span></div><p>{m.teams.length?m.teams.join(' · '):'Kein Team angegeben'}</p>
    {pending===m.user_id?<div className="market-suspend-confirm"><p>Zugang von {m.name} zum Vereinsmarkt sperren?</p><button className="public-market-cta" disabled={Boolean(busy)} onClick={()=>void change(m)}>Sperre bestätigen</button><button className="market-text-button" disabled={Boolean(busy)} onClick={()=>setPending('')}>Abbrechen</button></div>:<button type="button" className="public-market-register" disabled={Boolean(busy)||m.user_id===userId} onClick={()=>m.blocked?void change(m):setPending(m.user_id)}>{m.user_id===userId?'Dein Zugang':busy===m.user_id?'Wird gespeichert…':m.blocked?'Zugang freigeben':'Zugang sperren'}</button>}
   </li>)}</ul>:<p>Noch keine passenden Mitglieder.</p>}
   {error&&<p role="alert" className="exchange-alert">{error}</p>}
@@ -94,7 +94,7 @@ export function MarketInviteAdmin({clubId,userId}:{clubId:string;userId:string})
   if(rotate)setStatus('Neuer Link erstellt. Der bisherige Link ist ungültig. Bereits beigetretene Eltern behalten ihren Zugang.');
  }catch(e){setStatus(e&&typeof e==='object'&&'message' in e?String(e.message):'Einladung konnte nicht erstellt werden.');}finally{setBusy(false);}}
  if(!allowed)return null;
- return <section className="market-join"><h2>Eltern zum Vereinsmarkt einladen</h2><p>Für alle Mannschaften – ohne angelegte Kinder. Teile den Link in euren Elterngruppen.</p>
+ return <section className="market-join"><h2>Eltern zum Vereinsmarkt einladen</h2><p>Für alle Teams – ohne angelegte Kinder. Teile den Link in euren Elterngruppen.</p>
  {link?<><label>Einladungslink<input className="market-invite-link" aria-label="Einladungslink" readOnly value={link} onFocus={e=>e.target.select()}/></label><small>Gültig bis {new Date(expires).toLocaleDateString('de-AT')}.</small>
  <button className="public-market-cta" onClick={()=>void navigator.clipboard.writeText(link).then(()=>setStatus('Link kopiert.')).catch(()=>setStatus('Bitte den Link im Feld markieren und kopieren.'))}>Link kopieren</button>
  <details><summary>Einladungslink erneuern</summary><p>Dadurch wird der bisherige Link ungültig. Bestehende Zugänge bleiben erhalten.</p><button className="public-market-register" disabled={busy} onClick={()=>void generate(true)}>Bisherigen Link ersetzen</button></details></>:<button className="public-market-cta" disabled={busy} onClick={()=>void generate()}>{busy?'Wird geladen…':'Einladungslink anzeigen'}</button>}

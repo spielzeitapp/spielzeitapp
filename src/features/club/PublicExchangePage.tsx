@@ -24,7 +24,7 @@ import {MarketShoesIcon,ShinGuardIcon} from './FootballMarketIcons';
 import { safeMarketAppReturn } from './marketSwitch';
 import { useAuth } from '../../auth/AuthProvider';
 import React,{useEffect,useState} from 'react';
-import {Link,useNavigate,useParams,useSearchParams} from 'react-router-dom';
+import {Link,Navigate,useLocation,useNavigate,useParams,useSearchParams} from 'react-router-dom';
 import {Home,Search,Plus,MessageCircle,User,Shirt,ShoppingBag,ArrowLeft,LockKeyhole,SlidersHorizontal,Heart,ClipboardList,MoreHorizontal} from 'lucide-react';
 import {ExchangeFilterSheet} from './ExchangeFilterSheet';
 import {EMPTY_EXCHANGE_FILTERS,selectExchangeItems,type ExchangeFilters,type CatalogSort} from './exchangeCatalog';
@@ -39,6 +39,11 @@ function MarketNavViewport({children}:{children:React.ReactNode}){
  return typeof document==='undefined'?frame:createPortal(frame,document.body);
 }
 export default function PublicExchangePage(){
+ const {clubId}=useParams();const location=useLocation();
+ if(isStagingApp()&&clubId==='9c7a8741-6e73-42d5-88d8-46ce5217e8cd')return <Navigate replace to={{pathname:'/vereinsmarkt/3db6fce2-a4c1-44a5-a333-19d1d4d62e6a',search:location.search,hash:location.hash}}/>;
+ return <PublicExchangeContent/>;
+}
+function PublicExchangeContent(){
  const {user,signOut,loading:authLoading}=useAuth();
  const [authPrompt,setAuthPrompt]=useState('');
  const {profile}=useProfile(user?.id);

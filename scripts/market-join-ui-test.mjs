@@ -3,7 +3,7 @@ import {build} from 'esbuild';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),React=require('react'),renderer=require('react-test-renderer'),{MemoryRouter,useLocation}=require('react-router-dom');
 const state=globalThis.marketJoinTest={user:null,calls:[],error:null,joined:0,guides:[],teams:[{id:'u12',name:'Rohrbach U12',age_group:'U12'},{id:'u13',name:'Gölsental U13',age_group:'U13'}],allowed:false,members:[{user_id:'parent',name:'Anna Test',teams:['U12'],blocked:false},{user_id:'blocked',name:'Max Test',teams:['U13'],blocked:true}]};
-const mock=`export const supabase={rpc:async(name,args)=>{const s=globalThis.marketJoinTest;s.calls.push({name,args});if(name==='exchange_team_options')return {data:s.teams,error:null};if(name==='can_manage_club_venues')return {data:s.allowed,error:null};if(name==='exchange_members_list')return {data:s.members.map(m=>({...m})),error:null};if(name==='exchange_revoke'||name==='exchange_restore'){s.members=s.members.map(m=>m.user_id===args.p_user_id?{...m,blocked:name==='exchange_revoke'}:m);return {data:true,error:s.error};}return {data:true,error:s.error};}};`;
+const mock=`export const supabase={rpc:async(name,args)=>{const s=globalThis.marketJoinTest;s.calls.push({name,args});if(name==='exchange_team_options')return {data:s.teams,error:s.teamError||null};if(name==='can_manage_club_venues')return {data:s.allowed,error:null};if(name==='exchange_members_list')return {data:s.members.map(m=>({...m})),error:null};if(name==='exchange_revoke'||name==='exchange_restore'){s.members=s.members.map(m=>m.user_id===args.p_user_id?{...m,blocked:name==='exchange_revoke'}:m);return {data:true,error:s.error};}return {data:true,error:s.error};}};`;
 const built=await build({entryPoints:['src/features/club/MarketJoinPanel.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,loader:{'.css':'empty'},plugins:[{name:'fixture',setup(b){
  b.onResolve({filter:/MarketHomeScreenGuide$/},()=>({path:'guide',namespace:'mock'}));
  b.onResolve({filter:/AuthProvider$/},()=>({path:'auth',namespace:'mock'}));b.onResolve({filter:/supabaseClient$/},()=>({path:'db',namespace:'mock'}));
@@ -27,10 +27,10 @@ state.teams=[{id:'u12',name:'Rohrbach U12',age_group:'U12'},{id:'hainfeld',name:
 await mount(`view=member&mode=create&invite=${token}`);
 assert.equal(button('Dem Vereinsmarkt beitreten'),undefined,'no early submission before choosing teams');
 await click(button('U12'));
-assert.ok(JSON.stringify(app.toJSON()).includes('Welche Mannschaft in der'));
+assert.ok(JSON.stringify(app.toJSON()).includes('Welches Team in der'));
 const teamButton=name=>app.root.findAllByType('button').find(b=>b.findAllByType('strong').some(s=>s.children.includes(name)));
 await click(teamButton('Rohrbach U12'));
-await click(button('Ja, weitere Mannschaft'));
+await click(button('Ja, weiteres Team'));
 await click(button('U13'));
 await click(button('Nein, Auswahl prüfen'));
 assert.equal(button('Dem Vereinsmarkt beitreten').props.disabled,true,'consent still required');
@@ -41,12 +41,13 @@ assert.equal(state.joined,0);assert.equal(state.guides.length,0);assert.ok(app.r
 state.error=null;await click(button('Dem Vereinsmarkt beitreten'));assert.equal(state.joined,1);assert.deepEqual(state.guides,[club]);
 assert.deepEqual(joinCalls().at(-1).args,{p_club_id:club,p_token:token,p_accepted:true,p_team_ids:['u12','u13']});
 const q=new URLSearchParams(app.root.findByType('output').children.join(''));assert.equal(q.has('invite'),false);assert.equal(q.get('mode'),'create');await unmount();
-const available=state.teams;state.teams=[];await mount(`invite=${token}`);assert.equal(button('Dem Vereinsmarkt beitreten'),undefined);assert.ok(JSON.stringify(app.toJSON()).includes('keine Mannschaften'));await unmount();state.teams=available;
+state.teamError={message:'Die Mannschaftsauswahl ist für diesen Vereinsmarkt nicht verfügbar.'};await mount('view=member');assert.ok(JSON.stringify(app.toJSON()).includes('Teamauswahl'));assert.ok(!JSON.stringify(app.toJSON()).includes('keine Teams'));await unmount();state.teamError=null;
+const available=state.teams;state.teams=[];await mount(`invite=${token}`);assert.equal(button('Dem Vereinsmarkt beitreten'),undefined);assert.ok(JSON.stringify(app.toJSON()).includes('kein Teams'));await unmount();state.teams=available;
 await mount('view=member');
 await click(button('U12'));await click(teamButton('Hainfeld U12'));await click(button('Nein, Auswahl prüfen'));
 await click(app.root.findByProps({'aria-label':'Hainfeld U12 entfernen'}));
 assert.ok(button('U12'),'removing last team returns to age selection');
-await click(button('U13'));await click(button('Ja, weitere Mannschaft'));await click(button('U12'));await click(teamButton('Hainfeld U12'));await click(button('Nein, Auswahl prüfen'));
+await click(button('U13'));await click(button('Ja, weiteres Team'));await click(button('U12'));await click(teamButton('Hainfeld U12'));await click(button('Nein, Auswahl prüfen'));
 assert.ok(JSON.stringify(app.toJSON()).includes('Ein Elternkonto reicht'));
 await renderer.act(async()=>consent().props.onChange({target:{checked:true}}));
 await click(button('Dem Vereinsmarkt beitreten'));assert.deepEqual(state.calls.filter(c=>c.name==='exchange_self_join').at(-1).args,{p_club_id:club,p_accepted:true,p_team_ids:['u13','hainfeld']});await unmount();
