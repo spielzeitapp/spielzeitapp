@@ -5,7 +5,7 @@
 .public-exchange{padding-top:env(safe-area-inset-top,0px);padding-bottom:calc(122px + env(safe-area-inset-bottom,0px));background:radial-gradient(ellipse at 80% 8%,#31101766,transparent 42%),#08080b}
 .public-market-header{padding:18px 22px;gap:12px;min-height:84px;background:linear-gradient(110deg,#0a090c,#1e0d1266);border-bottom:1px solid #76243624}
 .public-market-header strong{font-size:20px;line-height:1.3;font-weight:800;letter-spacing:-.4px}.public-market-header small{font-size:12px;display:block;margin-top:3px;color:#a9a3ae}
-.public-market-header a{font-size:14px;padding:11px 15px;border-radius:12px;min-height:44px;align-items:center;background:linear-gradient(135deg,#741c2c,#43121e)}
+.public-market-header a{font-size:14px;padding:11px 15px;border-radius:999px;min-height:44px;align-items:center;background:linear-gradient(135deg,#741c2c,#43121e)}
 .public-exchange main.exchange{padding-top:26px}.public-market-eyebrow{font-size:11px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:#ef526a;margin:0 0 8px}
 .public-exchange h1{font-size:34px;line-height:1.12;letter-spacing:-1.1px;font-weight:850;margin:0 0 10px}.public-market-intro{font-size:16px;line-height:1.55;margin:0 0 24px;max-width:440px}
 .public-exchange .exchange-search{border-radius:14px;background:#0e0c10;border-color:#ffffff14;min-height:52px}.public-exchange .exchange-search input{font-size:16px}
