@@ -2,7 +2,8 @@ import {build} from 'esbuild';import {spawnSync} from 'node:child_process';impor
 const out='node_modules/.hall-training-ui-test.mjs';
 try{
 await build({stdin:{resolveDir:process.cwd(),loader:'tsx',contents:`
-import React from 'react';import TestRenderer,{act} from 'react-test-renderer';import assert from 'node:assert/strict';import {HallTrainingPlanner} from './src/components/training/HallTrainingPlanner';
+import React from 'react';import TestRenderer,{act} from 'react-test-renderer';import assert from 'node:assert/strict';import {webcrypto} from 'node:crypto';
+if (!globalThis.crypto) Object.defineProperty(globalThis,'crypto',{value:webcrypto});import {HallTrainingPlanner} from './src/components/training/HallTrainingPlanner';
 let clock=Date.now();Date.now=()=>clock;
 globalThis.hallAudioStarts=0;globalThis.hallTick=()=>{};
 class TestAudioContext {
@@ -11,9 +12,9 @@ class TestAudioContext {
  createOscillator(){return {type:'sine',frequency:{linearRampToValueAtTime(){}},connect(){},disconnect(){},start(){globalThis.hallAudioStarts++;},stop(){}};}
  createGain(){return {gain:{setValueAtTime(){},linearRampToValueAtTime(){}},connect(){},disconnect(){}};}
 }
-globalThis.window={AudioContext:TestAudioContext,confirm:()=>true,setInterval:f=>{globalThis.hallTick=f;return 1;},clearInterval:()=>{}};globalThis.hallRow=null;globalThis.hallFail=false;
+globalThis.window={AudioContext:TestAudioContext,confirm:()=>true,setInterval:f=>{globalThis.hallTick=f;return 1;},clearInterval:()=>{},setTimeout:f=>{globalThis.hallSearch=f;return 1;},clearTimeout:()=>{}};globalThis.hallRow=null;globalThis.hallFail=false;
 const ids=Array.from({length:9},(_,i)=>'player-'+i);const ready=[];const props={eventId:'test-hall',startsAt:'2026-11-13T16:00:00Z',players:ids.map((id,i)=>({id,display_name:'Spieler '+i})),availableIds:ids,open:true,onClose:()=>{},onReadyChange:r=>ready.push(r)};
-let view;const text=n=>typeof n==='string'?n:n?.children?.map(text).join('')||'';const button=label=>{const b=view.root.findAllByType('button').find(b=>text(b)===label || b.props['aria-label']===(label==='Schlusssirene ein'?'Schlusssirene ausschalten':label==='Schlusssirene aus'?'Schlusssirene einschalten':label));assert(b,label);return b;};const click=async label=>{const b=button(label);assert(!b.props.disabled,label+' disabled');await act(async()=>b.props.onClick());};const goal=async label=>{await click(label);await click('Ohne Torschützen speichern');};
+let view;const text=n=>typeof n==='string'?n:n?.children?.map(text).join('')||'';const button=label=>{const b=view.root.findAllByType('button').find(b=>text(b).trim()===label || b.props['aria-label']===(label==='Schlusssirene ein'?'Schlusssirene ausschalten':label==='Schlusssirene aus'?'Schlusssirene einschalten':label));assert(b,label);return b;};const click=async label=>{const b=button(label);assert(!b.props.disabled,label+' disabled');await act(async()=>b.props.onClick());};const goal=async label=>{await click(label);await click('Ohne Torschützen speichern');};
 await act(async()=>{view=TestRenderer.create(<HallTrainingPlanner {...props}/>);});
 assert(JSON.stringify(view.toJSON()).includes('5:45'));await click('Spielplan erstellen & speichern');assert.equal(globalThis.hallRow.revision,1);
 await click('Zugesagte Spieler gleichmäßig verteilen');await click('Mannschaften speichern');assert.equal(globalThis.hallRow.revision,2);assert.equal(ready.at(-1),true);assert(globalThis.hallRow.day.teams.every(t=>t.playerIds.length===3));
@@ -68,7 +69,48 @@ globalThis.hallRow=null;await act(async()=>{view=TestRenderer.create(<HallTraini
 globalThis.hallRow=null;const regularIds=ids.slice(0,6);await act(async()=>{view=TestRenderer.create(<HallTrainingPlanner {...props} eventId='ordinary-training' indoor={false} players={props.players.slice(0,6)} availableIds={regularIds}/>);});assert.equal(view.root.findAllByType('select')[0].props.value,2);assert(view.root.findAllByType('select')[1].findAllByType('option').some(o=>o.props.value===7));await click('Spielplan erstellen & speichern');await click('Zugesagte Spieler gleichmäßig verteilen');await click('Mannschaften speichern');assert.equal(globalThis.hallRow.day.games.length,1);assert.equal(globalThis.hallRow.day.seconds,1200);assert.equal(globalThis.hallRow.day.pause,0);assert(text(button('Dauer einstellen')).includes('20 Min.'));assert.equal(view.root.findAllByProps({'aria-label':'Hallenspieltag Beginn'}).length,1);assert.equal(globalThis.hallRow.day.teams.length,2);assert.equal(ready.at(-1),true);await click('Spielplan');await click('Spiel starten');assert.equal(globalThis.hallRow.day.games[0].status,'running');assert.equal(globalThis.hallRow.day.games[0].participation[0].stints[0].on.length,3);await act(async()=>view.unmount());
 globalThis.hallRow=null;await act(async()=>{view=TestRenderer.create(<HallTrainingPlanner {...props} eventId='outdoor-three' indoor={false}/>)});await act(async()=>view.root.findAllByType('select')[0].props.onChange({target:{value:'3'}}));await click('Dauer einstellen');await click('75 Minuten Gesamtzeit');assert.equal(button('75 Minuten Gesamtzeit').props['aria-pressed'],true);assert.equal(button('60 Minuten Gesamtzeit').props['aria-pressed'],false);await click('Minuten übernehmen');await click('Spielplan erstellen & speichern');assert.equal(globalThis.hallRow.day.games.length,12);assert.equal(globalThis.hallRow.day.seconds,320);await act(async()=>view.unmount());
 globalThis.hallRow=null;clock=Date.parse(props.startsAt)+10*60000;await act(async()=>{view=TestRenderer.create(<HallTrainingPlanner {...props} eventId='delayed-day'/>)});await click('Spielplan erstellen & speichern');assert(JSON.stringify(view.toJSON()).includes('über der Endzeit'));const oldSeconds=globalThis.hallRow.day.seconds;window.confirm=()=>false;await click('Verbleibende Spiele kürzen');assert.equal(globalThis.hallRow.day.games[0].seconds,undefined);window.confirm=()=>true;await click('Verbleibende Spiele kürzen');assert(globalThis.hallRow.day.games.every(g=>g.seconds<oldSeconds&&g.seconds>=60));assert.equal(globalThis.hallRow.day.games.length,9);await click('Statistik');assert(JSON.stringify(view.toJSON()).includes('Trainingsbilanz'));assert(JSON.stringify(view.toJSON()).includes('Tatsächlich gespielt'));await act(async()=>view.unmount());
+
+globalThis.hallRow=null;
+await act(async()=>{view=TestRenderer.create(<HallTrainingPlanner {...props} eventId="extra-players"/>);});
+await click('Spieler hinzufügen');
+await click('Probetraining / Gast');
+assert(button('Gast hinzufügen').props.disabled);
+await act(async()=>view.root.findAllByType('input').find(i=>i.props.maxLength===80).props.onChange({target:{value:'  Gastkind  '}}));
+await click('Gast hinzufügen');
+await click('Spieler hinzufügen');
+await click('Aus anderer Mannschaft');
+await act(async()=>view.root.findAllByType('input').find(i=>i.props.placeholder==='Mindestens 2 Zeichen').props.onChange({target:{value:'Verein'}}));
+await act(async()=>globalThis.hallSearch());
+await click('Vereinsspieler · U13');
+await click('Spielplan erstellen & speichern');
+await click('Zugesagte Spieler gleichmäßig verteilen');
+await click('Mannschaften speichern');
+assert.equal(ready.at(-1),true);
+const [guest,club]=globalThis.hallRow.day.extraPlayers;
+assert.match(guest.id,/^guest-/);
+assert.equal(guest.name,'Gastkind');
+assert.equal(club.id,'club-player');
+await act(async()=>view.unmount());
+await act(async()=>{view=TestRenderer.create(<HallTrainingPlanner {...props} eventId="extra-players"/>);});
+assert(view.root.findByProps({'aria-label':'Team für Gastkind'}));
+assert(view.root.findByProps({'aria-label':'Team für Vereinsspieler'}));
+await click('Spielplan');
+await click('Spiel starten');
+assert(globalThis.hallRow.day.games[0].participation[0].roster.includes(guest.id));
+assert(globalThis.hallRow.day.games[0].participation[1].roster.includes(club.id));
+await click('+ Tor Rot');
+await click('Gastkind');
+assert.equal(globalThis.hallRow.day.games[0].goals[0].scorerId,guest.id);
+await click('Spiel beenden');
+await click('Statistik');
+assert(JSON.stringify(view.toJSON()).includes('Gastkind'));
+await click('Teams');
+assert.equal(view.root.findAllByProps({'aria-label':'Gastkind entfernen'}).length,0);
+await act(async()=>view.update(<HallTrainingPlanner {...props} eventId="extra-players" readOnly/>));
+assert(view.root.findAllByType('li').some(li=>text(li)==='Gastkind · Gast'));
+assert(!view.root.findAllByType('button').some(b=>text(b).includes('Spieler hinzufügen')));
+await act(async()=>view.unmount());
 console.log('PASS: scorer selection, cancellation, original goal time, edit without score changes, scorer persistence, generate, assign, save green status, start, goals, undo, pause/resume, reload, finish, standings, next match, stale-save handling, read-only controls.');
-`},bundle:true,platform:'node',format:'esm',packages:'external',loader:{'.css':'empty'},outfile:out,plugins:[{name:'controlled-services',setup(b){b.onResolve({filter:/\/(Modal|DemoContext|hallTrainingStore)$/},a=>({path:a.path.split('/').pop(),namespace:'stub'}));b.onLoad({filter:/.*/,namespace:'stub'},a=>({loader:'tsx',resolveDir:process.cwd(),contents:a.path==='Modal'?`import React from 'react';export const Modal=p=>p.open?<div role="dialog">{p.children}{p.footer}</div>:null;`:a.path==='DemoContext'?`export const useDemoMode=()=>null;`:`export const loadHallDay=async()=>globalThis.hallRow;export const saveHallDay=async(id,day,revision)=>{if(globalThis.hallFail)throw new Error('Bitte neu laden');if(revision!==(globalThis.hallRow?.revision||0))throw new Error('stale');globalThis.hallRow={day:structuredClone(day),revision:revision+1};return revision+1;};`}));}}]});
+`},bundle:true,platform:'node',format:'esm',packages:'external',loader:{'.css':'empty'},outfile:out,plugins:[{name:'controlled-services',setup(b){b.onResolve({filter:/\/(Modal|DemoContext|hallTrainingStore)$/},a=>({path:a.path.split('/').pop(),namespace:'stub'}));b.onLoad({filter:/.*/,namespace:'stub'},a=>({loader:'tsx',resolveDir:process.cwd(),contents:a.path==='Modal'?`import React from 'react';export const Modal=p=>p.open?<div role="dialog">{p.children}{p.footer}</div>:null;`:a.path==='DemoContext'?`export const useDemoMode=()=>null;`:`export const searchHallClubPlayers=async()=>[{id:'club-player',name:'Vereinsspieler',team:'U13'}];export const loadHallDay=async()=>globalThis.hallRow;export const saveHallDay=async(id,day,revision)=>{if(globalThis.hallFail)throw new Error('Bitte neu laden');if(revision!==(globalThis.hallRow?.revision||0))throw new Error('stale');globalThis.hallRow={day:structuredClone(day),revision:revision+1};return revision+1;};`}));}}]});
 const r=spawnSync(process.execPath,[out],{stdio:'inherit'});if(r.status!==0)process.exitCode=1;
 }finally{try{unlinkSync(out)}catch{}}
