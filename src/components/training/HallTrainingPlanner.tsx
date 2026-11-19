@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Lock, Play, Pause, Shirt, Undo2, Volume2, VolumeX, Goal, Trophy, Crown, Clock3, Trash2, ChevronDown, BarChart3 } from 'lucide-react';
+import { Lock, Play, Pause, Shirt, Undo2, Volume2, VolumeX, Goal, Trophy, Crown, Clock3, Trash2, ChevronDown, BarChart3, UserPlus } from 'lucide-react';
 import { Modal } from '../../app/ui/Modal';
 import { useDemoMode } from '../../demo/DemoContext';
-import { hallTiming, fitHallRemaining, calculateTrainingPlan, hallTimeMinutes, hallTimeAfter, hallWindowMinutes, creditHallFullDuration, hallPlayerTimes, prepareHallPlayers, changeHallPlayers, withHallFirstPairing, hallGameSeconds, hallPlanSeconds, withHallGameDuration, hallScorers, calculateHallSchedule, createHallDay, hallClock, hallElapsed, hallReady, hallScore, hallStandings, HALL_COLORS, HALL_NAMES, type HallDay } from '../../lib/hallTraining';
-import { loadHallDay, saveHallDay } from '../../lib/hallTrainingStore';
+import { hallTiming, fitHallRemaining, calculateTrainingPlan, hallTimeMinutes, hallTimeAfter, hallWindowMinutes, creditHallFullDuration, hallPlayerTimes, prepareHallPlayers, changeHallPlayers, withHallFirstPairing, hallGameSeconds, hallPlanSeconds, withHallGameDuration, hallScorers, calculateHallSchedule, createHallDay, hallClock, hallElapsed, hallReady, hallScore, hallStandings, HALL_COLORS, HALL_NAMES, type HallDay, type HallExtraPlayer } from '../../lib/hallTraining';
+import * as hallStore from '../../lib/hallTrainingStore';
 import { TC_CARD } from '../tournament/tournamentCenterStyles';
 import './hallMatchScreen.css';
 
@@ -12,7 +12,7 @@ const input = 'min-h-11 w-full rounded-xl border border-white/15 bg-[#101014] px
 const button = 'sz-club-event-action min-h-12 rounded-full border px-4 py-2 text-[16px] font-bold text-white disabled:opacity-40 touch-manipulation';
 function playerName(p: Player) { return p.display_name || p.name || `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim() || 'Spieler'; }
 
-export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, open, onClose, onReadyChange, readOnly = false, defaultMinutes, indoor = true }: {
+export function HallTrainingPlanner({ eventId, startsAt, players, availableIds: rosterAvailableIds, open, onClose, onReadyChange, readOnly = false, defaultMinutes, indoor = true }: {
   eventId: string; startsAt: string; players: Player[]; availableIds: string[]; open: boolean; onClose: () => void; onReadyChange: (ready: boolean) => void; readOnly?: boolean; defaultMinutes?: number; indoor?: boolean;
 }) {
   const demo = useDemoMode();
@@ -83,12 +83,55 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
     armedGame.current = null; soundedGame.current = null;
     return () => { const context = audio.current; audio.current = null; if (context) void context.close().catch(() => {}); };
   }, [eventId, open]);
-  const dirty = saved ? JSON.stringify(saved) !== JSON.stringify(day) : day.teams.some((t, i) => t.playerIds.length > 0 || t.name !== ['Rot', 'Blau', 'Gelb', 'Grün'][i]);
+  const extraPlayers = day.extraPlayers ?? [];
+  const extraById = new Map(extraPlayers.map(player => [player.id, player]));
+  const availableIds = [...new Set([...rosterAvailableIds, ...extraById.keys()])];
+  const [addMode, setAddMode] = useState<'closed' | 'choice' | 'guest' | 'club'>('closed');
+  const [guestName, setGuestName] = useState('');
+  const [clubSearch, setClubSearch] = useState('');
+  const [clubResults, setClubResults] = useState<Awaited<ReturnType<typeof hallStore.searchHallClubPlayers>>>([]);
+  const [clubStatus, setClubStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const clubCandidates = clubResults.filter(player => !extraById.has(player.id) && !players.some(existing => existing.id === player.id));
+  useEffect(() => {
+    setClubResults([]);
+    if (addMode !== 'club' || clubSearch.trim().length < 2) { setClubStatus('idle'); return; }
+    setClubStatus('loading');
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      try {
+        const results = demo ? [] : await hallStore.searchHallClubPlayers(eventId, clubSearch.trim());
+        if (active) { setClubResults(results); setClubStatus('ready'); }
+      } catch { if (active) setClubStatus('error'); }
+    }, 250);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [addMode, clubSearch, demo, eventId]);
+
+  function addPlayer(player: HallExtraPlayer) {
+    if (extraPlayers.length >= 40 || players.some(existing => existing.id === player.id) || extraById.has(player.id)) return;
+    setDay(previous => ({ ...previous, extraPlayers: [...(previous.extraPlayers ?? []), player] }));
+    setAddMode('closed');
+    setGuestName('');
+    setClubSearch('');
+  }
+
+  function hasPlayed(id: string) {
+    return day.games.some(game => game.goals.some(goal => goal.scorerId === id)
+      || Object.values(game.participation ?? {}).some(participation => participation.roster.includes(id)));
+  }
+
+  function removePlayer(id: string) {
+    setDay(previous => ({
+      ...previous,
+      extraPlayers: previous.extraPlayers?.filter(player => player.id !== id),
+      teams: previous.teams.map(team => ({ ...team, playerIds: team.playerIds.filter(playerId => playerId !== id) })),
+    }));
+  }
+  const dirty = saved ? JSON.stringify(saved) !== JSON.stringify(day) : extraPlayers.length > 0 || day.teams.some((t, i) => t.playerIds.length > 0 || t.name !== ['Rot', 'Blau', 'Gelb', 'Grün'][i]);
   const configDirty = (startTime !== (day.plannedStartTime ?? eventClock)) || day.games.length !== count * (count - 1) / 2 * day.cycles || count !== day.teams.length || format !== day.format || minutes * 60 !== day.total || pause * 60 !== day.pause || target * 60 !== day.target || (cycles !== 0 && cycles !== day.cycles);
   const started = day.games.some(g => g.status !== 'pending');
   const availableKey = availableIds.join(',');
   const ready = hallReady(day, availableIds);
-  const names = new Map(players.map(p => [p.id, playerName(p)]));
+  const names = new Map([...extraPlayers.map(p => [p.id, p.name] as const), ...players.map(p => [p.id, playerName(p)] as const)]);
   const unavailable = day.teams.flatMap(t => t.playerIds).filter(id => !availableIds.includes(id));
   const init = (loaded: HallDay) => { const start = loaded.plannedStartTime ?? eventClock; setStartTime(start); setEndTime(hallTimeAfter(start, loaded.total / 60)); setDay(loaded); setSaved(structuredClone(loaded)); setCount(loaded.teams.length); setFormat(loaded.format); setMinutes(loaded.total / 60); setPause(loaded.pause / 60); setTarget(loaded.target / 60); setCycles(0); };
   useEffect(() => {
@@ -102,7 +145,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
       try { const raw = sessionStorage.getItem(`hall-training-demo:${eventId}`); if (raw) init(JSON.parse(raw)); } catch { /* An unavailable demo store does not write to the backend. */ }
       setLoading(false); return;
     }
-    loadHallDay(eventId).then(row => { if (!active) return; if (row) { init(row.day); setRevision(row.revision); } setLoading(false); }).catch(e => { if (active) { setError(String(e.message)); setLoading(false); } });
+    hallStore.loadHallDay(eventId).then(row => { if (!active) return; if (row) { init(row.day); setRevision(row.revision); } setLoading(false); }).catch(e => { if (active) { setError(String(e.message)); setLoading(false); } });
     return () => { active = false; };
   }, [eventId, demo]);
   useEffect(() => { onReadyChange(Boolean(saved) && !loading && !error && !dirty && !configDirty && hallReady(day, availableIds)); }, [day, saved, loading, error, dirty, configDirty, availableKey, onReadyChange]);
@@ -111,7 +154,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
     if (readOnly || loading || saving.current) return false;
     saving.current = true; setBusy(true); setError(null);
     try {
-      const stamp = demo ? revision + 1 : await saveHallDay(eventId, next, revision);
+      const stamp = demo ? revision + 1 : await hallStore.saveHallDay(eventId, next, revision);
       if (demo) sessionStorage.setItem(`hall-training-demo:${eventId}`, JSON.stringify(next));
       setRevision(stamp); setSaved(structuredClone(next)); setDay(next); return true;
     } catch (e) { setError(e instanceof Error ? e.message : 'Speichern fehlgeschlagen'); return false; }
@@ -125,6 +168,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
     if (started || !preview) return;
     const next = createHallDay(count, format, minutes * 60, count === 2 ? 0 : pause * 60, target * 60, preview.cycles);
     next.plannedStartTime = startTime;
+    next.extraPlayers = day.extraPlayers;
     if (count === day.teams.length) next.teams = structuredClone(day.teams);
     else availableIds.forEach((id, i) => next.teams[i % count].playerIds.push(id));
     if (await persist(next)) setTab('teams');
@@ -195,6 +239,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
     if (!window.confirm('Neuen Spielplan erstellen? Alle bisherigen Spiele, Tore und Ergebnisse dieses Hallenspieltags werden gelöscht. Die Mannschaften bleiben erhalten.')) return;
     const next = createHallDay(day.teams.length, day.format, day.total, day.pause, day.target, day.cycles);
     next.plannedStartTime = day.plannedStartTime;
+    next.extraPlayers = day.extraPlayers;
     next.teams = structuredClone(day.teams);
     if (await persist(next)) { init(next); armedGame.current = null; soundedGame.current = null; }
   };
@@ -290,7 +335,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
       <p>{validDraftDuration ? 'Minuten direkt eingeben oder mit − / + einstellen. Ende und Spielplan-Vorschau werden nach dem Übernehmen angepasst.' : `Bitte ganze Minuten zwischen 15 und ${durationMaximum} wählen.`}</p>
     </section> : loading ? <p role="status">Hallenspieltag wird geladen…</p> : <div className="space-y-4">
       <p className="flex items-center gap-2 text-[15px] text-white/60"><Lock className="h-4 w-4" aria-hidden />Interne Trainingsspiele · nur für Trainer</p>
-      {error ? <div role="alert" className="rounded-xl border border-red-400/30 p-3 text-[16px] text-red-200"><p>{error}</p><button type="button" className={`${button} mt-2`} onClick={async () => { if ((dirty || configDirty) && !window.confirm('Änderungen verwerfen und gespeicherten Stand laden?')) return; try { setLoading(true); const row = await loadHallDay(eventId); if (row) { init(row.day); setRevision(row.revision); } setError(null); } catch { setError('Laden fehlgeschlagen. Bitte erneut versuchen.'); } finally { setLoading(false); } }}>Gespeicherten Stand laden</button></div> : null}
+      {error ? <div role="alert" className="rounded-xl border border-red-400/30 p-3 text-[16px] text-red-200"><p>{error}</p><button type="button" className={`${button} mt-2`} onClick={async () => { if ((dirty || configDirty) && !window.confirm('Änderungen verwerfen und gespeicherten Stand laden?')) return; try { setLoading(true); const row = await hallStore.loadHallDay(eventId); if (row) { init(row.day); setRevision(row.revision); } setError(null); } catch { setError('Laden fehlgeschlagen. Bitte erneut versuchen.'); } finally { setLoading(false); } }}>Gespeicherten Stand laden</button></div> : null}
       {unavailable.length ? <p className="text-[16px] text-amber-200">{unavailable.length} eingeteilte Spieler sind nicht mehr als dabei markiert. Bitte Einteilung prüfen.</p> : null}
       <div className="hall-section-tabs" role="group" aria-label="Hallenspieltag Bereiche">{(['teams', 'games', 'table', 'times'] as const).map((key, i) => <button key={key} type="button" aria-pressed={tab === key} onClick={() => setTab(key)} className={`${button} flex-1 px-2 ${tab === key ? 'sz-club-tab-active' : ''}`}>{['Teams', 'Spielplan', 'Tabelle', 'Statistik'][i]}</button>)}</div>
       {saved && timing.projectedEnd && !completed ? <section className={`hall-timing-notice ${timing.delay > 0 ? 'is-delayed' : ''}`} role="status">
@@ -335,11 +380,51 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds, 
         {day.games.some(game => game.seconds !== undefined) ? <p className="text-[15px] text-white/60">Individuelle Spielzeiten stehen im Spielplan. Dadurch kann die Gesamtspielzeit der Teams unterschiedlich sein.</p> : null}
         {started ? <p className="text-[15px] text-white/60">Zeitplanung und Teamanzahl bleiben fest. Spieler und Teamnamen kannst du zwischen den Spielen ändern; bisherige Ergebnisse bleiben bei den Teams.</p> : null}
         <div className="hall-team-cards">{day.teams.map((team, i) => <details key={i} className="hall-settings hall-team-card" style={{ "--team-color": HALL_COLORS[i] } as React.CSSProperties}><summary><Shirt size={22} aria-hidden /><span>{team.name}<small>{team.playerIds.length} Spieler · {Math.min(day.format, team.playerIds.length)} Feld · {Math.max(0, team.playerIds.length - day.format)} Bank</small></span><span className="hall-expand">⌄</span></summary><div className="p-3"><label className="flex items-center gap-2"><Shirt className="h-6 w-6 shrink-0" style={{ color: HALL_COLORS[i] }} aria-hidden /><span className="sr-only">Name Team {i + 1}</span><input className={`${input} min-w-0 px-2 font-bold`} maxLength={32} disabled={readOnly || teamsLocked || busy} value={team.name} onChange={e => setDay(prev => ({ ...prev, teams: prev.teams.map((t, n) => n === i ? { ...t, name: e.target.value } : t) }))} /></label><p className="mt-2 text-[15px] text-white/65">{team.playerIds.length} Spieler {team.playerIds.length > day.format ? '· mit Wechselspielern' : ''}</p><p className="mt-1 break-words text-[15px] text-white/80">{team.playerIds.map(id => names.get(id) ?? 'Nicht mehr im Kader').join(' · ') || 'Noch keine Spieler'}</p></div></details>)}</div>
+        {(teamsLocked || readOnly) && extraPlayers.length > 0 ? <section className="rounded-xl border border-white/10 p-3">
+          <h3 className="font-semibold">Zusätzliche Teilnehmer</h3>
+          <ul className="mt-1 text-white/75">{extraPlayers.map(player => <li key={player.id}>{player.name} · {player.kind === 'guest' ? 'Gast' : player.team}</li>)}</ul>
+        </section> : null}
         {teamsLocked ? <p className="text-[15px] text-amber-200">Bitte zuerst das aktuelle Spiel beenden. Danach kannst du die Mannschaften umstellen.</p> : null}
         {!teamsLocked && !readOnly ? <>
           <button type="button" disabled={busy} className={`${button} w-full`} onClick={() => { if (day.teams.some(t => t.playerIds.length) && !window.confirm('Vorhandene Einteilung neu verteilen?')) return; const next = structuredClone(day); next.teams.forEach(t => { t.playerIds = []; }); availableIds.forEach((id, i) => next.teams[i % next.teams.length].playerIds.push(id)); setDay(next); }}>Zugesagte Spieler gleichmäßig verteilen</button>
           <p className="text-[15px] text-white/60">Nach Spielerzahl verteilt. Du kannst die Teams danach frei anpassen.</p>
-          <details className="hall-settings" open={!started}><summary><Shirt size={20} aria-hidden /><span>Spieler einteilen<small>Team antippen · aktive Auswahl in Teamfarbe</small></span><span className="hall-expand">⌄</span></summary><div className="space-y-2 p-3">{[...new Set([...availableIds, ...day.teams.flatMap(t => t.playerIds)])].map(id => <div key={id} className="rounded-xl border border-white/10 p-3"><p className="mb-3 text-[16px] font-semibold">{names.get(id) ?? 'Spieler'}{!availableIds.includes(id) ? ' · abgemeldet' : ''}</p><div className="hall-team-options" role="group" aria-label={`Team für ${names.get(id) ?? 'Spieler'}`}>{day.teams.map((team, i) => <button key={i} type="button" className={`hall-team-option ${team.playerIds.includes(id) ? 'is-selected' : ''}`} style={{ '--team-color': HALL_COLORS[i] } as React.CSSProperties} disabled={busy} aria-pressed={team.playerIds.includes(id)} onClick={() => assign(id, team.playerIds.includes(id) ? -1 : i)}><Shirt size={17} aria-hidden />{team.name}</button>)}</div></div>)}</div></details>
+          <details className="hall-settings" open={!started}>
+            <summary><Shirt size={20} aria-hidden /><span>Spieler einteilen<small>Team antippen · aktive Auswahl in Teamfarbe</small></span><span className="hall-expand">⌄</span></summary>
+            <div className="space-y-2 p-3">
+              {addMode === 'closed' ? <button type="button" disabled={busy || extraPlayers.length >= 40} className={`${button} flex w-full items-center justify-center gap-2`} onClick={() => setAddMode('choice')}><UserPlus size={19} aria-hidden /> Spieler hinzufügen</button> : (
+                <fieldset disabled={busy} className="space-y-3 rounded-xl border border-white/15 p-3">
+                  <legend className="px-1 font-semibold">Spieler hinzufügen</legend>
+                  {addMode === 'choice' ? <div className="grid gap-2">
+                    <button type="button" className={button} onClick={() => setAddMode('club')}>Aus anderer Mannschaft</button>
+                    <button type="button" className={button} onClick={() => setAddMode('guest')}>Probetraining / Gast</button>
+                  </div> : null}
+                  {addMode === 'guest' ? <div className="space-y-2">
+                    <label className="block">Name des Gasts<input className={input} autoFocus maxLength={80} value={guestName} onChange={e => setGuestName(e.target.value)} /></label>
+                    <p className="text-sm text-white/65">Der Gast wird nur für dieses Training als anwesend erfasst.</p>
+                    <button type="button" className={`${button} sz-club-tab-active`} disabled={!guestName.trim()} onClick={() => addPlayer({ id: `guest-${crypto.randomUUID()}`, name: guestName.trim(), kind: 'guest' })}>Gast hinzufügen</button>
+                  </div> : null}
+                  {addMode === 'club' ? <div className="space-y-2">
+                    <label className="block">Vereinsspieler suchen<input className={input} autoFocus maxLength={80} placeholder="Mindestens 2 Zeichen" value={clubSearch} onChange={e => setClubSearch(e.target.value)} /></label>
+                    {clubStatus === 'loading' ? <p role="status">Suche läuft…</p> : null}
+                    {clubStatus === 'error' ? <p role="alert">Vereinsspieler konnten nicht geladen werden. Bitte starte die Suche erneut.</p> : null}
+                    {clubStatus === 'ready' ? (clubCandidates.length ? <div className="grid gap-2">{clubCandidates.map(player => <button type="button" key={player.id} className={`${button} text-left`} onClick={() => addPlayer({ ...player, kind: 'club' })}>{player.name} · {player.team}</button>)}</div> : <p role="status">Keine weiteren Spieler gefunden.</p>) : null}
+                  </div> : null}
+                  <button type="button" className={button} onClick={() => { setAddMode('closed'); setGuestName(''); setClubSearch(''); }}>Auswahl schließen</button>
+                </fieldset>
+              )}
+              {[...new Set([...availableIds, ...day.teams.flatMap(team => team.playerIds)])].map(id => {
+                const extra = extraById.get(id);
+                const name = names.get(id) ?? 'Spieler';
+                return <div key={id} className="rounded-xl border border-white/10 p-3">
+                  <div className="mb-3 flex items-start justify-between gap-2">
+                    <p className="text-[16px] font-semibold">{name}{extra ? <span className="ml-2 text-sm font-normal text-white/65">{extra.kind === 'guest' ? 'Gast' : extra.team}</span> : !availableIds.includes(id) ? ' · abgemeldet' : ''}</p>
+                    {extra && !hasPlayed(id) ? <button type="button" className="min-h-10 min-w-10 text-white/65" aria-label={`${name} entfernen`} disabled={busy} onClick={() => removePlayer(id)}><Trash2 size={18} className="mx-auto" aria-hidden /></button> : null}
+                  </div>
+                  <div className="hall-team-options" role="group" aria-label={`Team für ${name}`}>{day.teams.map((team, i) => <button key={i} type="button" className={`hall-team-option ${team.playerIds.includes(id) ? 'is-selected' : ''}`} style={{ '--team-color': HALL_COLORS[i] } as React.CSSProperties} disabled={busy} aria-pressed={team.playerIds.includes(id)} onClick={() => assign(id, team.playerIds.includes(id) ? -1 : i)}><Shirt size={17} aria-hidden />{team.name}</button>)}</div>
+                </div>;
+              })}
+            </div>
+          </details>
           <button type="button" disabled={busy || !dirty || configDirty || (started && !ready)} className={`${button} w-full sz-club-tab-active`} onClick={() => void persist(day)}>{busy ? 'Speichert…' : 'Mannschaften speichern'}</button>
           {!ready ? <p className="text-[15px] text-white/60">Zum Start alle Zusagen zuteilen: Jedes Team braucht mindestens {day.format} verfügbare Spieler. {started ? 'Bitte vor dem Speichern alle Teams vollständig einteilen.' : 'Eine unvollständige Einteilung kannst du als Entwurf speichern.'}</p> : null}
           {started ? <button type="button" disabled={busy || dirty || configDirty} className={`${button} w-full`} onClick={() => void resetPlan()}>Neuen Spielplan erstellen</button> : null}

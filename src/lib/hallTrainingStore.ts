@@ -10,3 +10,9 @@ export async function saveHallDay(eventId: string, day: HallDay, revision: numbe
   if (error) throw new Error(error.message.includes('neu laden') ? error.message : 'Speichern fehlgeschlagen. Bitte erneut versuchen.');
   return Number(data);
 }
+
+export async function searchHallClubPlayers(eventId: string, search: string): Promise<{ id: string; name: string; team: string }[]> {
+  const { data, error } = await supabase.rpc('search_hall_club_players', { p_event: eventId, p_search: search });
+  if (error) throw new Error('Die Vereinsspieler konnten nicht geladen werden.');
+  return data ?? [];
+}
