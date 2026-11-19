@@ -1,3 +1,4 @@
+import {MarketTeamWizard} from './MarketTeamWizard';
 import {requestMarketHomeGuide} from './MarketHomeScreenGuide';
 import React, {useEffect, useState} from 'react';
 import {Link, useSearchParams} from 'react-router-dom';
@@ -44,13 +45,12 @@ export function MarketJoinPanel({clubId, clubName='deinem Verein', onJoined}: {c
    <Link className="public-market-register" to={marketAuthPath('login',query)}>Schon ein Konto? Anmelden</Link>
    <small>Ein Konto für Vereinsmarkt und SpielzeitApp. Nach der E-Mail-Bestätigung wählst du alle passenden Mannschaften deiner Kinder aus. Ein Elternkonto reicht auch bei mehreren Kindern.</small>
   </>:<>
-   <h3>Wähle die Mannschaften deiner Kinder</h3><p>Mehrere Kinder in verschiedenen U-Teams? Wähle alle passenden Mannschaften aus, zum Beispiel U9 und U12. Ein Elternkonto reicht. Namen deiner Kinder brauchst du hier nicht.</p>
-   {loading?<p role="status">Mannschaften werden geladen…</p>:teams.length?<fieldset className="market-team-picker" disabled={busy}><legend className="sr-only">Deine Mannschaften</legend>{teams.map(t=><label key={t.id} className={chosen.includes(t.id)?'is-selected':''}><input type="checkbox" checked={chosen.includes(t.id)} onChange={e=>setChosen(old=>e.target.checked?[...old,t.id]:old.filter(id=>id!==t.id))}/><span>{t.age_group||t.name}</span>{t.age_group&&<small>{t.name}</small>}</label>)}</fieldset>:<p className="exchange-hint">Hier sind noch keine Mannschaften angelegt. Bitte wende dich an die Vereinsverwaltung oder lade die Liste später erneut.</p>}
-   {!loading&&teams.length>0&&<p role="status" aria-live="polite">{chosen.length} {chosen.length===1?'Mannschaft ausgewählt':'Mannschaften ausgewählt'}</p>}
-   {!loading&&<button type="button" className="market-text-button" disabled={busy} onClick={()=>setReload(n=>n+1)}>Mannschaften neu laden</button>}
+   {loading?<p role="status">Mannschaften werden geladen…</p>:teams.length?<MarketTeamWizard key={`${clubId}:${user.id}:${reload}`} teams={teams} chosen={chosen} onChange={ids=>{setChosen(ids);setAccepted(false);}} busy={busy}>
    <label className="exchange-check"><input type="checkbox" checked={accepted} disabled={busy} onChange={e=>setAccepted(e.target.checked)}/>Ich bin erwachsen und meine Familie gehört zu diesem Verein bzw. dieser Spielgemeinschaft.</label>
    <button type="button" className="public-market-cta" disabled={!accepted||busy||loading||!chosen.length} onClick={()=>void join()}>{busy?'Beitritt wird gespeichert…':'Dem Vereinsmarkt beitreten'}</button>
    {!loading&&!busy&&(!chosen.length||!accepted)&&<p className="market-join-action-hint">{!chosen.length?'Wähle mindestens eine Mannschaft. Danach kannst du beitreten.':'Bitte bestätige oben, dass deine Familie zum Verein gehört.'}</p>}
+   </MarketTeamWizard>:<p className="exchange-hint">Hier sind noch keine Mannschaften angelegt. Bitte wende dich an die Vereinsverwaltung oder lade die Liste später erneut.</p>}
+   {!loading&&<button type="button" className="market-text-button" disabled={busy} onClick={()=>setReload(n=>n+1)}>Mannschaften neu laden</button>}
    <small>Du kannst sofort loslegen – ohne Trainerfreigabe. Diese Auswahl gilt nur für den Vereinsmarkt. Mannschaft und Kind verknüpfst du später bei Bedarf in SpielzeitApp.</small>
   </>}
   {error&&<p role="alert" className="exchange-alert">{error}</p>}
