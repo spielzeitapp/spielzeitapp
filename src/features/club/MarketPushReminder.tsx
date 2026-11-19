@@ -28,10 +28,10 @@ function PushChoice({onLater,onActivate,busy,error}:{onLater:()=>void;onActivate
   return ()=>{if(dialog?.open)dialog.close();};
  },[]);
  return <dialog ref={ref} className="market-install-dialog market-onboarding-choice" aria-labelledby="market-push-choice-title" onCancel={event=>{event.preventDefault();onLater();}}>
-  <div style={{display:'grid',placeItems:'center',width:64,height:64,marginBottom:16,borderRadius:'50%',background:'#fb718526',color:'#fb7185'}}><BellRing size={32} aria-hidden="true"/></div>
+  <div style={{display:'grid',placeItems:'center',width:64,height:64,marginBottom:16,borderRadius:'50%',background:'#22c55e26',color:'#4ade80'}}><BellRing size={32} aria-hidden="true"/></div>
   <h2 id="market-push-choice-title">Keine Anfrage verpassen</h2>
   <p>Jemand interessiert sich für dein Inserat oder antwortet dir? Wir benachrichtigen dich direkt am Handy – auch wenn der Vereinsmarkt geschlossen ist.</p>
-  <button className="market-install-done" type="button" disabled={busy} onClick={()=>void onActivate()}>{busy?'Wird aktiviert…':'Benachrichtigungen aktivieren'}</button>
+  <button className="market-install-done" style={{background:'#15803d',color:'#ffffff'}} type="button" disabled={busy} onClick={()=>void onActivate()}>{busy?'Wird aktiviert…':'Benachrichtigungen aktivieren'}</button>
   <button className="market-install-done market-onboarding-later" type="button" onClick={onLater}>Später</button>
   {error&&<p role="alert">{error}</p>}
  </dialog>;
