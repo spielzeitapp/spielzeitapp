@@ -110,7 +110,7 @@ export const MANAGER_NAV_SECTIONS: readonly ManagerNavSection[] = [
     label: 'Verein',
     hideInTrainerMode: true,
     items: [
-      { id: 'equipment', label: 'Ausrüstung & Teamshop', status: 'planned' },
+      { id: 'equipment', label: 'Vereinsshop · Artikelverwaltung', to: '/manager/vereinsshop', status: 'ready', stagingOnly: true },
       {
         id: 'facilities',
         label: 'Sportanlagen',

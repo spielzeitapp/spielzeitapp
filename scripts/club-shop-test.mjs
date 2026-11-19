@@ -34,3 +34,12 @@ assert.equal(button('0 bezahlte Bestellungen freigeben').props.disabled,true);
 await click(button('Händlerportal'));assert.match(text(),/Noch keine freigegebenen Bestellungen/);
 await act(async()=>tree.unmount());
 console.log('PASS: parent checkout, required size, price payload, role navigation, no self-confirmed payment, release guard, order states and safe CSV export.');
+
+globalThis.__shopState={...state,staff:false,admin:false,dealer:false};
+await act(async()=>{tree=create(React.createElement(ClubShop,{clubId:'club',clubName:'Testverein',manageOnly:true,onBack(){}}));});
+assert.equal(tree.root.findAllByType('form').length,0);assert.equal(button('Artikel speichern'),undefined);
+await act(async()=>tree.unmount());
+globalThis.__shopState={...state,staff:true,admin:true,dealer:false};
+await act(async()=>{tree=create(React.createElement(ClubShop,{clubId:'club',clubName:'Testverein',manageOnly:true,onBack(){}}));});
+assert.ok(button('Artikel speichern'));assert.equal(button('Shop'),undefined);assert.ok(button('Bearbeiten'));
+await act(async()=>tree.unmount());console.log('PASS: Manager shop opens administration directly and blocks non-managers.');

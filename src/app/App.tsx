@@ -59,6 +59,7 @@ import { AuthMinimalLayout } from './layout/AuthMinimalLayout';
 import { AdminLoginPage } from '../pages/AdminLoginPage';
 import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { SetupAdminPage } from '../pages/SetupAdminPage';
+import { ManagerShopPage } from '../manager/ManagerShopPage';
 import { ManagerLayout } from '../manager/ManagerLayout';
 import { ManagerAppWorkspace } from '../manager/ManagerAppWorkspace';
 import { ManagerSpeakerStudioPage } from '../manager/ManagerSpeakerStudioPage';
@@ -367,6 +368,7 @@ function InternalRoutes(): React.ReactElement {
         </Route>
       </Route>
       <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
+      <Route path="/manager/vereinsshop" element={<RequireAuth><ManagerShopPage /></RequireAuth>} />
       <Route path="/manager/login" element={<LoginPage />} />
       <Route path="/manager/intro/splash" element={<RequireAuth><ManagerSplashScreen /></RequireAuth>} />
       <Route path="/manager/intro/welcome" element={<RequireAuth><ManagerWelcomeScreen /></RequireAuth>} />
