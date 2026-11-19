@@ -23,7 +23,7 @@ const VIEWPORT_ENTRY_KEY = 'sz_viewport_entry_v1';
 /** An installed market window and an in-app route share URLs, not native geometry.
  * sessionStorage belongs to the current window and survives a theme reload. */
 function viewportEntry(): 'market' | 'app' {
-  const marketPath = /^\/(?:vereinsmarkt|marktplatz)\//i.test(window.location.pathname);
+  const marketPath = /^\/(?:vereinsmarkt|marktplatz)\//i.test(window.location.pathname) || /^\/vereinsmarkt-manager(?:\/|$)/i.test(window.location.pathname) || (window.location.pathname==='/manager/vereinsmarkt'&&new URLSearchParams(window.location.search).get('from')==='vereinsmarkt-manager');
   try {
     if (!marketPath) {
       window.sessionStorage.setItem(VIEWPORT_ENTRY_KEY, 'app');
@@ -49,7 +49,7 @@ function applyViewportVars(entry: 'market' | 'app'): void {
   // viewport: screen.height also includes native status-bar space on iOS.
   // env(safe-area-inset-top) cannot reliably tell whether that space is outside
   // the viewport (including installs that retained older status-bar settings).
-  const marketShell = root.hasAttribute('data-market-shell');
+  const marketShell = root.hasAttribute('data-market-shell') || root.hasAttribute('data-market-manager-shell');
   const viewportInput = {
     ios: /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1),
     standalone: window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true,

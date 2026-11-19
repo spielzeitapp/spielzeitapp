@@ -6,6 +6,8 @@ import './marketTheme.css';
 export function MarketThemeSync(){
  const {pathname,search}=useLocation();const {theme}=useMarketTheme();const active=isMarketThemeRoute(pathname,search);
  const shell=/^\/(?:vereinsmarkt|marktplatz)\/[0-9a-f-]{36}\/?$/i.test(pathname);
+ const managerShell=/^\/vereinsmarkt-manager(?:\/|$)/.test(pathname)||(pathname==='/manager/vereinsmarkt'&&new URLSearchParams(search).get('from')==='vereinsmarkt-manager');
+ useLayoutEffect(()=>{const root=document.documentElement;if(managerShell)root.setAttribute('data-market-manager-shell','');else root.removeAttribute('data-market-manager-shell');window.dispatchEvent(new Event('spz-viewport-recover'));return()=>root.removeAttribute('data-market-manager-shell');},[managerShell]);
  useLayoutEffect(()=>{const root=document.documentElement;if(shell)root.setAttribute('data-market-shell','');else root.removeAttribute('data-market-shell');window.dispatchEvent(new Event('spz-viewport-recover'));return()=>root.removeAttribute('data-market-shell');},[shell]);
  useLayoutEffect(()=>{
   const root=document.documentElement;
