@@ -24,12 +24,22 @@ begin
  update public.exchange_listings set status='Verfügbar',photo_paths=array[c::text||'/'||s::text||'/'||l::text||'/test.jpg'] where id=l;
  perform set_config('request.jwt.claim.sub',b::text,true);
  if jsonb_array_length(public.exchange_fund_options(c))<>0 then raise exception 'Unassigned member sees seller teams';end if;
- denied:=false;begin perform public.exchange_fund_pledge(l,1);exception when others then denied:=true;end;if not denied then raise exception 'Pledge without payment config accepted';end if;
- perform set_config('request.jwt.claim.sub',a::text,true);perform public.exchange_fund_settings_save(c,'Synthetic cash desk, no real payment.');
- perform set_config('request.jwt.claim.sub',b::text,true);
+ denied:=false;begin perform public.exchange_fund_pledge(l,1);exception when others then denied:=true;end;if not denied then raise exception 'Buyer could announce seller contribution';end if;
+ perform set_config('request.jwt.claim.sub',s::text,true);
  denied:=false;begin perform public.exchange_fund_pledge(l,0);exception when others then denied:=true;end;if not denied then raise exception 'Stale pledge accepted';end if;
  r:=public.exchange_fund_pledge(l,1);p:=(r->'pledge'->>'id')::uuid;if p is null then raise exception 'Pledge missing';end if;
  if (public.exchange_fund_pledge(l,1)->'pledge'->>'id')::uuid<>p then raise exception 'Pledge not idempotent';end if;
+ if (select status from public.exchange_listings where id=l)<>'Vergeben' then raise exception 'Sale not marked sold atomically';end if;
+ if r->'pledge'->>'initiated_by'<>'seller' then raise exception 'Seller provenance missing';end if;
+ denied:=false;begin update public.exchange_listings set status='Verfügbar' where id=l;exception when others then denied:=true;end;if not denied then raise exception 'Pending sale republished';end if;
+ denied:=false;begin perform public.exchange_fund_confirm(p,'Self receipt');exception when others then denied:=true;end;if not denied then raise exception 'Seller confirmed own unreceived money';end if;
+ perform set_config('request.jwt.claim.sub',b::text,true);
+ denied:=false;begin perform public.exchange_fund_cancel(p);exception when others then denied:=true;end;if not denied then raise exception 'Other member cancelled seller pledge';end if;
+ perform set_config('request.jwt.claim.sub',s::text,true);
+ perform public.exchange_fund_cancel(p);
+ r:=public.exchange_fund_pledge(l,2);p:=(r->'pledge'->>'id')::uuid;
+ if p is null then raise exception 'Re-announcement after cancellation failed';end if;
+
  perform set_config('request.jwt.claim.sub',s::text,true);
  denied:=false;begin update public.exchange_listings set price=12 where id=l;exception when others then denied:=true;end;if not denied then raise exception 'Pledged allocation changed';end if;
  perform set_config('request.jwt.claim.sub',m::text,true);
@@ -37,7 +47,10 @@ begin
  denied:=false;begin perform public.exchange_fund_grant(c,m,t,'book');exception when others then denied:=true;end;if not denied then raise exception 'Manager escalated cash rights';end if;
  perform set_config('request.jwt.claim.sub',a::text,true);perform public.exchange_fund_grant(c,m,t,'book');
  perform set_config('request.jwt.claim.sub',m::text,true);
- if jsonb_array_length(public.exchange_fund_dashboard(c)->'teams')<>1 then raise exception 'Team scope leaked';end if;
+ r:=public.exchange_fund_dashboard(c);
+ if jsonb_array_length(r->'teams')<>1 then raise exception 'Team scope leaked';end if;
+ if jsonb_array_length(r->'pending')<>1 or (r->'pending'->0->>'amount_cents')::integer<>500 or jsonb_array_length(r->'pending'->0->'split')<>1 then raise exception 'Scoped pending share missing or other team leaked';end if;
+ if (r->'pending'->0->>'can_book')::boolean then raise exception 'Partial team rights enabled confirm';end if;
  denied:=false;begin perform public.exchange_fund_confirm(p,'Partial rights');exception when others then denied:=true;end;if not denied then raise exception 'Partial rights booked split payment';end if;
  perform set_config('request.jwt.claim.sub',a::text,true);r:=public.exchange_fund_dashboard(c);
  if exists(select 1 from jsonb_array_elements(r->'teams') x where (x->>'balance')::bigint<>0 and x->>'id' in(t::text,t2::text)) then raise exception 'Pending contribution became balance';end if;
@@ -55,5 +68,5 @@ begin
  if has_function_privilege('anon','public.exchange_fund_dashboard(uuid)','execute') then raise exception 'Anonymous finance RPC exposed';end if;
 end $test$;
 reset role;
-select 'PASS actual authenticated role: cents/sum, own-team scope, stale pledge, no-config, idempotent pledge/receipt/payout, split snapshot, pending vs balance, finance escalation, all-team rights, read-only, cross-club, overdraw and private tables' result;
+select 'PASS actual authenticated role: cents/sum, own-team scope, stale pledge, seller workflow, idempotent pledge/receipt/payout, split snapshot, pending vs balance, finance escalation, all-team rights, read-only, cross-club, overdraw and private tables' result;
 rollback;

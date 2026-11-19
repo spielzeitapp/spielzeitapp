@@ -1,0 +1,99 @@
+begin;
+do $setup$
+declare c uuid:=(select id from public.clubs where name ilike '%gölsen%' or name ilike '%rohrbach%' limit 1);a uuid:=(select user_id from public.user_roles where role::text='admin' limit 1);s uuid:=gen_random_uuid();b uuid:=gen_random_uuid();m uuid:=gen_random_uuid();t uuid:=gen_random_uuid();t2 uuid:=gen_random_uuid();l uuid:=gen_random_uuid();r jsonb;v integer;
+begin
+ if c is null or a is null then raise exception 'Test fixture needs a club and platform admin';end if;
+ insert into auth.users(id,email,raw_user_meta_data,raw_app_meta_data,created_at,updated_at) values(s,s::text||'@fund-test.invalid','{}','{}',now(),now()),(b,b::text||'@fund-test.invalid','{}','{}',now(),now()),(m,m::text||'@fund-test.invalid','{}','{}',now(),now());
+ insert into private.exchange_members(club_id,user_id) values(c,s),(c,b),(c,m);
+ insert into public.teams(id,club_id,name,age_group) values(t,c,'FundTest U12 '||t::text,'U12'),(t2,c,'FundTest U13 '||t2::text,'U13');
+ insert into private.exchange_member_teams(club_id,user_id,team_id) values(c,s,t),(c,s,t2);
+ perform set_config('request.jwt.claim.sub',a::text,true);perform set_config('request.jwt.claim.role','authenticated',true);
+ r:=public.exchange_parent_teams_admin(c);v:=(r->>'version')::int;
+ perform public.exchange_parent_teams_admin(c,jsonb_build_array(jsonb_build_object('id',t,'label','U12 Fund'),jsonb_build_object('id',t2,'label','U13 Fund')),v);
+ perform public.exchange_manager_assign(c,m,true,false);
+ perform set_config('test.fund_c',c::text,true);perform set_config('test.fund_a',a::text,true);perform set_config('test.fund_s',s::text,true);perform set_config('test.fund_b',b::text,true);perform set_config('test.fund_m',m::text,true);perform set_config('test.fund_t',t::text,true);perform set_config('test.fund_t2',t2::text,true);perform set_config('test.fund_l',l::text,true);
+end $setup$;
+set local role authenticated;
+do $test$
+declare c uuid:=current_setting('test.fund_c')::uuid;a uuid:=current_setting('test.fund_a')::uuid;s uuid:=current_setting('test.fund_s')::uuid;b uuid:=current_setting('test.fund_b')::uuid;m uuid:=current_setting('test.fund_m')::uuid;t uuid:=current_setting('test.fund_t')::uuid;t2 uuid:=current_setting('test.fund_t2')::uuid;l uuid:=current_setting('test.fund_l')::uuid;p uuid;r jsonb;denied boolean;req uuid:=gen_random_uuid();split jsonb:=jsonb_build_array(jsonb_build_object('team_id',t,'amount_cents',500),jsonb_build_object('team_id',t2,'amount_cents',500));
+begin
+ perform set_config('request.jwt.claim.sub',s::text,true);
+ if jsonb_array_length(public.exchange_fund_options(c))<>2 then raise exception 'Own team options missing';end if;
+ denied:=false;begin insert into public.exchange_listings(id,club_id,owner_id,title,category,size,condition,offer,price,team_fund_split,status,photo_paths) values(l,c,s,'Teamfund Prüfung','Pulli','128','Sehr gut','Fürs Team',11,split,'Entwurf','{}');exception when others then denied:=true;end;if not denied then raise exception 'Wrong total accepted';end if;
+ insert into public.exchange_listings(id,club_id,owner_id,title,category,size,condition,offer,price,team_fund_split,status,photo_paths) values(l,c,s,'Teamfund Prüfung','Pulli','128','Sehr gut','Fürs Team',10,split,'Entwurf','{}');
+ update public.exchange_listings set status='Verfügbar',photo_paths=array[c::text||'/'||s::text||'/'||l::text||'/test.jpg'] where id=l;
+ perform set_config('request.jwt.claim.sub',b::text,true);
+ if jsonb_array_length(public.exchange_fund_options(c))<>0 then raise exception 'Unassigned member sees seller teams';end if;
+ denied:=false;begin perform public.exchange_fund_pledge(l,1);exception when others then denied:=true;end;if not denied then raise exception 'Buyer could announce seller contribution';end if;
+ perform set_config('request.jwt.claim.sub',s::text,true);
+ denied:=false;begin perform public.exchange_fund_pledge(l,0);exception when others then denied:=true;end;if not denied then raise exception 'Stale pledge accepted';end if;
+ r:=public.exchange_fund_pledge(l,1);p:=(r->'pledge'->>'id')::uuid;if p is null then raise exception 'Pledge missing';end if;
+ if (public.exchange_fund_pledge(l,1)->'pledge'->>'id')::uuid<>p then raise exception 'Pledge not idempotent';end if;
+ if (select status from public.exchange_listings where id=l)<>'Vergeben' then raise exception 'Sale not marked sold atomically';end if;
+ if r->'pledge'->>'initiated_by'<>'seller' then raise exception 'Seller provenance missing';end if;
+ denied:=false;begin update public.exchange_listings set status='Verfügbar' where id=l;exception when others then denied:=true;end;if not denied then raise exception 'Pending sale republished';end if;
+ denied:=false;begin perform public.exchange_fund_confirm(p,'Self receipt');exception when others then denied:=true;end;if not denied then raise exception 'Seller confirmed own unreceived money';end if;
+ perform set_config('request.jwt.claim.sub',b::text,true);
+ denied:=false;begin perform public.exchange_fund_cancel(p);exception when others then denied:=true;end;if not denied then raise exception 'Other member cancelled seller pledge';end if;
+ perform set_config('request.jwt.claim.sub',s::text,true);
+ perform public.exchange_fund_cancel(p);
+ r:=public.exchange_fund_pledge(l,2);p:=(r->'pledge'->>'id')::uuid;
+ if p is null then raise exception 'Re-announcement after cancellation failed';end if;
+
+ perform set_config('request.jwt.claim.sub',s::text,true);
+ denied:=false;begin update public.exchange_listings set price=12 where id=l;exception when others then denied:=true;end;if not denied then raise exception 'Pledged allocation changed';end if;
+ perform set_config('request.jwt.claim.sub',m::text,true);
+ denied:=false;begin perform public.exchange_fund_confirm(p,'Fake receipt');exception when others then denied:=true;end;if not denied then raise exception 'Market-only manager booked cash';end if;
+ denied:=false;begin perform public.exchange_fund_grant(c,m,t,'book');exception when others then denied:=true;end;if not denied then raise exception 'Manager escalated cash rights';end if;
+ perform set_config('request.jwt.claim.sub',a::text,true);perform public.exchange_fund_grant(c,m,t,'book');
+ perform set_config('request.jwt.claim.sub',m::text,true);
+ r:=public.exchange_fund_dashboard(c);
+ if jsonb_array_length(r->'teams')<>1 then raise exception 'Team scope leaked';end if;
+ if jsonb_array_length(r->'pending')<>1 or (r->'pending'->0->>'amount_cents')::integer<>500 or jsonb_array_length(r->'pending'->0->'split')<>1 then raise exception 'Scoped pending share missing or other team leaked';end if;
+ if (r->'pending'->0->>'can_book')::boolean then raise exception 'Partial team rights enabled confirm';end if;
+ denied:=false;begin perform public.exchange_fund_confirm(p,'Partial rights');exception when others then denied:=true;end;if not denied then raise exception 'Partial rights booked split payment';end if;
+ perform set_config('request.jwt.claim.sub',a::text,true);r:=public.exchange_fund_dashboard(c);
+ if exists(select 1 from jsonb_array_elements(r->'teams') x where (x->>'balance')::bigint<>0 and x->>'id' in(t::text,t2::text)) then raise exception 'Pending contribution became balance';end if;
+ perform public.exchange_fund_grant(c,m,t2,'book');perform set_config('request.jwt.claim.sub',m::text,true);
+ perform public.exchange_fund_confirm(p,'Cash desk test receipt');perform public.exchange_fund_confirm(p,'Repeated receipt');r:=public.exchange_fund_dashboard(c);
+ if (select sum((x->>'balance')::bigint) from jsonb_array_elements(r->'teams') x)<>1000 then raise exception 'Receipt allocation/dedup failed';end if;
+ denied:=false;begin perform public.exchange_fund_payout(c,t,501,'Too much',gen_random_uuid());exception when others then denied:=true;end;if not denied then raise exception 'Overdraw accepted';end if;
+ perform public.exchange_fund_payout(c,t,200,'Paid to team',req);perform public.exchange_fund_payout(c,t,200,'Paid to team',req);
+ if (select sum((x->>'balance')::bigint) from jsonb_array_elements(public.exchange_fund_dashboard(c)->'teams') x)<>800 then raise exception 'Payout/dedup failed';end if;
+ denied:=false;begin perform public.exchange_fund_cancel(p);exception when others then denied:=true;end;if not denied then raise exception 'Confirmed receipt cancelled';end if;
+ denied:=false;begin perform public.exchange_fund_dashboard(gen_random_uuid());exception when others then denied:=true;end;if not denied then raise exception 'Cross club access';end if;
+ denied:=false;begin perform 1 from private.exchange_fund_entries;exception when insufficient_privilege then denied:=true;end;if not denied then raise exception 'Private ledger exposed';end if;
+ perform set_config('request.jwt.claim.sub',a::text,true);perform public.exchange_fund_grant(c,m,t,'read');perform set_config('request.jwt.claim.sub',m::text,true);
+ denied:=false;begin perform public.exchange_fund_payout(c,t,1,'Read only',gen_random_uuid());exception when others then denied:=true;end;if not denied then raise exception 'Read grant booked payout';end if;
+ if has_function_privilege('anon','public.exchange_fund_dashboard(uuid)','execute') then raise exception 'Anonymous finance RPC exposed';end if;
+end $test$;
+reset role;
+select 'PASS actual authenticated role: cents/sum, own-team scope, stale pledge, seller workflow, idempotent pledge/receipt/payout, split snapshot, pending vs balance, finance escalation, all-team rights, read-only, cross-club, overdraw and private tables' result;
+
+-- Legacy buyer-origin pledges remain attributable to the original payer.
+reset role;
+do $legacy_setup$
+declare c uuid:=current_setting('test.fund_c')::uuid;s uuid:=current_setting('test.fund_s')::uuid;b uuid:=current_setting('test.fund_b')::uuid;t uuid:=current_setting('test.fund_t')::uuid;l uuid:=gen_random_uuid();
+begin
+ perform set_config('request.jwt.claim.sub',s::text,true);
+ insert into public.exchange_listings(id,club_id,owner_id,title,category,size,condition,offer,price,team_fund_split,status,photo_paths)
+ values(l,c,s,'Legacy synthetic','Pulli','128','Gut','Fürs Team',5,jsonb_build_array(jsonb_build_object('team_id',t,'amount_cents',500)),'Verfügbar',array[c::text||'/'||s::text||'/'||l::text||'/legacy.jpg']);
+ insert into private.exchange_fund_pledges(club_id,listing_id,buyer_id,owner_id,title,amount_cents,split,reference)
+ values(c,l,b,s,'Legacy synthetic',500,jsonb_build_array(jsonb_build_object('team_id',t,'amount_cents',500)),'VM-TEST-'||l::text);
+ perform set_config('test.fund_legacy',l::text,true);
+end $legacy_setup$;
+set local role authenticated;
+do $legacy_test$
+declare l uuid:=current_setting('test.fund_legacy')::uuid;s uuid:=current_setting('test.fund_s')::uuid;b uuid:=current_setting('test.fund_b')::uuid;r jsonb;p uuid;denied boolean;
+begin
+ perform set_config('request.jwt.claim.sub',s::text,true);r:=public.exchange_fund_detail(l);p:=(r->'pledge'->>'id')::uuid;
+ if r->'pledge'->>'initiated_by'<>'buyer' then raise exception 'Legacy payer reinterpreted';end if;
+ denied:=false;begin perform public.exchange_fund_pledge(l,0);exception when others then denied:=true;end;if not denied then raise exception 'Legacy pledge duplicated as seller';end if;
+ denied:=false;begin perform public.exchange_fund_cancel(p);exception when others then denied:=true;end;if not denied then raise exception 'Seller cancelled legacy buyer pledge';end if;
+ perform set_config('request.jwt.claim.sub',b::text,true);r:=public.exchange_fund_detail(l);
+ if not (r->'pledge'->>'mine')::boolean then raise exception 'Legacy buyer ownership lost';end if;
+ perform public.exchange_fund_cancel(p);
+end $legacy_test$;
+reset role;
+select 'PASS legacy payer preserved; no duplicate seller pledge; only original buyer/admin can cancel legacy record' result;
+rollback;
