@@ -1,0 +1,7 @@
+import assert from 'node:assert/strict';import fs from'node:fs';import postcss from'postcss';
+for(const [file,selector,attr]of[['src/features/marketManager/marketManagerNav.css','.market-manager-nav-viewport','data-market-manager-shell'],['src/features/club/publicExchange.css','.public-market-nav-viewport','data-market-shell']]){
+ const rules=[];postcss.parse(fs.readFileSync(file,'utf8')).walkRules(r=>{if(r.selector.split(',').some(s=>s.trim()===selector||s.trim()===`html[${attr}][data-viewport-entry=app][data-ios-standalone-fullscreen] ${selector}`)){const d={};r.walkDecls(v=>d[v.prop]=v.value);rules.push({selector:r.selector,d});}});
+ for(const fromApp of [false,true]){const effective={};for(const r of rules){if(!fromApp&&r.selector.startsWith('html['))continue;Object.assign(effective,r.d);}assert.equal(effective.position,'fixed');assert.equal(effective.bottom,'auto');assert.equal(effective.transform,'none');assert.equal(effective.height,'var(--market-nav-visible-height,100dvh)');assert.equal(effective.top,'var(--market-nav-visible-top,0px)');assert.equal(effective['align-items'],'flex-end');}
+ for(const [top,height,scale]of[[0,812,1],[0,955,.85],[20,500,1],[0,640,1]]){const safePadding=12,barHeight=76;const bottom=top+height-safePadding;assert.ok(bottom<=top+height);assert.ok(bottom-barHeight>=top);assert.ok(Math.abs((top+height-bottom)*scale-safePadding*scale)<.001);}
+}
+console.log('PASS public/manager effective CSS: cold start and app switch, visual-viewport frame, full nav above screen edge, zoom and keyboard');

@@ -49,7 +49,6 @@ function applyViewportVars(entry: 'market' | 'app'): void {
   // viewport: screen.height also includes native status-bar space on iOS.
   // env(safe-area-inset-top) cannot reliably tell whether that space is outside
   // the viewport (including installs that retained older status-bar settings).
-  const marketShell = root.hasAttribute('data-market-shell') || root.hasAttribute('data-market-manager-shell');
   const viewportInput = {
     ios: /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1),
     standalone: window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true,
@@ -58,20 +57,15 @@ function applyViewportVars(entry: 'market' | 'app'): void {
     visibleHeight: vv?.height ?? innerH, visibleTop: vv?.offsetTop ?? 0,
     scale: vv?.scale ?? 1, editing,
   };
-  // N8 device report: fixed viewport 812px on an 874px iPhone. In a
-  // translucent install, the layout viewport omits native top-chrome space.
-  // Compensate only the body-level nav, not the bounded content scroller.
-  let marketBottomExtension = 0;
-  if (marketShell && entry === 'market') {
-    const probe = document.createElement('div');
-    probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top,0px)';
-    document.body.appendChild(probe);
-    const safeAreaTop = Number.parseFloat(getComputedStyle(probe).paddingTop) || 0;
-    probe.remove();
-    const full = standaloneFullscreenHeight({...viewportInput, safeAreaTop});
-    if (full !== null) marketBottomExtension = Math.max(0, full - viewportInput.visibleHeight);
+  // A navigation portal must fit the measured visual viewport. Native status-bar
+  // space is outside this rectangle; adding it pushes the bar off the screen.
+  // Keep separate values: SpielzeitApp may recover a taller document frame.
+  const navScaleStable = standalonePageScale(viewportInput) !== null || Math.abs(viewportInput.scale - 1) <= 0.01;
+  if (navScaleStable && Number.isFinite(viewportInput.visibleHeight) && viewportInput.visibleHeight > 0) {
+    root.style.setProperty('--market-nav-visible-height', `${viewportInput.visibleHeight}px`);
+    root.style.setProperty('--market-nav-visible-top', `${Math.max(0, viewportInput.visibleTop || 0)}px`);
   }
-  root.style.setProperty('--market-native-bottom-extension', `${marketBottomExtension}px`);
+  root.style.setProperty('--market-native-bottom-extension', '0px');
   // The installed window keeps its original status-bar geometry across routes.
   // A market-launched window must stay bounded after switching to /app too.
   const fullscreenHeight = entry === 'market' ? null : standaloneFullscreenHeight(viewportInput);
