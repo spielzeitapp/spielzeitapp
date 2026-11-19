@@ -9,6 +9,7 @@ language sql stable security definer set search_path = '' as $$
     join public.teams t on t.id = ts.team_id
     where e.id = p_event and e.kind = 'training' and e.status not in ('finished', 'canceled')
       and ts.status in ('active', 'draft') and auth.uid() is not null
+      and not coalesce((auth.jwt()->>'is_anonymous')::boolean, false)
       and public.membership_is_staff_for_team_season(ts.id)
       and (p_player is not null or length(btrim(p_search)) between 2 and 80)
   ), roster as (
