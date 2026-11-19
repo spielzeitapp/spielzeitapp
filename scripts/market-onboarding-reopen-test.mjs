@@ -5,12 +5,12 @@ const require=createRequire(resolve('package.json'));
 const React=require('react');
 const {act,create}=require('react-test-renderer');
 const {build}=require('esbuild');
-const result=await build({stdin:{contents:`export {MarketHomeScreenGuide} from './src/features/club/MarketHomeScreenGuide'; export {MarketPushReminder} from './src/features/club/MarketPushReminder';`,resolveDir:process.cwd()},bundle:true,write:false,format:'cjs',platform:'node',external:['react','lucide-react'],loader:{'.css':'empty'},plugins:[{name:'push-fixture',setup(b){b.onResolve({filter:/usePushSubscription$/},()=>({path:'push',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:`export const usePushSubscription=()=>globalThis.pushFixture;`}));}}]});
+const result=await build({stdin:{contents:`export {MarketInstallSlides} from './src/features/club/MarketInstallSlides'; export {MarketHomeScreenGuide} from './src/features/club/MarketHomeScreenGuide'; export {MarketPushReminder} from './src/features/club/MarketPushReminder';`,resolveDir:process.cwd()},bundle:true,write:false,format:'cjs',platform:'node',external:['react','lucide-react'],loader:{'.css':'empty'},plugins:[{name:'push-fixture',setup(b){b.onResolve({filter:/usePushSubscription$/},()=>({path:'push',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:`export const usePushSubscription=()=>globalThis.pushFixture;`}));}}]});
 const Module=require('node:module');
 const mod=new Module(resolve('smoke.cjs'));
 mod.paths=Module._nodeModulePaths(process.cwd());
 mod._compile(result.outputFiles[0].text,mod.id);
-const {MarketHomeScreenGuide,MarketPushReminder}=mod.exports;
+const {MarketHomeScreenGuide,MarketPushReminder,MarketInstallSlides}=mod.exports;
 const store=new Map();
 const storage={getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)};
 Object.defineProperty(globalThis,'navigator',{configurable:true,value:{userAgent:'iPhone',platform:'iPhone',standalone:false}});
@@ -114,5 +114,16 @@ await act(async()=>app.unmount());
 navigator.userAgent='Desktop';
 await render(MarketHomeScreenGuide,{...guide,clubId:'desktop'});
 assert.equal(app.toJSON(),null);
+await act(async()=>app.unmount());
+// Walk the real Android carousel through menu selection, both confirmations, and icon.
+await render(MarketInstallSlides,{ios:false});
+for(const expected of ['In Chrome öffnen','Chrome-Menü öffnen','Im Menü nach unten scrollen','Installation bestätigen','Dein Vereinsmarkt-Icon']){
+ assert.ok(JSON.stringify(app.toJSON()).includes(expected),expected);
+ const next=app.root.findByProps({'aria-label':'Nächster Schritt'});
+ if(expected==='Im Menü nach unten scrollen')assert.ok(JSON.stringify(app.toJSON()).includes('Installieren und Verknüpfung erstellen'));
+ if(expected==='Installation bestätigen')assert.ok(JSON.stringify(app.toJSON()).includes('App installieren'));
+ if(expected==='Dein Vereinsmarkt-Icon')assert.equal(next.props.disabled,true);
+ else await act(async()=>next.props.onClick());
+}
 await act(async()=>app.unmount());
 console.log('PASS: optional welcome choice, migration, yes/swipe, later info, anonymous manual reopen, browsing skip, installed member reminder, explicit push permission action, and snooze');
