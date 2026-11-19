@@ -96,10 +96,6 @@ html[data-market-shell] .public-exchange main.exchange{
 }
 .public-market-nav-viewport .public-market-nav a svg{flex-shrink:0}
 
-/* iOS translucent Homescreen can report a shortened fixed viewport (N8).
-   The portal is outside the content scroller so this extension is not clipped. */
-.public-market-nav-viewport{transform:translateY(var(--market-native-bottom-extension,0px))}
-
 /* Same outer circle as day/night; retain the large crest. */
 .public-exchange .public-market-header .public-market-app-switch{
  width:42px;height:42px;min-width:42px;min-height:42px;padding:0
@@ -114,9 +110,6 @@ html[data-market-shell][data-viewport-entry=app][data-ios-standalone-fullscreen]
  height:var(--app-standalone-height);min-height:0!important;max-height:var(--app-standalone-height)
 }
 html[data-market-shell][data-viewport-entry=app][data-ios-standalone-fullscreen] body{position:relative}
-html[data-market-shell][data-viewport-entry=app][data-ios-standalone-fullscreen] .public-market-nav-viewport{
- position:absolute;bottom:0;transform:none
-}
 
 /* Keep the test label visible above the market header without moving its nav. */
 .public-market-test-notice{flex:0 0 auto;padding-top:env(safe-area-inset-top,0px);background:#fcd34d;color:#451a03}
@@ -144,3 +137,6 @@ html[data-market-theme=light] .public-exchange .public-market-header .public-mar
 
 /* Provider labels come exclusively from the member-only listing query. */
 .public-exchange .market-listing-provider{display:flex;align-items:center;gap:12px;margin:0 0 20px;padding:16px 18px;border:1px solid #634358;border-radius:18px;background:#21131f;color:#f6f5f7}.market-listing-provider>svg{flex:none;color:#ff9ab3}.market-listing-provider>div{display:grid;gap:3px}.market-listing-provider small{font-size:12px;color:#cabacc}.market-listing-provider strong{font-size:17px;font-weight:800}.market-listing-provider span{font-size:13px;color:#cabacc}.public-exchange .market-saved-provider{display:block;margin-top:8px;color:#d2bfce;font-size:12px;line-height:1.5}html[data-market-theme=light] .public-exchange .market-listing-provider{background:#fff6f9;border-color:#ddc6d3;color:#29212d}html[data-market-theme=light] .market-listing-provider>svg{color:#aa2548}html[data-market-theme=light] .market-listing-provider :is(small,span),html[data-market-theme=light] .public-exchange .market-saved-provider{color:#695567}
+
+/* Anchor to the visible rectangle, including cold PWA launch, quick switch and keyboard. */
+.public-market-nav-viewport,html[data-market-shell][data-viewport-entry=app][data-ios-standalone-fullscreen] .public-market-nav-viewport{position:fixed;top:var(--market-nav-visible-top,0px);bottom:auto;height:var(--market-nav-visible-height,100dvh);display:flex;align-items:flex-end;transform:none}

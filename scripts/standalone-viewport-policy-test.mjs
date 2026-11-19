@@ -82,9 +82,9 @@ ctx.cleanup();win.location.pathname='/marktplatz/9c7a8741-6e73-42d5-88d8-46ce521
 ctx.module.exports.useViewportRecovery();
 assert.equal(values.get('--market-native-bottom-extension'),'0px','theme reload keeps app-window geometry');
 ctx.cleanup();entryStorage.clear();ctx.module.exports.useViewportRecovery();
-assert.ok(Math.abs(Number.parseFloat(values.get('--market-native-bottom-extension'))*vv.scale-(874-955*vv.scale))<0.001);
+assert.equal(values.get('--market-native-bottom-extension'),'0px');assert.equal(values.get('--market-nav-visible-height'),'955px');
 win.innerWidth=402;win.innerHeight=812;vv.scale=1;vv.height=812;vv.dispatchEvent(new Event('resize'));
-assert.equal(values.get('--market-native-bottom-extension'),'62px','exact N8 fixed viewport report');
+assert.equal(values.get('--market-native-bottom-extension'),'0px','status-bar space must never extend navigation beyond the viewport');
 doc.activeElement=new Element(true);doc.dispatchEvent(new Event('focusin'));
 assert.equal(values.get('--market-native-bottom-extension'),'0px','keyboard must not push nav beneath keyboard');
 doc.activeElement=new Element();win.innerWidth=473;win.innerHeight=955;vv.scale=pageZoom.scale;vv.height=955;vv.dispatchEvent(new Event('resize'));
