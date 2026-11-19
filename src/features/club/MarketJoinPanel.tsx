@@ -20,7 +20,7 @@ export function MarketJoinPanel({clubId, clubName='deinem Verein', onJoined}: {c
   void supabase.rpc('exchange_team_options',{p_club_id:clubId,p_token:token}).then(r=>{if(!active)return;if(r.error)setError(r.error.message);else setTeams(r.data||[]);setLoading(false);},()=>{if(active){setError('Mannschaften konnten nicht geladen werden.');setLoading(false);}});
   return()=>{active=false;};
  },[clubId,user?.id,token,reload]);
- const next=`/marktplatz/${clubId}?${new URLSearchParams({...Object.fromEntries(params),view:'member'})}`;
+ const next=`/vereinsmarkt/${clubId}?${new URLSearchParams({...Object.fromEntries(params),view:'member'})}`;
  const query=new URLSearchParams({context:'vereinsmarkt',marketClub:clubId,next}).toString();
  async function join(){
   if(busy||!accepted||!chosen.length||loading)return;setBusy(true);setError('');
@@ -90,7 +90,7 @@ export function MarketInviteAdmin({clubId,userId}:{clubId:string;userId:string})
   const r=await supabase.rpc('exchange_invitation',{p_club_id:clubId,p_rotate:rotate});if(r.error)throw r.error;
   const data=r.data as {token:string;expires_at:string};
   if(!marketInviteToken(data.token))throw Error('Einladung konnte nicht erstellt werden.');
-  setLink(`${window.location.origin}/marktplatz/${clubId}?view=member&invite=${data.token}`);setExpires(data.expires_at);
+  setLink(`${window.location.origin}/vereinsmarkt/${clubId}?view=member&invite=${data.token}`);setExpires(data.expires_at);
   if(rotate)setStatus('Neuer Link erstellt. Der bisherige Link ist ungültig. Bereits beigetretene Eltern behalten ihren Zugang.');
  }catch(e){setStatus(e&&typeof e==='object'&&'message' in e?String(e.message):'Einladung konnte nicht erstellt werden.');}finally{setBusy(false);}}
  if(!allowed)return null;

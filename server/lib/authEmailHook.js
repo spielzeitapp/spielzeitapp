@@ -32,7 +32,7 @@ export function buildAuthEmails(payload,project={ref:TEST_REF,origin:TEST_ORIGIN
  if(!subjects[type]&&!notices[type])throw Error('Unsupported action');
  let target=new URL(d.redirect_to||d.site_url||project.origin);
  if(target.origin!==project.origin)throw Error('Unexpected redirect origin');
- const market=target.searchParams.get('context')==='vereinsmarkt'||/^\/marktplatz\/[0-9a-f-]{36}(?:\/|$)/i.test(target.pathname);
+ const market=target.searchParams.get('context')==='vereinsmarkt'||/^\/(?:vereinsmarkt|marktplatz)\/[0-9a-f-]{36}(?:\/|$)/i.test(target.pathname);
  const brand=market?'Vereinsmarkt':'SpielzeitApp';
  if(notices[type]){const title=notices[type],message='Falls du diese Änderung nicht vorgenommen hast, wende dich bitte umgehend an den Support.';return [{to:type==='email_changed_notification'?(d.old_email||user.email):user.email,senderName:brand,subject:`${title} · ${brand}`,text:`${title} · ${brand}\n\n${message}`,html:`<div style="font-family:Arial,sans-serif;padding:24px"><h1>${brand}</h1><h2>${title}</h2><p>${message}</p></div>`}];}
  const targets=type==='email_change'?(d.token_hash_new?[{to:user.email,hash:d.token_hash_new,token:d.token},{to:user.new_email,hash:d.token_hash,token:d.token_new}]:[{to:user.new_email,hash:d.token_hash,token:d.token_new||d.token}]):[{to:user.email,hash:d.token_hash,token:d.token}];

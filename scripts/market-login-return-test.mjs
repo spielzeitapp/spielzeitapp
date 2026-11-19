@@ -7,7 +7,9 @@ b.onLoad({filter:/.*/,namespace:'mock'},({path})=>({contents:path==='intro'?"exp
 }}]});
 const m={exports:{}};new Function('module','exports',r.outputFiles[0].text)(m,m.exports);
 const {resolvePostAuthDestination:resolve,isSafeAuthRedirectPath:safe}=m.exports;
-const market='/marktplatz/9c7a8741-6e73-42d5-88d8-46ce5217e8cd';
+for (const prefix of ['/marktplatz','/vereinsmarkt']) {
+globalThis.invite=null;
+const market=prefix+'/9c7a8741-6e73-42d5-88d8-46ce5217e8cd';
 for(const suffix of ['?view=start','?view=member&mode=mine','?view=member&thread=keep','?listing=keep','?view=member&invite='+ 'a'.repeat(64)]){
  const target=market+suffix;assert.equal(safe(target),true);
  assert.deepEqual(await resolve({next:target,consciousLogin:true}),{path:target,kind:'deep_link',hardReplace:false});
@@ -17,4 +19,5 @@ for(const bad of ['https://evil.test'+market,'//evil.test'+market,market+'/../..
 assert.equal((await resolve({consciousLogin:true})).kind,'branded_entry');
 assert.equal((await resolve({next:'/manager',consciousLogin:true})).path,'/manager');
 globalThis.invite='/app/parent-invite';assert.equal((await resolve({next:market,consciousLogin:true})).kind,'deep_link');assert.equal((await resolve({next:market,consciousLogin:true,parentInviteFlowHint:true})).kind,'parent_invite');
+}
 console.log('PASS: market login retains start, listing, own listings and chat; external/traversal rejected; app splash and invite precedence preserved.');

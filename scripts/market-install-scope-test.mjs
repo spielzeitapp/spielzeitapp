@@ -5,7 +5,7 @@ import vm from 'node:vm';
 function check(manifest) {
   assert.equal(manifest.scope, '/', 'both market and SpielzeitApp routes must remain inside the installed app');
   assert.match(manifest.id, /^\/marktplatz\/[0-9a-f-]{36}$/);
-  assert.equal(manifest.start_url, manifest.id, 'keep market launch destination and installed identity');
+  assert.equal(manifest.start_url, manifest.id.replace('/marktplatz/','/vereinsmarkt/'), 'new launch route retains existing installed identity');
   assert.equal(manifest.display, 'standalone');
   for (const path of [manifest.start_url, '/app/home', '/app/team', '/app/tauschboerse']) {
     assert.ok(new URL(path, 'https://spielzeitapp.at').href.startsWith(new URL(manifest.scope, 'https://spielzeitapp.at').href));

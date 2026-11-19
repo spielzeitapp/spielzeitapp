@@ -281,11 +281,11 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
     {error && <div className="exchange-alert" role="alert">{error}<button onClick={() => { setError(''); void loadRef.current(); }}>Erneut versuchen</button></div>}
     {marks.error&&<p role="alert" className="exchange-alert">{marks.error}</p>}
     {notice && <p role="status" className="exchange-hint">{notice}</p>}
-    {!detail&&<Link className="exchange-back" to={`/marktplatz/${clubId}`}>Öffentliche Vereinsseite ansehen</Link>}
+    {!detail&&<Link className="exchange-back" to={`/vereinsmarkt/${clubId}`}>Öffentliche Vereinsseite ansehen</Link>}
     {loading ? <p role="status">Vereinsmarkt wird geladen…</p> : access === false ? <div className="exchange-empty"><LockKeyhole /><h3>Nur für Vereinsmitglieder</h3><p>Für Inserate und Anfragen benötigst du einen zugeordneten Eltern-, Trainer- oder Vereinszugang. Ein Favorit allein reicht dafür nicht.</p></div> : access && <>
       {detail ? <>
         
-        <ExchangePhotoGallery key={detail.id} photos={detail.photo_paths.map(path=>photos[path]||'')} title={detail.title} actions={<ListingPhotoActions onBack={()=>{openThread(null);setDetailId(null);}} save={<SaveListingButton saved={marks.saved.has(detail.id)} busy={marks.loading||marks.pending.includes(detail.id)} onClick={()=>void marks.toggle(detail.id)}/>} shareUrl={detail.is_public?`/marktplatz/${clubId}?view=suchen&listing=${detail.id}`:undefined}/>}/>
+        <ExchangePhotoGallery key={detail.id} photos={detail.photo_paths.map(path=>photos[path]||'')} title={detail.title} actions={<ListingPhotoActions onBack={()=>{openThread(null);setDetailId(null);}} save={<SaveListingButton saved={marks.saved.has(detail.id)} busy={marks.loading||marks.pending.includes(detail.id)} onClick={()=>void marks.toggle(detail.id)}/>} shareUrl={detail.is_public?`/vereinsmarkt/${clubId}?view=suchen&listing=${detail.id}`:undefined}/>}/>
         <div className="exchange-item-head"><h3>{detail.title}</h3><strong>{priceLabel(detail)}</strong></div>
         <dl className="listing-facts"><div><dt>Größe</dt><dd>{detail.size}</dd></div><div><dt>Zustand</dt><dd>{detail.condition}</dd></div><div><dt>Status</dt><dd>{detail.status}</dd></div></dl>
         <p className="exchange-owner">{detail.owner_label}{detail.team_label ? ` · ${detail.team_label}` : ''}</p><p className="exchange-description">{detail.description}</p>

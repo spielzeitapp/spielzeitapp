@@ -23,7 +23,7 @@ const VIEWPORT_ENTRY_KEY = 'sz_viewport_entry_v1';
 /** An installed market window and an in-app route share URLs, not native geometry.
  * sessionStorage belongs to the current window and survives a theme reload. */
 function viewportEntry(): 'market' | 'app' {
-  const marketPath = /^\/marktplatz\//i.test(window.location.pathname);
+  const marketPath = /^\/(?:vereinsmarkt|marktplatz)\//i.test(window.location.pathname);
   try {
     if (!marketPath) {
       window.sessionStorage.setItem(VIEWPORT_ENTRY_KEY, 'app');

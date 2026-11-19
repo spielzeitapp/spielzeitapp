@@ -148,11 +148,11 @@
   ],
   "rewrites": [
     {
-      "source": "/marktplatz/9c7a8741-6e73-42d5-88d8-46ce5217e8cd",
+      "source": "/vereinsmarkt/9c7a8741-6e73-42d5-88d8-46ce5217e8cd",
       "destination": "/markt.html"
     },
     {
-      "source": "/marktplatz/3db6fce2-a4c1-44a5-a333-19d1d4d62e6a",
+      "source": "/vereinsmarkt/3db6fce2-a4c1-44a5-a333-19d1d4d62e6a",
       "destination": "/markt.html"
     },
     {
@@ -266,6 +266,13 @@
     {
       "source": "/(.*)",
       "destination": "/index.html"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/marktplatz/:path*",
+      "destination": "/vereinsmarkt/:path*",
+      "permanent": true
     }
   ]
 }

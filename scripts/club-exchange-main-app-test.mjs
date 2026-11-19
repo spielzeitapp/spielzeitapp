@@ -44,15 +44,15 @@ try{
  await mount('/app/tauschboerse?club=melk&thread=private-chat');
  assert.equal(app.root.findByType('section').props['data-club'],'melk','notification club wins over selected team');
  await renderer.act(async()=>app.unmount());
- await mount('/marktplatz/usc?view=member&club=melk',{embedded:true,embeddedClubId:'usc'});
+ await mount('/vereinsmarkt/usc?view=member&club=melk',{embedded:true,embeddedClubId:'usc'});
  assert.equal(app.root.findByType('section').props['data-club'],'usc','standalone route pins its own club despite altered query');
  assert.equal(app.root.findAllByType('details').length,0,'embedded mode has no conflicting club picker');
  assert.ok(!JSON.stringify(app.toJSON()).includes('Zurück zu Mehr'),'no internal app navigation in marketplace');
  await renderer.act(async()=>app.unmount());
  await mount('/app/tauschboerse?public=1&returnTo='+encodeURIComponent('/app/team?teamSeason=keep'));
- const destination=app.root.findByType('output').children.join('');assert.ok(destination.startsWith('/marktplatz/usc?'));assert.equal(new URL(destination,'https://test.invalid').searchParams.get('returnTo'),'/app/team?teamSeason=keep');await renderer.act(async()=>app.unmount());
+ const destination=app.root.findByType('output').children.join('');assert.ok(destination.startsWith('/vereinsmarkt/usc?'));assert.equal(new URL(destination,'https://test.invalid').searchParams.get('returnTo'),'/app/team?teamSeason=keep');await renderer.act(async()=>app.unmount());
  state.marketOnly=true;state.memberships=[];state.seasons=[];state.teamReads=0;
- await mount('/marktplatz/usc?view=member',{embedded:true,embeddedClubId:'usc'});
+ await mount('/vereinsmarkt/usc?view=member',{embedded:true,embeddedClubId:'usc'});
  assert.equal(app.root.findByType('section').props['data-club'],'usc','market-only parent opens exchange without roster');
  assert.equal(state.teamReads,0,'market-only parent never loads team data');
  assert.equal(app.root.findByType('section').props['data-default'],'','no fabricated team label');
