@@ -44,18 +44,18 @@ try{
  await mount('/app/tauschboerse?club=melk&thread=private-chat');
  assert.equal(app.root.findByType('section').props['data-club'],'melk','notification club wins over selected team');
  await renderer.act(async()=>app.unmount());
- await mount('/marktplatz/usc?view=member&club=melk',{embedded:true,embeddedClubId:'usc'});
+ await mount('/vereinsmarkt/usc?view=member&club=melk',{embedded:true,embeddedClubId:'usc'});
  assert.equal(app.root.findByType('section').props['data-club'],'usc','standalone route pins its own club despite altered query');
  assert.equal(app.root.findAllByType('details').length,0,'embedded mode has no conflicting club picker');
  assert.ok(!JSON.stringify(app.toJSON()).includes('Zurück zu Mehr'),'no internal app navigation in marketplace');
  await renderer.act(async()=>app.unmount());
  await mount('/app/tauschboerse?public=1&returnTo='+encodeURIComponent('/app/team?teamSeason=keep'));
- const destination=app.root.findByType('output').children.join('');assert.ok(destination.startsWith('/marktplatz/usc?'));assert.equal(new URL(destination,'https://test.invalid').searchParams.get('returnTo'),'/app/team?teamSeason=keep');await renderer.act(async()=>app.unmount());
+ const destination=app.root.findByType('output').children.join('');assert.ok(destination.startsWith('/vereinsmarkt/usc?'));assert.equal(new URL(destination,'https://test.invalid').searchParams.get('returnTo'),'/app/team?teamSeason=keep');await renderer.act(async()=>app.unmount());
  state.access=false;state.teamReads=0;
  await mount('/app/tauschboerse?club=unrelated');
  assert.equal(state.teamReads,0,'no team data queried before authorization');
  await renderer.act(async()=>app.unmount());state.access=true;state.seasons=[];state.memberships=[];state.marketClubs=[{club_id:'nsg',name:'NSG Gölsental',team_labels:['U12']}];state.teamReads=0;
- await mount('/marktplatz/nsg?view=member',{embedded:true,embeddedClubId:'nsg'});
+ await mount('/vereinsmarkt/nsg?view=member',{embedded:true,embeddedClubId:'nsg'});
  assert.equal(app.root.findByType('section').props['data-club'],'nsg','new parent enters with market-only membership');assert.equal(app.root.findByType('section').props['data-default'],'U12','self-selected team prefills listing');assert.equal(state.teamReads,0,'no roster is needed for a new parent');
  console.log('PASS: one parent club hides picker, favourites excluded, two parent clubs enable switching, team prefill, SPG/USC scope, notification scope, unauthorized team reads blocked');
 }finally{if(app)await renderer.act(async()=>app.unmount());delete global.__exchangeMain;}

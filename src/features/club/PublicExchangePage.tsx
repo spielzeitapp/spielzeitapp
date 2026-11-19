@@ -51,7 +51,7 @@ export default function PublicExchangePage(){
  const invite=marketInviteToken(params.get('invite'));
  const returnQuery={returnTo:appReturn,...(invite?{invite}:{})};
  const view=params.get('view')||'start';const navigate=useNavigate();const marks=useSavedListings(user?.id);const wish=useSavedOffers(user?.id,clubId,marks.ids,view==='saved');const selected=[...items,...wish.items].find(i=>i.id===params.get('listing'));
- const publicPath=`/marktplatz/${encodeURIComponent(clubId)}`;
+ const publicPath=`/vereinsmarkt/${encodeURIComponent(clubId)}`;
  const invitationQuery=invite?'&invite='+invite:'';
  const memberPath=`${publicPath}?view=member&club=${encodeURIComponent(clubId)}&returnTo=${encodeURIComponent(appReturn)}${invitationQuery}`;
  const startPath=`${publicPath}?view=start&returnTo=${encodeURIComponent(appReturn)}${invitationQuery}`;

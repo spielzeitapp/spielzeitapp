@@ -37,7 +37,7 @@ export function ManifestSync(): null {
   const { pathname, search } = useLocation();
 
   useEffect(() => {
-    const marketplace = pathname.match(/^\/marktplatz\/([0-9a-f-]{36})(?:\/|$)/i);
+    const marketplace = pathname.match(/^\/(?:vereinsmarkt|marktplatz)\/([0-9a-f-]{36})(?:\/|$)/i);
     const usc = isUscAppPath(pathname) || Boolean(uscAuthTarget(pathname,search));
     const demo = pathname === '/demo' || pathname.startsWith('/demo/');
     const manager = pathname.startsWith('/manager');

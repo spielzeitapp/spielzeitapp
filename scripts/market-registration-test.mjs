@@ -20,9 +20,9 @@ const mocks={
 };
 const built=await build({entryPoints:['src/pages/RegisterPage.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,loader:{'.css':'empty'},define:{'import.meta.env':'{}'},plugins:[{name:'fixtures',setup(b){for(const name of Object.keys(mocks))b.onResolve({filter:new RegExp(name+'$')},()=>({path:name,namespace:'mock'}));b.onLoad({filter:/.*/,namespace:'mock'},a=>({contents:mocks[a.path],loader:'js'}));}}]});
 const m=new Module('registration-test');m.paths=require.resolve.paths('react');m._compile(built.outputFiles[0].text,'registration-test');
-const club='3db6fce2-a4c1-44a5-a333-19d1d4d62e6a',next=`/marktplatz/${club}?view=member&invite=${'a'.repeat(64)}`;
+const club='3db6fce2-a4c1-44a5-a333-19d1d4d62e6a',next=`/vereinsmarkt/${club}?view=member&invite=${'a'.repeat(64)}`;
 let app;
-const mount=()=>act(async()=>{app=create(React.createElement(MemoryRouter,{initialEntries:[`/marktplatz/${club}/registrieren?context=vereinsmarkt&next=${encodeURIComponent(next)}`],future:{v7_startTransition:true,v7_relativeSplatPath:true}},React.createElement(m.exports.RegisterPage)));});
+const mount=()=>act(async()=>{app=create(React.createElement(MemoryRouter,{initialEntries:[`/vereinsmarkt/${club}/registrieren?context=vereinsmarkt&next=${encodeURIComponent(next)}`],future:{v7_startTransition:true,v7_relativeSplatPath:true}},React.createElement(m.exports.RegisterPage)));});
 const fill=()=>act(async()=>{for(const [id,value] of [['reg-first-name','Anna'],['reg-last-name','Test'],['reg-email','test@example.com'],['reg-password','secret123'],['reg-confirm-password','secret123']])app.root.findByProps({id}).props.onChange({target:{value}});});
 const submit=()=>act(async()=>{await app.root.findByType('form').props.onSubmit({preventDefault(){}});});
 await mount();await fill();await submit();

@@ -2,7 +2,7 @@ import {TournamentRegistrationPage} from '../features/tournamentRegistration/Reg
 import {TournamentRegistrationAdminPage} from '../features/tournamentRegistration/AdminPage';
 import {MarketSplash} from '../features/club/MarketSplash';
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Navigate, Route, Routes, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { AppLayout } from './layout/AppLayout';
 import { InternalLayout } from './layout/InternalLayout.tsx';
 import { IntroAppOutlet } from './intro/IntroAppOutlet';
@@ -240,10 +240,11 @@ class AppErrorBoundary extends Component<
 function InternalRoutes(): React.ReactElement {
   return (
     <Routes>
-      <Route path="marktplatz/:clubId/anmelden" element={<LoginPage />} />
-      <Route path="marktplatz/:clubId/registrieren" element={<RegisterPage />} />
-      <Route path="marktplatz/:clubId/passwort-vergessen" element={<ForgotPasswordPage />} />
-      <Route path="marktplatz/:clubId" element={<React.Suspense fallback={<MarketSplash/>}><PublicExchangePage /></React.Suspense>} />
+      <Route path="marktplatz/*" element={<LegacyMarketRedirect />} />
+      <Route path="vereinsmarkt/:clubId/anmelden" element={<LoginPage />} />
+      <Route path="vereinsmarkt/:clubId/registrieren" element={<RegisterPage />} />
+      <Route path="vereinsmarkt/:clubId/passwort-vergessen" element={<ForgotPasswordPage />} />
+      <Route path="vereinsmarkt/:clubId" element={<React.Suspense fallback={<MarketSplash/>}><PublicExchangePage /></React.Suspense>} />
       <Route path="app/usc-rohrbach/anmelden" element={<LoginPage />} />
       <Route path="app/usc-rohrbach/registrieren" element={<RegisterPage />} />
       <Route path="app/usc-rohrbach/passwort-vergessen" element={<ForgotPasswordPage />} />
@@ -460,10 +461,11 @@ function InternalRoutes(): React.ReactElement {
 function PublicRoutes(): React.ReactElement {
   return (
     <Routes>
-      <Route path="marktplatz/:clubId/anmelden" element={<LoginPage />} />
-      <Route path="marktplatz/:clubId/registrieren" element={<RegisterPage />} />
-      <Route path="marktplatz/:clubId/passwort-vergessen" element={<ForgotPasswordPage />} />
-      <Route path="marktplatz/:clubId" element={<React.Suspense fallback={<MarketSplash/>}><PublicExchangePage /></React.Suspense>} />
+      <Route path="marktplatz/*" element={<LegacyMarketRedirect />} />
+      <Route path="vereinsmarkt/:clubId/anmelden" element={<LoginPage />} />
+      <Route path="vereinsmarkt/:clubId/registrieren" element={<RegisterPage />} />
+      <Route path="vereinsmarkt/:clubId/passwort-vergessen" element={<ForgotPasswordPage />} />
+      <Route path="vereinsmarkt/:clubId" element={<React.Suspense fallback={<MarketSplash/>}><PublicExchangePage /></React.Suspense>} />
       <Route path="app/usc-rohrbach/anmelden" element={<LoginPage />} />
       <Route path="app/usc-rohrbach/registrieren" element={<RegisterPage />} />
       <Route path="app/usc-rohrbach/passwort-vergessen" element={<ForgotPasswordPage />} />
@@ -536,4 +538,9 @@ export default function App({ isInternalDomain }: AppProps): React.ReactElement 
       </RoleProvider>
     </AppErrorBoundary>
   );
+}
+
+function LegacyMarketRedirect() {
+  const {pathname,search,hash}=useLocation();
+  return <Navigate replace to={pathname.replace(/^\/marktplatz(?=\/|$)/,'/vereinsmarkt')+search+hash}/>;
 }

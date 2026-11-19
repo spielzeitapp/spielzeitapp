@@ -13,7 +13,7 @@ const Module=require('module'),mod=new Module('join-ui.cjs');mod.paths=require.r
 const club='9c7a8741-6e73-42d5-88d8-46ce5217e8cd',token='a'.repeat(64);let app;
 const Watch=()=>React.createElement('output',null,useLocation().search);
 const flush=async()=>{for(let i=0;i<6;i++)await new Promise(r=>setImmediate(r));};
-async function mount(query,admin=false){await renderer.act(async()=>{app=renderer.create(React.createElement(MemoryRouter,{initialEntries:[`/marktplatz/${club}?${query}`],future:{v7_startTransition:true,v7_relativeSplatPath:true}},React.createElement(React.Fragment,null,admin?React.createElement(MarketMembersAdmin,{clubId:club,userId:'admin'}):React.createElement(MarketJoinPanel,{clubId:club,clubName:'NSG Gölsental',onJoined:()=>state.joined++}),React.createElement(Watch))));await flush();});}
+async function mount(query,admin=false){await renderer.act(async()=>{app=renderer.create(React.createElement(MemoryRouter,{initialEntries:[`/vereinsmarkt/${club}?${query}`],future:{v7_startTransition:true,v7_relativeSplatPath:true}},React.createElement(React.Fragment,null,admin?React.createElement(MarketMembersAdmin,{clubId:club,userId:'admin'}):React.createElement(MarketJoinPanel,{clubId:club,clubName:'NSG Gölsental',onJoined:()=>state.joined++}),React.createElement(Watch))));await flush();});}
 const unmount=async()=>renderer.act(async()=>app.unmount());
 const click=async b=>renderer.act(async()=>{b.props.onClick();await flush();});
 const button=label=>app.root.findAllByType('button').find(b=>b.children.includes(label));
