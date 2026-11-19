@@ -61,7 +61,7 @@ type MarketMember={user_id:string;name:string;teams:string[];joined_at:string|nu
 export function MarketMembersAdmin({clubId,userId}:{clubId:string;userId:string}){
  const [allowed,setAllowed]=useState(false),[members,setMembers]=useState<MarketMember[]>([]),[loading,setLoading]=useState(false),[busy,setBusy]=useState(''),[pending,setPending]=useState(''),[error,setError]=useState(''),[search,setSearch]=useState(''),[filter,setFilter]=useState('all'),[reload,setReload]=useState(0);
  useEffect(()=>{let active=true;setAllowed(false);setMembers([]);setError('');setPending('');setLoading(true);
-  void (async()=>{const permission=await supabase.rpc('can_manage_club_venues',{p_club_id:clubId});if(permission.error)throw permission.error;if(!active)return;if(permission.data!==true){setLoading(false);return;}setAllowed(true);
+  void (async()=>{const permission=await supabase.rpc('can_manage_exchange',{p_club_id:clubId});if(permission.error)throw permission.error;if(!active)return;if(permission.data!==true){setLoading(false);return;}setAllowed(true);
    const r=await supabase.rpc('exchange_members_list',{p_club_id:clubId});if(r.error)throw r.error;if(active)setMembers(r.data||[]);
   })().catch(()=>{if(active)setError('Mitglieder konnten nicht geladen werden. Bitte erneut laden.');}).finally(()=>{if(active)setLoading(false);});
   return()=>{active=false;};
@@ -72,7 +72,7 @@ export function MarketMembersAdmin({clubId,userId}:{clubId:string;userId:string}
  }catch{setError('Der Zugang konnte nicht geändert werden. Bitte erneut versuchen.');}finally{setBusy('');}}
  if(!allowed)return null;
  const shown=members.filter(m=>(filter==='all'||(filter==='blocked'?m.blocked:!m.blocked))&&`${m.name} ${m.teams.join(' ')}`.toLocaleLowerCase('de').includes(search.toLocaleLowerCase('de')));
- return <section className="market-join market-members" aria-label="Vereinsmarkt-Mitglieder verwalten"><p className="public-market-eyebrow">Nur für die Vereinsverwaltung</p><h2>Mitglieder verwalten</h2><Link className="public-market-register" to={`/manager/vereinsmarkt?club=${clubId}`}>Teams für Eltern freischalten →</Link><p>{members.filter(m=>!m.blocked).length} aktiv · {members.filter(m=>m.blocked).length} gesperrt</p><small>Eine Sperre gilt nur für diesen Vereinsmarkt. SpielzeitApp-Konto und bestehende Team- oder Kinderzuordnungen bleiben erhalten.</small>
+ return <section className="market-join market-members" aria-label="Vereinsmarkt-Mitglieder verwalten"><p className="public-market-eyebrow">Vereinsmarkt-Verwaltung</p><h2>Mitglieder verwalten</h2><Link className="public-market-register" to={`/vereinsmarkt-manager/${clubId}`}>Vereinsmarkt-Verwaltung öffnen →</Link><p>{members.filter(m=>!m.blocked).length} aktiv · {members.filter(m=>m.blocked).length} gesperrt</p><small>Eine Sperre gilt nur für diesen Vereinsmarkt. SpielzeitApp-Konto und bestehende Team- oder Kinderzuordnungen bleiben erhalten.</small>
   <label>Name oder Team<input className="market-invite-link" type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Mitglied suchen…"/></label>
   <label>Zugänge anzeigen<select className="market-invite-link" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">Alle Mitglieder</option><option value="active">Aktiv</option><option value="blocked">Gesperrt</option></select></label>
   <button type="button" className="market-text-button" onClick={()=>setReload(n=>n+1)} disabled={loading||Boolean(busy)}>Liste neu laden</button>
@@ -85,7 +85,7 @@ export function MarketMembersAdmin({clubId,userId}:{clubId:string;userId:string}
 
 export function MarketInviteAdmin({clubId,userId}:{clubId:string;userId:string}){
  const [allowed,setAllowed]=useState(false),[link,setLink]=useState(''),[expires,setExpires]=useState(''),[busy,setBusy]=useState(false),[status,setStatus]=useState('');
- useEffect(()=>{let active=true;setAllowed(false);setLink('');setStatus('');void supabase.rpc('can_manage_club_venues',{p_club_id:clubId}).then(r=>{if(active&&!r.error)setAllowed(r.data===true);});return()=>{active=false;};},[clubId,userId]);
+ useEffect(()=>{let active=true;setAllowed(false);setLink('');setStatus('');void supabase.rpc('can_manage_exchange',{p_club_id:clubId}).then(r=>{if(active&&!r.error)setAllowed(r.data===true);});return()=>{active=false;};},[clubId,userId]);
  async function generate(rotate=false){setBusy(true);setStatus('');try{
   const r=await supabase.rpc('exchange_invitation',{p_club_id:clubId,p_rotate:rotate});if(r.error)throw r.error;
   const data=r.data as {token:string;expires_at:string};

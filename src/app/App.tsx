@@ -1,3 +1,4 @@
+import {MarketManagerPage} from '../features/marketManager/MarketManagerPage';
 import { ManagerMarketTeamsPage } from '../manager/ManagerMarketTeamsPage';
 import {TournamentRegistrationPage} from '../features/tournamentRegistration/RegistrationPage';
 import {TournamentRegistrationAdminPage} from '../features/tournamentRegistration/AdminPage';
@@ -245,6 +246,7 @@ function InternalRoutes(): React.ReactElement {
       <Route path="vereinsmarkt/:clubId/anmelden" element={<LoginPage />} />
       <Route path="vereinsmarkt/:clubId/registrieren" element={<RegisterPage />} />
       <Route path="vereinsmarkt/:clubId/passwort-vergessen" element={<ForgotPasswordPage />} />
+      <Route path="vereinsmarkt-manager" element={<MarketManagerPage/>}/><Route path="vereinsmarkt-manager/:clubId" element={<MarketManagerPage/>}/>
       <Route path="vereinsmarkt/:clubId" element={<React.Suspense fallback={<MarketSplash/>}><PublicExchangePage /></React.Suspense>} />
       <Route path="app/usc-rohrbach/anmelden" element={<LoginPage />} />
       <Route path="app/usc-rohrbach/registrieren" element={<RegisterPage />} />
@@ -467,6 +469,7 @@ function PublicRoutes(): React.ReactElement {
       <Route path="vereinsmarkt/:clubId/anmelden" element={<LoginPage />} />
       <Route path="vereinsmarkt/:clubId/registrieren" element={<RegisterPage />} />
       <Route path="vereinsmarkt/:clubId/passwort-vergessen" element={<ForgotPasswordPage />} />
+      <Route path="vereinsmarkt-manager" element={<MarketManagerPage/>}/><Route path="vereinsmarkt-manager/:clubId" element={<MarketManagerPage/>}/>
       <Route path="vereinsmarkt/:clubId" element={<React.Suspense fallback={<MarketSplash/>}><PublicExchangePage /></React.Suspense>} />
       <Route path="app/usc-rohrbach/anmelden" element={<LoginPage />} />
       <Route path="app/usc-rohrbach/registrieren" element={<RegisterPage />} />
