@@ -33,4 +33,4 @@ export function toggleMarketTheme(){
  setMarketTheme(next);
 }
 export function useMarketTheme(){const theme=useSyncExternalStore(subscribe,readMarketTheme,()=> 'dark' as MarketTheme);return {theme,toggle:toggleMarketTheme};}
-export function isMarketThemeRoute(pathname:string,search:string){return /^\/(?:vereinsmarkt|marktplatz)\/[0-9a-f-]{36}(?:\/(?:anmelden|registrieren|passwort-vergessen))?\/?$/i.test(pathname)||(['/login','/register','/forgot-password','/reset-password','/app/set-password'].includes(pathname)&&new URLSearchParams(search).get('context')==='vereinsmarkt');}
+export function isMarketThemeRoute(pathname:string,search:string){return /^\/manager\/vereinsmarkt\/?$/.test(pathname)||/^\/(?:vereinsmarkt|marktplatz)\/[0-9a-f-]{36}(?:\/(?:anmelden|registrieren|passwort-vergessen))?\/?$/i.test(pathname)||(['/login','/register','/forgot-password','/reset-password','/app/set-password'].includes(pathname)&&new URLSearchParams(search).get('context')==='vereinsmarkt');}
