@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {X,Check,Smartphone,Info,MoreHorizontal,ArrowRight} from 'lucide-react';
+import {X,Check,Smartphone,ThumbsUp,MoreHorizontal,ArrowRight} from 'lucide-react';
 import {MarketInstallSlides} from './MarketInstallSlides';
 export function MarketInstallDialog({ios,onClose,onPresent,showChoice=false,closeLabel}:{ios:boolean;onClose:()=>void;onPresent?:()=>void;showChoice?:boolean;closeLabel?:string}){
  const [screen,setScreen]=useState<'choice'|'slides'|'later'>(showChoice?'choice':'slides');
@@ -24,11 +24,11 @@ export function MarketInstallDialog({ios,onClose,onPresent,showChoice=false,clos
     <button className="market-install-done market-onboarding-later" type="button" onClick={()=>setScreen('later')}>Später</button>
     <p className="market-install-disclaimer">Du kannst auch direkt im Browser stöbern.</p>
    </>:<>
-    <div className="market-install-later-icon"><Info size={46}/></div>
+    <div className="market-install-later-icon" style={{color:'#16a34a'}}><ThumbsUp size={46} aria-hidden="true"/></div>
     <h2 id="market-install-title">Alles klar!</h2>
     <p>Du kannst den Vereinsmarkt jederzeit zum Home-Bildschirm hinzufügen.</p>
     <div className="market-install-later-path"><MoreHorizontal size={28}/><span>Mehr → App-Icon hinzufügen</span></div>
-    <button className="market-install-done" type="button" onClick={onClose}>Jetzt stöbern</button>
+    <button className="market-install-done" style={{background:'#15803d',borderColor:'#22c55e',color:'#ffffff'}} type="button" onClick={onClose}>Jetzt stöbern</button>
    </>}
   </>}
  </dialog>;
