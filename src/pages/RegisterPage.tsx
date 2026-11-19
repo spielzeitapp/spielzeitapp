@@ -346,7 +346,7 @@ export const RegisterPage: React.FC = () => {
       setConfirmationEmailSent(null);
       setMessage({
         type: 'success',
-        text: market ? 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach wählst du die Mannschaften deiner Kinder im Vereinsmarkt. Mehrere Kinder in verschiedenen U-Teams? Wähle alle passenden Mannschaften aus – ein Elternkonto reicht.' : isParentInviteFlow
+        text: market ? 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach wählst du die Teams deiner Kinder im Vereinsmarkt. Mehrere Kinder in verschiedenen U-Teams? Wähle alle passenden Teams aus – ein Elternkonto reicht.' : isParentInviteFlow
           ? 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach geht es direkt mit der Einladung weiter — ohne Rollen- oder Mannschaftswahl.'
           : 'Konto angelegt. Bitte bestätige deine E-Mail-Adresse. Danach geht es mit der Rollenwahl weiter — ohne erneutes Passwort.',
       });
@@ -470,7 +470,7 @@ export const RegisterPage: React.FC = () => {
             </button>
 
             <p className="mt-4 text-center text-[12px] leading-5 text-white/45">
-              {market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend die Mannschaften deiner Kinder. Bei mehreren Kindern in verschiedenen U-Teams kannst du alle passenden Mannschaften auswählen – ein Elternkonto reicht. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
+              {market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend die Teams deiner Kinder. Bei mehreren Kindern in verschiedenen U-Teams kannst du alle passenden Teams auswählen – ein Elternkonto reicht. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
                 ? 'Nach der Bestätigung öffnet sich deine persönliche Einladung.'
                 : 'Nach der Bestätigung geht es automatisch zur Rollenwahl.'}
               {' '}Dein Passwort bleibt gespeichert.
@@ -512,7 +512,7 @@ export const RegisterPage: React.FC = () => {
           {existingAccount ? 'Du hast bereits ein Konto' : market ? 'Für den Vereinsmarkt registrieren' : hasInviteSession ? 'Konto vervollständigen' : clubReturnTo ? 'Für USC Rohrbach registrieren' : 'Registrieren'}
         </h1>
         <p className="mt-1 text-sm text-white/60">
-          {existingAccount ? 'Für diese E-Mail-Adresse gibt es bereits ein Konto. Du kannst dich damit auch beim Vereinsmarkt anmelden. Tippe auf „Zur Anmeldung“ und verwende dein bisheriges Passwort. Weißt du es nicht mehr? Wähle „Passwort vergessen“. Eine neue Registrierung ist nicht nötig.' : market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend die Mannschaften deiner Kinder. Bei mehreren Kindern in verschiedenen U-Teams kannst du alle passenden Mannschaften auswählen – ein Elternkonto reicht. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
+          {existingAccount ? 'Für diese E-Mail-Adresse gibt es bereits ein Konto. Du kannst dich damit auch beim Vereinsmarkt anmelden. Tippe auf „Zur Anmeldung“ und verwende dein bisheriges Passwort. Weißt du es nicht mehr? Wähle „Passwort vergessen“. Eine neue Registrierung ist nicht nötig.' : market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend die Teams deiner Kinder. Bei mehreren Kindern in verschiedenen U-Teams kannst du alle passenden Teams auswählen – ein Elternkonto reicht. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
             ? hasInviteSession
               ? 'Name und Passwort setzen. Danach geht es direkt zur Einladung — ohne Rollen- oder Mannschaftswahl.'
               : 'Konto mit der eingeladenen E-Mail anlegen. Nach der Bestätigung kannst du die Einladung annehmen — ohne Vereins- oder Kindauswahl.'
@@ -643,10 +643,10 @@ export const RegisterPage: React.FC = () => {
           </div>
 
           {market && <fieldset className="market-registration-choices">
-            <legend className="sr-only">Nutzungsbedingungen und freiwillige Mannschaftsanzeige</legend>
+            <legend className="sr-only">Nutzungsbedingungen und freiwillige Teamanzeige</legend>
             <label className="market-registration-choice"><input id="reg-market-terms" type="checkbox" required checked={marketTermsAccepted} onChange={e=>setMarketTermsAccepted(e.target.checked)}/><span>Ich akzeptiere die <a href="/vereinsmarkt/nutzungsbedingungen.html" target="_blank" rel="noopener noreferrer">Nutzungsbedingungen</a>. <small>Erforderlich</small></span></label>
             <p>Wie wir deine Daten verwenden, erfährst du in den <a href="/vereinsmarkt/datenschutz.html" target="_blank" rel="noopener noreferrer">Datenschutzinformationen</a>.</p>
-            <label className="market-registration-choice"><input id="reg-market-show-team" type="checkbox" checked={marketShowTeam} onChange={e=>setMarketShowTeam(e.target.checked)}/><span>Meine ausgewählten Mannschaften bei meinen Inseraten und privaten Nachrichten anzeigen. <small>Freiwillig · nur für berechtigte Vereinsmitglieder. Im Profil jederzeit ausschaltbar. Keine Kindernamen.</small></span></label>
+            <label className="market-registration-choice"><input id="reg-market-show-team" type="checkbox" checked={marketShowTeam} onChange={e=>setMarketShowTeam(e.target.checked)}/><span>Meine ausgewählten Teams bei meinen Inseraten und privaten Nachrichten anzeigen. <small>Freiwillig · nur für berechtigte Vereinsmitglieder. Im Profil jederzeit ausschaltbar. Keine Kindernamen.</small></span></label>
           </fieldset>}
 
           {!hasInviteSession && !isParentInviteFlow ? (
