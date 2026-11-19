@@ -1,8 +1,9 @@
+import {MarketAndroidInstallSlides} from './MarketAndroidInstallSlides';
 import React,{useRef,useState} from 'react';
 import {MarketNotifications} from './MarketNotifications';
 import {ArrowLeft,ArrowRight,ArrowUp,Bell,Check,Globe,MoreVertical,Plus,Share,SquarePlus} from 'lucide-react';
 /** Illustrations explain the native steps; they do not pretend to install the app. */
-export function MarketInstallSlides({ios,userId,initialStep=0}:{ios:boolean;userId?:string;initialStep?:number}){
+function MarketIosInstallSlides({ios,userId,initialStep=0}:{ios:boolean;userId?:string;initialStep?:number}){
  const [step,setStep]=useState(userId?Math.max(0,Math.min(4,initialStep)):0);const touch=useRef<{x:number;y:number}|null>(null);
  const titles=ios?['In Safari öffnen','Auf Teilen tippen','Zum Home-Bildschirm','Dein Vereinsmarkt-Icon']:['In Chrome öffnen','Browsermenü öffnen','App hinzufügen','Dein Vereinsmarkt-Icon'];
  const copy=ios?['Öffne diese Vereinsmarkt-Seite in Safari. Aus WhatsApp oder Mail wähle zuerst „In Safari öffnen“.','Tippe in Safari auf das Teilen-Symbol. Es kann je nach Ansicht unten oder im Menü stehen.','Wische im Teilen-Menü nach oben und wähle „Zum Home-Bildschirm“. Falls angezeigt, „Als Web-App öffnen“ einschalten und „Hinzufügen“ tippen.','Fertig! Öffne den Vereinsmarkt künftig über dieses Icon auf deinem Home-Bildschirm.']:['Öffne diese Vereinsmarkt-Seite am Handy in Chrome.','Tippe in Chrome auf die drei Punkte ⋮.','Wähle „App installieren“ oder „Zum Startbildschirm hinzufügen“ und bestätige.','Fertig! Öffne den Vereinsmarkt künftig über dieses Icon auf deinem Home-Bildschirm.'];
@@ -26,3 +27,5 @@ export function MarketInstallSlides({ios,userId,initialStep=0}:{ios:boolean;user
   <div className="market-install-controls"><button type="button" aria-label="Vorheriger Schritt" disabled={step===0} onClick={()=>move(step-1)}><ArrowLeft size={20}/></button><span>Wischen oder weiter tippen</span><button type="button" aria-label="Nächster Schritt" disabled={step===last} onClick={()=>move(step+1)}><ArrowRight size={20}/></button></div>
  </div>;
 }
+
+export function MarketInstallSlides(props:{ios:boolean;userId?:string;initialStep?:number}) {return props.ios?<MarketIosInstallSlides {...props}/>:<MarketAndroidInstallSlides userId={props.userId} initialStep={props.initialStep===4?5:props.initialStep===3?4:props.initialStep}/>;}
