@@ -19,3 +19,5 @@
   color: inherit;
 }
 .market-onboarding-choice button:disabled { opacity: .55; }
+
+.market-home-guide-entry{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:12px 0;padding:12px;border:1px solid #9c668344;border-radius:16px;color:inherit;font-size:14px}.market-home-guide-entry img{border-radius:9px;flex:none}.market-home-guide-entry span{flex:1;min-width:120px}.market-home-guide-entry button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:8px 12px;border:1px solid #ed3c5860;border-radius:12px;background:#85223c;color:white;font:inherit;font-weight:650;cursor:pointer}
