@@ -1,6 +1,6 @@
 import React from 'react';
-import { Check, Gift, ArrowLeftRight, Tag, type LucideIcon } from 'lucide-react';
-const offerIcons: Record<string,LucideIcon> = {Gratis:Gift,Tauschen:ArrowLeftRight,Verkaufen:Tag};
+import { Check, Gift, ArrowLeftRight, Tag, HeartHandshake, type LucideIcon } from 'lucide-react';
+const offerIcons: Record<string,LucideIcon> = {Gratis:Gift,Tauschen:ArrowLeftRight,Verkaufen:Tag,'Fürs Team':HeartHandshake};
 
 /** Native buttons keep every choice visible and keyboard accessible. */
 export function ExchangeChoiceGroup({label,value,options,onChange,compact=false}:{label:string;value:string;options:string[];onChange:(value:string)=>void;compact?:boolean}) {

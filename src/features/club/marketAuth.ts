@@ -2,13 +2,13 @@ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DEFAULT_CLUB='9c7a8741-6e73-42d5-88d8-46ce5217e8cd';
 /** Presentation context only; never grants membership or changes auth checks. */
 export function marketAuthContext(search:string,pathname=typeof window!=='undefined'?window.location?.pathname||'':''){
- const p=new URLSearchParams(search);const route=pathname.match(/^\/(?:vereinsmarkt|marktplatz)\/([0-9a-f-]{36})\/(?:anmelden|registrieren|passwort-vergessen)\/?$/i);if(route&&UUID.test(route[1])){p.set('context','vereinsmarkt');p.set('marketClub',route[1]);}const raw=p.get('next')||'';const manager=p.get('context')==='vereinsmarkt-manager'||/^\/vereinsmarkt-manager(?:\/[0-9a-f-]{36})?\/(?:anmelden|passwort-vergessen)\/?$/i.test(pathname);const pathClub=pathname.match(/^\/vereinsmarkt-manager\/([0-9a-f-]{36})\//i)?.[1];let next='';let club=pathClub||p.get('marketClub')||'';const managerBack=UUID.test(club)?'/vereinsmarkt-manager/'+club:'/vereinsmarkt-manager';
+ const p=new URLSearchParams(search);const route=pathname.match(/^\/(?:vereinsmarkt|marktplatz)\/([0-9a-f-]{36})\/(?:anmelden|registrieren|passwort-vergessen)\/?$/i);if(route&&UUID.test(route[1])){p.set('context','vereinsmarkt');p.set('marketClub',route[1]);}const raw=p.get('next')||'';const manager=/^\/vereinsmarkt-manager(?:\/[0-9a-f-]{36})?(?:[?#]|$)/i.test(raw)&&raw.startsWith('/')&&!/[\\\s]/.test(raw)||p.get('context')==='vereinsmarkt-manager'||/^\/vereinsmarkt-manager(?:\/[0-9a-f-]{36})?\/(?:anmelden|passwort-vergessen)\/?$/i.test(pathname);const pathClub=pathname.match(/^\/vereinsmarkt-manager\/([0-9a-f-]{36})\//i)?.[1];let next='';let club=pathClub||p.get('marketClub')||'';
  try{const u=new URL(raw,'https://market.invalid');if(raw.startsWith('/')&&!raw.startsWith('//')&&!/[\\\s]/.test(raw)&&u.origin==='https://market.invalid'&&(['/app/tauschboerse','/app/profile'].includes(u.pathname)||/^\/vereinsmarkt-manager(?:\/[0-9a-f-]{36})?$/.test(u.pathname)||/^\/(?:vereinsmarkt|marktplatz)\/[0-9a-f-]{36}$/i.test(u.pathname))){next=u.pathname.replace(/^\/marktplatz\//,'/vereinsmarkt/')+u.search+u.hash;if(!UUID.test(club))club=u.searchParams.get('club')||u.pathname.split('/')[2]||'';}}catch{}
  if(manager&&!/^\/vereinsmarkt-manager(?:\/[0-9a-f-]{36})?(?:[?#]|$)/i.test(next))next='';
  const active=manager||p.get('context')==='vereinsmarkt'||next.startsWith('/app/tauschboerse')||(next.startsWith('/vereinsmarkt/')||next.startsWith('/marktplatz/'));
  if(!active)return null;
  if(!UUID.test(club))club=manager?'':DEFAULT_CLUB;
- const back=manager?managerBack:`/vereinsmarkt/${club}`;
+ const back=manager?(UUID.test(club)?'/vereinsmarkt-manager/'+club:'/vereinsmarkt-manager'):`/vereinsmarkt/${club}`;
  if(next.startsWith('/app/')){const old=new URL(next,'https://market.invalid');const q=new URLSearchParams({view:old.pathname==='/app/profile'?'start':'member',club});for(const key of ['listing','thread','mode']){const v=old.searchParams.get(key);if(v)q.set(key,v);}if(old.searchParams.get('view')==='requests')q.set('mode','requests');next=back+'?'+q;}
  return {club,back,manager,next:next||(manager?back:back+'?view=start')};
 }

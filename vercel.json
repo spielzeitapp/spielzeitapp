@@ -7,6 +7,15 @@
   "outputDirectory": "dist",
   "headers": [
     {
+      "source": "/vereinsmarkt-manager/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
       "source": "/demo",
       "headers": [
         {
@@ -147,6 +156,26 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/vereinsmarkt-manager",
+      "destination": "/vereinsmarkt-manager.html"
+    },
+    {
+      "source": "/vereinsmarkt-manager/anmelden",
+      "destination": "/vereinsmarkt-manager.html"
+    },
+    {
+      "source": "/vereinsmarkt-manager/passwort-vergessen",
+      "destination": "/vereinsmarkt-manager.html"
+    },
+    {
+      "source": "/vereinsmarkt-manager/:clubId([0-9a-fA-F-]{36})",
+      "destination": "/vereinsmarkt-manager.html"
+    },
+    {
+      "source": "/vereinsmarkt-manager/:clubId([0-9a-fA-F-]{36})/:screen(anmelden|passwort-vergessen)",
+      "destination": "/vereinsmarkt-manager.html"
+    },
     {
       "source": "/vereinsmarkt/9c7a8741-6e73-42d5-88d8-46ce5217e8cd",
       "destination": "/markt.html"

@@ -1,3 +1,4 @@
+import {marketAuthContext} from '../features/club/marketAuth';
 import {uscAuthTarget} from '../features/club/uscAuth';
 import { isUscAppPath, USC_MANIFEST, USC_APP_ICON } from '../features/club/uscClub';
 import { useEffect } from 'react';
@@ -37,7 +38,7 @@ export function ManifestSync(): null {
   const { pathname, search } = useLocation();
 
   useEffect(() => {
-    const marketManager=/^\/vereinsmarkt-manager(?:\/|$)/.test(pathname)||(pathname==='/manager/vereinsmarkt'&&new URLSearchParams(search).get('from')==='vereinsmarkt-manager');
+    const marketManager=Boolean(marketAuthContext(search,pathname)?.manager)||/^\/vereinsmarkt-manager(?:\/|$)/.test(pathname)||(pathname==='/manager/vereinsmarkt'&&new URLSearchParams(search).get('from')==='vereinsmarkt-manager');
     const marketplace = pathname.match(/^\/(?:vereinsmarkt|marktplatz)\/([0-9a-f-]{36})(?:\/|$)/i);
     const usc = isUscAppPath(pathname) || Boolean(uscAuthTarget(pathname,search));
     const demo = pathname === '/demo' || pathname.startsWith('/demo/');

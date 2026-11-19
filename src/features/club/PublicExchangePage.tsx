@@ -1,3 +1,4 @@
+import {fundPrice} from './teamFund';
 import {MarketManagerShortcut} from '../marketManager/MarketManagerShortcut';
 import {MarketAccessPrompt} from './MarketAccessPrompt';
 import {useProfile} from '../../auth/useProfile';
@@ -78,7 +79,7 @@ function PublicExchangeContent(){
  })().catch(e=>{if(active)setError(e.name==='AbortError'?'Die Verbindung dauert zu lange. Bitte erneut versuchen.':e.message);}).finally(()=>{clearTimeout(timeout);if(active){setSettledClub(clubId);setLoading(false);}});return()=>{active=false;clearTimeout(timeout);controller.abort();};},[clubId,retry,view==='member']);
  const go=(next:string)=>setParams({...returnQuery,view:next});
  const activeNav=view==='member'?(params.get('mode')==='mine'?'mine':params.get('mode')==='requests'?'nachrichten':params.get('mode')==='create'?'inserieren':'start'):view==='saved'?'saved':view==='start'||view==='suchen'?'start':'';
- const price=(i:Offer)=>i.offer==='Verkaufen'?Number(i.price).toLocaleString('de-AT',{style:'currency',currency:'EUR'}):i.offer;
+ const price=fundPrice;
  const saveButton=(i:Offer)=><SaveListingButton saved={marks.saved.has(i.id)} busy={marks.loading||marks.pending.includes(i.id)} onClick={()=>{if(user)void marks.toggle(i.id);else setAuthPrompt(login(savedPath));}}/>;
  const card=(i:Offer)=><div className="market-save-card" key={i.id}><button className="exchange-card" onClick={()=>{if(i.internal)navigate(memberPath+'&listing='+i.id);else setParams({...returnQuery,view:view==='saved'?'saved':'suchen',listing:i.id});}}><div className="exchange-card-image">{i.photos[0]?<img src={i.photos[0]} alt={i.title} loading="lazy"/>:<Shirt size={40}/>}<span>{i.status}</span></div><div className="exchange-card-copy"><h3>{i.title}</h3><p>Größe {i.size} · {i.condition}</p><strong>{price(i)}</strong>{user&&marketAccess&&i.owner_label&&<small className="market-saved-provider">Von {i.owner_label}{i.team_label?` · ${i.team_label}`:''}</small>}{i.internal&&<small>Vereinsintern</small>}</div></button>{saveButton(i)}</div>;
  const captureAccess=(event:React.MouseEvent<HTMLDivElement>)=>{

@@ -65,7 +65,9 @@
     "supabase/migrations/20261117215729_market_registration_choices.sql": "a5038ab9067e890debacb4c8fa24327a2008245f",
     "supabase/migrations/20261118064635_exchange_parent_team_choices.sql": "93c80b46ffdb574819a8a4d8e8eafa1e68c47d1b",
     "supabase/migrations/20261118064646_market_terms_private_transactions_version.sql": "5ff2bad05508e38c77885bb0690be6eeb9268522",
-    "supabase/migrations/20261119130000_hall_training_extra_players.sql": "14197a906ecc74f2e3019350cb08fe99fed6902a"
+    "supabase/migrations/20261119130000_hall_training_extra_players.sql": "14197a906ecc74f2e3019350cb08fe99fed6902a",
+    "supabase/migrations/20261119182349_exchange_team_fund.sql": "184d41299f40065c956fc75788e415ea346626b3",
+    "supabase/migrations/20261119183426_exchange_team_fund_labels.sql": "1a2fb7ad7888debea751a9a387681c9b7550d1c3"
   },
   "functions": {
     "supabase/functions/generate-club-communications/index.ts": "8f84887c9197b0bcc6c050e436b211dca44a01e8"
