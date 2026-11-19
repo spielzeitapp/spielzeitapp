@@ -60,7 +60,8 @@
     "supabase/migrations/20261113160743_hall_training_two_a_side.sql": "a228773538b1a133383d3cb4e7fa9d61a24aa795",
     "supabase/migrations/20261113185405_internal_training_matches.sql": "6c2e2014edee367cd6d078f3d971cae4bf82d658",
     "supabase/migrations/20261119182349_exchange_team_fund.sql": "184d41299f40065c956fc75788e415ea346626b3",
-    "supabase/migrations/20261119183426_exchange_team_fund_labels.sql": "1a2fb7ad7888debea751a9a387681c9b7550d1c3"
+    "supabase/migrations/20261119183426_exchange_team_fund_labels.sql": "1a2fb7ad7888debea751a9a387681c9b7550d1c3",
+    "supabase/migrations/20261119191334_exchange_cash_explicit_access.sql": "d973add00292d1733e5233c6a756ce57ebcc89d7"
   },
   "functions": {
     "supabase/functions/generate-club-communications/index.ts": "8f84887c9197b0bcc6c050e436b211dca44a01e8"
