@@ -16,6 +16,8 @@ const storage={getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v),remov
 Object.defineProperty(globalThis,'navigator',{configurable:true,value:{userAgent:'iPhone',platform:'iPhone',standalone:false}});
 Object.assign(globalThis,{localStorage:storage,sessionStorage:storage,window:Object.assign(new EventTarget(),{matchMedia:()=>({matches:navigator.standalone})}),document:new EventTarget()});
 window.navigator=navigator;
+window.location={href:'https://market.test/vereinsmarkt/club?view=start'};
+window.history={state:{},replaceState(state,title,url){this.state=state;window.location.href=new URL(url,window.location.href).href;}};
 let calls=0;
 globalThis.pushFixture={initDone:true,browserOk:true,hasVapidKey:true,isActive:false,permission:'default',syncFromBrowser:async()=>{},activate:async()=>{calls++;return {ok:true};}};
 const mock={createNodeMock:()=>({open:false,showModal(){this.open=true;},close(){this.open=false;}})};
@@ -42,6 +44,21 @@ await act(async()=>app.unmount());
 await render(MarketHomeScreenGuide,guide);
 assert.equal(app.toJSON(),null);
 await act(async()=>app.unmount());
+// The explicit reset link overrides both the seen flag and a prior installed answer.
+store.set('vereinsmarkt-home-guide:club','present');
+store.set('auth-token','keep');store.set('vereinsmarkt-push-later:member:club','keep');
+window.location.href='https://market.test/vereinsmarkt/club?view=start&homeSetup=restart&invite=keep#anchor';
+await render(MarketHomeScreenGuide,guide);
+assert.ok(buttons('Ja, Anleitung zeigen'));
+assert.equal(store.get('auth-token'),'keep');
+assert.equal(store.get('vereinsmarkt-push-later:member:club'),'keep');
+assert.equal(window.location.href,'https://market.test/vereinsmarkt/club?view=start&invite=keep#anchor');
+await click('Später');await click('Jetzt stöbern');
+await act(async()=>app.unmount());
+await render(MarketHomeScreenGuide,guide);
+assert.equal(app.toJSON(),null);
+await act(async()=>app.unmount());
+store.delete('vereinsmarkt-push-later:member:club');
 // Declining gives a useful location for later; it never opens the tutorial.
 await render(MarketHomeScreenGuide,{...guide,clubId:'later'});
 await click('Später');

@@ -39,11 +39,21 @@ export function MarketHomeScreenGuide({clubId,userId,alwaysAvailable=false,after
   return()=>window.removeEventListener('vereinsmarkt:joined',offer);
  },[afterJoinOnly,clubId,key]);
  useEffect(()=>{
-  if(!autoOnFirstVisit||isStandaloneDisplayMode()||firstVisitOffered.has(clubId))return;
+  if(!autoOnFirstVisit||isStandaloneDisplayMode())return;
   const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   if(!isMobile)return;
   // Offer the new optional welcome flow once, including after testing the older guide.
   const visited=`vereinsmarkt-guide-choice-v3:${clubId}`;
+  // Explicit test link restarts only this club's local welcome, never auth or push settings.
+  const url=new URL(window.location.href);
+  if(url.searchParams.get('homeSetup')==='restart'){
+   url.searchParams.delete('homeSetup');
+   window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
+   firstVisitOffered.delete(clubId);
+   try{localStorage.removeItem(visited);localStorage.removeItem(key);}catch{}
+   setHidden(false);
+  }
+  if(firstVisitOffered.has(clubId))return;
   try{const preference=localStorage.getItem(key);if(localStorage.getItem(visited)==='1'||preference==='present')return;}catch{}
   firstVisitOffered.add(clubId);try{localStorage.setItem(visited,'1');}catch{}
   setExpanded(true);
