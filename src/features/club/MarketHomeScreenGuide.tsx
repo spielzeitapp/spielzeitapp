@@ -48,7 +48,7 @@ export function MarketHomeScreenGuide({clubId,userId,alwaysAvailable=false,after
   setExpanded(true);
  },[autoOnFirstVisit,clubId,key]);
  const dismiss=(present=false)=>{setHidden(true);setExpanded(false);try{localStorage.setItem(key,present?'present':String(Date.now()+7*86400000));}catch{}};
- if(afterJoinOnly)return expanded&&!standalone?<MarketInstallDialog ios={ios} userId={userId} closeLabel={autoOnFirstVisit?'Jetzt stöbern':undefined} onClose={()=>setExpanded(false)} onPresent={()=>dismiss(true)}/>:null;
+ if(afterJoinOnly)return expanded&&!standalone?<MarketInstallDialog ios={ios} showChoice={autoOnFirstVisit} onClose={()=>setExpanded(false)} onPresent={()=>dismiss(true)}/>:null;
  if(!alwaysAvailable&&(!mobile||standalone||hidden))return null;
  return <section className="market-home-guide" aria-label="Vereinsmarkt am Home-Bildschirm">
   <div className="market-home-guide-heading"><img src="/vereinsmarkt/icon-180.png" width="44" height="44" alt="Vereinsmarkt-Icon"/><div><h2>{standalone?'Über das App-Icon geöffnet':'Vereinsmarkt direkt am Handy'}</h2><p>{standalone?'Du nutzt bereits die App-Ansicht.':hidden?'Icon schon vorhanden? Öffne den Vereinsmarkt künftig darüber.':'Mit eigenem Icon öffnen – ohne App Store.'}</p></div>{!alwaysAvailable&&<button type="button" className="market-home-guide-close" aria-label="Homescreen-Hinweis schließen" onClick={()=>dismiss()}><X size={18}/></button>}</div>
