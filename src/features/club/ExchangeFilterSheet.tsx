@@ -16,7 +16,7 @@ export function ExchangeFilterSheet({value,items,view,userId,search,onApply,onCl
       <ExchangeArticleChoices value={draft.category} allowAll onChange={category=>setDraft(previous=>({...previous,category,size:''}))}/>
       {group(isExchangeShoe(draft.category)?'Schuhgröße':'Größe','size',exchangeSizeOptions(draft.category,items),'Alle')}
       {!draft.category&&<p className="exchange-filter-tip">Für Schuhgrößen wähle zuerst „Schuhe“.</p>}
-      {group('Angebot','offer',['Gratis','Tauschen','Verkaufen'],'Alle')}
+      {group('Angebot','offer',['Gratis','Tauschen','Verkaufen','Fürs Team'],'Alle')}
       {teams.length>0&&group('Mannschaft','team',teams,'Alle Mannschaften')}
     </div>
     <footer><button type="button" onClick={()=>setDraft({...EMPTY_EXCHANGE_FILTERS})}>Zurücksetzen</button><button type="button" className="exchange-primary sz-club-primary" onClick={()=>onApply(draft)}>{count} {count===1?'Angebot':'Angebote'} anzeigen</button></footer>

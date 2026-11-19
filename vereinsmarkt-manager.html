@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="de-AT">
+  <head>
+    <meta charset="UTF-8" />
+    <script>window.__HOST_IS_INTERNAL__ = true;</script>
+    <title>Vereinsmarkt-Manager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <link rel="manifest" href="/vereinsmarkt-manager/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/vereinsmarkt-manager/shield-m-180.png" />
+    <meta name="theme-color" content="#7f1d1d" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="VM Manager" />
+    <script>
+      // Select Demo installation metadata before React and the install sheet load.
+      (function() {
+        var path = window.location.pathname;
+        var next = ['/login','/register','/forgot-password','/app/set-password'].indexOf(path) !== -1 ? new URLSearchParams(window.location.search).get('next') : '';
+        var marketplace = path.match(/^\/marktplatz\/([0-9a-f-]{36})(?:\/|$)/i);
+        if (marketplace) {
+          document.querySelector('link[rel="manifest"]').setAttribute('href', '/api/exchange/public?manifest=1&club=' + marketplace[1]);
+          document.querySelector('link[rel="apple-touch-icon"]').setAttribute('href', '/vereinsmarkt/icon-180.png');
+          document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', 'Vereinsmarkt');
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#08080b');
+          document.title = 'Vereinsmarkt';
+        } else if (path === '/app/usc-rohrbach' || path.indexOf('/app/usc-rohrbach/') === 0 || (next && (next.split(/[?#]/)[0] === '/app/usc-rohrbach'))) {
+          document.querySelector('link[rel="manifest"]').setAttribute('href', '/clubs/usc-rohrbach/manifest.json');
+          document.querySelector('link[rel="apple-touch-icon"]').setAttribute('href', '/clubs/usc-rohrbach/icon-180.png');
+          document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', 'USC Rohrbach');
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#101214');
+          document.title = 'USC Rohrbach';
+        } else if (path === '/demo' || path.indexOf('/demo/') === 0) {
+          document.querySelector('link[rel="manifest"]').setAttribute('href', '/manifest-demo.json');
+          document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', 'Spielzeit Demo');
+          document.title = 'SpielzeitApp Demo';
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script id="market-manager-bootstrap">
+      // Paint the manager's own launch screen while the application bundle loads.
+      (function () {
+        var path = window.location.pathname;
+        var query = new URLSearchParams(window.location.search);
+        if (!/^\/vereinsmarkt-manager(?:\/|$)/.test(path) && !(path === '/manager/vereinsmarkt' && query.get('from') === 'vereinsmarkt-manager')) return;
+        var light = false;
+        try { light = window.localStorage.getItem('spielzeit.vereinsmarkt.appearance.v1') === 'light'; } catch (_) {}
+        document.documentElement.setAttribute('data-market-manager-shell', '');
+        document.documentElement.setAttribute('data-market-theme', light ? 'light' : 'dark');
+        document.querySelector('link[rel="manifest"]').setAttribute('href', '/vereinsmarkt-manager/manifest.webmanifest');
+        document.querySelector('link[rel="apple-touch-icon"]').setAttribute('href', '/vereinsmarkt-manager/shield-m-180.png');
+        document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', 'VM Manager');
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', light ? '#f6f5f7' : '#08080b');
+        document.title = 'Vereinsmarkt-Manager';
+        document.getElementById('root').innerHTML = '<style>#market-manager-boot{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;box-sizing:border-box;padding:calc(28px + env(safe-area-inset-top,0px)) 24px calc(28px + env(safe-area-inset-bottom,0px));background:radial-gradient(ellipse at 70% 15%,#341019,transparent 60%),#08080b;color:#f4f4f5;font-family:system-ui,sans-serif;text-align:center}html[data-market-theme=light] #market-manager-boot{background:radial-gradient(ellipse at 70% 15%,#f4e2e8,transparent 60%),#f6f5f7;color:#211d25}#market-manager-boot img{width:130px;height:130px;border-radius:24px;box-shadow:0 16px 50px #0008}#market-manager-boot h1{font-size:clamp(30px,9vw,38px);font-weight:850;letter-spacing:-1px;margin:4px 0 0}#market-manager-boot h1 span{display:block;font-size:.7em;letter-spacing:.02em;margin-top:6px;font-weight:750}#market-manager-boot p{font-size:14px;opacity:.75;margin:0}#market-manager-boot small{font-size:12px;opacity:.65;margin-top:18px}.vm-boot-track{width:72px;height:3px;border-radius:3px;background:#8883;overflow:hidden;margin-top:12px}.vm-boot-track:after{content:"";display:block;width:35%;height:100%;border-radius:3px;background:#ff4162;animation:vm-bootstrap 1.2s ease-in-out infinite alternate}@keyframes vm-bootstrap{to{transform:translateX(185%)}}@media(prefers-reduced-motion:reduce){.vm-boot-track:after{animation:none;width:100%}}</style><div id="market-manager-boot" role="status" aria-label="Vereinsmarkt-Manager wird vorbereitet"><img src="/vereinsmarkt-manager/shield-m-192.png" alt="" width="130" height="130"/><h1>Vereinsmarkt<span>Manager</span></h1><p>Dein Verein. Deine Aufgaben.</p><div class="vm-boot-track" aria-hidden="true"></div><small>powered by SpielzeitApp</small></div>';
+      })();
+    </script>
+
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

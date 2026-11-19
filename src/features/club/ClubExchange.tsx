@@ -1,3 +1,5 @@
+import {TeamFundFields,TeamFundDetail,type FundRow} from './TeamFundFields';
+import {buildFundSplit,fundPrice,type FundSplit} from './teamFund';
 import {ListingPhotoActions} from './ListingPhotoActions';
 import {ExchangePhotoGallery} from './ExchangePhotoGallery';
 import {ExchangeArticleChoices} from './ExchangeArticleChoices';
@@ -15,13 +17,13 @@ import { ExchangeFilterSheet } from './ExchangeFilterSheet';
 import { isExchangeShoe, exchangeSizeSystem, exchangeSizeOptions, selectExchangeItems, type CatalogSort } from './exchangeCatalog';
 import './clubExchange.css';
 
-type Listing = { id: string; club_id: string; owner_id: string; owner_label: string; title: string; category: string; size: string; condition: string; offer: string; price: number | null; description: string; team_label: string; status: string; photo_paths: string[]; created_at: string; is_public?: boolean; revision: number };
+type Listing = { id: string; club_id: string; owner_id: string; owner_label: string; title: string; category: string; size: string; condition: string; offer: string; price: number | null; description: string; team_label: string; status: string; photo_paths: string[]; created_at: string; is_public?: boolean; revision: number; team_fund_split?: FundSplit[] };
 type Thread = { id: string; listing_id: string; requester_id: string; requester_label: string; created_at: string };
 type Message = { id: string; thread_id: string; sender_id: string; body: string; created_at: string };
 const conditions = ['Wie neu', 'Sehr gut', 'Gut', 'Gebraucht'];
 const emptyForm = { title: '', category: 'Pulli', size: '', condition: 'Sehr gut', offer: 'Gratis', price: '', description: '', team_label: '' };
 const stamp = (value: string) => new Date(value).toLocaleString('de-AT', { dateStyle: 'short', timeStyle: 'short' });
-const priceLabel = (item: Listing) => item.offer === 'Verkaufen' ? `${Number(item.price).toLocaleString('de-AT', { style: 'currency', currency: 'EUR' })}` : item.offer;
+const priceLabel = fundPrice;
 const errorText = (error: unknown) => error instanceof Error ? error.message : 'Das hat nicht geklappt. Bitte erneut versuchen.';
 
 /** Decode + recompress strips EXIF/location and caps upload size before storage. */
@@ -70,6 +72,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   const [editing, setEditing] = useState<string | null>(null);
   const [editingRevision, setEditingRevision] = useState(0);
   const [form, setForm] = useState(emptyForm);
+  const [fundRows,setFundRows]=useState<FundRow[]>([]);
   const [files, setFiles] = useState<File[]>([]);
   const [existingPaths, setExistingPaths] = useState<string[]>([]);
   const [adult, setAdult] = useState(false);
@@ -197,6 +200,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   const openEditor = (item?: Listing) => {
     setPublicListing(Boolean(item?.is_public)); setPublicationConfirmed(false); setShowTeam(Boolean(item ? item.team_label : defaultTeamLabel));
     setEditingRevision(item?.revision ?? 0);
+    setFundRows((item?.team_fund_split||[]).map(x=>({team_id:x.team_id,value:String(x.amount_cents/100)})));
     setEditing(item?.id || 'new'); setFiles([]); setAdult(false); setExistingPaths(item?.photo_paths || []);
     setForm(item ? { title: item.title, category: item.category, size: item.size, condition: item.condition, offer: item.offer, price: String(item.price ?? ''), description: item.description, team_label: item.team_label } : {...emptyForm,team_label:defaultTeamLabel});
     formDialog.current?.showModal();
@@ -210,8 +214,8 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
       if (!publicationConfirmed) throw Error('Bitte bestätige die Veröffentlichung der genannten Angaben.');
       if (!existingPaths.length && !files.length) throw Error('Bitte mindestens ein Foto vom Gewand hinzufügen.');
       const id = editing === 'new' ? crypto.randomUUID() : editing!;
-      const values = { ...form, is_public: publicListing, team_label: showTeam ? form.team_label : '', title: form.title.trim(), size: form.size.trim(), price: form.offer === 'Verkaufen' ? Number(form.price.replace(',', '.')) : null };
-      if (form.offer === 'Verkaufen' && (!form.price.trim() || !Number.isFinite(values.price) || Number(values.price) < 0 || Number(values.price) > 9999)) throw Error('Bitte einen gültigen Preis eingeben.');
+      const values = { ...form, is_public: publicListing, team_label: showTeam ? form.team_label : '', title: form.title.trim(), size: form.size.trim(), team_fund_split:form.offer==='Fürs Team'?buildFundSplit(fundRows,form.price):[], price: ['Verkaufen','Fürs Team'].includes(form.offer) ? Number(form.price.replace(',', '.')) : null };
+      if (['Verkaufen','Fürs Team'].includes(form.offer) && (!form.price.trim() || !Number.isFinite(values.price) || Number(values.price) < 0 || Number(values.price) > 9999)) throw Error('Bitte einen gültigen Preis eingeben.');
       const paths = [...existingPaths]; const uploaded: string[] = [];
       let published = false;
       try {
@@ -289,6 +293,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
         <div className="exchange-item-head"><h3>{detail.title}</h3><strong>{priceLabel(detail)}</strong></div>
         <dl className="listing-facts"><div><dt>Größe</dt><dd>{detail.size}</dd></div><div><dt>Zustand</dt><dd>{detail.condition}</dd></div><div><dt>Status</dt><dd>{detail.status}</dd></div></dl>
         <p className="exchange-owner">{detail.owner_label}{detail.team_label ? ` · ${detail.team_label}` : ''}</p><p className="exchange-description">{detail.description}</p>
+        {detail.offer==='Fürs Team'&&<TeamFundDetail key={detail.id} listingId={detail.id} revision={detail.revision} owner={myItem}/>}
         {myItem && <div className="exchange-owner-tools"><button onClick={() => openEditor(detail)}>Bearbeiten</button><select aria-label="Status des Inserats" disabled={busy} value={detail.status} onChange={e => void status(e.target.value)}>{['Entwurf', 'Verfügbar', 'Reserviert', 'Vergeben'].map(s => <option key={s}>{s}</option>)}</select><button disabled={busy} onClick={() => void remove()}><Trash2 size={16} /> Löschen</button></div>}
         {currentThread ? <div className="exchange-chat"><h3><LockKeyhole size={17} /> Privater Chat mit {myItem ? currentThread.requester_label : detail.owner_label}</h3><p>Nur ihr beide seht diese Nachrichten.</p>
           <div className="exchange-messages" aria-label="Nachrichten">{messages.map(message => <div className={`exchange-message ${message.sender_id === userId ? 'exchange-message-own' : ''}`} key={message.id}><p>{message.body}</p><small>{stamp(message.created_at)}</small></div>)}{!messages.length && <p>Noch keine Nachrichten.</p>}</div>
@@ -328,8 +333,9 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
         <ExchangeChoiceGroup label={isExchangeShoe(form.category)?'Schuhgröße':'Größe'} value={form.size} options={exchangeSizeOptions(form.category,items)} compact onChange={size=>setForm(previous=>({...previous,size}))}/>
         <label>Größe direkt eingeben<input required maxLength={15} value={form.size} placeholder={isExchangeShoe(form.category)?'Andere Schuhgröße, z. B. 35,5':'Andere Größe, z. B. 128/134'} onChange={e=>setForm(previous=>({...previous,size:e.target.value}))}/></label>
         <ExchangeChoiceGroup label="Zustand" value={form.condition} options={conditions} onChange={condition=>setForm(previous=>({...previous,condition}))}/>
-        <ExchangeChoiceGroup label="Angebot" value={form.offer} options={['Gratis','Tauschen','Verkaufen']} onChange={offer=>setForm(previous=>({...previous,offer}))}/>
-        {form.offer === 'Verkaufen' && <label>Preis in Euro<input required inputMode="decimal" value={form.price} onChange={e => setForm({...form,price:e.target.value})} /></label>}
+        <ExchangeChoiceGroup label="Angebot" value={form.offer} options={['Gratis','Tauschen','Verkaufen','Fürs Team']} onChange={offer=>setForm(previous=>({...previous,offer}))}/>
+        {['Verkaufen','Fürs Team'].includes(form.offer) && <label>{form.offer==='Fürs Team'?'Teambeitrag in Euro (fest vereinbart)':'Preis in Euro'}<input required inputMode="decimal" value={form.price} onChange={e => setForm({...form,price:e.target.value})} /></label>}
+        {form.offer==='Fürs Team'&&<TeamFundFields clubId={clubId} rows={fundRows} onChange={setFundRows}/>}
         <div className="exchange-provider-context"><label className="exchange-check"><input type="checkbox" checked={showTeam} onChange={e=>setShowTeam(e.target.checked)}/>Mannschaft anzeigen (optional)</label>{showTeam&&<>{teamLabels.length===1&&ownTeamLabels?<span className="exchange-provider-chip"><Users size={16} aria-hidden/>Anbieter aus der {form.team_label||teamLabels[0]}</span>:<ExchangeChoiceGroup label="Mannschaft als Orientierung" value={form.team_label} options={teamLabels} onChange={team_label=>setForm(previous=>({...previous,team_label}))}/>}<p>Nur zur Orientierung für die Übergabe – dein Angebot sehen alle Mannschaften im Verein.</p></>}</div>
         <label>Beschreibung / Tauschwunsch<textarea maxLength={1500} value={form.description} placeholder="Zustand, Tauschwunsch, mögliche Übergabe…" onChange={e => setForm({...form,description:e.target.value})} /></label>
         <label className="exchange-check"><input type="checkbox" required checked={adult} onChange={e => setAdult(e.target.checked)} />Ich verwalte dieses Inserat als erwachsene Person.</label>

@@ -27,7 +27,7 @@ export function selectExchangeItems<T extends CatalogItem>(items:T[],view:'all'|
     &&(!filters.size||normalizeExchangeSize(item.size)===normalizeExchangeSize(filters.size))
     &&(!filters.team||item.team_label===filters.team)&&(!filters.offer||item.offer===filters.offer)
     &&tokens.every(token=>normalizeText([item.title,item.category,item.description,item.size].join(' ')).includes(token)));
-  const amount=(item:CatalogItem)=>item.offer==='Gratis'?0:item.offer==='Verkaufen'&&item.price!==null?Number(item.price):null;
+  const amount=(item:CatalogItem)=>item.offer==='Gratis'?0:['Verkaufen','Fürs Team'].includes(item.offer)&&item.price!==null?Number(item.price):null;
   return result.sort((a,b)=>{
     if(sort!=='newest'){
       const left=amount(a),right=amount(b);
