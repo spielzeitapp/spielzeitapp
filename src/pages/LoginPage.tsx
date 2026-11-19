@@ -1,3 +1,4 @@
+import {MarketManagerSplash} from '../features/marketManager/MarketManagerSplash';
 import {TournamentAuthBrand,tournamentAuthTarget} from '../features/tournamentRegistration/AuthBrand';
 import { marketAuthContext, marketAuthPath } from '../features/club/marketAuth';
 import { MarketAuthBrand } from '../features/club/MarketAuthBrand';
@@ -223,6 +224,8 @@ export const LoginPage: React.FC = () => {
   useEffect(()=>{if(market&&user&&!authLoading&&!isParentInviteFlow)navigate(market.next,{replace:true});},[market?.next,user,authLoading,isParentInviteFlow,navigate]);
 
   useEffect(()=>{if(isUscLogin && user && !authLoading && !isParentInviteFlow)navigate(clubReturnTo!,{replace:true});},[isUscLogin,user,authLoading,isParentInviteFlow,clubReturnTo,navigate]);
+
+  if(market?.manager&&authLoading)return <MarketManagerSplash/>;
 
   if (showPlayerLogin) {
     return (
