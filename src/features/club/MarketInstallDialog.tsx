@@ -25,7 +25,7 @@ export function MarketInstallDialog({ios,onClose,onPresent,showChoice=false,clos
     <p className="market-install-disclaimer">Du kannst auch direkt im Browser stöbern.</p>
    </>:<>
     <div className="market-install-later-icon"><Info size={46}/></div>
-    <h2 id="market-install-title">Kein Problem!</h2>
+    <h2 id="market-install-title">Alles klar!</h2>
     <p>Du kannst den Vereinsmarkt jederzeit zum Home-Bildschirm hinzufügen.</p>
     <div className="market-install-later-path"><MoreHorizontal size={28}/><span>Mehr → App-Icon hinzufügen</span></div>
     <button className="market-install-done" type="button" onClick={onClose}>Jetzt stöbern</button>

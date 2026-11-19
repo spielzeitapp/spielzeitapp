@@ -45,7 +45,7 @@ await act(async()=>app.unmount());
 // Declining gives a useful location for later; it never opens the tutorial.
 await render(MarketHomeScreenGuide,{...guide,clubId:'later'});
 await click('Später');
-assert.ok(JSON.stringify(app.toJSON()).includes('Kein Problem!'));
+assert.ok(JSON.stringify(app.toJSON()).includes('Alles klar!'));
 assert.ok(JSON.stringify(app.toJSON()).includes('Mehr → App-Icon hinzufügen'));
 assert.equal(app.root.findAllByProps({'aria-label':'Wischbare Installationsanleitung'}).length,0);
 await click('Jetzt stöbern');
