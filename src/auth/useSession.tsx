@@ -14,7 +14,10 @@ export type SessionTeamSeasonItem = Omit<TeamSeasonListItem, 'id'> & {
   id: string;
   display_name?: string | null;
   age_group?: string | null;
+  teamLogoUrl?: string | null;
 };
+
+type JoinedSessionTeam = TeamSeasonTeam & { team_branding_overrides?: { logo_url?: string | null } | null };
 
 function normalizeTeamSeasonRow(raw: unknown): SessionTeamSeasonItem | null {
   const row = raw as {
@@ -24,7 +27,7 @@ function normalizeTeamSeasonRow(raw: unknown): SessionTeamSeasonItem | null {
     status?: string | null;
     display_name?: string | null;
     age_group?: string | null;
-    teams?: TeamSeasonTeam | TeamSeasonTeam[] | null;
+    teams?: JoinedSessionTeam | JoinedSessionTeam[] | null;
     seasons?: TeamSeasonSeason | TeamSeasonSeason[] | null;
   };
   const joinedTeam = Array.isArray(row.teams) ? row.teams[0] : row.teams;
@@ -39,6 +42,7 @@ function normalizeTeamSeasonRow(raw: unknown): SessionTeamSeasonItem | null {
       status: row.status ?? null,
       display_name: row.display_name ?? null,
       age_group: row.age_group ?? null,
+      teamLogoUrl: joinedTeam?.team_branding_overrides?.logo_url ?? null,
       team: teams,
       season: seasons,
       teams,
@@ -268,7 +272,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const id = viewTeamSeasonId;
     const userId = authUser!.id;
     void Promise.resolve(supabase.from('team_seasons')
-      .select('id,team_id,season_id,status,display_name,age_group,teams(id,name,age_group,clubs(logo_url)),seasons(id,name)')
+      .select('id,team_id,season_id,status,display_name,age_group,teams(id,name,club_id,age_group,clubs(name,logo_url),team_branding_overrides(logo_url)),seasons(id,name)')
       .eq('id', id).maybeSingle()).then(({ data, error }) => {
         if (cancelled) return;
         const season = data ? normalizeTeamSeasonRow(data) : null;
@@ -612,7 +616,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   status,
   display_name,
   age_group,
-  teams:teams ( id, name, club_id, age_group, clubs ( name, logo_url ) ),
+  teams:teams ( id, name, club_id, age_group, clubs ( name, logo_url ), team_branding_overrides ( logo_url ) ),
   seasons:seasons ( id, name )
 `)
           .in('id', teamSeasonIds)

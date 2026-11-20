@@ -86,6 +86,7 @@ const LOGO_MAP: Record<string, string> = {
   'nsg hainfeld': NSG_GOELSENTAL_SLUG,
   'nsg goelsental': NSG_GOELSENTAL_SLUG,
   'spg rohrbach': NSG_GOELSENTAL_SLUG,
+  'usc rohrbach': 'usc-rohrbach',
   // FK Austria Wien
   'fk austria wien': 'fk-austria-wien',
   'austria wien': 'fk-austria-wien',
