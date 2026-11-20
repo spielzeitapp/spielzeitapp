@@ -1,7 +1,7 @@
 {
-  "scope": "Vereinsmarkt, manager, seller team contributions and cash ledger",
+  "scope": "Vereinsmarkt and manager including explicit outcomes, archive, permanent deletion, seller contributions and cash ledger",
   "common_sha256": {
-    "src/features/club/ClubExchange.tsx": "83cc5d480197a2059a910fe30d2491bfdbfa54913141091e60448968d01ae308",
+    "src/features/club/ClubExchange.tsx": "fe5580f020210f767c71aa07ee6ea3a21dcf2e45484042b37b0406b1d66e55ea",
     "src/features/club/MarketAccountSettings.tsx": "d31e725e2b4168cd95c215a6f529cf92155ff6d0d6fdf98fb8cfaefb6def3897",
     "src/features/club/MarketHomeScreenGuide.tsx": "4b3c285e3396d66e094ee05adea3b5f99576d0b5c733c208a435ad8c618c20cd",
     "src/features/club/MarketInstallDialog.tsx": "7719c9ec7f64de939c5df265f91d8a83716d9410af3169b1bfc63c656205cb20",
@@ -26,9 +26,11 @@
     "src/features/marketManager/MarketManagerPage.tsx": "89e474da1077bf8fbf94f1cf5cb5452678e705f7495e2bf93237d605feac1d0f",
     "src/features/marketManager/MarketQuickSwitch.tsx": "1dfeca551c384f5f663788fd9b793cf28692ba2adfcbce4d630ac25cb8811f1a",
     "src/features/marketManager/marketManager.css": "c859841eb2e1a8c05a80f917288aa80982e7945409e660a2adcf4c6fa9227936",
-    "src/features/marketManager/MarketManagerDashboard.tsx": "e8b4035e069bfa2e53085d8c9f28a145a9d0c44bbec6a998a419502194cd7507",
+    "src/features/marketManager/MarketManagerDashboard.tsx": "72505d742f91e06500c737f40f5d896293daac396fddca8dc9a5b23f1fa67f0c",
     "src/features/marketManager/MarketTeamCash.tsx": "3a4d0eddd1c5af955d13c55eb59da653370210e2123748f75fbdf858994dd5a8",
-    "src/features/marketManager/MarketManagerNav.tsx": "124873f356c82a93db9d5ee0ead9e2dd96e4e375c72d709f39d7190da71182b7"
+    "src/features/marketManager/MarketManagerNav.tsx": "124873f356c82a93db9d5ee0ead9e2dd96e4e375c72d709f39d7190da71182b7",
+    "src/features/club/ListingCompletionDialog.tsx": "55edf063c38ceedcad6bf68290280a69a92c584a429aa97756906f70a97bed8c",
+    "src/features/club/listingCompletion.css": "14d8d9371a8f62de11a5389a05e6f8158b0fef67ee29bd42fc6fad0faa287857"
   },
   "intentional_differences": [
     "TEST environment label, club IDs, users, offers and credentials",
