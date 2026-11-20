@@ -94,7 +94,7 @@ export function ManagerClubsPage(): React.ReactElement {
     setShowCreate(false);
     setName('');
     setShortName('');
-    navigate(`/manager/vereine/${encodeURIComponent(res.data.id)}`);
+    navigate(`/manager/vereine/${encodeURIComponent(res.data.id)}#club-oefb-import`);
   }
 
   return (
@@ -156,6 +156,7 @@ export function ManagerClubsPage(): React.ReactElement {
           className="scroll-mt-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
         >
           <h2 className="text-[16px] font-semibold text-slate-900">Neuen Verein anlegen</h2>
+          <p className="mt-2 text-sm text-slate-700">Nach dem Speichern öffnet sich der ÖFB-Import. Dort kannst du die Mannschaften für eine Saison suchen und auswählen.</p>
           <div className="mt-3 rounded-xl border border-red-200 bg-red-50/70 p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
@@ -198,7 +199,7 @@ export function ManagerClubsPage(): React.ReactElement {
               disabled={busy}
               className="inline-flex min-h-[44px] items-center rounded-full bg-red-700 px-4 text-[13px] font-semibold text-white hover:bg-red-800 disabled:opacity-60"
             >
-              {busy ? 'Speichern…' : 'Anlegen'}
+              {busy ? 'Speichern…' : 'Anlegen und zum ÖFB-Import'}
             </button>
             <button
               type="button"
@@ -266,6 +267,14 @@ export function ManagerClubsPage(): React.ReactElement {
                     >
                       Verein öffnen
                     </Link>
+                    {row.status === 'active' && (
+                      <Link
+                        to={`/manager/vereine/${encodeURIComponent(row.id)}#club-oefb-import`}
+                        className="ml-4 inline-flex min-h-[40px] items-center font-semibold text-red-700 hover:text-red-800"
+                      >
+                        ÖFB-Import
+                      </Link>
+                    )}
                   </td>
                 </tr>
               ))}

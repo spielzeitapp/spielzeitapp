@@ -21,7 +21,9 @@ try{
  const team={key:'U12-1',name:'U12',rosterUrl:'https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2026-27/U12-1/Kader/',scheduleUrl:'https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2026-27/U12-1/Spiele/',tableUrl:'https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2026-27/U12-1/Tabellen/'};
  globalThis.fetch=async()=>({ok:true,json:async()=>({teams:[team],notice:'Found'})});
  const button=text=>tree.root.findAllByType('button').find(b=>b.children.join('').includes(text));
- await Test.act(async()=>tree.root.findByProps({type:'url'}).props.onChange({target:{value:'https://vereine.oefb.at/USCRohrbach/'}}));
+ await Test.act(async()=>tree.root.findByProps({type:'url'}).props.onChange({target:{value:'https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2025-26'}}));
+ assert.equal(tree.root.findAllByType('input').find(i=>i.props.placeholder==='2026/27').props.value,'2025/26');
+ await Test.act(async()=>tree.root.findAllByType('input').find(i=>i.props.placeholder==='2026/27').props.onChange({target:{value:'2026/27'}}));
  await Test.act(async()=>{button('Mannschaften suchen').props.onClick();await new Promise(resolve=>setTimeout(resolve,0));});assert.equal(globalThis.__writes,0);
  assert.equal(tree.root.findByProps({'data-import-status':'open'}).props.className.includes('bg-red-50'),true);
  const checks=()=>tree.root.findAllByProps({type:'checkbox'});
