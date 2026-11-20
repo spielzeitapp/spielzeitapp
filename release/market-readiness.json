@@ -30,7 +30,8 @@
     "src/features/marketManager/MarketTeamCash.tsx": "3a4d0eddd1c5af955d13c55eb59da653370210e2123748f75fbdf858994dd5a8",
     "src/features/marketManager/MarketManagerNav.tsx": "124873f356c82a93db9d5ee0ead9e2dd96e4e375c72d709f39d7190da71182b7",
     "src/features/club/ListingCompletionDialog.tsx": "a2814269cff1eba5fdb80da7b7064b97a09cbdf4f38aef581d26ee92b6b5d663",
-    "src/features/club/listingCompletion.css": "14d8d9371a8f62de11a5389a05e6f8158b0fef67ee29bd42fc6fad0faa287857"
+    "src/features/club/listingCompletion.css": "14d8d9371a8f62de11a5389a05e6f8158b0fef67ee29bd42fc6fad0faa287857",
+    "src/features/club/ExchangePhotoGallery.css": "bd28b0fa94220b66d99e702c2534727a23613ff99f0e94f1dec4bbbd94a9d1bc"
   },
   "intentional_differences": [
     "TEST environment label, club IDs, users, offers and credentials",
