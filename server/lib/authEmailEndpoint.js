@@ -1,3 +1,4 @@
+import {enqueueSignupMail} from './authSignupMailQueue.js';
 import {hookKey,verifyHook,buildAuthEmails,authEmailProject} from './authEmailHook.js';
 import {isDirectMailConfigured,getWorld4YouSmtpConfig,sendDirectInviteEmail} from './sendParentInviteEmail.js';
 export default async function handler(req,res){
@@ -34,6 +35,10 @@ export default async function handler(req,res){
  }
  try{
   const emails=buildAuthEmails(payload,project);
+  if(payload.email_data.email_action_type==='signup'){
+   const queued=await enqueueSignupMail(project,secret,req.headers['webhook-id'],payload,emails[0]);
+   if(queued)return res.status(200).json({});
+  }
   for(const mail of emails){const result=await sendDirectInviteEmail(mail);if(!result.ok)throw Error('Delivery failed');}
   return res.status(200).json({});
  }catch{return res.status(503).json({error:{http_code:503,message:'E-Mail konnte nicht versendet werden. Bitte erneut versuchen.'}});}

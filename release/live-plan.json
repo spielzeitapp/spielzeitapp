@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "migrations": {
+    "supabase/migrations/20261120101500_auth_signup_mail_outbox.sql": "9b0c712b7a5be7a07367e1cb200db12d55d335c1",
     "supabase/migrations/20260929130000_pending_team_staff_invites.sql": "3be21a1f19fa51881001246636eff89af332df9b",
     "supabase/migrations/20260929160000_lock_down_onboarding_rpcs.sql": "7f18327f0fa3ec4991c6a26917920ec24f20cd59",
     "supabase/migrations/20261001120000_platform_registered_users_dashboard.sql": "f332f90e7d42c7b4c9bf21670913891ed34183f7",
