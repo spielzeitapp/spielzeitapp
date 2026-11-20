@@ -307,8 +307,11 @@ export const RegisterPage: React.FC = () => {
       const { data, error: signUpError } = result;
 
       if (signUpError) {
-        setError(authErrorMessage(signUpError));
-        setMessage({ type: 'error', text: authErrorMessage(signUpError) });
+        setError(
+          signUpError.code === 'hook_timeout' || signUpError.code === 'email_send_failed'
+            ? 'Die Bestätigungsmail konnte gerade nicht versendet werden. Bitte versuche es später erneut.'
+            : authErrorMessage(signUpError),
+        );
         setLoading(false);
         return;
       }
@@ -354,7 +357,6 @@ export const RegisterPage: React.FC = () => {
     } catch (err) {
       const msg = authErrorMessage(err instanceof Error ? err : {message:String(err)});
       setError(msg);
-      setMessage({ type: 'error', text: msg });
       setLoading(false);
     }
   };
