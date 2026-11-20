@@ -29,7 +29,7 @@
     "src/features/marketManager/MarketManagerDashboard.tsx": "72505d742f91e06500c737f40f5d896293daac396fddca8dc9a5b23f1fa67f0c",
     "src/features/marketManager/MarketTeamCash.tsx": "3a4d0eddd1c5af955d13c55eb59da653370210e2123748f75fbdf858994dd5a8",
     "src/features/marketManager/MarketManagerNav.tsx": "124873f356c82a93db9d5ee0ead9e2dd96e4e375c72d709f39d7190da71182b7",
-    "src/features/club/ListingCompletionDialog.tsx": "55edf063c38ceedcad6bf68290280a69a92c584a429aa97756906f70a97bed8c",
+    "src/features/club/ListingCompletionDialog.tsx": "a2814269cff1eba5fdb80da7b7064b97a09cbdf4f38aef581d26ee92b6b5d663",
     "src/features/club/listingCompletion.css": "14d8d9371a8f62de11a5389a05e6f8158b0fef67ee29bd42fc6fad0faa287857"
   },
   "intentional_differences": [

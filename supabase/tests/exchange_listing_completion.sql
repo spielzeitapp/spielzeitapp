@@ -56,6 +56,12 @@ begin
  insert into public.exchange_listings(id,club_id,owner_id,title,category,size,condition,offer,price,team_fund_split,status,photo_paths) values(l2,c,s,'Team archive synthetic','Pulli','128','Gut','Fürs Team',5,jsonb_build_array(jsonb_build_object('team_id',t,'amount_cents',500)),'Verfügbar',array[c::text||'/'||s::text||'/'||l2::text||'/team.jpg']);
  perform public.exchange_listing_finish(l2,0,'team','archive');r:=public.exchange_fund_detail(l2);
  if r->'pledge'->>'status'<>'pending' then raise exception 'Team archive did not create pending pledge';end if;
+ -- A cancelled archived pledge must not reappear when the archived listing is deleted.
+ p:=(r->'pledge'->>'id')::uuid;perform public.exchange_fund_cancel(p);
+ select revision into rev from public.exchange_listings where id=l2;
+ perform public.exchange_listing_finish(l2,rev,'team','delete');
+ perform set_config('request.jwt.claim.sub',a::text,true);r:=public.exchange_fund_dashboard(c);
+ if exists(select 1 from jsonb_array_elements(r->'pending') x where x->>'title'='Team archive synthetic') then raise exception 'Deleting archive revived cancelled pledge';end if;
  if has_function_privilege('anon','public.exchange_listing_finish(uuid,integer,text,text)','execute') then raise exception 'Anonymous finish exposed';end if;
  denied:=false;begin perform 1 from private.exchange_listing_outcomes;exception when insufficient_privilege then denied:=true;end;if not denied then raise exception 'Private outcome records exposed';end if;
 end $completion$;

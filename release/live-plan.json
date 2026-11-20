@@ -71,7 +71,8 @@
     "supabase/migrations/20261119191334_exchange_cash_explicit_access.sql": "d973add00292d1733e5233c6a756ce57ebcc89d7",
     "supabase/migrations/20261119232238_exchange_fund_seller_handover.sql": "d9665c73bb692b2c2b86337819cccaafaee7fb71",
     "supabase/migrations/20261120082251_exchange_listing_completion.sql": "6477dab49934718779af8b5673acc7dbeaa33b56",
-    "supabase/migrations/20261120082803_exchange_completion_revision_guard.sql": "9b211d8f87aac43f69c679e5ff8ca59747501797"
+    "supabase/migrations/20261120082803_exchange_completion_revision_guard.sql": "9b211d8f87aac43f69c679e5ff8ca59747501797",
+    "supabase/migrations/20261120083138_exchange_completion_cancelled_fund.sql": "72e973e634b7c8571df8cefde8d5033662602f4e"
   },
   "functions": {
     "supabase/functions/generate-club-communications/index.ts": "8f84887c9197b0bcc6c050e436b211dca44a01e8"

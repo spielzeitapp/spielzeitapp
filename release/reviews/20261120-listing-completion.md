@@ -8,7 +8,7 @@ Outcome records store only random record UUID, listing UUID while the listing ex
 
 Verification:
 - LIVE affected listing columns, constraints, FK cascades, functions and RLS inspected read-only before changes.
-- Exact two migrations applied first to TEST acbaecjzoabafbsjrzvr, then LIVE shxugattqatahckhspwk.
+- Exact three migrations applied first to TEST acbaecjzoabafbsjrzvr, then LIVE shxugattqatahckhspwk.
 - LIVE second apply initially hit migration-history same-second version collision, then applied successfully in a later second; no SQL was rewritten. Null-revision follow-up remains an explicit separate migration.
 - exchange_listing_completion.sql PASS on both DBs under actual authenticated role in rolled-back synthetic transactions: seller ownership, unauthorized user and statistics access, stale/null revision, incompatible outcome, draft-only withdrawal, archive/delete, archived republish denial, immutable recorded outcome, anonymous counts retained after delete and no duplicates, existing pending fund pledge retained and confirmable after deletion, receipt dedup, atomic new team archive, anonymous and direct private table access denied. No real listings or receipts modified.
 - LIVE ACL verification: anonymous finish false, client trigger execute false, direct private statistics rows false, public RPC is invoker.
@@ -16,3 +16,5 @@ Verification:
 - Existing team-fund and manager dashboard tests pass. Additional manager/saved-provider integration, TypeScript and production builds run before publication.
 
 New migration Git blob hashes added to release/live-plan.json only after LIVE role checks passed. No complete physical-device click-through or real-person handover is claimed. Existing TEST-only shop and unrelated branch differences remain unchanged.
+
+Final edge-case follow-up 20261120083138 applied and actual-role SQL suite passed on both environments: deleting an archived team sale after its pending contribution was cancelled does not create a replacement pledge. UI treats the stored archived sale as an existing completion, not a fresh payment declaration. Final TypeScript, component checks and builds repeated for changed UI.
