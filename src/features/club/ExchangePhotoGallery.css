@@ -47,3 +47,10 @@ html[data-market-theme=light] .market-photo-empty{color:#625b68}
 .listing-club{border-block:1px solid #8883;padding:16px 0;font-weight:700}
 .public-exchange .public-market-cta{display:flex;align-items:center;gap:10px;width:100%;margin-top:18px}
 @media(min-width:501px){.public-exchange main.exchange{--listing-gutter:24px}}
+
+/* The image's intrinsic/screenshot height must never stretch the hero or its grid. */
+.public-exchange .exchange:has(>.market-photo-gallery){padding-top:0}
+.market-photo-gallery .market-photo-rail{height:min(125vw,60dvh,640px);min-height:220px}
+.market-photo-gallery .market-photo-slide{position:relative;height:100%;min-height:0;max-height:none;aspect-ratio:auto;overflow:hidden}
+.market-photo-gallery .market-photo-slide>img{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;object-position:center}
+.market-photo-gallery .market-photo-slide>.market-photo-empty{height:100%;min-height:0;box-sizing:border-box}
