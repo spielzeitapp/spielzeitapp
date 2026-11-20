@@ -40,7 +40,7 @@ export function readableAccentOnDark(hex: string): string {
   return '255 255 255';
 }
 
-/** Branding des Vereins laden, zu dem die aktuell betrachtete Mannschaftssaison gehört. */
+/** Mannschaftsdesign laden oder auf das Design des zugehörigen Vereins zurückfallen. */
 export async function getClubBrandingForTeamSeason(teamSeasonId: string): Promise<{ data: ClubBranding | null; error: string | null }> {
   const { data: teamSeason, error: teamSeasonError } = await supabase
     .from('team_seasons')
@@ -53,11 +53,13 @@ export async function getClubBrandingForTeamSeason(teamSeasonId: string): Promis
 
   const { data: team, error: teamError } = await supabase
     .from('teams')
-    .select('club_id')
+    .select('club_id, team_branding_overrides(logo_url, primary_color, secondary_color, accent_color)')
     .eq('id', teamId)
     .maybeSingle();
   if (teamError) return { data: null, error: teamError.message };
-  const clubId = (team as { club_id?: string | null } | null)?.club_id;
+  const teamBranding = team?.team_branding_overrides as ClubBranding | null | undefined;
+  if (teamBranding) return { data: teamBranding, error: null };
+  const clubId = team?.club_id;
   if (!clubId) return { data: null, error: null };
 
   const { data: club, error: clubError } = await supabase
