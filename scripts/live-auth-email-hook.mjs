@@ -1,6 +1,7 @@
+import { createHmac, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import nodemailer from 'nodemailer';
-import { LIVE_REF, LIVE_ORIGIN } from '../server/lib/authEmailHook.js';
+import { hookKey, LIVE_REF, LIVE_ORIGIN } from '../server/lib/authEmailHook.js';
 
 const token = process.env.SUPABASE_ACCESS_TOKEN;
 if (!token) throw new Error('Missing Supabase access token');
@@ -36,6 +37,43 @@ if (!before.smtp_host || !before.smtp_user || !before.smtp_pass || !before.smtp_
   throw new Error('LIVE custom SMTP settings are incomplete');
 }
 
+async function checkExistingMailService() {
+  if (!before.hook_send_email_enabled) return;
+
+  try {
+    const keys = await management('/api-keys');
+    const serviceRole = keys.find((key) => key.name === 'service_role')?.api_key;
+    if (!serviceRole) throw new Error('Missing project server key');
+
+    const payload = JSON.stringify({ probe: true, setup: true });
+    const id = randomUUID();
+    const timestamp = String(Math.floor(Date.now() / 1000));
+    const signature = createHmac('sha256', hookKey(serviceRole, LIVE_REF))
+      .update(id + '.' + timestamp + '.' + payload).digest('base64');
+    const started = performance.now();
+    const result = await fetch(currentHook, {
+      method: 'POST',
+      redirect: 'error',
+      signal: AbortSignal.timeout(12000),
+      headers: {
+        Authorization: 'Bearer ' + serviceRole,
+        'Content-Type': 'application/json',
+        'webhook-id': id,
+        'webhook-timestamp': timestamp,
+        'webhook-signature': 'v1,' + signature,
+      },
+      body: payload,
+    });
+    const { ok } = await result.json().catch(() => ({}));
+    console.log('Existing LIVE mail service probe', JSON.stringify({
+      status: result.status, ready: ok === true, milliseconds: Math.round(performance.now() - started),
+      smtpPasswordRedacted: /^([*•]+|<redacted>|redacted)$/i.test(before.smtp_pass),
+    }));
+  } catch {
+    console.log('Existing LIVE mail service probe could not complete.');
+  }
+}
+
 const transport = nodemailer.createTransport({
   host: before.smtp_host,
   port,
@@ -50,6 +88,7 @@ const transport = nodemailer.createTransport({
 try {
   await transport.verify();
 } catch (error) {
+  await checkExistingMailService();
   const code = String(error?.code ?? '');
   throw new Error('LIVE SMTP connection or authentication failed' + (/^[A-Z0-9_]+$/.test(code) ? ': ' + code : ''));
 } finally {
