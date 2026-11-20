@@ -1,7 +1,7 @@
 /** Internal training only. No matches, feed posts or league statistics are created. */
 export type HallTeam = { name: string; playerIds: string[] };
 export type HallGoal = { team: number; second: number; ownGoal?: boolean; timeUnknown?: boolean; scorerId?: string; scorerName?: string };
-export type HallGame = { startedAt?: number; finishedAt?: number; originalSeconds?: number; participation?: Record<string, HallParticipation>; seconds?: number; home: number; away: number; status: 'pending' | 'running' | 'paused' | 'finished'; elapsed: number; runningSince: number | null; goals: HallGoal[] };
+export type HallGame = { withdrawn?: string[]; reliefTeams?: Record<string, number>; startedAt?: number; finishedAt?: number; originalSeconds?: number; participation?: Record<string, HallParticipation>; seconds?: number; home: number; away: number; status: 'pending' | 'running' | 'paused' | 'finished'; elapsed: number; runningSince: number | null; goals: HallGoal[] };
 export type HallExtraPlayer = { id: string; name: string; kind: 'guest' | 'club'; team?: string };
 export type HallDay = { extraPlayers?: HallExtraPlayer[]; plannedStartTime?: string; version: 1; teams: HallTeam[]; format: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11; total: number; pause: number; target: number; cycles: number; seconds: number; buffer: number; games: HallGame[] };
 export const HALL_COLORS = ['#fb425c', '#419cff', '#facc15', '#4ade80'];
@@ -123,8 +123,9 @@ export function prepareHallPlayers(day: HallDay, index: number): HallDay {
  if (game.participation) return next;
  const times = new Map(hallPlayerTimes(day).players.map(p => [p.id, p.seconds]));
  game.participation = {};
+ const withdrawn = new Set(day.games.slice(0, index).flatMap(g => g.withdrawn ?? []));
  for (const team of [game.home,game.away]) {
-  const roster = [...day.teams[team].playerIds];
+  const roster = day.teams[team].playerIds.filter(id => !withdrawn.has(id));
   const on = [...roster].sort((a,b) => (times.get(a) ?? 0)-(times.get(b) ?? 0)).slice(0,day.format);
   game.participation[team] = { roster, stints: [{ second: 0, on }] };
  }
@@ -133,11 +134,60 @@ export function prepareHallPlayers(day: HallDay, index: number): HallDay {
 export function changeHallPlayers(day: HallDay, index: number, team: number, on: string[], now = Date.now()): HallDay {
  const next = structuredClone(day), game = next.games[index], p = game?.participation?.[team];
  if (!game || !p || ![game.home,game.away].includes(team) || !['pending','running','paused'].includes(game.status)) throw new Error('Wechsel für dieses Spiel nicht möglich.');
- if (new Set(on).size !== on.length || on.length < day.format || on.length > day.format+1 || on.some(id => !p.roster.includes(id))) throw new Error('Bitte vollständige Aufstellung wählen (höchstens ein Zusatzspieler).');
+ const minimum = Math.min(day.format, p.stints.at(-1)!.on.length);
+ if (new Set(on).size !== on.length || on.length < minimum || on.length > day.format+1 || on.some(id => !p.roster.includes(id) || !hallCanPlay(game, team, id))) throw new Error('Bitte vollständige Aufstellung wählen (höchstens ein Zusatzspieler).');
  const second = game.status === 'pending' ? 0 : hallElapsed(game,hallGameSeconds(day,game),now);
  if (second >= hallGameSeconds(day,game)) throw new Error('Spielzeit abgelaufen.');
- if (p.stints.at(-1)!.second === second) p.stints[p.stints.length-1] = {second,on:[...on]};
- else p.stints.push({second,on:[...on]});
+ recordHallStint(p, second, on);
+ return next;
+}
+
+function recordHallStint(participation: HallParticipation, second: number, on: string[]) {
+ const last = participation.stints.at(-1)!;
+ if (second < last.second) throw new Error('Spieluhr aktualisieren und erneut versuchen.');
+ if (last.second === second) participation.stints[participation.stints.length - 1] = { second, on };
+ else participation.stints.push({ second, on });
+}
+
+export function hallCanPlay(game: HallGame, team: number, playerId: string): boolean {
+ return !game.withdrawn?.includes(playerId)
+  && (game.reliefTeams?.[playerId] === undefined || game.reliefTeams[playerId] === team);
+}
+
+export function hallReliefCandidates(day: HallDay, index: number, destination: number) {
+ const game = day.games[index];
+ const withdrawn = new Set(day.games.slice(0, index + 1).flatMap(g => g.withdrawn ?? []));
+ if (!game?.participation) return [];
+ return day.teams.flatMap((team, source) => {
+  if (source === destination) return [];
+  const participation = game.participation?.[source];
+  return (participation?.roster ?? team.playerIds)
+   .filter(id => !withdrawn.has(id) && hallCanPlay(game, source, id))
+   .map(id => ({ id, source, onField: participation?.stints.at(-1)?.on.includes(id) ?? false }));
+ });
+}
+
+/** Apply both sides of a relief substitution at one clock position. */
+export function relieveHallPlayer(day: HallDay, index: number, team: number, outgoing: string, incoming: string, now = Date.now()): HallDay {
+ const game = day.games[index];
+ const on = game?.participation?.[team]?.stints.at(-1)?.on;
+ if (!game || !on?.includes(outgoing) || !['running', 'paused'].includes(game.status)) throw new Error('Aushilfe ist nur für das laufende Spiel möglich.');
+ const candidate = hallReliefCandidates(day, index, team).find(player => player.id === incoming);
+ if (!candidate) throw new Error('Dieser Spieler ist für die Aushilfe nicht verfügbar.');
+ const duration = hallGameSeconds(day, game);
+ const second = hallElapsed(game, duration, now);
+ if (second >= duration) throw new Error('Spielzeit abgelaufen.');
+ const next = structuredClone(day);
+ const match = next.games[index];
+ const destination = match.participation![team];
+ const source = match.participation![candidate.source];
+ if (!destination.roster.includes(incoming)) destination.roster.push(incoming);
+ if (candidate.onField && source) {
+  recordHallStint(source, second, source.stints.at(-1)!.on.filter(id => id !== incoming));
+ }
+ recordHallStint(destination, second, on.map(id => id === outgoing ? incoming : id));
+ match.withdrawn = [...(match.withdrawn ?? []), outgoing];
+ match.reliefTeams = { ...match.reliefTeams, [incoming]: team };
  return next;
 }
 
