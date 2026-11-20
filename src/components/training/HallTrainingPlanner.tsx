@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Lock, Play, Pause, Shirt, Undo2, Volume2, VolumeX, Goal, Trophy, Crown, Clock3, Trash2, ChevronDown, BarChart3, UserPlus } from 'lucide-react';
 import { Modal } from '../../app/ui/Modal';
 import { useDemoMode } from '../../demo/DemoContext';
-import { hallTiming, fitHallRemaining, calculateTrainingPlan, hallTimeMinutes, hallTimeAfter, hallWindowMinutes, creditHallFullDuration, hallPlayerTimes, prepareHallPlayers, changeHallPlayers, withHallFirstPairing, hallGameSeconds, hallPlanSeconds, withHallGameDuration, hallScorers, calculateHallSchedule, createHallDay, hallClock, hallElapsed, hallReady, hallScore, hallStandings, HALL_COLORS, HALL_NAMES, type HallDay, type HallExtraPlayer } from '../../lib/hallTraining';
+import { hallTiming, fitHallRemaining, calculateTrainingPlan, hallTimeMinutes, hallTimeAfter, hallWindowMinutes, creditHallFullDuration, hallPlayerTimes, prepareHallPlayers, changeHallPlayers, relieveHallPlayer, hallReliefCandidates, hallCanPlay, withHallFirstPairing, hallGameSeconds, hallPlanSeconds, withHallGameDuration, hallScorers, calculateHallSchedule, createHallDay, hallClock, hallElapsed, hallReady, hallScore, hallStandings, HALL_COLORS, HALL_NAMES, type HallDay, type HallExtraPlayer } from '../../lib/hallTraining';
 import * as hallStore from '../../lib/hallTrainingStore';
 import { TC_CARD } from '../tournament/tournamentCenterStyles';
 import './hallMatchScreen.css';
@@ -268,12 +268,24 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds: 
     setOutgoing(null);
     setNow(Date.now());
   };
+  const goalPickerGame = goalPicker ? day.games[goalPicker.game] : null;
+  const goalPickerTeam = goalPicker?.ownGoal && goalPickerGame
+    ? (goalPickerGame.home === goalPicker.team ? goalPickerGame.away : goalPickerGame.home)
+    : goalPicker?.team ?? 0;
+  const saveRelief = async (team: number, incoming: string) => {
+    if (!outgoing || dirty || configDirty || busy || readOnly) return;
+    try {
+      if (await persist(relieveHallPlayer(day, activeIndex, team, outgoing, incoming))) setOutgoing(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Aushilfe konnte nicht gespeichert werden.');
+    }
+  };
+  const goalScorerIds = goalPickerGame?.participation?.[goalPickerTeam]?.roster ?? day.teams[goalPickerTeam]?.playerIds ?? [];
   const saveGoalScorer = async (scorerId?: string) => {
     if (!goalPicker || busy || saving.current || readOnly || dirty || configDirty) return;
     const next = structuredClone(day), game = next.games[goalPicker.game];
     if (!game || ![game.home, game.away].includes(goalPicker.team)) return;
-    const scorerTeam = goalPicker.ownGoal ? (game.home === goalPicker.team ? game.away : game.home) : goalPicker.team;
-    if (scorerId && !day.teams[scorerTeam].playerIds.includes(scorerId)) return;
+    if (scorerId && !goalScorerIds.includes(scorerId)) return;
     const goal = { team: goalPicker.team, second: goalPicker.second, ...(goalPicker.timeUnknown ? { timeUnknown: true } : {}), ...(goalPicker.ownGoal ? { ownGoal: true } : {}), ...(scorerId ? { scorerId, scorerName: names.get(scorerId) ?? 'Spieler' } : {}) };
     if (goalPicker.goal !== undefined) {
       if (!game.goals[goalPicker.goal]) return;
@@ -437,7 +449,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds: 
           <p>{goalPicker.goal === undefined ? (day.games[goalPicker.game].status === 'finished' ? 'Tor nachtragen. Die ursprüngliche Torzeit ist nicht erfasst.' : 'Torzeit ist vorgemerkt. Die Spieluhr läuft weiter.') : 'Spielstand und Torzeit bleiben erhalten.'}</p>
           <button type="button" className="hall-match-button" aria-pressed={Boolean(goalPicker.ownGoal)} disabled={busy} onClick={() => setGoalPicker({ ...goalPicker, ownGoal: !goalPicker.ownGoal })}>Eigentor {goalPicker.ownGoal ? '✓' : ''}</button>
           {goalPicker.ownGoal ? <p>Eigentor des Gegners · zählt für {day.teams[goalPicker.team].name}. Kein Treffer in der Torschützenwertung.</p> : null}
-          <div className="hall-scorer-options">{day.teams[goalPicker.ownGoal ? (day.games[goalPicker.game].home === goalPicker.team ? day.games[goalPicker.game].away : day.games[goalPicker.game].home) : goalPicker.team].playerIds.map(id => <button type="button" key={id} disabled={busy} onClick={() => void saveGoalScorer(id)}><span style={{ color: HALL_COLORS[goalPicker.team] }}><Shirt size={21} aria-hidden /></span>{names.get(id) ?? 'Spieler'}</button>)}</div>
+          <div className="hall-scorer-options">{goalScorerIds.map(id => <button type="button" key={id} disabled={busy} onClick={() => void saveGoalScorer(id)}><span style={{ color: HALL_COLORS[goalPicker.team] }}><Shirt size={21} aria-hidden /></span>{names.get(id) ?? 'Spieler'}</button>)}</div>
           <button type="button" className="hall-match-button hall-match-primary" disabled={busy} onClick={() => void saveGoalScorer()}>Ohne Torschützen speichern</button>
           <button type="button" className="hall-match-text-button" disabled={busy} onClick={() => setGoalPicker(null)}>Abbrechen</button>
         </section> : null}
@@ -460,7 +472,64 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds: 
           <div className="hall-match-history"><h4>Spielverlauf <span>{current.goals.length} Tore</span></h4>{goalHistory(activeIndex)}</div>
         </section> : null}
         {!readOnly ? <div className="hall-sound-toolbar"><button type="button" className={`hall-sound-round ${soundEnabled ? 'is-on' : ''}`} aria-label={`Schlusssirene ${soundEnabled ? 'ausschalten' : 'einschalten'}`} aria-pressed={soundEnabled} onClick={async () => { if (soundEnabled) { setSoundEnabled(false); armedGame.current = null; } else { setSoundEnabled(true); const context = await prepareSound(); if (context && current?.status === 'running' && elapsed < matchSeconds) armedGame.current = gameKey; } }}>{soundEnabled ? <Volume2 size={23} aria-hidden /> : <VolumeX size={23} aria-hidden />}</button><div><strong>Schlusssirene {soundEnabled ? 'ein' : 'aus'}</strong><p>App geöffnet und Bildschirm eingeschaltet lassen.</p></div><button type="button" className="hall-match-text-button" onClick={async () => { const context = await prepareSound(); if (context) { playSiren(context); if (soundEnabled && current?.status === 'running') armedGame.current = gameKey; } }}>Ton testen</button>{soundError ? <p role="status">{soundError}</p> : null}</div> : null}
-        {current ? <section className="hall-player-panel"><h3>Aufstellung & Wechsel</h3>{!current.participation ? <p>Für dieses bereits gestartete Spiel wurden keine Einsatzzeiten erfasst. Erfassung beginnt ab dem nächsten Spiel.</p> : [current.home,current.away].map(team => { const p = current.participation![team], on = p.stints[p.stints.length-1].on; return <div key={team} className="hall-player-team" style={{ '--team-color': HALL_COLORS[team] } as React.CSSProperties}><h4>{day.teams[team].name} · {on.length} am Feld</h4><div className="hall-player-chips">{on.map(id => <button key={id} type="button" aria-pressed={outgoing === id} disabled={readOnly || busy || elapsed >= matchSeconds} onClick={() => setOutgoing(outgoing === id ? null : id)}>{names.get(id) ?? 'Spieler'}{outgoing === id ? ' · Raus' : ''}</button>)}</div><p>Bank · zuerst Spieler am Feld, dann Ersatz antippen</p><div className="hall-player-chips">{p.roster.filter(id => !on.includes(id)).map(id => <div key={id}><button type="button" disabled={readOnly || busy || !outgoing || !on.includes(outgoing) || elapsed >= matchSeconds} onClick={async () => { if (!outgoing || dirty || configDirty) return; if (await persist(changeHallPlayers(day,activeIndex,team,on.map(x => x === outgoing ? id : x)))) setOutgoing(null); }}>{names.get(id) ?? 'Spieler'} · Rein</button>{on.length === day.format ? <button type="button" disabled={readOnly || busy || elapsed >= matchSeconds} aria-label={`Zusatzspieler ${names.get(id) ?? id}`} onClick={() => { if (!dirty && !configDirty) void persist(changeHallPlayers(day,activeIndex,team,[...on,id])); }}>+ Zusatzspieler</button> : null}</div>)}</div>{on.length > day.format && outgoing && on.includes(outgoing) ? <button type="button" className="hall-match-button" disabled={readOnly || busy || elapsed >= matchSeconds} onClick={async () => { if (dirty || configDirty) return; if (await persist(changeHallPlayers(day,activeIndex,team,on.filter(x => x !== outgoing)))) setOutgoing(null); }}>Zusatzspieler auf Bank</button> : null}</div>; })}</section> : null}
+        {current ? <section className="hall-player-panel">
+          <h3>Aufstellung & Wechsel</h3>
+          {!current.participation ? <p>Für dieses bereits gestartete Spiel wurden keine Einsatzzeiten erfasst. Erfassung beginnt ab dem nächsten Spiel.</p> :
+            [current.home, current.away].map(team => {
+              const participation = current.participation![team];
+              const on = participation.stints.at(-1)!.on;
+              const bench = participation.roster.filter(id => !on.includes(id) && hallCanPlay(current, team, id));
+              const selected = outgoing !== null && on.includes(outgoing);
+              const disabled = readOnly || busy || elapsed >= matchSeconds;
+              const candidates = selected && !disabled
+                ? hallReliefCandidates(day, activeIndex, team).filter(player => availableIds.includes(player.id))
+                : [];
+              const changeLineup = async (lineup: string[]) => {
+                if (dirty || configDirty) return;
+                try {
+                  if (await persist(changeHallPlayers(day, activeIndex, team, lineup))) setOutgoing(null);
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : 'Wechsel konnte nicht gespeichert werden.');
+                }
+              };
+              return <div key={team} className="hall-player-team" style={{ '--team-color': HALL_COLORS[team] } as React.CSSProperties}>
+                <h4>{day.teams[team].name} · {on.length} am Feld</h4>
+                <div className="hall-player-chips">
+                  {on.map(id => <button key={id} type="button" aria-pressed={outgoing === id} disabled={disabled}
+                    onClick={() => setOutgoing(outgoing === id ? null : id)}>
+                    {names.get(id) ?? 'Spieler'}{outgoing === id ? ' · Raus' : ''}
+                  </button>)}
+                </div>
+                <p>Bank · zuerst Spieler am Feld, dann Ersatz antippen</p>
+                <div className="hall-player-chips">
+                  {bench.map(id => <div key={id}>
+                    <button type="button" disabled={disabled || !selected}
+                      onClick={() => void changeLineup(on.map(player => player === outgoing ? id : player))}>
+                      {names.get(id) ?? 'Spieler'} · Rein
+                    </button>
+                    {on.length <= day.format ? <button type="button" disabled={disabled}
+                      aria-label={on.length === day.format ? `Zusatzspieler ${names.get(id) ?? id}` : `${names.get(id) ?? id} aufs Feld`}
+                      onClick={() => void changeLineup([...on, id])}>
+                      {on.length === day.format ? '+ Zusatzspieler' : '+ Aufs Feld'}
+                    </button> : null}
+                  </div>)}
+                </div>
+                {on.length > day.format && selected ? <button type="button" className="hall-match-button" disabled={disabled}
+                  onClick={() => void changeLineup(on.filter(id => id !== outgoing))}>Zusatzspieler auf Bank</button> : null}
+                {selected && !readOnly && elapsed < matchSeconds ? <details className="hall-settings mt-3">
+                  <summary>Verletzt raus · Aushilfe aus anderem Team</summary>
+                  <div className="space-y-2 p-3">
+                    <p>{names.get(outgoing!) ?? 'Spieler'} pausiert für den restlichen Hallenspieltag. Die Aushilfe gilt für dieses Spiel.</p>
+                    {candidates.map(({ id, source, onField }) => <button key={id} type="button" className="hall-match-button w-full"
+                      disabled={disabled || dirty || configDirty} onClick={() => void saveRelief(team, id)}>
+                      {names.get(id) ?? 'Spieler'} · {day.teams[source].name} → {day.teams[team].name}{onField ? ' (vom Feld)' : ''}
+                    </button>)}
+                    {!busy && candidates.length === 0 ? <p>Kein Spieler aus einem anderen Team verfügbar.</p> : null}
+                  </div>
+                </details> : null}
+              </div>;
+            })}
+        </section> : null}
         {nextIndex >= 0 && activeIndex < 0 ? <div className="hall-next-match">
           <span className="hall-match-eyebrow">NÄCHSTES SPIEL · {nextIndex + 1} / {day.games.length}</span>
           <h3><span className="hall-pairing-team" style={{ color: HALL_COLORS[day.games[nextIndex].home] }}>{day.teams[day.games[nextIndex].home].name}</span> <span>–</span> <span className="hall-pairing-team" style={{ color: HALL_COLORS[day.games[nextIndex].away] }}>{day.teams[day.games[nextIndex].away].name}</span></h3>
