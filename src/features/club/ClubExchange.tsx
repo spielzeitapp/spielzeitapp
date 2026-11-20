@@ -1,3 +1,4 @@
+import {ListingCompletionDialog,removeListingPhotos} from './ListingCompletionDialog';
 import {TeamFundFields,TeamFundDetail,type FundRow} from './TeamFundFields';
 import {buildFundSplit,fundPrice,type FundSplit} from './teamFund';
 import {ListingPhotoActions} from './ListingPhotoActions';
@@ -17,7 +18,7 @@ import { ExchangeFilterSheet } from './ExchangeFilterSheet';
 import { isExchangeShoe, exchangeSizeSystem, exchangeSizeOptions, selectExchangeItems, type CatalogSort } from './exchangeCatalog';
 import './clubExchange.css';
 
-type Listing = { id: string; club_id: string; owner_id: string; owner_label: string; title: string; category: string; size: string; condition: string; offer: string; price: number | null; description: string; team_label: string; status: string; photo_paths: string[]; created_at: string; is_public?: boolean; revision: number; team_fund_split?: FundSplit[] };
+type Listing = { id: string; club_id: string; owner_id: string; owner_label: string; title: string; category: string; size: string; condition: string; offer: string; price: number | null; description: string; team_label: string; status: string; photo_paths: string[]; created_at: string; is_public?: boolean; revision: number; archived_at?: string|null; completion_outcome?: string|null; team_fund_split?: FundSplit[] };
 type Thread = { id: string; listing_id: string; requester_id: string; requester_label: string; requester_team_label?: string; created_at: string };
 type Message = { id: string; thread_id: string; sender_id: string; body: string; created_at: string };
 const conditions = ['Wie neu', 'Sehr gut', 'Gut', 'Gebraucht'];
@@ -69,6 +70,8 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   const [sort, setSort] = useState<CatalogSort>('newest');
   const [filterOpen, setFilterOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [closing,setClosing]=useState<Listing|null>(null);
+  const [completed,setCompleted]=useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [editingRevision, setEditingRevision] = useState(0);
   const [form, setForm] = useState(emptyForm);
@@ -136,7 +139,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   }, [clubId, userId, photos]);
   const loadRef = useRef(load); loadRef.current = load;
   useEffect(() => {
-    void loadRef.current(); void dispatchPush(true);
+    void loadRef.current(); void dispatchPush(true); void removeListingPhotos(userId);
     const interval = window.setInterval(() => { if (!document.hidden) void loadRef.current(); }, 15_000);
     return () => window.clearInterval(interval);
   }, [clubId, userId, dispatchPush]);
@@ -253,17 +256,16 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   };
   const status = (value: string) => act(async () => {
     if (!detail) return;
+    if(value==='Vergeben'){setClosing(detail);return;}
     const result = await supabase.from('exchange_listings').update({ status: value }).eq('id', detail.id).eq('owner_id', userId).eq('revision', detail.revision).select('id').single();
     if (result.error) throw Error('Status konnte nicht geändert werden.'); await loadRef.current();
   });
-  const remove = () => act(async () => {
-    if (!detail || !window.confirm('Inserat und zugehörige Chats endgültig löschen?')) return;
-    const paths = detail.photo_paths;
-    const result = await supabase.from('exchange_listings').delete().eq('id', detail.id).eq('owner_id', userId).eq('revision', detail.revision).select('id').single();
-    if (result.error) throw Error('Inserat konnte nicht gelöscht werden.');
-    if (paths.length) await supabase.storage.from('exchange-photos').remove(paths);
-    openThread(null); setDetailId(null); await loadRef.current();
-  });
+  const remove = () => { if(detail)setClosing(detail); };
+  const finishListing=async(deleted:boolean,message:string)=>{
+    setClosing(null);setDetailId(null);openThread(null);setView('mine');setCompleted(true);
+    setParams(previous=>{const next=new URLSearchParams(previous);next.delete('listing');next.delete('thread');next.set('mode','mine');return next;});
+    await loadRef.current();setNotice(message);
+  };
   const toggleBlock = () => act(async () => {
     if (!otherId) return;
     if (!isBlocked && !window.confirm('Diese Person für weitere Nachrichten in dem Vereinsmarkt blockieren?')) return;
@@ -275,7 +277,8 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   });
 
   const filters = {category,size,team,offer};
-  const shown = selectExchangeItems(items,view === 'mine' ? 'mine' : 'all',userId,filters,search,sort);
+  const scopedItems=items.filter(i=>view==='mine'?(completed?!!i.archived_at||i.status==='Vergeben':!i.archived_at&&i.status!=='Vergeben'):!i.archived_at);
+  const shown = selectExchangeItems(scopedItems,view === 'mine' ? 'mine' : 'all',userId,filters,search,sort);
   const filterCount = Object.values(filters).filter(Boolean).length;
   const clearFilters = () => { setCategory(''); setSize(''); setTeam(''); setOffer(''); };
   const previewFiles = files.map(file => ({ file, key: `${file.name}-${file.lastModified}-${file.size}` }));
@@ -291,10 +294,10 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
         
         <ExchangePhotoGallery key={detail.id} photos={detail.photo_paths.map(path=>photos[path]||'')} title={detail.title} actions={<ListingPhotoActions onBack={()=>{openThread(null);setDetailId(null);}} save={<SaveListingButton saved={marks.saved.has(detail.id)} busy={marks.loading||marks.pending.includes(detail.id)} onClick={()=>void marks.toggle(detail.id)}/>} shareUrl={detail.is_public?`/vereinsmarkt/${clubId}?view=suchen&listing=${detail.id}`:undefined}/>}/>
         <div className="exchange-item-head"><h3>{detail.title}</h3><strong>{priceLabel(detail)}</strong></div>
-        <dl className="listing-facts"><div><dt>Größe</dt><dd>{detail.size}</dd></div><div><dt>Zustand</dt><dd>{detail.condition}</dd></div><div><dt>Status</dt><dd>{detail.status}</dd></div></dl>
+        <dl className="listing-facts"><div><dt>Größe</dt><dd>{detail.size}</dd></div><div><dt>Zustand</dt><dd>{detail.condition}</dd></div><div><dt>Status</dt><dd>{detail.completion_outcome==='withdrawn'?'Entfernt':detail.archived_at?'Archiviert':detail.status}</dd></div></dl>
         <p className="exchange-owner">{detail.owner_label}{detail.team_label ? ` · ${detail.team_label}` : ''}</p><p className="exchange-description">{detail.description}</p>
-        {detail.offer==='Fürs Team'&&<TeamFundDetail key={detail.id} listingId={detail.id} revision={detail.revision} owner={myItem} onChanged={()=>loadRef.current()}/>}
-        {myItem && <div className="exchange-owner-tools"><button onClick={() => openEditor(detail)}>Bearbeiten</button><select aria-label="Status des Inserats" disabled={busy} value={detail.status} onChange={e => void status(e.target.value)}>{['Entwurf', 'Verfügbar', 'Reserviert', 'Vergeben'].filter(s => detail.offer!=='Fürs Team'||s!=='Vergeben'||detail.status==='Vergeben').map(s => <option key={s}>{s}</option>)}</select><button disabled={busy} onClick={() => void remove()}><Trash2 size={16} /> Löschen</button></div>}
+        {detail.offer==='Fürs Team'&&(!detail.archived_at||detail.completion_outcome==='team')&&<TeamFundDetail key={detail.id} listingId={detail.id} revision={detail.revision} owner={myItem} onChanged={()=>loadRef.current()}/>}
+        {myItem && <div className="exchange-owner-tools">{!detail.archived_at&&<><button onClick={() => openEditor(detail)}>Bearbeiten</button><select aria-label="Status des Inserats" disabled={busy} value={detail.status} onChange={e => void status(e.target.value)}>{['Entwurf', 'Verfügbar', 'Reserviert', 'Vergeben'].map(s => <option key={s}>{s}</option>)}</select></>}<button disabled={busy} onClick={()=>remove()}><Trash2 size={16}/>{detail.archived_at?'Endgültig löschen':'Abschließen / Entfernen'}</button></div>}
         {currentThread ? <div className="exchange-chat"><h3><LockKeyhole size={17} /> Privater Chat mit {myItem ? [currentThread.requester_label,currentThread.requester_team_label].filter(Boolean).join(' · ') : [detail.owner_label,detail.team_label].filter(Boolean).join(' · ')}</h3><p>Nur ihr beide seht diese Nachrichten.</p>
           <div className="exchange-messages" aria-label="Nachrichten">{messages.map(message => <div className={`exchange-message ${message.sender_id === userId ? 'exchange-message-own' : ''}`} key={message.id}><p>{message.body}</p><small>{stamp(message.created_at)}</small></div>)}{!messages.length && <p>Noch keine Nachrichten.</p>}</div>
           {isBlocked ? <p className="exchange-hint">Diese Person ist blockiert. Neue Nachrichten sind gesperrt.</p> : <><form onSubmit={e => { e.preventDefault(); void sendMessage(); }} className="exchange-compose"><label className="exchange-sr" htmlFor="exchange-reply">Nachricht</label><textarea id="exchange-reply" maxLength={2000} placeholder="Nachricht schreiben…" value={body} onChange={e => setBody(e.target.value)} /><button className="exchange-primary sz-club-primary" disabled={busy || !body.trim()} aria-label="Nachricht senden"><Send size={18} /></button></form>
@@ -304,6 +307,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
         </div> : myItem ? <div className="exchange-chat"><h3>Anfragen zu diesem Artikel</h3>{threads.filter(t => t.listing_id === detail.id).map(t => <button className="exchange-thread" key={t.id} onClick={() => openThread(t.id)}><MessageCircle size={19} /><span>{[t.requester_label,t.requester_team_label].filter(Boolean).join(' · ')}<small>Privaten Chat öffnen</small></span>{unread.some(n => n.kind === `exchange:${t.id}`) && <b>Neu</b>}</button>)}{!threads.some(t => t.listing_id === detail.id) && <p>Noch keine Anfragen.</p>}</div> : <div className="exchange-chat"><h3>Nachricht an den Anbieter</h3><textarea aria-label="Deine Anfrage" maxLength={2000} value={body} onChange={e => setBody(e.target.value)} placeholder="Hallo! Ist der Artikel noch verfügbar?" /><label className="exchange-check"><input type="checkbox" checked={adult} onChange={e => setAdult(e.target.checked)} />Ich verwalte diese Anfrage als erwachsene Person.</label><button className="exchange-primary sz-club-primary" disabled={busy || !adult || detail.status !== 'Verfügbar'} onClick={() => void startRequest()}><MessageCircle size={17} />{busy ? 'Wird gesendet…' : 'Nachricht senden'}</button><p><LockKeyhole size={13} /> Telefonnummer und E-Mail bleiben verborgen.</p></div>}
       </> : <>
         <div className="exchange-tabs">{([['all','Entdecken'],['mine','Meine Inserate'],['requests','Anfragen']] as const).map(([id,label]) => <button key={id} aria-pressed={view === id} onClick={() => setView(id)}>{label}{id === 'requests' && unread.length > 0 && <b>{unread.length}</b>}</button>)}</div>
+        {view==='mine'&&<div className="exchange-tabs" aria-label="Meine Inserate filtern"><button aria-pressed={!completed} onClick={()=>setCompleted(false)}>Aktiv</button><button aria-pressed={completed} onClick={()=>setCompleted(true)}>Erledigt</button></div>}
         {threadId && !currentThread && <p className="exchange-hint">Diese Anfrage ist nicht verfügbar oder du hast keinen Zugriff mehr.</p>}
         {view === 'requests' ? <div>{threads.map(t => { const item = items.find(l => l.id === t.listing_id); return item ? <button key={t.id} className="exchange-thread" onClick={() => openThread(t.id)}><MessageCircle size={22} /><span>{item.title}<small>{item.owner_id === userId ? [t.requester_label,t.requester_team_label].filter(Boolean).join(' · ') : [item.owner_label,item.team_label].filter(Boolean).join(' · ')} · {stamp(t.created_at)}</small></span>{unread.some(n => n.kind === `exchange:${t.id}`) && <b>Neu</b>}</button> : null; })}{!threads.length && <div className="exchange-empty"><MessageCircle /><h3>Noch keine Anfragen</h3><p>Deine Anfragen und Antworten erscheinen hier.</p></div>}</div> : <>
           <div className="exchange-catalog-tools">
@@ -313,7 +317,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
             </div>
             <div className="exchange-result-row"><strong aria-live="polite">{shown.length} {shown.length===1?'Angebot':'Angebote'}</strong><label><span className="exchange-sr">Angebote sortieren</span><select aria-label="Angebote sortieren" value={sort} onChange={e=>setSort(e.target.value as CatalogSort)}><option value="newest">Neueste zuerst</option><option value="price-asc">Preis aufsteigend</option><option value="price-desc">Preis absteigend</option></select></label></div>
           </div>
-          <div className="exchange-grid">{shown.map(item => <div className="market-save-card" key={item.id}><button className="exchange-card" onClick={() => { setDetailId(item.id); setBody(''); setAdult(false); }}><div className="exchange-card-image">{photos[item.photo_paths[0]] ? <img src={photos[item.photo_paths[0]]} alt={item.title} loading="lazy" /> : <Shirt size={42} />}<span>{item.status}</span></div><div className="exchange-card-copy"><h3>{item.title}</h3><p>Größe {item.size} · {item.condition}</p><strong>{priceLabel(item)}</strong><small>{item.owner_label}{item.team_label ? ` · ${item.team_label}` : ''}</small></div></button><SaveListingButton saved={marks.saved.has(item.id)} busy={marks.loading||marks.pending.includes(item.id)} onClick={()=>void marks.toggle(item.id)}/></div>)}</div>
+          <div className="exchange-grid">{shown.map(item => <div className="market-save-card" key={item.id}><button className="exchange-card" onClick={() => { setDetailId(item.id); setBody(''); setAdult(false); }}><div className="exchange-card-image">{photos[item.photo_paths[0]] ? <img src={photos[item.photo_paths[0]]} alt={item.title} loading="lazy" /> : <Shirt size={42} />}<span>{item.completion_outcome==='withdrawn'?'Entfernt':item.archived_at?'Archiviert':item.status}</span></div><div className="exchange-card-copy"><h3>{item.title}</h3><p>Größe {item.size} · {item.condition}</p><strong>{priceLabel(item)}</strong><small>{item.owner_label}{item.team_label ? ` · ${item.team_label}` : ''}</small></div></button><SaveListingButton saved={marks.saved.has(item.id)} busy={marks.loading||marks.pending.includes(item.id)} onClick={()=>void marks.toggle(item.id)}/></div>)}</div>
           {!shown.length && <div className="exchange-empty"><Shirt size={36} /><h3>{items.length ? 'Keine passenden Angebote' : 'Zu klein? Gib es weiter.'}</h3><p>{items.length ? 'Ändere die Filter oder stelle selbst ein Inserat ein.' : 'Sei der Erste und stelle Trainingsgewand für andere Familien im Verein ein.'}</p>{(filterCount>0||search)&&<button className="exchange-back" onClick={()=>{clearFilters();setSearch('');}}>Suche und Filter zurücksetzen</button>}</div>}
         </>}
       </>}
@@ -348,6 +352,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
         <footer className="exchange-editor-footer"><button type="submit" className="exchange-primary exchange-full sz-club-primary" disabled={busy||!adult||!publicationConfirmed}>{busy ? 'Fotos werden hochgeladen…' : editing==='new' ? 'Inserat veröffentlichen' : 'Änderungen speichern'}</button></footer>
       </form>
     </dialog>
+    {closing&&<ListingCompletionDialog key={closing.id} item={closing} userId={userId} onClose={()=>setClosing(null)} onFinished={finishListing}/>}
   </section>;
 }
 

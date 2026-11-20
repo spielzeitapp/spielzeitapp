@@ -59,9 +59,19 @@
     "supabase/migrations/20261113104103_training_other_team_attendance.sql": "d291f66cb1945c3e7c8f9d32b28f63480a87bf7c",
     "supabase/migrations/20261113160743_hall_training_two_a_side.sql": "a228773538b1a133383d3cb4e7fa9d61a24aa795",
     "supabase/migrations/20261113185405_internal_training_matches.sql": "6c2e2014edee367cd6d078f3d971cae4bf82d658",
+    "supabase/migrations/20261117072207_exchange_market_invitations.sql": "73f39e1fa1568a7d252434ff20f67f50a327b92a",
+    "supabase/migrations/20261117212312_exchange_self_selected_teams.sql": "270bfb629934dbae1b01a09c071caec5e2882b87",
+    "supabase/migrations/20261117212326_exchange_direct_market_join.sql": "f06aeb85d51aa376c85b0c7925a6707873cb028a",
+    "supabase/migrations/20261117215729_market_registration_choices.sql": "a5038ab9067e890debacb4c8fa24327a2008245f",
+    "supabase/migrations/20261118064635_exchange_parent_team_choices.sql": "93c80b46ffdb574819a8a4d8e8eafa1e68c47d1b",
+    "supabase/migrations/20261118064646_market_terms_private_transactions_version.sql": "5ff2bad05508e38c77885bb0690be6eeb9268522",
+    "supabase/migrations/20261119130000_hall_training_extra_players.sql": "14197a906ecc74f2e3019350cb08fe99fed6902a",
     "supabase/migrations/20261119182349_exchange_team_fund.sql": "184d41299f40065c956fc75788e415ea346626b3",
     "supabase/migrations/20261119183426_exchange_team_fund_labels.sql": "1a2fb7ad7888debea751a9a387681c9b7550d1c3",
-    "supabase/migrations/20261119191334_exchange_cash_explicit_access.sql": "d973add00292d1733e5233c6a756ce57ebcc89d7"
+    "supabase/migrations/20261119191334_exchange_cash_explicit_access.sql": "d973add00292d1733e5233c6a756ce57ebcc89d7",
+    "supabase/migrations/20261119232238_exchange_fund_seller_handover.sql": "d9665c73bb692b2c2b86337819cccaafaee7fb71",
+    "supabase/migrations/20261120082251_exchange_listing_completion.sql": "6477dab49934718779af8b5673acc7dbeaa33b56",
+    "supabase/migrations/20261120082803_exchange_completion_revision_guard.sql": "9b211d8f87aac43f69c679e5ff8ca59747501797"
   },
   "functions": {
     "supabase/functions/generate-club-communications/index.ts": "8f84887c9197b0bcc6c050e436b211dca44a01e8"

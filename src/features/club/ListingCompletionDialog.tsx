@@ -1,0 +1,40 @@
+import React,{useEffect,useRef,useState} from 'react';
+import {X} from 'lucide-react';
+import {supabase} from '../../lib/supabaseClient';
+import {fundMoney} from './teamFund';
+import './listingCompletion.css';
+export type CompletionItem={id:string;title:string;offer:string;price:number|null;revision:number;status:string;archived_at?:string|null;completion_outcome?:string|null};
+export const completionOption=(offer:string)=>offer==='Verkaufen'?{value:'sold',label:'Verkauft'}:offer==='Gratis'?{value:'gifted',label:'Verschenkt / weitergegeben'}:offer==='Tauschen'?{value:'swapped',label:'Getauscht'}:{value:'team',label:'Verkauft – Teambeitrag vormerken'};
+export function ListingCompletionDialog({item,userId,onClose,onFinished}:{item:CompletionItem;userId:string;onClose:()=>void;onFinished:(deleted:boolean,message:string)=>Promise<void>}){
+ const ref=useRef<HTMLDialogElement>(null),[outcome,setOutcome]=useState(item.completion_outcome||''),[disposition,setDisposition]=useState<'archive'|'delete'|null>(null),[agreed,setAgreed]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[fund,setFund]=useState<{taken:boolean;split:{label:string;amount_cents:number}[];pledge:{status:string;initiated_by:string}|null}|null>(null),[fundError,setFundError]=useState('');
+ const option=completionOption(item.offer);const locked=!!item.completion_outcome||!!fund?.taken;
+ useEffect(()=>{ref.current?.showModal();},[]);
+ useEffect(()=>{let active=true;if(item.offer==='Fürs Team')void supabase.rpc('exchange_fund_detail',{p_listing_id:item.id}).then(r=>{if(!active)return;if(r.error)setFundError('Teambeitrag konnte nicht geprüft werden. Bitte erneut öffnen.');else{setFund(r.data);if(r.data?.taken)setOutcome('team');}});return()=>{active=false;};},[item.id,item.offer]);
+ async function finish(){
+  if(!outcome||!disposition||!agreed||busy)return;setBusy(true);setError('');
+  try{
+   const r=await supabase.rpc('exchange_listing_finish',{p_listing_id:item.id,p_expected:item.revision,p_outcome:outcome,p_disposition:disposition});if(r.error)throw r.error;
+   let message=disposition==='delete'?'Inserat, Fotos und zugehörige Chats wurden endgültig gelöscht.':'Inserat archiviert. Du findest es unter Meine Inserate → Erledigt.';
+   if(disposition==='delete'){
+    const paths:string[]=r.data?.photo_paths||[];
+    if(paths.length){const cleanup=await removeListingPhotos(userId,paths);if(!cleanup)message='Inserat und Chats gelöscht. Einige Fotos konnten noch nicht entfernt werden. Die Bereinigung wird bei deinem nächsten Besuch erneut versucht.';}
+   }
+   if(outcome==='team')message+=' Offene oder bestätigte Teambeiträge bleiben in der Kassa erhalten.';
+   await onFinished(disposition==='delete',message);
+  }catch(e){setError(e&&typeof e==='object'&&'message'in e?String(e.message):'Abschluss fehlgeschlagen. Bitte erneut versuchen.');setBusy(false);}
+ }
+ return <dialog ref={ref} className="exchange-dialog completion-dialog" onCancel={e=>{e.preventDefault();if(!busy)onClose();}}><div className="completion-head"><h2>{item.archived_at?'Inserat endgültig entfernen':'Inserat abschließen'}</h2><button type="button" aria-label="Schließen" disabled={busy} onClick={onClose}><X size={22}/></button></div><div className="completion-body"><strong>{item.title}</strong>{!disposition?<><h3>Was ist mit dem Artikel passiert?</h3>{item.offer==='Fürs Team'&&!fund&&!fundError&&<p role="status">Bestehender Teambeitrag wird geprüft …</p>}{fundError&&<p role="alert">{fundError}</p>}<fieldset disabled={busy||!!fundError||(item.offer==='Fürs Team'&&!fund)}><legend className="exchange-sr">Abschluss auswählen</legend>{item.status!=='Entwurf'&&<label className="completion-choice"><input type="radio" name="completion-outcome" checked={outcome===option.value} disabled={locked&&outcome!==option.value} onChange={()=>setOutcome(option.value)}/>{fund?.taken?'Bestehenden Teambeitrag übernehmen':option.label}</label>}<label className="completion-choice"><input type="radio" name="completion-outcome" checked={outcome==='withdrawn'} disabled={locked&&outcome!=='withdrawn'} onChange={()=>setOutcome('withdrawn')}/>Ohne Abschluss entfernen</label></fieldset>{locked&&<p>Der bereits gemeldete Abschluss bleibt erhalten und wird nicht doppelt gezählt.</p>}{item.offer==='Fürs Team'&&outcome==='team'&&<><h3>{fund?.taken?'Bestehender Teambeitrag':`${fundMoney(Math.round(Number(item.price)*100))} für deine Teams`}</h3><ul>{fund?.split.map((s,i)=><li key={i}>{s.label} · {fundMoney(s.amount_cents)}</li>)}</ul><p>{fund?.taken?'Die vorhandene Meldung bleibt in der Kassa erhalten. Es wird kein zweiter Beitrag angelegt.':'Du bestätigst, dass du den Artikel übergeben und den Kaufpreis erhalten hast. Du gibst den Betrag an den Verein weiter. Erst nach bestätigtem Geldeingang erhöht sich das Guthaben.'}</p></>}<div className="completion-actions">{!item.archived_at&&<button className="exchange-primary sz-club-primary" disabled={!outcome||!!fundError||(item.offer==='Fürs Team'&&!fund)} onClick={()=>setDisposition('archive')}>Archivieren</button>}<button className="completion-delete" disabled={!outcome||!!fundError||(item.offer==='Fürs Team'&&!fund)} onClick={()=>setDisposition('delete')}>Endgültig löschen</button></div><p>Archivierte Inserate verschwinden aus dem Markt und bleiben für dich unter „Erledigt“ sichtbar.</p></>:<><h3>{disposition==='delete'?'Wirklich endgültig löschen?':'Abschluss bestätigen'}</h3><p>{disposition==='delete'?'Inserat, Fotos und zugehörige Chats werden dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden.':'Das Inserat wird aus dem Markt entfernt und unter „Erledigt“ abgelegt.'}</p><p>Abschluss: <strong>{outcome==='withdrawn'?'Ohne Abschluss':option.label}</strong></p><p>Anonyme Abschlusszahlen und bestehende Teambeiträge bleiben erhalten. „Ohne Abschluss“ zählt nicht als Erfolg.</p><label className="completion-choice"><input type="checkbox" checked={agreed} disabled={busy} onChange={e=>setAgreed(e.target.checked)}/>{outcome==='team'&&!fund?.taken?'Ich habe den Artikel übergeben, den Kaufpreis erhalten und gebe den angeführten Betrag an meine Teams weiter.':disposition==='delete'?'Ja, diesen Abschluss übernehmen und endgültig löschen.':'Ja, dieser Abschluss stimmt.'}</label>{error&&<p role="alert">{error}</p>}<div className="completion-actions"><button className={disposition==='delete'?'completion-delete':'exchange-primary sz-club-primary'} disabled={!agreed||busy} onClick={()=>void finish()}>{busy?'Wird abgeschlossen …':disposition==='delete'?'Jetzt endgültig löschen':'Jetzt archivieren'}</button><button disabled={busy} onClick={()=>{setDisposition(null);setAgreed(false);setError('');}}>Zurück</button></div></>}</div>{!disposition&&<button className="completion-cancel" disabled={busy} onClick={onClose}>Abbrechen</button>}</dialog>;
+}
+// Retry failed storage removals on the same account's next market visit; never store photos themselves.
+const photoCleanupJobs=new Map<string,Promise<boolean>>();
+export function removeListingPhotos(userId:string,paths:string[]=[]):Promise<boolean>{
+ const task=(photoCleanupJobs.get(userId)||Promise.resolve(true)).catch(()=>false).then(()=>cleanupPhotos(userId,paths));
+ photoCleanupJobs.set(userId,task);void task.finally(()=>{if(photoCleanupJobs.get(userId)===task)photoCleanupJobs.delete(userId);});return task;
+}
+async function cleanupPhotos(userId:string,paths:string[]):Promise<boolean>{
+ const key=`market-photo-cleanup:${userId}`;let pending:string[]=[];
+ try{const saved=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(saved))pending=saved.filter((p:unknown):p is string=>typeof p==='string'&&p.split('/')[1]===userId);}catch{}
+ pending=[...new Set([...pending,...paths.filter(p=>p.split('/')[1]===userId)])];if(!pending.length)return true;
+ try{localStorage.setItem(key,JSON.stringify(pending));}catch{}
+ try{const r=await supabase.storage.from('exchange-photos').remove(pending);if(r.error)return false;try{localStorage.removeItem(key);}catch{}return true;}catch{return false;}
+}
