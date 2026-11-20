@@ -4,7 +4,6 @@ import { ManagerClubImportData } from './ManagerClubImportData';
 import { ManagerClubTeamOverview } from './ManagerClubTeamOverview';
 import { adminEnsureTeamSeason, listPlatformClubs, getPlatformClub, type ClubDetail } from '../lib/platformClubAdmin';
 import { createSetupTeam } from '../lib/managerSetup';
-import { isStagingApp } from '../lib/appEnvironment';
 import { supabase } from '../lib/supabaseClient';
 
 type FoundTeam = { key: string; name: string; rosterUrl: string; scheduleUrl: string; tableUrl: string; hasTeamPhoto: boolean };
@@ -15,7 +14,7 @@ function savedImportSource(clubId: string): { url: string; season: string } {
     const value = JSON.parse(window.localStorage.getItem(`spielzeit:club-import:v1:${clubId}`) || 'null');
     if (typeof value?.url === 'string' && typeof value?.season === 'string') {
       const u = new URL(value.url);
-      if (u.protocol === 'https:' && u.hostname === 'vereine.oefb.at' && !u.username && !u.password && !u.port && !u.search && !u.hash && /^\/[a-z0-9-]+(?:\/(?:News|Mannschaften))?\/?$/i.test(u.pathname) && /^\d{4}\/\d{2}$/.test(value.season)) return value;
+      if (u.protocol === 'https:' && u.hostname === 'vereine.oefb.at' && !u.username && !u.password && !u.port && !u.search && !u.hash && /^\/[a-z0-9-]+(?:\/(?:News|Mannschaften(?:\/Saison-\d{4}-\d{2})?))?\/?$/i.test(u.pathname) && /^\d{4}\/\d{2}$/.test(value.season)) return value;
     }
   } catch { /* Storage can be unavailable. Discovery still works. */ }
   return { url: '', season: '2026/27' };
@@ -34,7 +33,6 @@ export function ManagerClubImportPanel({ detail, onSaved, showOverview = true }:
   const [error, setError] = useState('');
   const [otherClubs, setOtherClubs] = useState<ClubDetail[]>([]);
   const [preview, setPreview] = useState(false);
-  if (!isStagingApp()) return null;
   const reset = () => { generation.current++; setTeams([]); setChoices({}); setConfirmed(false); setNotice(''); setError(''); };
   async function scan() {
     const version = ++generation.current;
@@ -109,9 +107,13 @@ export function ManagerClubImportPanel({ detail, onSaved, showOverview = true }:
     : `/manager/saisons/${encodeURIComponent(id)}/oefb-import?oefbSchedule=${encodeURIComponent(t.scheduleUrl)}`;
   return <>{showOverview && <ManagerClubTeamOverview detail={detail} />}
   <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
-    <div><span className="text-xs font-semibold uppercase text-slate-500">TEST · Vereinsimport</span><h2 className="text-lg font-semibold">Mannschaften automatisch beim ÖFB finden</h2><p className="text-sm text-slate-600">Die ÖFB-Vereinsseite ist eine Datenquelle. NSG-/SPG-Mannschaften können einem anderen Verein gehören. Gespeicherte Zuordnungen werden wiederverwendet. Bestehende Mannschaften ausdrücklich zuordnen, besonders bei NSG/SPG und mehrfachen Altersklassen.</p></div>
+    <div><span className="text-xs font-semibold uppercase text-slate-500">ÖFB-Vereinsimport</span><h2 className="text-lg font-semibold">Mannschaften automatisch beim ÖFB finden</h2><p className="text-sm text-slate-600">Die ÖFB-Vereinsseite ist eine Datenquelle. NSG-/SPG-Mannschaften können einem anderen Verein gehören. Gespeicherte Zuordnungen werden wiederverwendet. Bestehende Mannschaften ausdrücklich zuordnen, besonders bei NSG/SPG und mehrfachen Altersklassen.</p></div>
     <div className="grid gap-3 sm:grid-cols-[1fr_130px]">
-      <label className="text-sm">ÖFB-Vereinslink<input type="url" disabled={busy} value={url} onChange={e => { reset(); setUrl(e.target.value); }} placeholder="https://vereine.oefb.at/USCRohrbach/" className="mt-1 min-h-11 w-full rounded-xl border px-3" /></label>
+      <label className="text-sm">ÖFB-Vereins- oder Saisonlink<input type="url" disabled={busy} value={url} onChange={e => { reset();
+        const nextUrl = e.target.value;
+        setUrl(nextUrl);
+        const linkedSeason = nextUrl.trim().match(/^https:\/\/vereine\.oefb\.at\/[a-z0-9-]+\/Mannschaften\/Saison-(\d{4})-(\d{2})\/?$/i);
+        if (linkedSeason) setSeason(`${linkedSeason[1]}/${linkedSeason[2]}`); }} placeholder="https://vereine.oefb.at/USCRohrbach/" className="mt-1 min-h-11 w-full rounded-xl border px-3" /></label>
       <label className="text-sm">Saison<input disabled={busy} value={season} onChange={e => { reset(); setSeason(e.target.value); }} placeholder="2026/27" className="mt-1 min-h-11 w-full rounded-xl border px-3" /></label>
     </div>
     <p className="text-xs text-slate-500">Nach erfolgreicher Suche bleibt der Vereinslink in diesem Browser für diesen Verein gespeichert. Bereits zugeordnete Mannschaften müssen für Foto- oder Spieleimporte nicht erneut angekreuzt werden.</p>

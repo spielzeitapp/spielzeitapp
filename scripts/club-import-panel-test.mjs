@@ -6,24 +6,24 @@ import os from 'node:os';
 import path from 'node:path';
 const require=createRequire(import.meta.url), React=require('react'), Test=require('react-test-renderer');
 const folder=await mkdtemp(path.join(os.tmpdir(),'club-import-'));
-const mocks=`export * from '${path.resolve('src/lib/teamPhotoLayout.ts')}';export {setupSteps} from '${path.resolve('src/lib/managerSetupModel.ts')}';export const loadSetup=async()=>({data:{staff:1,players:10,jerseys_missing:0,matches:4,trainings:0,checks:{}},error:null});export const getOefbTableSettings=async()=>({data:globalThis.__tableSettings||null,error:null});export const getTeamSeasonWritableState=async()=>({writable:true});export const uploadPlayerProfilePhoto=async()=>({});export const uploadPlayerProfileCutout=async()=>({});export const prepareCutoutGeneration=async()=>({});export const uploadStorageObject=async()=>({});export const playerPhotoDisplayUrl=()=>null;export const listPlatformClubs=async()=>({data:globalThis.__clubs||[],error:null});export const getPlatformClub=async(id)=>({data:(globalThis.__clubDetails||[]).find(c=>c.id===id),error:null});export const adminEnsureTeamSeason=async()=>({data:{team_season_id:'season-added'}});export const createSetupTeam=async()=>{globalThis.__writes++;return {data:{team_season_id:'new-season'}}};export const isStagingApp=()=>globalThis.__testEnv;export const supabase={rpc:async(name,args)=>{(globalThis.__rpcCalls??=[]).push({name,args});return {error:null}},from:()=>({select:()=>({in:async()=>({data:globalThis.__sources||[],error:null}),eq:()=>Object.assign(Promise.resolve({data:globalThis.__sources||[],error:null}),{maybeSingle:async()=>({data:{logo_url:null}})})})})};`;
+const mocks=`export * from '${path.resolve('src/lib/teamPhotoLayout.ts')}';export {setupSteps} from '${path.resolve('src/lib/managerSetupModel.ts')}';export const loadSetup=async()=>({data:{staff:1,players:10,jerseys_missing:0,matches:4,trainings:0,checks:{}},error:null});export const getOefbTableSettings=async()=>({data:globalThis.__tableSettings||null,error:null});export const getTeamSeasonWritableState=async()=>({writable:true});export const uploadPlayerProfilePhoto=async()=>({});export const uploadPlayerProfileCutout=async()=>({});export const prepareCutoutGeneration=async()=>({});export const uploadStorageObject=async()=>({});export const playerPhotoDisplayUrl=()=>null;export const listPlatformClubs=async()=>({data:globalThis.__clubs||[],error:null});export const getPlatformClub=async(id)=>({data:(globalThis.__clubDetails||[]).find(c=>c.id===id),error:null});export const adminEnsureTeamSeason=async()=>({data:{team_season_id:'season-added'}});export const createSetupTeam=async()=>{globalThis.__writes++;return {data:{team_season_id:'new-season'}}};export const supabase={rpc:async(name,args)=>{(globalThis.__rpcCalls??=[]).push({name,args});return {error:null}},from:()=>({select:()=>({in:async()=>({data:globalThis.__sources||[],error:null}),eq:()=>Object.assign(Promise.resolve({data:globalThis.__sources||[],error:null}),{maybeSingle:async()=>({data:{logo_url:null}})})})})};`;
 try{
  await build({entryPoints:['src/manager/ManagerClubImportPanel.tsx'],outfile:path.join(folder,'panel.cjs'),bundle:true,platform:'node',format:'cjs',external:['react','react-router-dom'],plugins:[{name:'mocks',setup(b){b.onResolve({filter:/ManagerClubPeopleImport$/},()=>({path:'people',namespace:'people'}));b.onLoad({filter:/.*/,namespace:'people'},()=>({contents:'export const ManagerClubPeopleImport=()=>null;',loader:'js'}));b.onResolve({filter:/\.\.\/lib\//},()=>({path:'mock',namespace:'mock'}));b.onLoad({filter:/.*/,namespace:'mock'},()=>({contents:mocks,loader:'js',resolveDir:process.cwd()}));}}]});
  // Resolve React through this checkout even though compiled output is temporary.
  const Module=require('node:module'); const original=Module._resolveFilename;const resolved={'react':require.resolve('react'),'react/jsx-runtime':require.resolve('react/jsx-runtime'),'react-router-dom':require.resolve('react-router-dom')};
  Module._resolveFilename=function(request,...args){if(resolved[request])return resolved[request];return original.call(this,request,...args)};
  const {ManagerClubImportPanel}=require(path.join(folder,'panel.cjs'));Module._resolveFilename=original;
- globalThis.__writes=0;globalThis.__testEnv=false;
+ globalThis.__writes=0;
  const preferences=new Map();
  globalThis.window={localStorage:{getItem:key=>preferences.get(key)||null,setItem:(key,value)=>preferences.set(key,value)},location:{search:''},dispatchEvent(){},addEventListener(){},removeEventListener(){}};
  const {MemoryRouter}=require('react-router-dom');const detail={id:'club',name:'USC',teams:[],team_seasons:[]};
- let tree;await Test.act(async()=>{tree=Test.create(React.createElement(MemoryRouter,null,React.createElement(ManagerClubImportPanel,{detail,onSaved(){}})))});assert.equal(tree.toJSON(),null);
- globalThis.__testEnv=true;
- await Test.act(async()=>tree.update(React.createElement(MemoryRouter,null,React.createElement(ManagerClubImportPanel,{detail,onSaved(){}}))));
+ let tree;await Test.act(async()=>{tree=Test.create(React.createElement(MemoryRouter,null,React.createElement(ManagerClubImportPanel,{detail,onSaved(){}})))});assert.ok(JSON.stringify(tree.toJSON()).includes('ÖFB-Vereinsimport'));
  const team={key:'U12-1',name:'U12',rosterUrl:'https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2026-27/U12-1/Kader/',scheduleUrl:'https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2026-27/U12-1/Spiele/',tableUrl:'https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2026-27/U12-1/Tabellen/'};
  globalThis.fetch=async()=>({ok:true,json:async()=>({teams:[team],notice:'Found'})});
  const button=text=>tree.root.findAllByType('button').find(b=>b.children.join('').includes(text));
- await Test.act(async()=>tree.root.findByProps({type:'url'}).props.onChange({target:{value:'https://vereine.oefb.at/USCRohrbach/'}}));
+ await Test.act(async()=>tree.root.findByProps({type:'url'}).props.onChange({target:{value:'https://vereine.oefb.at/USCRohrbach/Mannschaften/Saison-2025-26'}}));
+ assert.equal(tree.root.findAllByType('input').find(i=>i.props.placeholder==='2026/27').props.value,'2025/26');
+ await Test.act(async()=>tree.root.findAllByType('input').find(i=>i.props.placeholder==='2026/27').props.onChange({target:{value:'2026/27'}}));
  await Test.act(async()=>{button('Mannschaften suchen').props.onClick();await new Promise(resolve=>setTimeout(resolve,0));});assert.equal(globalThis.__writes,0);
  assert.equal(tree.root.findByProps({'data-import-status':'open'}).props.className.includes('bg-red-50'),true);
  const checks=()=>tree.root.findAllByProps({type:'checkbox'});
@@ -87,5 +87,5 @@ try{
  await Test.act(async()=>{tree=Test.create(React.createElement(MemoryRouter,null,React.createElement(ManagerClubImportPanel,{detail:{...detail,id:'another-club'},onSaved(){}})))});
  assert.equal(tree.root.findByProps({type:'url'}).props.value,'','Club links are not reused for a different club');
  await Test.act(async()=>tree.unmount());
- console.log('PASS panel: Test-only visibility, read-only scan, explicit confirmation, prepared deep links, input change clears old results.');
+ console.log('PASS panel: Vereinsimport visible, read-only scan, explicit confirmation, prepared deep links, input change clears old results.');
 }finally{await rm(folder,{recursive:true,force:true})}

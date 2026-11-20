@@ -1,7 +1,7 @@
 /** Public, bounded club discovery. Never fetch arbitrary hosts or execute page scripts. */
 function clubUrl(value) {
-  const u = new URL(value);
-  if (u.protocol !== 'https:' || u.hostname !== 'vereine.oefb.at' || u.port || u.username || u.password || u.search || u.hash || !/^\/[a-z0-9-]+(?:\/(?:News|Mannschaften))?\/?$/i.test(u.pathname)) throw Error('Bitte den ÖFB-Vereinslink eingeben (https://vereine.oefb.at/Vereinsname/).');
+  const u = new URL(value.trim());
+  if (u.protocol !== 'https:' || u.hostname !== 'vereine.oefb.at' || u.port || u.username || u.password || u.search || u.hash || !/^\/[a-z0-9-]+(?:\/(?:News|Mannschaften(?:\/Saison-\d{4}-\d{2})?))?\/?$/i.test(u.pathname)) throw Error('Bitte einen ÖFB-Vereinslink oder den Link zur Mannschaftsliste einer Saison eingeben.');
   return new URL('/' + u.pathname.split('/')[1] + '/News/', u.origin);
 }
 function clubRows(html) {
