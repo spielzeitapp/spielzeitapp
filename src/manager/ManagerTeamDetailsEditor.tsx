@@ -41,7 +41,7 @@ export function ManagerTeamDetailsEditor({ clubId, season, onSaved }: {
       <label className="text-sm font-medium">Saison<input required pattern="20[0-9]{2}/[0-9]{2}" className={fieldClass} placeholder="2026/27" value={year} onChange={e=>setYear(e.target.value)} /></label>
     </fieldset>
     <p className="mt-3 text-sm">Anzeige: <strong>{formatTeamSeasonContextLabel({teamName:name, ageGroup:age, seasonName:year})}</strong></p>
-    <p className="mt-1 text-xs text-slate-600">Unterscheide mehrere Mannschaften im Namen, z. B. „SC Melk FR U16“ und „SC Melk FR KM“. Die Altersklasse erscheint in der Anzeige nur einmal.</p>
+    <p className="mt-1 text-xs text-slate-600">Teams unterschiedlicher Altersklassen können denselben Namen haben, etwa „SPG Rohrbach“. Die Altersklasse wird in der Anzeige ergänzt.</p>
     {error ? <p role="alert" className="mt-3 text-sm text-red-700">{error}</p> : null}
     <div className="mt-3 flex gap-2">
       <button disabled={busy || !name.trim() || !age.trim() || !year.trim()} type="submit" className="min-h-11 rounded-full bg-red-700 px-4 font-semibold text-white disabled:opacity-50">{busy ? 'Speichert…' : 'Änderungen speichern'}</button>

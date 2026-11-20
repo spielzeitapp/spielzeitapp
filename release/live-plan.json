@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "migrations": {
+    "supabase/migrations/20261120155000_allow_same_team_name_across_age_groups.sql": "a65ece5e714136e0cd783478f248b0bbb018af0e",
     "supabase/migrations/20261120112500_exchange_active_season_age.sql": "3f0f8dbaa224f89a400f29478bee0d3045a8278c",
     "supabase/migrations/20260929130000_pending_team_staff_invites.sql": "3be21a1f19fa51881001246636eff89af332df9b",
     "supabase/migrations/20260929160000_lock_down_onboarding_rpcs.sql": "7f18327f0fa3ec4991c6a26917920ec24f20cd59",
