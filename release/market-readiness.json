@@ -1,7 +1,7 @@
 {
   "scope": "Vereinsmarkt and manager including explicit outcomes, archive, permanent deletion, seller contributions and cash ledger",
   "common_sha256": {
-    "src/features/club/ClubExchange.tsx": "fe5580f020210f767c71aa07ee6ea3a21dcf2e45484042b37b0406b1d66e55ea",
+    "src/features/club/ClubExchange.tsx": "45cb262a92c139c1499f772db8897a1769a462382cec12ba08f76566d167725f",
     "src/features/club/MarketAccountSettings.tsx": "d31e725e2b4168cd95c215a6f529cf92155ff6d0d6fdf98fb8cfaefb6def3897",
     "src/features/club/MarketHomeScreenGuide.tsx": "4b3c285e3396d66e094ee05adea3b5f99576d0b5c733c208a435ad8c618c20cd",
     "src/features/club/MarketInstallDialog.tsx": "7719c9ec7f64de939c5df265f91d8a83716d9410af3169b1bfc63c656205cb20",
@@ -31,7 +31,8 @@
     "src/features/marketManager/MarketManagerNav.tsx": "124873f356c82a93db9d5ee0ead9e2dd96e4e375c72d709f39d7190da71182b7",
     "src/features/club/ListingCompletionDialog.tsx": "a2814269cff1eba5fdb80da7b7064b97a09cbdf4f38aef581d26ee92b6b5d663",
     "src/features/club/listingCompletion.css": "14d8d9371a8f62de11a5389a05e6f8158b0fef67ee29bd42fc6fad0faa287857",
-    "src/features/club/ExchangePhotoGallery.css": "bd28b0fa94220b66d99e702c2534727a23613ff99f0e94f1dec4bbbd94a9d1bc"
+    "src/features/club/ExchangePhotoGallery.css": "bd28b0fa94220b66d99e702c2534727a23613ff99f0e94f1dec4bbbd94a9d1bc",
+    "src/features/club/exchangeRequest.ts": "3ce0bd1758209bda838be1e6617543a49c0ec6480f573ecb9c99eddfd28ed93b"
   },
   "intentional_differences": [
     "TEST environment label, club IDs, users, offers and credentials",

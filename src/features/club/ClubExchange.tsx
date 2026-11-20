@@ -1,3 +1,4 @@
+import {submitExchangeRequest} from './exchangeRequest';
 import {ListingCompletionDialog,removeListingPhotos} from './ListingCompletionDialog';
 import {TeamFundFields,TeamFundDetail,type FundRow} from './TeamFundFields';
 import {buildFundSplit,fundPrice,type FundSplit} from './teamFund';
@@ -171,19 +172,11 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   };
   const startRequest = () => act(async () => {
     if (!detail || !adult) throw Error('Bitte bestätige, dass du die Anfrage als erwachsene Person verwaltest.');
-    let chat = threads.find(t => t.listing_id === detail.id && t.requester_id === userId);
-    if (chat) { openThread(chat.id); return; }
-    if (!chat) {
-      const insert = await supabase.from('exchange_threads').insert({ listing_id: detail.id, requester_id: userId }).select('*').single();
-      if (insert.error?.code === '23505') {
-        const existing = await supabase.from('exchange_threads').select('*').eq('listing_id', detail.id).eq('requester_id', userId).single();
-        if (existing.error) throw Error('Anfrage konnte nicht geöffnet werden.'); chat = existing.data as Thread;
-      } else { if (insert.error) throw Error('Anfrage konnte nicht angelegt werden. Ist der Artikel noch verfügbar?'); chat = insert.data as Thread; }
-    }
-    if (!chat) throw Error('Anfrage konnte nicht geöffnet werden.');
-    const result = await supabase.from('exchange_messages').insert({ thread_id: chat.id, sender_id: userId, body: body.trim() || 'Hallo! Ist der Artikel noch verfügbar?' });
-    if (result.error) throw Error('Die Nachricht konnte nicht gesendet werden. Bitte erneut versuchen.');
-    await loadRef.current(); openThread(chat.id); await dispatchPush();
+    const existing=threads.find(t=>t.listing_id===detail.id&&t.requester_id===userId);
+    const result=await submitExchangeRequest({listingId:detail.id,userId,existingThreadId:existing?.id,text:body});
+    if(result.sent||!existing)await loadRef.current();
+    openThread(result.threadId);
+    if(result.sent)await dispatchPush();
   });
   const sendMessage = () => act(async () => {
     if (!currentThread || !body.trim() || isBlocked) return;
