@@ -1,5 +1,4 @@
 import {MarketTeamSettings} from '../features/club/MarketTeamSettings';
-import { isStagingApp } from '../lib/appEnvironment';
 import {ManagerClubProfileFormat} from './ManagerClubProfileFormat';
 import {ManagerClubPhotoTemplate} from './ManagerClubPhotoTemplate';
 import { ManagerClubTeamOverview } from './ManagerClubTeamOverview';
@@ -467,7 +466,10 @@ export function ManagerClubDetailPage(): React.ReactElement {
           <details id="club-team-overview" open={!selectedSeason || undefined} className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white">
             <summary className="cursor-pointer p-4 font-semibold text-slate-900">Mannschaft wählen oder wechseln · {detail.name}</summary>
             <ManagerClubTeamOverview detail={detail} selectedSeasonId={setupSeasonId} onSelect={selectSetupSeason} />
-            <div className="flex flex-wrap gap-3 p-4">{isStagingApp() && <button type="button" onClick={() => openSetupSection('club-oefb-import')} className="min-h-11 rounded-xl border border-slate-300 px-3 text-sm font-semibold">Mannschaften beim ÖFB suchen</button>}<button type="button" onClick={() => openSetupSection('club-team-season-setup')} className="min-h-11 rounded-xl border border-slate-300 px-3 text-sm font-semibold">Mannschaft manuell anlegen</button></div>
+            <div className="flex flex-wrap gap-3 p-4">
+              <button type="button" onClick={() => openSetupSection('club-oefb-import')} className="min-h-11 rounded-xl border border-slate-300 px-3 text-sm font-semibold">Mannschaften beim ÖFB suchen</button>
+              <button type="button" onClick={() => openSetupSection('club-team-season-setup')} className="min-h-11 rounded-xl border border-slate-300 px-3 text-sm font-semibold">Mannschaft manuell anlegen</button>
+            </div>
           </details>
           {selectedSeason && <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-900 p-4 text-white">
             <div><p className="text-xs text-slate-300">Ausgewählte Mannschaft · {detail.name}</p><h2 className="mt-1 text-lg font-bold">{seasonContextLabel(selectedSeason)}</h2><p className="mt-1 text-xs text-slate-300">Vorschau und Aufgaben beziehen sich auf diese Mannschaft und Saison.</p></div>
@@ -626,7 +628,12 @@ export function ManagerClubDetailPage(): React.ReactElement {
             }}
           />
           </div>          </details>
-          {isStagingApp() && <details className="rounded-2xl border border-slate-200 bg-white"><summary className="cursor-pointer p-4 font-semibold">Mannschaften beim ÖFB finden &amp; zuordnen</summary><div id="club-oefb-import" className="scroll-mt-24"><ManagerClubImportPanel key={clubId} detail={detail} showOverview={false} onSaved={() => { void reload(); }} /></div></details>}
+          <details className="rounded-2xl border border-slate-200 bg-white">
+            <summary className="cursor-pointer p-4 font-semibold">Mannschaften beim ÖFB finden &amp; zuordnen</summary>
+            <div id="club-oefb-import" className="scroll-mt-24">
+              <ManagerClubImportPanel key={clubId} detail={detail} showOverview={false} onSaved={() => { void reload(); }} />
+            </div>
+          </details>
           {detail.status === 'active' ? (
             <details className="rounded-2xl border border-slate-200 bg-white"><summary className="cursor-pointer p-4 font-semibold">Zusätzliche Mannschaft und Saison anlegen</summary><form id="club-team-season-setup" onSubmit={onCreateTeamSeason} className="rounded-2xl border border-red-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
               <p className="text-[11px] font-bold uppercase tracking-wide text-red-700">Neue Mannschaft</p>
