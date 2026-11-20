@@ -167,11 +167,14 @@ export function hallReliefCandidates(day: HallDay, index: number, destination: n
  });
 }
 
-/** Apply both sides of a relief substitution at one clock position. */
-export function relieveHallPlayer(day: HallDay, index: number, team: number, outgoing: string, incoming: string, now = Date.now()): HallDay {
+/** Replace a withdrawn player or fill a free spot at one clock position. */
+export function relieveHallPlayer(day: HallDay, index: number, team: number, outgoing: string | null, incoming: string, now = Date.now()): HallDay {
  const game = day.games[index];
  const on = game?.participation?.[team]?.stints.at(-1)?.on;
- if (!game || !on?.includes(outgoing) || !['running', 'paused'].includes(game.status)) throw new Error('Aushilfe ist nur für das laufende Spiel möglich.');
+ if (!game || !on || !['running', 'paused'].includes(game.status)) throw new Error('Aushilfe ist nur für das laufende Spiel möglich.');
+ if (outgoing === null ? on.length >= day.format : !on.includes(outgoing)) {
+  throw new Error('Kein freier Platz für die Aushilfe. Bitte zuerst die Aufstellung prüfen.');
+ }
  const candidate = hallReliefCandidates(day, index, team).find(player => player.id === incoming);
  if (!candidate) throw new Error('Dieser Spieler ist für die Aushilfe nicht verfügbar.');
  const duration = hallGameSeconds(day, game);
@@ -185,8 +188,8 @@ export function relieveHallPlayer(day: HallDay, index: number, team: number, out
  if (candidate.onField && source) {
   recordHallStint(source, second, source.stints.at(-1)!.on.filter(id => id !== incoming));
  }
- recordHallStint(destination, second, on.map(id => id === outgoing ? incoming : id));
- match.withdrawn = [...(match.withdrawn ?? []), outgoing];
+ recordHallStint(destination, second, outgoing === null ? [...on, incoming] : on.map(id => id === outgoing ? incoming : id));
+ if (outgoing !== null) match.withdrawn = [...(match.withdrawn ?? []), outgoing];
  match.reliefTeams = { ...match.reliefTeams, [incoming]: team };
  return next;
 }
