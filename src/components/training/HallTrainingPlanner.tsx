@@ -278,10 +278,10 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds: 
   const goalPickerTeam = goalPicker?.ownGoal && goalPickerGame
     ? (goalPickerGame.home === goalPicker.team ? goalPickerGame.away : goalPickerGame.home)
     : goalPicker?.team ?? 0;
-  const saveRelief = async (team: number, incoming: string) => {
-    if (!outgoing || dirty || configDirty || busy || readOnly) return;
+  const saveRelief = async (team: number, incoming: string, replaced: string | null) => {
+    if (dirty || configDirty || busy || readOnly) return;
     try {
-      if (await persist(relieveHallPlayer(day, activeIndex, team, outgoing, incoming))) setOutgoing(null);
+      if (await persist(relieveHallPlayer(day, activeIndex, team, replaced, incoming))) setOutgoing(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Aushilfe konnte nicht gespeichert werden.');
     }
@@ -491,7 +491,8 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds: 
               const bench = participation.roster.filter(id => !on.includes(id) && hallCanPlay(current, team, id));
               const selected = outgoing !== null && on.includes(outgoing);
               const disabled = readOnly || busy || elapsed >= matchSeconds;
-              const candidates = selected && !disabled
+              const canRequestRelief = (selected || on.length < day.format) && !readOnly && elapsed < matchSeconds;
+              const candidates = canRequestRelief && !disabled
                 ? hallReliefCandidates(day, activeIndex, team).filter(player => availableIds.includes(player.id))
                 : [];
               const changeLineup = async (lineup: string[]) => {
@@ -510,7 +511,7 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds: 
                     {names.get(id) ?? 'Spieler'}{outgoing === id ? ' · Raus' : ''}
                   </button>)}
                 </div>
-                <p>Bank · zuerst Spieler am Feld, dann Ersatz antippen</p>
+                {bench.length > 0 ? <p>Bank · zuerst Spieler am Feld, dann Ersatz antippen</p> : null}
                 <div className="hall-player-chips">
                   {bench.map(id => <div key={id}>
                     <button type="button" disabled={disabled || !selected}
@@ -526,12 +527,14 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds: 
                 </div>
                 {on.length > day.format && selected ? <button type="button" className="hall-match-button" disabled={disabled}
                   onClick={() => void changeLineup(on.filter(id => id !== outgoing))}>Zusatzspieler auf Bank</button> : null}
-                {selected && !readOnly && elapsed < matchSeconds ? <details className="hall-settings mt-3">
-                  <summary>Verletzt raus · Aushilfe aus anderem Team</summary>
+                {canRequestRelief ? <details className="hall-settings mt-3">
+                  <summary className="hall-match-button">
+                    {selected ? 'Verletzt raus · Aushilfe aus anderem Team' : `+ Aushilfe für ${day.teams[team].name}`}
+                  </summary>
                   <div className="space-y-2 p-3">
-                    <p>{names.get(outgoing!) ?? 'Spieler'} pausiert für den restlichen Hallenspieltag. Die Aushilfe gilt für dieses Spiel.</p>
+                    <p>{selected ? `${names.get(outgoing!) ?? 'Spieler'} pausiert für den restlichen Hallenspieltag. ` : ''}Die Aushilfe gilt für dieses Spiel.</p>
                     {candidates.map(({ id, source, onField }) => <button key={id} type="button" className="hall-match-button w-full"
-                      disabled={disabled || dirty || configDirty} onClick={() => void saveRelief(team, id)}>
+                      disabled={disabled || dirty || configDirty} onClick={() => void saveRelief(team, id, selected ? outgoing : null)}>
                       {names.get(id) ?? 'Spieler'} · {day.teams[source].name} → {day.teams[team].name}{onField ? ' (vom Feld)' : ''}
                     </button>)}
                     {!busy && candidates.length === 0 ? <p>Kein Spieler aus einem anderen Team verfügbar.</p> : null}

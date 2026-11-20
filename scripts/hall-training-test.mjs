@@ -24,6 +24,13 @@ try {
  const reliefTimes = new Map(h.hallPlayerTimes(after, start + 60000).players.map(player => [player.id, player.seconds]));
  assert.equal(reliefTimes.get('blue-on'), 60, 'Donor plays on one side at a time');
  assert.equal(reliefTimes.get('injured'), 30);
+ const filled = h.relieveHallPlayer(after, 0, 0, null, 'resting', start + 45000);
+ assert.deepEqual(filled.games[0].participation[0].stints.at(-1), { second: 45, on: ['blue-2', 'resting'] });
+ assert.deepEqual(filled.games[0].withdrawn, ['injured']);
+ assert.deepEqual(filled.games[0].participation[1], after.games[0].participation[1]);
+ assert.throws(() => h.relieveHallPlayer(live, 0, 1, null, 'resting', start + 30000), /Kein freier Platz/);
+ assert.throws(() => h.relieveHallPlayer(after, 0, 0, null, 'resting', start + 3600000), /abgelaufen/);
+
  assert.throws(() => h.changeHallPlayers(after, 0, 0, ['blue-2', 'blue-on'], start + 60000));
  assert.throws(() => h.changeHallPlayers(after, 0, 1, ['injured', 'yellow-2'], start + 60000));
  assert.throws(() => h.relieveHallPlayer(live, 0, 1, 'injured', 'unlisted', start + 60000));
