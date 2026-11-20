@@ -20,3 +20,14 @@ console.log('team-season-naming-test: OK (legacy names, archive, team suffix, mu
 assert.equal(naming.formatTeamSeasonContextLabel({ teamName: 'SC Melk FR U16', ageGroup: 'U16', seasonName: '2026/27' }), 'SC Melk FR · U16 · 2026/27');
 assert.equal(naming.formatTeamSeasonContextLabel({ teamName: 'SC Melk FR U16', displayName: 'SC Melk FR U16 · U16 · 2026/27', ageGroup: 'U16', seasonName: '2026/27' }), 'SC Melk FR · U16 · 2026/27');
 assert.equal(naming.formatTeamSeasonContextLabel({ teamName: 'SC Melk FR KM', ageGroup: 'KM', seasonName: '2026/27' }), 'SC Melk FR · KM · 2026/27');
+
+const presentationResult = await build({ entryPoints: ['src/lib/teamSwitcherPresentation.ts'], bundle: true, write: false, platform: 'node', format: 'esm', define: { 'import.meta.env.BASE_URL': '"/"' } });
+const presentation = await import(`data:text/javascript;base64,${Buffer.from(presentationResult.outputFiles[0].text).toString('base64')}`);
+assert.equal(presentation.teamSwitcherTitle(base), 'SPG Rohrbach · U12');
+assert.equal(presentation.teamSwitcherTitle({ teamName: 'U09', ageGroup: 'U09', clubName: 'USC Rohrbach' }), 'USC Rohrbach · U09');
+assert.equal(presentation.teamSwitcherTitle({ teamName: 'U11-A', displayName: 'U11-A · 2026/27', ageGroup: 'U11 A', clubName: 'USC Rohrbach' }), 'USC Rohrbach · U11 A');
+assert.equal(presentation.teamSwitcherTitle({ teamName: 'SPG Hainfeld', ageGroup: 'U14', clubName: 'NSG Gölsental' }), 'SPG Hainfeld · U14');
+assert.equal(presentation.teamSwitcherLogo('SPG Rohrbach', 'USC Rohrbach'), '/logos/nsg-goelsental.png');
+assert.equal(presentation.teamSwitcherLogo('U09', 'USC Rohrbach'), '/logos/usc-rohrbach.png');
+assert.equal(presentation.teamSwitcherLogo('SPG Rohrbach', 'USC Rohrbach', null, '/logos/custom.png', '/logos/club.png'), '/logos/custom.png');
+console.log('team-switcher presentation: OK');
