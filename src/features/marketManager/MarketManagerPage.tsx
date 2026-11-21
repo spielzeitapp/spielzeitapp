@@ -3,13 +3,20 @@ import {MarketManagerDashboard} from './MarketManagerDashboard';
 import {MarketTeamCash} from './MarketTeamCash';
 import {MarketManagerNav} from './MarketManagerNav';
 import {MarketManagerSplash} from './MarketManagerSplash';
-import React,{useEffect,useState,useRef} from 'react';import {Link,Navigate,useParams,useSearchParams} from 'react-router-dom';
+import React,{useEffect,useLayoutEffect,useState,useRef} from 'react';import {Link,Navigate,useParams,useSearchParams} from 'react-router-dom';
 import {useAuth} from '../../auth/AuthProvider';import {supabase} from '../../lib/supabaseClient';import {isStagingApp} from '../../lib/appEnvironment';import {MarketThemeToggle} from '../club/MarketThemeToggle';import {MarketMembersAdmin,MarketInviteAdmin} from '../club/MarketJoinPanel';import {TestEnvironmentNotice} from '../../components/TestEnvironmentNotice';import {useMarketManagerAccess} from './useMarketManagerAccess';import '../../manager/managerMarketTeams.css';import './marketManager.css';
 const PersonalMarket=React.lazy(()=>import('../../pages/ClubExchangePage').then(m=>({default:m.ClubExchangePage})));
 type Candidate={id:string;name:string;market:boolean;teams:boolean};type Offer={id:string;title:string;owner:string;size:string;status:string;revision:number};
 export function MarketManagerPage(){
  const {user,loading:authLoading,signOut}=useAuth(),{clubId}=useParams(),access=useMarketManagerAccess(user?.id);const [params,setParams]=useSearchParams();const tab=params.get('section')||'home';const setTab=(value:string,mode?:string)=>{const q=new URLSearchParams();if(value!=='home')q.set('section',value);if(mode)q.set('mode',mode);setParams(q);};const [logoutError,setLogoutError]=useState('');const scroller=useRef<HTMLElement>(null);const personalView=params.get('mode')==='requests'?'requests':params.get('mode')==='mine'?'mine':'other';useEffect(()=>{scroller.current?.scrollTo({top:0,behavior:'auto'});},[tab,personalView]);
  const club=access.clubs.find(c=>c.id===clubId);
+ useLayoutEffect(()=>{
+  if(authLoading||access.loading)return;
+  // Safari can retain the document offset after quick-switch/login. Only the
+  // manager's internal content should scroll; reset once its real shell mounts.
+  window.scrollTo(0,0);scroller.current?.scrollTo({top:0,behavior:'auto'});
+  window.dispatchEvent(new Event('spz-viewport-recover'));
+ },[authLoading,access.loading,clubId]);
  const managerPath='/vereinsmarkt-manager'+(clubId?'/'+clubId:'');const login=managerPath+'/anmelden';
  async function logout(){try{setLogoutError('');await signOut();}catch{setLogoutError('Abmelden fehlgeschlagen. Bitte erneut versuchen.');}}
  if(authLoading||(user&&access.loading&&!club))return <MarketManagerSplash/>;

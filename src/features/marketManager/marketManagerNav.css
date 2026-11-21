@@ -16,3 +16,8 @@ html[data-market-manager-shell][data-viewport-entry=app][data-ios-standalone-ful
 
 /* Anchor to the visible rectangle, including cold PWA launch, quick switch and keyboard. */
 .market-manager-nav-viewport,html[data-market-manager-shell][data-viewport-entry=app][data-ios-standalone-fullscreen] .market-manager-nav-viewport{position:fixed;top:var(--market-nav-visible-top,0px);bottom:auto;height:var(--market-nav-visible-height,100dvh);display:flex;align-items:flex-end;transform:none}
+
+/* Content and portal share the same measured viewport, even after an app switch. */
+html[data-market-manager-shell] .manager-market-teams{top:var(--market-nav-visible-top,0px);height:var(--market-nav-visible-height,100dvh);max-height:var(--market-nav-visible-height,100dvh);box-sizing:border-box}
+.market-manager-home>.test-environment-notice{position:sticky;top:0;z-index:60;flex-shrink:0;width:100%;margin:0}
+html[data-market-manager-shell] .market-manager-nav-viewport{padding-bottom:max(2px,min(8px,calc(env(safe-area-inset-bottom,0px) - 24px)))}
