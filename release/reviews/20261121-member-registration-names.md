@@ -1,0 +1,5 @@
+# Member registration names
+
+The admin-only market member list previously read only public.profiles, while the account UI already falls back to registration metadata. Added registration first/last/full/display/name fallbacks only when profile names are empty; original name priority remains. No account rows are modified, no emails or auth metadata are exposed, and no privilege or membership logic changes. User metadata is presentation only, never authorization.
+
+Validated actual TEST and LIVE function definitions before patching. Synthetic rollback tests under authenticated role passed in both environments before and after migration: registered first/last name, full_name fallback, absent-name fallback, rejection of a regular member even with spoofed metadata role, no email/metadata fields returned. Repeated reads tested; concurrency is not applicable to this stable read-only function. Existing management guard and selected-team privacy rules remain. Database-only change is effective without a frontend deployment.
