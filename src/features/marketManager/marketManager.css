@@ -16,3 +16,11 @@
 .market-manager-home .vm-personal-market{margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}.market-manager-home .vm-personal-market>h1{font-size:28px;margin:0 0 20px}
 .vm-personal-market .exchange-member-content>.exchange-context-chip,.vm-personal-market .exchange-member-content>.exchange>.exchange-heading,.vm-personal-market .exchange-member-content>.exchange>.exchange-back,.vm-personal-market .exchange-member-content>.exchange>.exchange-tabs:not([aria-label]){display:none}
 .market-manager-home .vm-personal-market .exchange-member-content>.exchange{margin:0;padding:0;border:0;background:transparent;box-shadow:none}
+
+/* Header and footer never participate in scrolling; only the middle pane moves. */
+html[data-market-manager-shell] .market-manager-home{position:fixed;inset:0;height:100dvh;max-height:100dvh;display:flex;flex-direction:column;overflow:hidden!important;min-height:0}
+.market-manager-home .vm-shell-header{position:relative;top:auto;flex:0 0 auto;z-index:65}
+.market-manager-home .vm-content-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;scroll-padding-bottom:20px}
+.market-manager-home.market-manager-with-nav .manager-market-teams-inner{padding-bottom:24px;scroll-margin-bottom:0}
+html[data-market-manager-shell] .market-manager-home .market-manager-nav-viewport{position:relative!important;inset:auto!important;top:auto!important;bottom:auto!important;height:auto!important;min-height:0;max-height:none;flex:0 0 auto;width:100%;display:block;padding:8px 12px max(2px,env(safe-area-inset-bottom,0px));z-index:50;transform:none}
+@supports selector(:has(input:focus)){html[data-market-manager-shell] .market-manager-home:has(:is(input,textarea,select):focus){height:var(--market-nav-visible-height,100dvh);max-height:var(--market-nav-visible-height,100dvh);top:var(--market-nav-visible-top,0px);bottom:auto}}
