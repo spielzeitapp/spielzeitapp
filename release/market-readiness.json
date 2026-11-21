@@ -1,7 +1,7 @@
 {
   "scope": "Vereinsmarkt and manager including explicit outcomes, archive, permanent deletion, seller contributions and cash ledger",
   "common_sha256": {
-    "src/features/club/ClubExchange.tsx": "45cb262a92c139c1499f772db8897a1769a462382cec12ba08f76566d167725f",
+    "src/features/club/ClubExchange.tsx": "31a7570fcc797ea9e2702494ee059975be09fba598bde017b5a69e56250149a2",
     "src/features/club/MarketAccountSettings.tsx": "d31e725e2b4168cd95c215a6f529cf92155ff6d0d6fdf98fb8cfaefb6def3897",
     "src/features/club/MarketHomeScreenGuide.tsx": "4b3c285e3396d66e094ee05adea3b5f99576d0b5c733c208a435ad8c618c20cd",
     "src/features/club/MarketInstallDialog.tsx": "7719c9ec7f64de939c5df265f91d8a83716d9410af3169b1bfc63c656205cb20",
@@ -17,7 +17,7 @@
     "src/features/club/TeamFundFields.tsx": "0bbd87b66827e7511ae47c237a8a13f803fc47cf9f1562a7e8b0aa1f1083a8b9",
     "src/features/club/teamFund.ts": "a563e2ff8a14f781cb49036f83fbb2c318b86c0b1a7ee9da68142d3ea13d4ff1",
     "src/features/club/teamFund.css": "a1d1c907ba6c099b02779b182e5da38376265240c42da60e0e3762943e4f12d9",
-    "src/pages/ClubExchangePage.tsx": "beaec8c2d91355dc1c8f0a2c45900e8bf915e5d7ab0952a8e543a70a21db1392",
+    "src/pages/ClubExchangePage.tsx": "3728745cfcff998da11e936b1400927b1ac25e6f27b728795ce0fd6605268f82",
     "src/features/marketManager/MarketManagerShortcut.tsx": "765daa77722a30c4bc9cb7083967eed833c17a9310e862731cd70ed30611e8cc",
     "src/features/marketManager/marketQuickSwitch.css": "d6c84428c6c7b57fb1a938063eafc336976032f21361126f587e6b4fe7b332da",
     "src/features/marketManager/MarketManagerSplash.tsx": "eb8779033425ade74cbdc6c7b1726f5185b48e5f9c4ae1de27198dbbafa12ea7",
@@ -32,7 +32,8 @@
     "src/features/club/ListingCompletionDialog.tsx": "a2814269cff1eba5fdb80da7b7064b97a09cbdf4f38aef581d26ee92b6b5d663",
     "src/features/club/listingCompletion.css": "14d8d9371a8f62de11a5389a05e6f8158b0fef67ee29bd42fc6fad0faa287857",
     "src/features/club/ExchangePhotoGallery.css": "bd28b0fa94220b66d99e702c2534727a23613ff99f0e94f1dec4bbbd94a9d1bc",
-    "src/features/club/exchangeRequest.ts": "3ce0bd1758209bda838be1e6617543a49c0ec6480f573ecb9c99eddfd28ed93b"
+    "src/features/club/exchangeRequest.ts": "3ce0bd1758209bda838be1e6617543a49c0ec6480f573ecb9c99eddfd28ed93b",
+    "src/features/club/marketFullTeamLabel.ts": "20e948cfb09b6163accd87124ff24a6167535bb086d83195bb51404c2abc8e32"
   },
   "intentional_differences": [
     "TEST environment label, club IDs, users, offers and credentials",

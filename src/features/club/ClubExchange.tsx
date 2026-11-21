@@ -1,3 +1,4 @@
+import {marketFullTeamLabel} from './marketFullTeamLabel';
 import {submitExchangeRequest} from './exchangeRequest';
 import {ListingCompletionDialog,removeListingPhotos} from './ListingCompletionDialog';
 import {TeamFundFields,TeamFundDetail,type FundRow} from './TeamFundFields';
@@ -275,7 +276,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   const filterCount = Object.values(filters).filter(Boolean).length;
   const clearFilters = () => { setCategory(''); setSize(''); setTeam(''); setOffer(''); };
   const previewFiles = files.map(file => ({ file, key: `${file.name}-${file.lastModified}-${file.size}` }));
-  const teamLabels = [...new Set([...(ownTeamLabels || seasons.map(s => s.age_group || s.display_name || s.team.name)), ...(form.team_label ? [form.team_label] : [])])];
+  const teamLabels = [...new Set([...(ownTeamLabels || seasons.map(s => marketFullTeamLabel(s.team.name,s.age_group))), ...(form.team_label ? [form.team_label] : [])])];
   return <section className="exchange" aria-label="Vereinsinterner Vereinsmarkt">
     {!detail&&<header className="exchange-heading"><div><span className="usc-eyebrow">Alle Teams. Ein Verein.</span><h2>Vereinsmarkt</h2><p>Tauschbörse · Fußballsachen im Verein weitergeben.</p></div>{access && <button className="exchange-primary sz-club-primary" onClick={() => openEditor()}><Plus size={17} /> Inserat</button>}</header>}
     {error && <div className="exchange-alert" role="alert">{error}<button onClick={() => { setError(''); void loadRef.current(); }}>Erneut versuchen</button></div>}
