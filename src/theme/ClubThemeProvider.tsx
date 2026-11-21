@@ -1,3 +1,4 @@
+import { clubAppearance } from '../manager/appearance/clubAppearance';
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useSession } from "../auth/useSession";
@@ -90,6 +91,7 @@ export const ClubThemeProvider: React.FC<React.PropsWithChildren<{ brandingOverr
     const yellowAccent = ar > 150 && ag > 100 && ab < 100;
     root.dataset.clubWelcomeKit = bluePrimary && yellowAccent ? 'blue-yellow' : 'default';
     root.dataset.clubTheme = primaryHex || accentHex || secondaryHex ? 'custom' : 'black-red';
+    root.style.setProperty("--club-link-on-light", clubAppearance(primaryHex ?? null, secondaryHex ?? null, accentHex ?? null, "day").link);
     root.style.setProperty("--club-primary-rgb", palette.primary);
     root.style.setProperty("--club-accent-rgb", palette.accent);
     root.style.setProperty("--club-border-rgb", palette.border);

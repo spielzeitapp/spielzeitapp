@@ -1,3 +1,4 @@
+import { AppAppearanceToggle } from '../../theme/AppAppearance';
 import {MarketQuickSwitch} from '../../features/marketManager/MarketQuickSwitch';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -25,6 +26,7 @@ function AppHeaderBrand({ compactDemo = false }: { compactDemo?: boolean }) {
         iconClassName={compactDemo ? 'h-11 w-11 max-[399px]:h-9 max-[399px]:w-9 sm:h-12 sm:w-12' : 'h-11 w-11 sm:h-12 sm:w-12'}
         wordmarkClassName={compactDemo ? 'w-[7.8rem] max-[399px]:w-[6.2rem] max-[359px]:hidden sm:w-[9.1rem]' : 'w-[7.8rem] max-[430px]:w-[6rem] max-[399px]:w-[5rem] max-[374px]:hidden sm:w-[9.1rem]'}
       />
+      <span className="app-header-day-wordmark" aria-hidden>Spielzeit<strong>App</strong></span>
     </span>
   );
 }
@@ -190,6 +192,7 @@ export const Header: React.FC = () => {
         {!publicView && (
           <div className="order-2 flex shrink-0 flex-col items-end justify-center gap-0.5 md:order-3">
             <div className="app-header-actions flex items-start gap-1.5 sm:gap-2">
+              <AppAppearanceToggle />
               {isDemo ? (
                 <>
                   <button

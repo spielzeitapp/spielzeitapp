@@ -1,0 +1,128 @@
+/* The app appearance is scoped separately from market and manager preferences. */
+html[data-app-appearance=light] {
+  color-scheme: light;
+  --bg-base: #f5f5f8;
+  --text-main: #202027;
+  --text-sub: #62616d;
+  --glass-bg: #ffffff;
+  --glass-border: #dcdce4;
+  --glass-shadow: 0 4px 18px #1717220b;
+  --surface: #ffffff;
+  --border: #dcdce4;
+  background: var(--bg-base);
+}
+html[data-app-appearance=light] body { background: var(--bg-base); color: var(--text-main); }
+html[data-app-appearance=light] .bg-glow { background: var(--bg-base); }
+html[data-app-appearance=light] :is(.bg-vignette,.bg-watermark) { display:none; }
+html[data-app-appearance=light] :is(.app--internal,
+  .app-shell,
+  .app__content,
+  [data-ui-page-shell],
+  .page):not(:where([data-app-artwork], [data-app-artwork] *, [data-manager-artwork], [data-manager-artwork] *, [data-profile-artwork], [data-profile-artwork] *, [data-whatsapp-status-poster], [data-whatsapp-status-poster] *, .sz-club-showcase-card, .sz-club-showcase-card *, .sz-club-profile-hero, .sz-club-profile-hero *, [data-showcase-card], [data-showcase-card] *, [data-portrait-background], [data-portrait-background] *, .sz-club-primary, .sz-club-primary *, .sz-club-tab-active, .sz-club-tab-active *, .sz-club-schedule-filter-active, .sz-club-schedule-filter-active *, .sz-club-schedule-chevron, .sz-club-schedule-chevron *)) {
+  background:var(--bg-base)!important; color:var(--text-main)!important;
+}
+html[data-app-appearance=light] :is([class*="text-white"],
+  [class*="text-[#F2F2F2]"],
+  h1,
+  h2,
+  h3):not(:where([data-app-artwork], [data-app-artwork] *, [data-manager-artwork], [data-manager-artwork] *, [data-profile-artwork], [data-profile-artwork] *, [data-whatsapp-status-poster], [data-whatsapp-status-poster] *, .sz-club-showcase-card, .sz-club-showcase-card *, .sz-club-profile-hero, .sz-club-profile-hero *, [data-showcase-card], [data-showcase-card] *, [data-portrait-background], [data-portrait-background] *, .sz-club-primary, .sz-club-primary *, .sz-club-tab-active, .sz-club-tab-active *, .sz-club-schedule-filter-active, .sz-club-schedule-filter-active *, .sz-club-schedule-chevron, .sz-club-schedule-chevron *)) {
+  color:var(--text-main)!important; text-shadow:none!important;
+}
+html[data-app-appearance=light] :is([class*="text-white/"],
+  [class*="text-zinc-"],
+  [class*="text-slate-"]):not(:where([data-app-artwork], [data-app-artwork] *, [data-manager-artwork], [data-manager-artwork] *, [data-profile-artwork], [data-profile-artwork] *, [data-whatsapp-status-poster], [data-whatsapp-status-poster] *, .sz-club-showcase-card, .sz-club-showcase-card *, .sz-club-profile-hero, .sz-club-profile-hero *, [data-showcase-card], [data-showcase-card] *, [data-portrait-background], [data-portrait-background] *, .sz-club-primary, .sz-club-primary *, .sz-club-tab-active, .sz-club-tab-active *, .sz-club-schedule-filter-active, .sz-club-schedule-filter-active *, .sz-club-schedule-chevron, .sz-club-schedule-chevron *)) {
+  color:var(--text-sub)!important;
+}
+html[data-app-appearance=light] :is([class*="border-white"]):not(:where([data-app-artwork], [data-app-artwork] *, [data-manager-artwork], [data-manager-artwork] *, [data-profile-artwork], [data-profile-artwork] *, [data-whatsapp-status-poster], [data-whatsapp-status-poster] *, .sz-club-showcase-card, .sz-club-showcase-card *, .sz-club-profile-hero, .sz-club-profile-hero *, [data-showcase-card], [data-showcase-card] *, [data-portrait-background], [data-portrait-background] *, .sz-club-primary, .sz-club-primary *, .sz-club-tab-active, .sz-club-tab-active *, .sz-club-schedule-filter-active, .sz-club-schedule-filter-active *, .sz-club-schedule-chevron, .sz-club-schedule-chevron *)) {
+  border-color:var(--glass-border)!important;
+}
+html[data-app-appearance=light] :is([data-ui-card],
+  .sz-club-surface,
+  .sz-club-list-card,
+  .sz-club-feed-shell,
+  .sz-club-schedule-hero-card,
+  .sz-club-schedule-toolbar-action,
+  .sz-club-tab-track,
+  .sz-club-schedule-filter-track,
+  [data-ui-tab-track],
+  dialog,
+  [role="dialog"]):not(:where([data-app-artwork], [data-app-artwork] *, [data-manager-artwork], [data-manager-artwork] *, [data-profile-artwork], [data-profile-artwork] *, [data-whatsapp-status-poster], [data-whatsapp-status-poster] *, .sz-club-showcase-card, .sz-club-showcase-card *, .sz-club-profile-hero, .sz-club-profile-hero *, [data-showcase-card], [data-showcase-card] *, [data-portrait-background], [data-portrait-background] *, .sz-club-primary, .sz-club-primary *, .sz-club-tab-active, .sz-club-tab-active *, .sz-club-schedule-filter-active, .sz-club-schedule-filter-active *, .sz-club-schedule-chevron, .sz-club-schedule-chevron *)) {
+  background:var(--surface)!important; color:var(--text-main)!important; border-color:var(--glass-border)!important; box-shadow:var(--glass-shadow)!important;
+}
+html[data-app-appearance=light] :is([class*="bg-black"],
+  [class*="bg-zinc-"],
+  [class*="bg-slate-"],
+  [class*="bg-[rgba("],
+  [class*="bg-[linear-gradient("],
+  [class*="bg-white/"]):not(:where([data-app-artwork], [data-app-artwork] *, [data-manager-artwork], [data-manager-artwork] *, [data-profile-artwork], [data-profile-artwork] *, [data-whatsapp-status-poster], [data-whatsapp-status-poster] *, .sz-club-showcase-card, .sz-club-showcase-card *, .sz-club-profile-hero, .sz-club-profile-hero *, [data-showcase-card], [data-showcase-card] *, [data-portrait-background], [data-portrait-background] *, .sz-club-primary, .sz-club-primary *, .sz-club-tab-active, .sz-club-tab-active *, .sz-club-schedule-filter-active, .sz-club-schedule-filter-active *, .sz-club-schedule-chevron, .sz-club-schedule-chevron *)) {
+  background:var(--surface)!important;
+}
+html[data-app-appearance=light] :is(.sz-club-card-glow,
+  .sz-club-card-glow--hero,
+  .sz-club-diagonal-lines,
+  .sz-club-schedule-hero-backdrop,
+  .sz-club-schedule-match-lines):not(:where([data-app-artwork], [data-app-artwork] *, [data-manager-artwork], [data-manager-artwork] *, [data-profile-artwork], [data-profile-artwork] *, [data-whatsapp-status-poster], [data-whatsapp-status-poster] *, .sz-club-showcase-card, .sz-club-showcase-card *, .sz-club-profile-hero, .sz-club-profile-hero *, [data-showcase-card], [data-showcase-card] *, [data-portrait-background], [data-portrait-background] *, .sz-club-primary, .sz-club-primary *, .sz-club-tab-active, .sz-club-tab-active *, .sz-club-schedule-filter-active, .sz-club-schedule-filter-active *, .sz-club-schedule-chevron, .sz-club-schedule-chevron *)) {
+  background:transparent!important;
+}
+html[data-app-appearance=light] :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),
+  select,
+  textarea):not(:where([data-app-artwork], [data-app-artwork] *, [data-manager-artwork], [data-manager-artwork] *, [data-profile-artwork], [data-profile-artwork] *, [data-whatsapp-status-poster], [data-whatsapp-status-poster] *, .sz-club-showcase-card, .sz-club-showcase-card *, .sz-club-profile-hero, .sz-club-profile-hero *, [data-showcase-card], [data-showcase-card] *, [data-portrait-background], [data-portrait-background] *, .sz-club-primary, .sz-club-primary *, .sz-club-tab-active, .sz-club-tab-active *, .sz-club-schedule-filter-active, .sz-club-schedule-filter-active *, .sz-club-schedule-chevron, .sz-club-schedule-chevron *)) {
+  background:#f8f8fb!important; color:var(--text-main)!important; border-color:var(--glass-border)!important; color-scheme:light;
+}
+html[data-app-appearance=light] :is(input::placeholder,
+  textarea::placeholder):not(:where([data-app-artwork], [data-app-artwork] *, [data-manager-artwork], [data-manager-artwork] *, [data-profile-artwork], [data-profile-artwork] *, [data-whatsapp-status-poster], [data-whatsapp-status-poster] *, .sz-club-showcase-card, .sz-club-showcase-card *, .sz-club-profile-hero, .sz-club-profile-hero *, [data-showcase-card], [data-showcase-card] *, [data-portrait-background], [data-portrait-background] *, .sz-club-primary, .sz-club-primary *, .sz-club-tab-active, .sz-club-tab-active *, .sz-club-schedule-filter-active, .sz-club-schedule-filter-active *, .sz-club-schedule-chevron, .sz-club-schedule-chevron *)) {
+  color:var(--text-sub)!important; opacity:1;
+}
+html[data-app-appearance=light] :is(.sz-club-accent-text,
+  .sz-club-feed-accent-text,
+  .sz-club-link,
+  [class*="text-red-"]):not(:where([data-app-artwork], [data-app-artwork] *, [data-manager-artwork], [data-manager-artwork] *, [data-profile-artwork], [data-profile-artwork] *, [data-whatsapp-status-poster], [data-whatsapp-status-poster] *, .sz-club-showcase-card, .sz-club-showcase-card *, .sz-club-profile-hero, .sz-club-profile-hero *, [data-showcase-card], [data-showcase-card] *, [data-portrait-background], [data-portrait-background] *, .sz-club-primary, .sz-club-primary *, .sz-club-tab-active, .sz-club-tab-active *, .sz-club-schedule-filter-active, .sz-club-schedule-filter-active *, .sz-club-schedule-chevron, .sz-club-schedule-chevron *)) {
+  color:var(--club-link-on-light,#a51d35)!important;
+}
+html[data-app-appearance=light] .app-header {
+  background:#ffffff!important; border-color:var(--glass-border)!important; box-shadow:0 3px 16px #1717220b!important;
+}
+html[data-app-appearance=light] :is(.app-header-actions button,
+  .app-header-actions a,
+  .app-header-profile>span,
+  .app-header-role):not(:where([data-app-artwork], [data-app-artwork] *, [data-manager-artwork], [data-manager-artwork] *, [data-profile-artwork], [data-profile-artwork] *, [data-whatsapp-status-poster], [data-whatsapp-status-poster] *, .sz-club-showcase-card, .sz-club-showcase-card *, .sz-club-profile-hero, .sz-club-profile-hero *, [data-showcase-card], [data-showcase-card] *, [data-portrait-background], [data-portrait-background] *, .sz-club-primary, .sz-club-primary *, .sz-club-tab-active, .sz-club-tab-active *, .sz-club-schedule-filter-active, .sz-club-schedule-filter-active *, .sz-club-schedule-chevron, .sz-club-schedule-chevron *)) {
+  background:#f5f4f7!important; color:var(--text-main)!important; border-color:var(--glass-border)!important; box-shadow:none!important;
+}
+html[data-app-appearance=light] [data-app-bottom-nav]>div {
+  background:#fffffff5!important; border-color:var(--glass-border)!important; box-shadow:0 4px 24px #1717221a!important;
+}
+html[data-app-appearance=light] [data-app-bottom-nav] a[aria-current=page] span {
+  color:var(--club-link-on-light,#a51d35)!important;
+}
+html[data-app-appearance=light] [data-app-bottom-nav] .nav-icon {
+  filter:brightness(0.2)!important;
+}
+html[data-app-appearance=light] [data-app-bottom-nav]>div>div[aria-hidden],
+html[data-app-appearance=light] .app-header>div[aria-hidden] {
+  opacity:0!important;
+}
+html[data-app-appearance=light] .sz-club-primary,
+html[data-app-appearance=light] .sz-club-tab-active,
+html[data-app-appearance=light] .sz-club-schedule-filter-active,
+html[data-app-appearance=light] .sz-club-schedule-chevron {
+  background:rgb(var(--club-primary-rgb))!important; color:var(--club-on-primary)!important; border-color:rgb(var(--club-accent-rgb)/.5)!important; box-shadow:none!important;
+}
+html[data-app-appearance=light] .sz-club-primary *,
+html[data-app-appearance=light] .sz-club-tab-active *,
+html[data-app-appearance=light] .sz-club-schedule-filter-active *,
+html[data-app-appearance=light] .sz-club-schedule-chevron * {
+  color:inherit!important;
+}
+
+.app-header-day-wordmark { display:none; }
+html[data-app-appearance=light] .app-header-day-wordmark { display:inline; color:#202027; font-weight:800; font-size:1.1rem; letter-spacing:-.04em; white-space:nowrap; }
+html[data-app-appearance=light] .app-header-day-wordmark strong { color:#c82333; }
+html[data-app-appearance=light] .app-header-brand .spielzeit-wordmark { display:none; }
+/* Six header actions remain reachable on narrow phones without horizontal overflow. */
+html[data-app-appearance] .app-header-actions { gap:3px; }
+html[data-app-appearance] .app-header-actions>.app-appearance-toggle { width:36px; min-width:36px; height:36px; }
+@media(max-width:430px) {
+  html[data-app-appearance] .app-header-brand .spielzeit-wordmark,
+  html[data-app-appearance] .app-header-day-wordmark { display:none; }
+  html[data-app-appearance] .app-header-brand img { max-width:32px; max-height:36px; }
+}

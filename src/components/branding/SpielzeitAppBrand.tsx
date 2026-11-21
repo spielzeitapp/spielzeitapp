@@ -14,7 +14,7 @@ export function SpielzeitAppWordmark({ className = '', label = 'SpielzeitApp' }:
     <img
       src={WORDMARK_PATH}
       alt={label}
-      className={`block h-auto object-contain ${className}`}
+      className={`spielzeit-wordmark block h-auto object-contain ${className}`}
       width={689}
       height={141}
       decoding="async"

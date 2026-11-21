@@ -9,7 +9,7 @@ export function TeamHeroFrame({ photoSrc, photoStyle, className = '', children, 
   onPhotoLoad?: () => void;
   onPhotoError?: () => void;
 }) {
-  return <div className={`${className} relative w-full overflow-hidden`}>
+  return <div data-app-artwork className={`${className} relative w-full overflow-hidden`}>
     <div data-team-hero-photo className="relative aspect-[16/10] w-full overflow-hidden">
       {photoSrc ? <img key={photoSrc} src={photoSrc} style={photoStyle} alt="Mannschaftsfoto" draggable={false} onLoad={onPhotoLoad} onError={onPhotoError} className="absolute inset-0 h-full w-full select-none object-cover" /> : <div className="absolute inset-0 bg-[linear-gradient(135deg,rgb(var(--club-primary-rgb)/0.65),#09090b)]" aria-hidden />}
     </div>
