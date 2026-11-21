@@ -1,3 +1,4 @@
+import {marketFullTeamLabel} from '../features/club/marketFullTeamLabel';
 import {MarketHomeScreenGuide} from '../features/club/MarketHomeScreenGuide';
 import { MarketJoinPanel } from '../features/club/MarketJoinPanel';
 import { publicMarketForClub } from '../features/club/marketSwitch';
@@ -58,9 +59,9 @@ export function ClubExchangePage({embedded=false,embeddedClubId}:{embedded?:bool
   const selectedClub = partners?.find(p => p.team_id === selectedTeam?.id)?.club_id || selectedTeam?.club_id;
   const clubId = embeddedClubId || params.get('club') || (selectedClub && contexts.has(selectedClub) ? selectedClub : '') || contexts.keys().next().value || '';
   const ownClubSeasons = ownSeasons.filter(s => (partners?.find(p => p.team_id === s.team.id)?.club_id || s.team.club_id) === clubId);
-  const ownTeamLabels = [...new Set([...ownClubSeasons.map(s => s.age_group || s.display_name || s.team.name),...(marketClubs.find(c=>c.club_id===clubId)?.team_labels||[])])];
+  const ownTeamLabels = [...new Set([...ownClubSeasons.map(s => marketFullTeamLabel(s.team.name,s.age_group)),...(marketClubs.find(c=>c.club_id===clubId)?.team_labels||[])])];
   const defaultSeason = ownClubSeasons.find(s => s.id === selectedTeamSeason?.id) || ownClubSeasons[0];
-  const defaultTeamLabel = defaultSeason ? defaultSeason.age_group || defaultSeason.display_name || defaultSeason.team.name : ownTeamLabels[0] || '';
+  const defaultTeamLabel = defaultSeason ? marketFullTeamLabel(defaultSeason.team.name,defaultSeason.age_group) : ownTeamLabels[0] || '';
   const permittedContext = contexts.has(clubId);
   useEffect(() => {
     if (!user || !clubId || !permittedContext || partners === null) return;

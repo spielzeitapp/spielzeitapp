@@ -77,7 +77,9 @@
     "supabase/migrations/20261119232238_exchange_fund_seller_handover.sql": "d9665c73bb692b2c2b86337819cccaafaee7fb71",
     "supabase/migrations/20261120082251_exchange_listing_completion.sql": "6477dab49934718779af8b5673acc7dbeaa33b56",
     "supabase/migrations/20261120082803_exchange_completion_revision_guard.sql": "9b211d8f87aac43f69c679e5ff8ca59747501797",
-    "supabase/migrations/20261120083138_exchange_completion_cancelled_fund.sql": "72e973e634b7c8571df8cefde8d5033662602f4e"
+    "supabase/migrations/20261120083138_exchange_completion_cancelled_fund.sql": "72e973e634b7c8571df8cefde8d5033662602f4e",
+    "supabase/migrations/20261121105349_exchange_full_team_labels.sql": "53e6e812513a1c1d4e1b12b9e87c95d2e1bc44ee",
+    "supabase/migrations/20261121105729_exchange_full_labels_privacy.sql": "a0c8dd1b0874db3edb3d203ea80f348a4a67bb93"
   },
   "functions": {
     "supabase/functions/generate-club-communications/index.ts": "8f84887c9197b0bcc6c050e436b211dca44a01e8"
