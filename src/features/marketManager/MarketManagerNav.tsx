@@ -1,12 +1,18 @@
 import React from 'react';
 import {createPortal} from 'react-dom';
 import {Link} from 'react-router-dom';
-import {Home,ClipboardList,Plus,MessageCircle,Settings2} from 'lucide-react';
+import {Home,ClipboardList,Users,Shirt,Wallet} from 'lucide-react';
 import './marketManagerNav.css';
-export function MarketManagerNav({clubId,section,mode,inline=false}:{clubId:string;section:string;mode?:string|null;inline?:boolean}){
+type Permissions={market?:boolean;teams?:boolean;cash?:boolean};
+export function managerNavigation(clubId:string,permissions:Permissions={}){
  const root='/vereinsmarkt-manager/'+encodeURIComponent(clubId);
- const active=['administration','listings','members','rights','teams','cash'].includes(section)?'administration':section==='personal'?(mode==='requests'?'requests':mode==='create'?'create':'mine'):'home';
- const items=[{id:'home',label:'Start',Icon:Home,to:root},{id:'mine',label:'Meine Inserate',Icon:ClipboardList,to:root+'?section=personal&mode=mine'},{id:'create',label:'Inserieren',Icon:Plus,to:root+'?section=personal&mode=create'},{id:'requests',label:'Nachrichten',Icon:MessageCircle,to:root+'?section=personal&mode=requests'},{id:'administration',label:'Verwaltung',Icon:Settings2,to:root+'?section=administration'}];
- const frame=<div className="market-manager-nav-viewport"><nav className="market-manager-nav" aria-label="Vereinsmarkt-Manager-Navigation">{items.map(({id,label,Icon,to})=><Link key={id} to={to} aria-current={active===id?'page':undefined} className={id==='create'?'vm-nav-create':undefined}><span className="vm-nav-icon"><Icon size={24} strokeWidth={1.9} aria-hidden="true"/></span><span>{label}</span></Link>)}</nav></div>;
+ return [{id:'home',label:'Übersicht',Icon:Home,to:root},
+ ...(permissions.market?[{id:'listings',label:'Inserate',Icon:ClipboardList,to:root+'?section=listings'},{id:'members',label:'Mitglieder',Icon:Users,to:root+'?section=members'}]:[]),
+ ...(permissions.teams?[{id:'teams',label:'Teams',Icon:Shirt,to:root+'?section=teams'}]:[]),
+ ...(permissions.cash?[{id:'cash',label:'Teamkassa',Icon:Wallet,to:root+'?section=cash'}]:[])];
+}
+export function MarketManagerNav({clubId,section,inline=false,permissions={}}:{clubId:string;section:string;mode?:string|null;inline?:boolean;permissions?:Permissions}){
+ const items=managerNavigation(clubId,permissions);
+ const frame=<div className="market-manager-nav-viewport"><nav className="market-manager-nav" style={{gridTemplateColumns:`repeat(${items.length},minmax(0,1fr))`}} aria-label="Vereinsmarkt-Manager-Navigation">{items.map(({id,label,Icon,to})=><Link key={id} to={to} aria-current={(section===id||(id==='home'&&['administration','rights'].includes(section)))?'page':undefined}><span className="vm-nav-icon"><Icon size={24} strokeWidth={1.9} aria-hidden="true"/></span><span>{label}</span></Link>)}</nav></div>;
  return inline||typeof document==='undefined'||!document.body?frame:createPortal(frame,document.body);
 }
