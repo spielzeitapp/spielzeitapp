@@ -6,7 +6,7 @@ import { ManagerOefbDurationSettings } from './ManagerOefbDurationSettings';
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { useSession } from '../auth/useSession';
 import {
   canPrepareNextSeason,
@@ -106,6 +106,7 @@ function previewStatusDetail(row: OefbImportPreviewRow): string | null {
 }
 
 export function ManagerOefbImportPage(): React.ReactElement {
+  const { hash } = useLocation();
   const { seasonId } = useParams<{ seasonId: string }>();
   const { user, effectiveRole, backendRole, setViewTeamSeasonId } = useSession();
   const { workMode } = useManagerWorkMode();
@@ -235,6 +236,12 @@ export function ManagerOefbImportPage(): React.ReactElement {
     for (const r of previewRows) c[r.status] += 1;
     return c;
   }, [previewRows]);
+
+  useEffect(() => {
+    if (!meta || loadingMeta || !['#oefb-table-settings', '#oefb-schedule-settings'].includes(hash)) return;
+    const frame = requestAnimationFrame(() => document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' }));
+    return () => cancelAnimationFrame(frame);
+  }, [hash, meta, loadingMeta]);
 
   const canPreview = Boolean(seasonId && meta) && !loadingMeta && !archived && !writableMessage && !previewBusy && !importBusy;
   const canImport =
@@ -423,7 +430,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
       ) : null}
 
       {meta && workMode === 'platform_admin' && backendRole?.trim().toLowerCase() === 'admin' ? (
-        <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 xl:max-w-3xl">
+        <section id="oefb-table-settings" className="scroll-mt-24 space-y-3 rounded-2xl border border-slate-200 bg-white p-4 xl:max-w-3xl">
           <div>
             <h2 className="text-[16px] font-semibold text-slate-900">ÖFB-Tabelle der Saison</h2>
             <p className="mt-1 text-[12px] text-slate-600">Bewerbslink oder zugeordneten Mannschafts-Tabellenlink speichern; die Tabelle wird in der App regelmäßig aktuell vom ÖFB geladen. Ohne Zuordnung erscheint kein Tabellen-Tab.</p>
@@ -442,7 +449,7 @@ export function ManagerOefbImportPage(): React.ReactElement {
       ) : null}
 
       {!archived && !writableMessage && meta ? (
-        <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 xl:max-w-3xl">
+        <section id="oefb-schedule-settings" className="scroll-mt-24 space-y-3 rounded-2xl border border-slate-200 bg-white p-4 xl:max-w-3xl">
           <label className="block text-[13px] font-semibold text-slate-800" htmlFor="oefb-url">
             ÖFB-Spielplan-URL
           </label>

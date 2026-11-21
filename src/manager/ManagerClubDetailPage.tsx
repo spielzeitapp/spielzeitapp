@@ -1,3 +1,4 @@
+import { teamOverviewReturnUrl, teamQuickWorkspace } from './teamOverviewActions';
 import {ManagerClubProfileFormat} from './ManagerClubProfileFormat';
 import {ManagerClubPhotoTemplate} from './ManagerClubPhotoTemplate';
 import { ManagerClubTeamOverview } from './ManagerClubTeamOverview';
@@ -194,6 +195,17 @@ export function ManagerClubDetailPage(): React.ReactElement {
     }
   }, [clubId, detail, setupSeasonId, location.hash]);
 
+  useEffect(() => {
+    if (detail?.id !== clubId || !setupSeasonId || new URLSearchParams(location.search).get('setupSeason') !== setupSeasonId) return;
+    const anchor = location.hash.slice(1);
+    if (['club-team-appearance', 'club-trainer-setup', 'club-team-overview'].includes(anchor)) {
+      const frame = requestAnimationFrame(() => openSetupSection(anchor));
+      return () => cancelAnimationFrame(frame);
+    }
+    const workspace = teamQuickWorkspace(location.hash, setupSeasonId);
+    if (workspace) startClubSupport(setupSeasonId, workspace, true);
+  }, [clubId, detail?.id, setupSeasonId, location.search, location.hash]);
+
   const staffInviteGeneration = useRef(0);
   const reloadStaffInvites = useCallback(async (teamSeasonId: string) => {
     const generation = ++staffInviteGeneration.current;
@@ -366,7 +378,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
     setSuccess(`${module.name} wurde ${module.enabled ? 'deaktiviert' : 'aktiviert'}.`);
   }
 
-  function startClubSupport(seasonId?: string, initialPath?: string) {
+  function startClubSupport(seasonId?: string, initialPath?: string, quickAction = false) {
     if (!detail || detail.team_seasons.length === 0) return;
     const supportTeamSeasons = detail.team_seasons.map((season) => ({
       id: season.id,
@@ -387,7 +399,10 @@ export function ManagerClubDetailPage(): React.ReactElement {
       teamSeasons: supportTeamSeasons,
       initialTeamSeasonId: initial.id,
       initialPath: initialPath ?? '/manager/saisons',
-      returnPath: `/manager/vereine/${detail.id}?setupSeason=${initial.id}#manager-setup-checklist`,
+      replaceEntry: quickAction,
+      returnPath: quickAction
+        ? teamOverviewReturnUrl(detail.id, initial.id, new URLSearchParams(location.search).get('overviewClub'))
+        : '/manager/vereine/' + detail.id + '?setupSeason=' + initial.id + '#manager-setup-checklist',
     });
   }
 
@@ -425,6 +440,9 @@ export function ManagerClubDetailPage(): React.ReactElement {
 
   const deps = detail?.dependencies;
   const selectedSeason = detail?.team_seasons.find(s => s.id === setupSeasonId);
+
+  const overviewReturnUrl = teamOverviewReturnUrl(clubId ?? '', setupSeasonId, new URLSearchParams(location.search).get('overviewClub'));
+  const backToTeams = <Link to={overviewReturnUrl} className="inline-flex min-h-9 items-center text-sm font-semibold text-red-700 hover:underline">← Mannschaften im Überblick</Link>;
 
   return (
     <div className="w-full max-w-none space-y-5">
@@ -492,7 +510,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
             <div><p className="text-xs text-slate-300">Ausgewählte Mannschaft · {detail.name}</p><h2 className="mt-1 text-lg font-bold">{seasonContextLabel(selectedSeason)}</h2><p className="mt-1 text-xs text-slate-300">Vorschau und Aufgaben beziehen sich auf diese Mannschaft und Saison.</p></div>
             <div className="flex flex-wrap gap-2"><button type="button" onClick={() => openSetupSection('club-team-overview')} className="min-h-11 rounded-xl border border-white/40 px-3 text-sm font-semibold">Mannschaft wechseln</button>{!appPreviewOpen && <button type="button" onClick={() => setAppPreviewOpen(true)} className="min-h-11 rounded-xl border border-white/40 px-3 text-sm font-semibold">App-Vorschau einblenden</button>}</div>
           </div>}
-          <ManagerSetupChecklist detail={detail} seasonId={setupSeasonId} onSelect={selectSetupSeason} onAction={setupAction} hideSelector initialStep={new URLSearchParams(location.search).get('setupStep')}
+          <ManagerSetupChecklist detail={detail} seasonId={setupSeasonId} onSelect={selectSetupSeason} onAction={setupAction} hideSelector backToTeams={backToTeams} initialStep={new URLSearchParams(location.search).get('setupStep')}
             preview={appPreviewOpen && selectedSeason ? <ManagerAppPreviewPanel key={setupSeasonId} clubId={clubId} teamSeasonId={setupSeasonId} branding={branding} logoFile={logoFile} compact onClose={() => setAppPreviewOpen(false)} /> : undefined} />
 
           {detail.status === 'active' && <Link
@@ -548,7 +566,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
           </form>
           </details>
           {selectedSeason && <details className="rounded-2xl border border-slate-200 bg-white"><summary className="cursor-pointer p-4 font-semibold">Mannschaft &amp; Saison bearbeiten · {selectedSeason.age_group}</summary><div id="club-selected-team-details" className="scroll-mt-24 space-y-3 p-4"><p className="text-sm text-slate-600">{seasonContextLabel(selectedSeason)} · {detail.name}</p><ManagerTeamDetailsEditor key={selectedSeason.id} clubId={clubId} season={selectedSeason} onSaved={async () => { await reloadSessionTeamSeasons(); await reload(); setSuccess('Mannschaft und Saison gespeichert.'); }} />
-            <ManagerTeamAppearance key={selectedSeason.team_id} clubId={clubId} clubName={detail.name} teamId={selectedSeason.team_id} teamLabel={seasonContextLabel(selectedSeason)} clubDesign={savedClubBranding} onSaved={reloadSessionTeamSeasons} />
+            <div id="club-team-appearance" className="scroll-mt-24">{backToTeams}<ManagerTeamAppearance key={selectedSeason.team_id} clubId={clubId} clubName={detail.name} teamId={selectedSeason.team_id} teamLabel={seasonContextLabel(selectedSeason)} clubDesign={savedClubBranding} onSaved={reloadSessionTeamSeasons} /></div>
           </div></details>}
           <details className="rounded-2xl border border-slate-200 bg-white"><summary className="cursor-pointer p-4 font-semibold">Trainer zuordnen, einladen &amp; Fotos bearbeiten</summary><div className="grid gap-4 p-4 lg:grid-cols-2">
               <form
@@ -566,7 +584,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
                   }, 'Trainer der Mannschaft zugeordnet.');
                 }}
               >
-                <span id="club-trainer-setup" className="block scroll-mt-24" />
+                <div id="club-trainer-setup" className="scroll-mt-24">{backToTeams}</div>
                 <p className="text-[13px] font-semibold text-slate-800">Trainer zuordnen oder einladen</p>
                 <p className="text-[12px] text-slate-500">
                   Bestehende Konten direkt zuordnen oder neue Trainer per E-Mail einladen.
