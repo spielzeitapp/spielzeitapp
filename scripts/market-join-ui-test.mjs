@@ -4,7 +4,7 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),React=require('react'),renderer=require('react-test-renderer'),{MemoryRouter,useLocation}=require('react-router-dom');
 const state=globalThis.marketJoinTest={user:null,calls:[],error:null,joined:0,guides:[],teams:[{id:'u12',name:'Rohrbach U12',age_group:'U12'},{id:'u13',name:'Gölsental U13',age_group:'U13'}],allowed:false,members:[{user_id:'parent',name:'Anna Test',teams:['U12'],blocked:false},{user_id:'blocked',name:'Max Test',teams:['U13'],blocked:true}]};
 const mock=`export const supabase={rpc:async(name,args)=>{const s=globalThis.marketJoinTest;s.calls.push({name,args});if(name==='exchange_team_options')return {data:s.teams,error:s.teamError||null};if(name==='can_manage_exchange')return {data:s.allowed,error:null};if(name==='exchange_members_list')return {data:s.members.map(m=>({...m})),error:null};if(name==='exchange_revoke'||name==='exchange_restore'){s.members=s.members.map(m=>m.user_id===args.p_user_id?{...m,blocked:name==='exchange_revoke'}:m);return {data:true,error:s.error};}return {data:true,error:s.error};}};`;
-const built=await build({entryPoints:['src/features/club/MarketJoinPanel.tsx'],bundle:true,define:{'import.meta.env':'{}'},platform:'node',format:'cjs',packages:'external',write:false,define:{'import.meta.env':'{}'},loader:{'.css':'empty'},plugins:[{name:'fixture',setup(b){
+const built=await build({entryPoints:['src/features/club/MarketJoinPanel.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,define:{'import.meta.env':'{}'},loader:{'.css':'empty'},plugins:[{name:'fixture',setup(b){
  b.onResolve({filter:/MarketHomeScreenGuide$/},()=>({path:'guide',namespace:'mock'}));
  b.onResolve({filter:/AuthProvider$/},()=>({path:'auth',namespace:'mock'}));b.onResolve({filter:/supabaseClient$/},()=>({path:'db',namespace:'mock'}));
  b.onLoad({filter:/.*/,namespace:'mock'},a=>({contents:a.path==='guide'?"export const requestMarketHomeGuide=id=>globalThis.marketJoinTest.guides.push(id);":a.path==='auth'?"export const useAuth=()=>({user:globalThis.marketJoinTest.user});":mock,loader:'js'}));
@@ -13,7 +13,8 @@ const Module=require('module'),mod=new Module('join-ui.cjs');mod.paths=require.r
 const club='9c7a8741-6e73-42d5-88d8-46ce5217e8cd',token='a'.repeat(64);let app;
 const Watch=()=>React.createElement('output',null,useLocation().search);
 const flush=async()=>{for(let i=0;i<6;i++)await new Promise(r=>setImmediate(r));};
-async function mount(query,admin=false){await renderer.act(async()=>{app=renderer.create(React.createElement(MemoryRouter,{initialEntries:[`/vereinsmarkt/${club}?${query}`],future:{v7_startTransition:true,v7_relativeSplatPath:true}},React.createElement(React.Fragment,null,admin?React.createElement(MarketMembersAdmin,{clubId:club,userId:'admin'}):React.createElement(MarketJoinPanel,{clubId:club,clubName:'NSG Gölsental',onJoined:()=>state.joined++}),React.createElement(Watch))));await flush();});}
+async function mount(query,admin=false){await renderer.act(async()=>{app=renderer.create(React.createElement(MemoryRouter,{initialEntries:[`/vereinsmarkt/${club}?${query}`],future:{v7_startTransition:true,v7_relativeSplatPath:true}},React.createElement(React.Fragment,null,admin?React.createElement(MarketMembersAdmin,{clubId:club,userId:'admin'}):React.createElement(MarketJoinPanel,{clubId:club,clubName:'NSG Gölsental',onJoined:()=>state.joined++}),React.createElement(Watch))),{createNodeMock:el=>el.type==='dialog'?{showModal(){state.modalOpened=true;},close(){state.modalClosed=true;}}:null});await flush();});}
+globalThis.document={body:{style:{overflow:''}}};
 const unmount=async()=>renderer.act(async()=>app.unmount());
 const click=async b=>renderer.act(async()=>{b.props.onClick();await flush();});
 const button=label=>app.root.findAllByType('button').find(b=>b.children.includes(label));
@@ -48,7 +49,7 @@ await click(button('U12'));await click(teamButton('Hainfeld U12'));await click(b
 await click(app.root.findByProps({'aria-label':'Hainfeld U12 entfernen'}));
 assert.ok(button('U12'),'removing last team returns to age selection');
 await click(button('U13'));await click(button('Ja, weiteres Team'));await click(button('U12'));await click(teamButton('Hainfeld U12'));await click(button('Nein, Auswahl prüfen'));
-assert.ok(JSON.stringify(app.toJSON()).includes('Ein Elternkonto reicht'));
+assert.ok(JSON.stringify(app.toJSON()).includes('Wähle jedes Team deiner Kinder einmal aus.'));
 await renderer.act(async()=>consent().props.onChange({target:{checked:true}}));
 await click(button('Dem Vereinsmarkt beitreten'));assert.deepEqual(state.calls.filter(c=>c.name==='exchange_self_join').at(-1).args,{p_club_id:club,p_accepted:true,p_team_ids:['u13','hainfeld']});await unmount();
 state.allowed=false;await mount('view=profil',true);assert.equal(app.root.findAllByProps({'aria-label':'Vereinsmarkt-Mitglieder verwalten'}).length,0);await unmount();
@@ -59,5 +60,9 @@ await click(button('Zugang sperren'));await click(button('Sperre bestätigen'));
 assert.ok(state.calls.some(c=>c.name==='exchange_revoke'&&c.args.p_user_id==='parent'));
 await click(button('Zugang freigeben'));assert.ok(state.calls.some(c=>c.name==='exchange_restore'));
 await renderer.act(async()=>app.root.findByProps({type:'search'}).props.onChange({target:{value:'U13'}}));assert.equal(app.root.findAllByType('li').length,1,'team search filters members');
-await unmount();delete globalThis.marketJoinTest;
+await unmount();
+await mount('view=member');assert.ok(state.modalOpened,'native modal opens');assert.equal(document.body.style.overflow,'hidden');
+await click(app.root.findByProps({'aria-label':'Teamauswahl schließen'}));assert.equal(app.root.findAllByType('dialog').length,0);assert.equal(document.body.style.overflow,'');
+await click(button('Teams auswählen und beitreten'));assert.equal(app.root.findAllByType('dialog').length,1);await unmount();
+delete globalThis.document;delete globalThis.marketJoinTest;
 console.log('PASS: guest invitation retained; consent and teams required; guided U/duplicate-team selection, multiple children, review/removal; retry; empty teams; admin-only list, confirmed suspension, restore and team search');
