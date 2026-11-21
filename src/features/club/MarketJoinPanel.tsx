@@ -39,8 +39,8 @@ export function MarketJoinPanel({clubId, clubName='deinem Verein', onJoined}: {c
   finally{setBusy(false);}
  }
  if(!joinOpen)return <button type="button" className="public-market-cta" onClick={()=>setJoinOpen(true)}>Teams auswählen und beitreten</button>;
- return <dialog ref={dialog} className="market-join-dialog" aria-label="Dem Vereinsmarkt beitreten" onCancel={e=>{e.preventDefault();if(!busy)setJoinOpen(false);}}>
-  <header className="market-join-dialog-header"><strong>{clubName==='deinem Verein'?'Vereinsmarkt':clubName}</strong><button type="button" disabled={busy} onClick={()=>setJoinOpen(false)} aria-label="Teamauswahl schließen">✕</button></header>
+ return <dialog ref={dialog} className="market-join-dialog" aria-label="Dem Vereinsmarkt beitreten" onCancel={e=>{e.preventDefault();if(user){setError('Bitte wähle mindestens ein Team und schließe den Beitritt ab.');}else if(!busy)setJoinOpen(false);}}>
+  <header className="market-join-dialog-header"><strong>{clubName==='deinem Verein'?'Vereinsmarkt':clubName}</strong>{!user&&<button type="button" disabled={busy} onClick={()=>setJoinOpen(false)} aria-label="Teamauswahl schließen">✕</button>}</header>
   <section className="market-join" aria-label="Dem Vereinsmarkt beitreten">
   {!user&&<ol className="market-join-steps" aria-label="Anmeldung"><li data-current={!user}>1 Konto</li><li data-current={Boolean(user)}>2 Teams</li><li>3 Loslegen</li></ol>}
   <p className="public-market-eyebrow">Alle Eltern. Ein Vereinsmarkt.</p>
@@ -57,7 +57,7 @@ export function MarketJoinPanel({clubId, clubName='deinem Verein', onJoined}: {c
    {!loading&&!busy&&(!chosen.length||!accepted)&&<p className="market-join-action-hint">{!chosen.length?'Wähle mindestens ein Team. Danach kannst du beitreten.':'Bitte bestätige oben, dass deine Familie zum Verein gehört.'}</p>}
    </MarketTeamWizard>:error?null:<p className="exchange-hint">Hier sind noch keine Teams für die Elternauswahl freigeschaltet. Bitte wende dich an die Vereinsverwaltung oder lade die Liste später erneut.</p>}
    {!loading&&<button type="button" className="market-text-button" disabled={busy} onClick={()=>setReload(n=>n+1)}>Teams neu laden</button>}
-   <small>Deine Auswahl gilt für diesen Vereinsmarkt.</small>
+   <small>Pflichtangabe: Wähle mindestens ein Team und bestätige den Beitritt.</small>
   </>}
   {error&&<p role="alert" className="exchange-alert">{error}</p>}
  </section></dialog>;

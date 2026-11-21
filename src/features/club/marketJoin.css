@@ -19,3 +19,10 @@
 html[data-market-theme=light] .market-join-dialog{background:#faf7fb;color:#302437}
 html[data-market-theme=light] .market-join-dialog-header button{border-color:#d7cadc}
 body:has(.market-join-dialog[open]) .public-market-nav{visibility:hidden}
+
+/* Strong local selectors keep choice boundaries visible despite global button themes. */
+html .market-join-dialog .market-team-wizard-choices button{border:2px solid #d45270!important;background:#351923!important;color:#fff!important;border-radius:15px;min-height:64px;box-shadow:none}
+html[data-market-theme=light] .market-join-dialog .market-team-wizard-choices button{border-color:#b52c4d!important;background:#fff!important;color:#342735!important;box-shadow:0 2px 6px #58213b0d}
+html .market-join-dialog .market-team-wizard-choices button:hover{background:#562237!important}
+html[data-market-theme=light] .market-join-dialog .market-team-wizard-choices button:hover{background:#fbe8ee!important}
+html .market-join-dialog .market-team-wizard-choices button:focus-visible{outline:3px solid #f47796;outline-offset:3px}
