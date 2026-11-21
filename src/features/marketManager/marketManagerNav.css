@@ -21,3 +21,10 @@ html[data-market-manager-shell][data-viewport-entry=app][data-ios-standalone-ful
 html[data-market-manager-shell] .manager-market-teams{top:var(--market-nav-visible-top,0px);height:var(--market-nav-visible-height,100dvh);max-height:var(--market-nav-visible-height,100dvh);box-sizing:border-box}
 .market-manager-home>.test-environment-notice{position:sticky;top:0;z-index:60;flex-shrink:0;width:100%;margin:0}
 html[data-market-manager-shell] .market-manager-nav-viewport{padding-bottom:max(2px,min(8px,calc(env(safe-area-inset-bottom,0px) - 24px)))}
+
+/* Fit long labels into their own equal-width slots on small phones. */
+.market-manager-nav{height:80px;min-height:80px;padding:10px 4px 8px;max-width:560px}
+.market-manager-nav a{gap:4px;min-height:54px;font-size:10px;line-height:1.15;white-space:normal;text-align:center}
+.market-manager-nav a>span:last-child{display:flex;align-items:center;justify-content:center;min-height:23px;width:100%;padding:0 2px;overflow-wrap:normal}
+.market-manager-nav [aria-current=page]:after{bottom:-4px}
+@media(max-width:360px){.market-manager-nav a{font-size:9px}.market-manager-nav-viewport{padding-left:8px;padding-right:8px}}
