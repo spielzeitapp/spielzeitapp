@@ -26,3 +26,15 @@ html[data-market-theme=light] .market-join-dialog .market-team-wizard-choices bu
 html .market-join-dialog .market-team-wizard-choices button:hover{background:#562237!important}
 html[data-market-theme=light] .market-join-dialog .market-team-wizard-choices button:hover{background:#fbe8ee!important}
 html .market-join-dialog .market-team-wizard-choices button:focus-visible{outline:3px solid #f47796;outline-offset:3px}
+
+/* Selected-team actions stay distinct from the primary next-step buttons. */
+html .market-join-dialog .market-team-wizard-summary li{border:1px solid #b95772;background:#25151f;padding:14px;gap:12px}
+html .market-join-dialog .market-team-wizard-summary li>svg{flex:none;width:22px;height:22px}
+html .market-join-dialog .market-team-wizard-summary li>button{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;min-width:44px;min-height:44px;padding:0!important;margin:0;border:2px solid #c96a84!important;border-radius:50%!important;background:#492030!important;color:#ffc4d4!important;box-shadow:none}
+html .market-join-dialog .market-team-wizard-summary li>button svg{width:20px;height:20px;stroke-width:2.5}
+html .market-join-dialog .market-team-wizard-summary li>button:hover{background:#68273e!important}
+html .market-join-dialog .market-team-wizard-summary li>button:focus-visible{outline:3px solid #f47796;outline-offset:3px}
+html[data-market-theme=light] .market-join-dialog .market-team-wizard-summary li{border-color:#d5a2b3;background:#fff}
+html[data-market-theme=light] .market-join-dialog .market-team-wizard-summary li>button{border-color:#c5849a!important;background:#fbeaf0!important;color:#942846!important}
+html[data-market-theme=light] .market-join-dialog .market-team-wizard-summary li>button:hover{background:#f5d4e0!important}
+html .market-join-dialog .market-team-wizard .market-team-wizard-secondary{background:transparent!important;color:inherit!important;border:1px solid #b95772!important;box-shadow:none!important}
