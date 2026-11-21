@@ -19,7 +19,7 @@ html[data-app-appearance=light] :is(.app--internal,
   .app__content,
   [data-ui-page-shell],
   .page):not(:where([data-app-artwork], [data-app-artwork] *, [data-manager-artwork], [data-manager-artwork] *, [data-profile-artwork], [data-profile-artwork] *, [data-whatsapp-status-poster], [data-whatsapp-status-poster] *, .sz-club-showcase-card, .sz-club-showcase-card *, .sz-club-profile-hero, .sz-club-profile-hero *, [data-showcase-card], [data-showcase-card] *, [data-portrait-background], [data-portrait-background] *, .sz-club-primary, .sz-club-primary *, .sz-club-tab-active, .sz-club-tab-active *, .sz-club-schedule-filter-active, .sz-club-schedule-filter-active *, .sz-club-schedule-chevron, .sz-club-schedule-chevron *)) {
-  background:var(--bg-base)!important; color:var(--text-main)!important;
+  background:var(--bg-base)!important; color:var(--text-main)!important; box-shadow:none!important;
 }
 html[data-app-appearance=light] :is([class*="text-white"],
   [class*="text-[#F2F2F2]"],
