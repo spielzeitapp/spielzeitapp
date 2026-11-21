@@ -496,7 +496,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
             preview={appPreviewOpen && selectedSeason ? <ManagerAppPreviewPanel key={setupSeasonId} clubId={clubId} teamSeasonId={setupSeasonId} branding={branding} logoFile={logoFile} compact onClose={() => setAppPreviewOpen(false)} /> : undefined} />
 
           {detail.status === 'active' && <Link
-            to={`/vereinsmarkt-manager/${clubId}?section=teams`}
+            to={`/manager/vereinsmarkt?club=${encodeURIComponent(clubId)}`}
             className="inline-flex min-h-11 w-fit items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
           >
             Vereinsmarkt · Mannschaftsauswahl für Eltern →

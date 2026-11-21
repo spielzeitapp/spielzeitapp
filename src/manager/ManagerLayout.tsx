@@ -1,3 +1,4 @@
+import { ManagerMarketTeamsPage } from './ManagerMarketTeamsPage';
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { ManagerHeader } from './components/ManagerHeader';
@@ -35,6 +36,10 @@ export function ManagerLayout(): React.ReactElement {
     location.pathname.startsWith('/manager/platzbelegung') ||
     location.pathname.startsWith('/manager/teams') ||
     location.pathname.startsWith('/manager/mehr');
+
+  if (location.pathname === '/manager/vereinsmarkt' && new URLSearchParams(location.search).get('from') === 'vereinsmarkt-manager') {
+    return <ManagerMarketTeamsPage />;
+  }
 
   return (
     <ManagerAccessGate>

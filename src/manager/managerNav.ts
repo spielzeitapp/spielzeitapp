@@ -109,7 +109,7 @@ export const MANAGER_NAV_SECTIONS: readonly ManagerNavSection[] = [
     label: 'Verein',
     hideInTrainerMode: true,
     items: [
-      { id: 'market-teams', label: 'Vereinsmarkt · Teams', to: '/manager/vereinsmarkt', status: 'ready' },
+      { id: 'market-teams', label: 'Vereinsmarkt', to: '/manager/vereinsmarkt', status: 'ready', hideInTrainerMode: true },
       { id: 'equipment', label: 'Ausrüstung & Teamshop', status: 'planned' },
       {
         id: 'facilities',
