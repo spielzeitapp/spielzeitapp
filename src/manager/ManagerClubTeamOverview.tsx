@@ -1,8 +1,19 @@
+import { BRANDING_CHANGED_EVENT, normalizeBrandColor, type ClubBranding } from '../lib/clubBranding';
+import { ClubLogo } from '../components/branding/ClubLogo';
+import { teamSwitcherLogo } from '../lib/teamSwitcherPresentation';
+import { teamDesignMode } from './ManagerTeamAppearance';
+import { teamOverviewActionUrl, type TeamQuickAction } from './teamOverviewActions';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getPlatformClub, listPlatformClubs, type ClubDetail } from '../lib/platformClubAdmin';
 import { ManagerTeamDataStatus } from './ManagerTeamDataStatus';
 import { supabase } from '../lib/supabaseClient';
+
+type Appearance = { club: ClubBranding | null; team: ClubBranding | null };
+const designLabels = { club: 'Vereinsdesign', nsg: 'NSG Gölsental', custom: 'Eigenes Design' };
+function firstBranding(value: unknown): ClubBranding | null {
+  return ((Array.isArray(value) ? value[0] : value) as ClubBranding | null) ?? null;
+}
 
 type SharedTeam = ClubDetail['team_seasons'][number] & { clubName: string; clubId: string };
 
@@ -36,17 +47,64 @@ export function ManagerClubTeamOverview({ detail, selectedSeasonId, onSelect }: 
   const [filter, setFilter] = useState('all');
   const seasons = [...new Set([...own, ...shared].map(s => s.season_name).filter((s): s is string => Boolean(s)))].sort().reverse();
   const rows = [...own.map(s => ({ ...s, clubName: detail.name, clubId: detail.id })), ...shared].filter(s => filter === 'all' || s.season_name === filter);
+  const teamIds = [...new Set([...own, ...shared].map(s => s.team_id))].sort().join(',');
+  const [appearance, setAppearance] = useState<Record<string, Appearance> | null>(null);
+  const [appearanceFailed, setAppearanceFailed] = useState(false);
+  useEffect(() => {
+    let current = true;
+    let generation = 0;
+    const refresh = async () => {
+      const request = ++generation;
+      const { data, error } = await supabase.from('teams')
+        .select('id,clubs(logo_url,primary_color,secondary_color,accent_color),team_branding_overrides(logo_url,primary_color,secondary_color,accent_color)')
+        .in('id', teamIds.split(','));
+      if (!current || request !== generation) return;
+      setAppearanceFailed(Boolean(error));
+      setAppearance(error ? null : Object.fromEntries((data ?? []).map(row => [
+        row.id, { club: firstBranding(row.clubs), team: firstBranding(row.team_branding_overrides) },
+      ])));
+    };
+    setAppearance(null);
+    setAppearanceFailed(false);
+    if (teamIds) {
+      void refresh();
+      window.addEventListener(BRANDING_CHANGED_EVENT, refresh);
+    }
+    return () => {
+      current = false;
+      window.removeEventListener(BRANDING_CHANGED_EVENT, refresh);
+    };
+  }, [teamIds]);
   return <section aria-label="Mannschaftsübersicht" className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
     <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900 p-5 text-white"><div><p className="text-xs font-semibold uppercase tracking-wide text-slate-300">{detail.name}</p><h2 className="text-xl font-bold">Mannschaften im Überblick</h2></div><label className="text-xs">Saison<select className="mt-1 block min-h-11 rounded-lg border border-slate-600 bg-slate-800 px-3 text-sm text-white" value={filter} onChange={e => setFilter(e.target.value)}><option value="all">Alle Saisonen</option>{seasons.map(s => <option key={s} value={s}>{s}</option>)}</select></label></div>
     <div className="space-y-4 p-4"><div className="flex flex-wrap gap-2 text-sm"><span className="rounded-full bg-slate-100 px-3 py-2 font-semibold">{own.length} eigene Mannschaftssaisonen</span><span className="rounded-full bg-emerald-100 px-3 py-2 font-semibold text-emerald-900">{loading ? '…' : shared.length} verknüpfte NSG-/SPG-Saisonen</span></div>
-      <p className="text-sm text-slate-600">Eigene Teams und bestätigte ÖFB-Verknüpfungen. NSG-/SPG-Teams bleiben beim angezeigten Verein. Zuordnung bedeutet noch keinen vollständigen Datenimport.</p>
+      <p className="text-sm text-slate-600">Eigene Teams und bestätigte ÖFB-Verknüpfungen. NSG-/SPG-Teams bleiben beim angezeigten Verein. Wähle einen Status, um den Bereich zu öffnen.</p>
+      <p className="text-xs text-slate-500">Grün: erledigt · Orange: prüfen oder ergänzen · Rot: fehlt</p>
       {loading && <p role="status" className="text-sm text-slate-500">Verknüpfungen werden geladen…</p>}
       {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{rows.map(s => <article key={s.id} className={`rounded-xl border p-4 ${s.id === selectedSeasonId ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900' : 'border-slate-200 bg-white'}`}>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{rows.map(s => {
+        const actionUrl = (action?: TeamQuickAction) => teamOverviewActionUrl(s.clubId, s.id, detail.id, action);
+        const design = appearance?.[s.team_id];
+        const colors = design?.team ?? design?.club;
+        const crest = teamSwitcherLogo(s.team_name, s.clubName, s.team_id, design?.team?.logo_url, design?.club?.logo_url);
+        return <article key={s.id} className={`rounded-xl border p-4 ${s.id === selectedSeasonId ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900' : 'border-slate-200 bg-white'}`}>
         <div className="flex items-start justify-between gap-2"><h3 className="text-lg font-bold"><Link aria-current={s.id === selectedSeasonId ? 'true' : undefined} onClick={e => { if (s.clubId === detail.id && onSelect) { e.preventDefault(); onSelect(s.id); } }} className="underline-offset-4 hover:underline" to={`/manager/vereine/${encodeURIComponent(s.clubId)}?setupSeason=${encodeURIComponent(s.id)}#manager-setup-checklist`}>{s.age_group || s.team_name} öffnen →</Link></h3><span className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-slate-700">{s.status === 'active' ? 'Aktiv' : 'In Vorbereitung'}</span></div><p className="font-medium">{s.team_name}</p><p className="mt-1 text-sm text-slate-600">{s.season_name} · {s.clubName}</p><p className="mt-2 text-xs font-semibold">{own.some(o => o.id === s.id) ? 'Eigene Mannschaft' : '✓ Verknüpft über ÖFB'}</p>
-        <ManagerTeamDataStatus seasonId={s.id} setupUrl={`/manager/vereine/${encodeURIComponent(s.clubId)}?setupSeason=${encodeURIComponent(s.id)}#manager-setup-checklist`} />
-        <div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold"><Link className="underline" to={`/manager/saisons/${encodeURIComponent(s.id)}/kader`}>Kader</Link><Link className="underline" to={`/manager/saisons/${encodeURIComponent(s.id)}/oefb-import`}>Spiele &amp; Tabelle</Link></div>
-      </article>)}</div>
+        <Link to={actionUrl('appearance')} className="mt-3 flex min-h-12 items-center gap-2 rounded-lg border border-slate-200 px-2 py-1.5 text-sm hover:border-red-500 focus-visible:outline focus-visible:outline-2">
+          <ClubLogo src={crest} alt="" className="h-8 w-8 shrink-0 object-contain" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-xs text-slate-600">Erscheinungsbild</span>
+            <span className="font-semibold">{design ? designLabels[teamDesignMode(design.team)] : (appearanceFailed || appearance ? 'Design prüfen' : 'Wird geladen …')}</span>
+          </span>
+          {colors && <span className="flex shrink-0 gap-1" aria-hidden="true">
+            {[colors.primary_color, colors.secondary_color, colors.accent_color].map((value, index) => {
+              const color = normalizeBrandColor(value);
+              return color && <span key={index} className="h-3 w-3 rounded-full border border-slate-300" style={{ backgroundColor: color }} />;
+            })}
+          </span>}
+          <span aria-hidden="true">→</span>
+        </Link>
+        <ManagerTeamDataStatus seasonId={s.id} actionUrl={actionUrl} />
+      </article>; })}</div>
       {!rows.length && !loading && <p className="text-sm text-slate-500">Noch keine Mannschaftssaison in dieser Auswahl.</p>}
       {withoutSeason.map(t => <p key={t.id} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm"><strong>{t.name}</strong> · Saison noch nicht angelegt</p>)}
     </div>

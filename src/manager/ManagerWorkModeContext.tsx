@@ -53,7 +53,7 @@ type ManagerWorkModeContextValue = {
   switchToTrainer: () => void;
   adminSwitchButtonLabel: string;
   supportSession: ManagerSupportSession | null;
-  startSupportSession: (input: ManagerSupportSession & { initialTeamSeasonId: string; initialPath?: string }) => void;
+  startSupportSession: (input: ManagerSupportSession & { initialTeamSeasonId: string; initialPath?: string; replaceEntry?: boolean }) => void;
   endSupportSession: () => void;
 };
 
@@ -140,9 +140,9 @@ export function ManagerWorkModeProvider({
   }, [workMode, supportSession, teamSeasons, trainerTeamSeasons]);
 
   const startSupportSession = useCallback(
-    (input: ManagerSupportSession & { initialTeamSeasonId: string; initialPath?: string }) => {
+    (input: ManagerSupportSession & { initialTeamSeasonId: string; initialPath?: string; replaceEntry?: boolean }) => {
       if (!availableModes.includes('platform_admin')) return;
-      const { initialTeamSeasonId, initialPath, ...session } = input;
+      const { initialTeamSeasonId, initialPath, replaceEntry, ...session } = input;
       setSupportSession(session);
       setWorkModeState('platform_admin');
       if (authUser?.id) writeStoredWorkMode(authUser.id, 'platform_admin');
@@ -153,7 +153,7 @@ export function ManagerWorkModeProvider({
         action: 'support_started',
         teamSeasonId: initialTeamSeasonId,
       });
-      navigate(initialPath ?? '/manager');
+      navigate(initialPath ?? '/manager', { replace: replaceEntry });
     },
     [availableModes, authUser?.id, navigate, setSelectedTeamSeasonId, setViewTeamSeasonId],
   );

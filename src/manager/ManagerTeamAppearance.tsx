@@ -22,7 +22,7 @@ const OPTIONS = [
   ['custom', 'Eigenes Logo & Farben'],
 ] as const;
 
-function designMode(branding: ClubBranding | null): typeof OPTIONS[number][0] {
+export function teamDesignMode(branding: ClubBranding | null): typeof OPTIONS[number][0] {
   if (!branding) return 'club';
   const matchesNsg = branding.logo_url === NSG_BRANDING.logo_url
     && COLORS.every(([key]) => normalizeBrandColor(branding[key]) === NSG_BRANDING[key]);
@@ -58,7 +58,7 @@ export function ManagerTeamAppearance({ clubId, clubName, teamId, teamLabel, clu
         setLoadState('failed');
         return;
       }
-      setMode(designMode(result.data));
+      setMode(teamDesignMode(result.data));
       if (result.data) setCustom(result.data);
       setLoadState('ready');
     }

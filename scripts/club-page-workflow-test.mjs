@@ -8,7 +8,7 @@ const mocks=`export const isManagerComparison=()=>false;export const managerTool
 const built=await build({entryPoints:['src/manager/ManagerClubDetailPage.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,plugins:[{name:'mocks',setup(b){
  b.onResolve({filter:/^react$/},()=>({path:'react',external:true}));
  b.onResolve({filter:/\/(?:lib|auth)\/|ManagerWorkModeContext$/},()=>({path:'data',namespace:'data'}));b.onLoad({filter:/.*/,namespace:'data'},()=>({contents:mocks,loader:'js'}));
- b.onResolve({filter:/^\.\//},args=>args.kind==='entry-point'?undefined:({path:args.path.split('/').at(-1),namespace:'child'}));
+ b.onResolve({filter:/^\.\//},args=>args.kind==='entry-point'||args.path==='./teamOverviewActions'?undefined:({path:args.path.split('/').at(-1),namespace:'child'}));
  b.onLoad({filter:/.*/,namespace:'child'},args=>({contents:`import React from 'react';export function ${args.path}(props){return React.createElement('section',{'data-component':'${args.path}',context:props},props.preview||null);}`,loader:'js'}));
 }}]});
 const mod={exports:{}};new Function('require','module','exports',built.outputFiles[0].text)(require,mod,mod.exports);
@@ -16,7 +16,7 @@ const {MemoryRouter,Routes,Route,useLocation,useNavigate}=require('react-router-
 let nav;function Probe(){nav=useNavigate();const l=useLocation();return React.createElement('output',null,l.pathname+l.search+l.hash);}
 globalThis.window={location:{search:'?setupSeason=u13'}};
 const target={scrollIntoView(){globalThis.__scrolls++},parentElement:null};
-globalThis.document={getElementById(){return target}};globalThis.HTMLDetailsElement=class {};globalThis.__scrolls=0;
+globalThis.document={getElementById(){return target}};globalThis.HTMLDetailsElement=class {};globalThis.__scrolls=0;globalThis.requestAnimationFrame=fn=>setTimeout(fn,0);globalThis.cancelAnimationFrame=clearTimeout;
 let tree;
 const component=name=>tree.root.findByProps({'data-component':name});
 try{
@@ -49,6 +49,17 @@ try{
  document.getElementById=id=>id==='club-oefb-import'?importSection:target;
  await act(async()=>nav('/manager/vereine/nsg#club-oefb-import'));
  assert.equal(importSection.open,true,'Direct import links expand the panel');
+ // Overview shortcuts target the selected season's editor and keep a direct return.
+ await act(async()=>nav('/manager/vereine/nsg?setupSeason=u13#club-team-action-table'));
+ assert.equal(globalThis.__support.initialTeamSeasonId,'u13');
+ assert.equal(globalThis.__support.initialPath,'/manager/saisons/u13/oefb-import#oefb-table-settings');
+ assert.equal(globalThis.__support.returnPath,'/manager/vereine/nsg?setupSeason=u13#club-team-overview');
+ assert.equal(globalThis.__support.replaceEntry,true);
+ const scrolls = globalThis.__scrolls;
+ await act(async()=>{nav('/manager/vereine/nsg?setupSeason=u12#club-team-appearance');});
+ await act(async()=>{await new Promise(resolve=>setTimeout(resolve,5));});
+ assert.equal(component('ManagerTeamAppearance').props.context.teamId,'t12');
+ assert.ok(globalThis.__scrolls>scrolls,'Appearance shortcut scrolls to its editor');
  // Specific edit actions open their collapsed parent and scroll to the real form.
  const parent=new HTMLDetailsElement();parent.open=false;parent.parentElement=null;target.parentElement=parent;
  await act(async()=>component('ManagerSetupChecklist').props.context.onAction('club','u13'));
