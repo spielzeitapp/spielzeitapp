@@ -259,7 +259,7 @@ export function ManagerSidebar({ open, onClose }: Props): React.ReactElement {
             </div>
             );
           })}
-          {workMode !== 'trainer' && <Link to="/manager/vereinsmarkt" onClick={closeOnNav} className="mb-4 flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium text-white/80 hover:bg-white/10"><Shield className="h-5 w-5" aria-hidden/>Vereinsmarkt</Link>}
+          {workMode !== 'trainer' && <Link to="/vereinsmarkt-manager" onClick={closeOnNav} className="mb-4 flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium text-white/80 hover:bg-white/10"><Shield className="h-5 w-5" aria-hidden/>Vereinsmarkt</Link>}
           {supportSession ? (
             <div className="mb-4">
               <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">Verwaltung</p>
