@@ -62,7 +62,9 @@ await click(button('Zugang freigeben'));assert.ok(state.calls.some(c=>c.name==='
 await renderer.act(async()=>app.root.findByProps({type:'search'}).props.onChange({target:{value:'U13'}}));assert.equal(app.root.findAllByType('li').length,1,'team search filters members');
 await unmount();
 await mount('view=member');assert.ok(state.modalOpened,'native modal opens');assert.equal(document.body.style.overflow,'hidden');
-await click(app.root.findByProps({'aria-label':'Teamauswahl schließen'}));assert.equal(app.root.findAllByType('dialog').length,0);assert.equal(document.body.style.overflow,'');
+assert.equal(app.root.findAllByProps({'aria-label':'Teamauswahl schließen'}).length,0,'authenticated onboarding has no dismiss button');
+await renderer.act(async()=>app.root.findByType('dialog').props.onCancel({preventDefault(){}}));assert.equal(app.root.findAllByType('dialog').length,1,'Escape cannot bypass required onboarding');await unmount();
+state.user=null;await mount('view=member');await click(app.root.findByProps({'aria-label':'Teamauswahl schließen'}));assert.equal(app.root.findAllByType('dialog').length,0);assert.equal(document.body.style.overflow,'');
 await click(button('Teams auswählen und beitreten'));assert.equal(app.root.findAllByType('dialog').length,1);await unmount();
 delete globalThis.document;delete globalThis.marketJoinTest;
 console.log('PASS: guest invitation retained; consent and teams required; guided U/duplicate-team selection, multiple children, review/removal; retry; empty teams; admin-only list, confirmed suspension, restore and team search');
