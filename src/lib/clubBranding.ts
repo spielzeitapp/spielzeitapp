@@ -1,8 +1,10 @@
 import { prepareLogoFile } from './logoPreparation';
 import { supabase } from './supabaseClient';
 import { uploadStorageObject } from './storageUpload';
+import { getClubLogo, isPlaceholderLogoUrl } from './teamLogos';
 
 export type ClubBranding = { logo_url: string | null; primary_color: string | null; secondary_color: string | null; accent_color: string | null };
+export const BRANDING_CHANGED_EVENT = 'spielzeit:club-branding-changed';
 export const DEFAULT_CLUB_BRANDING: ClubBranding = { logo_url: null, primary_color: '#111114', secondary_color: '#FFFFFF', accent_color: '#C82333' };
 
 export function normalizeBrandColor(value: string | null | undefined): string | null {
@@ -58,21 +60,24 @@ export async function getClubBrandingForTeamSeason(teamSeasonId: string): Promis
     .maybeSingle();
   if (teamError) return { data: null, error: teamError.message };
   const teamBranding = team?.team_branding_overrides as ClubBranding | null | undefined;
-  if (teamBranding) return { data: teamBranding, error: null };
+  if (teamBranding?.logo_url) return { data: teamBranding, error: null };
   const clubId = team?.club_id;
   if (!clubId) return { data: null, error: null };
 
   const { data: club, error: clubError } = await supabase
     .from('clubs')
-    .select('logo_url, primary_color, secondary_color, accent_color')
+    .select('name, logo_url, primary_color, secondary_color, accent_color')
     .eq('id', clubId)
     .maybeSingle();
-  if (clubError) return { data: null, error: clubError.message };
-  if (!club) return { data: null, error: null };
-  const row = club as ClubBranding;
+  if (clubError) return { data: teamBranding ?? null, error: clubError.message };
+  if (!club) return { data: teamBranding ?? null, error: null };
+  const row = club as ClubBranding & { name: string };
+  const mappedClubLogo = getClubLogo(row.name);
+  const clubLogo = row.logo_url || (isPlaceholderLogoUrl(mappedClubLogo) ? null : mappedClubLogo);
+  if (teamBranding) return { data: { ...teamBranding, logo_url: clubLogo }, error: null };
   return {
     data: {
-      logo_url: row.logo_url ?? null,
+      logo_url: clubLogo,
       primary_color: normalizeBrandColor(row.primary_color),
       secondary_color: normalizeBrandColor(row.secondary_color),
       accent_color: normalizeBrandColor(row.accent_color),
@@ -98,16 +103,45 @@ export async function saveClubBranding(clubId: string, branding: ClubBranding, l
     } catch { /* Keep the saved logo if the source cannot be prepared. */ }
   }
   if (logoFile) {
-    if (!['image/png', 'image/jpeg', 'image/webp'].includes(logoFile.type) || logoFile.size > 5 * 1024 * 1024) return { error: 'Logo muss PNG, JPEG oder WebP sein und darf höchstens 5 MB groß sein.' };
-    try { logoFile = (await prepareLogoFile(logoFile)).file; }
-    catch { return { error: 'Logo konnte nicht aufbereitet werden. Bitte ein anderes Bild verwenden.' }; }
-    const ext = logoFile.type === 'image/png' ? 'png' : logoFile.type === 'image/webp' ? 'webp' : 'jpg';
-    const path = `${clubId}/${crypto.randomUUID()}.${ext}`;
-    const upload = await uploadStorageObject('club-logos', path, logoFile, { contentType: logoFile.type });
-    if (upload.error) return { error: upload.error.message };
-    logoUrl = supabase.storage.from('club-logos').getPublicUrl(path).data.publicUrl;
+    const uploaded = await uploadBrandingLogo('club-logos', clubId, logoFile);
+    if ('error' in uploaded) return { error: uploaded.error };
+    logoUrl = uploaded.url;
   }
   const { error } = await supabase.rpc('admin_set_club_branding', { p_club_id: clubId, p_logo_url: logoUrl,
     p_primary_color: branding.primary_color, p_secondary_color: branding.secondary_color, p_accent_color: branding.accent_color });
   return { error: error?.message ?? null };
+}
+
+async function uploadBrandingLogo(bucket: 'club-logos' | 'team-logos', ownerId: string, file: File): Promise<{ url: string } | { error: string }> {
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+    return { error: 'Logo muss PNG, JPEG oder WebP sein und darf höchstens 5 MB groß sein.' };
+  }
+  try { file = (await prepareLogoFile(file)).file; }
+  catch { return { error: 'Logo konnte nicht aufbereitet werden. Bitte ein anderes Bild verwenden.' }; }
+  const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+  const path = `${ownerId}/${crypto.randomUUID()}.${ext}`;
+  const upload = await uploadStorageObject(bucket, path, file, { contentType: file.type });
+  if (upload.error) return { error: upload.error.message };
+  return { url: supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl };
+}
+
+export async function getTeamBranding(teamId: string): Promise<{ data: ClubBranding | null; error: string | null }> {
+  const { data, error } = await supabase.from('team_branding_overrides')
+    .select('logo_url, primary_color, secondary_color, accent_color').eq('team_id', teamId).maybeSingle();
+  return { data: data as ClubBranding | null, error: error?.message ?? null };
+}
+
+export async function saveTeamBranding(clubId: string, teamId: string, branding: ClubBranding | null, file: File | null): Promise<{ data: ClubBranding | null; error: string | null }> {
+  let draft = branding;
+  if (draft && file) {
+    const uploaded = await uploadBrandingLogo('team-logos', teamId, file);
+    if ('error' in uploaded) return { data: null, error: uploaded.error };
+    draft = { ...draft, logo_url: uploaded.url };
+  }
+  const { error } = await supabase.rpc('admin_set_team_branding', {
+    p_club_id: clubId, p_team_id: teamId, p_branding: draft,
+  });
+  if (error) return { data: null, error: error.message };
+  window.dispatchEvent(new Event(BRANDING_CHANGED_EVENT));
+  return { data: draft, error: null };
 }

@@ -8,6 +8,7 @@ import { ManagerClubImportPanel } from './ManagerClubImportPanel';
  */
 
 import {ManagerTrainerPhotoPanel} from './ManagerTrainerPhotoPanel';
+import { ManagerTeamAppearance } from './ManagerTeamAppearance';
 import { ManagerTeamDetailsEditor } from './ManagerTeamDetailsEditor';
 import { ManagerAppPreviewPanel } from './ManagerAppPreviewPanel';
 import {CommunicationAccessSettings} from './components/CommunicationAccessSettings';
@@ -90,6 +91,7 @@ export function ManagerClubDetailPage(): React.ReactElement {
   const [busy, setBusy] = useState(false);
   const [editName, setEditName] = useState('');
   const [editShort, setEditShort] = useState('');
+  const [savedClubBranding, setSavedClubBranding] = useState<ClubBranding>(DEFAULT_CLUB_BRANDING);
   const [branding, setBranding] = useState<ClubBranding>(DEFAULT_CLUB_BRANDING);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [confirmArchive, setConfirmArchive] = useState(false);
@@ -125,7 +127,10 @@ export function ManagerClubDetailPage(): React.ReactElement {
     setError(null);
     const [res, modulesRes, brandingRes] = await Promise.all([getPlatformClub(clubId), listClubModules(clubId), getClubBranding(clubId)]);
     if (generation !== reloadGeneration.current) return;
-    if (brandingRes.data) setBranding(brandingRes.data);
+    if (brandingRes.data) {
+      setBranding(brandingRes.data);
+      setSavedClubBranding(brandingRes.data);
+    }
     setDetail(res.data);
     setModules(modulesRes.data);
     setError(res.error ?? modulesRes.error ?? brandingRes.error);
@@ -537,7 +542,9 @@ export function ManagerClubDetailPage(): React.ReactElement {
             </div>
           </form>
           </details>
-          {selectedSeason && <details className="rounded-2xl border border-slate-200 bg-white"><summary className="cursor-pointer p-4 font-semibold">Mannschaft &amp; Saison bearbeiten · {selectedSeason.age_group}</summary><div id="club-selected-team-details" className="scroll-mt-24 space-y-3 p-4"><p className="text-sm text-slate-600">{seasonContextLabel(selectedSeason)} · {detail.name}</p><ManagerTeamDetailsEditor key={selectedSeason.id} clubId={clubId} season={selectedSeason} onSaved={async () => { await reloadSessionTeamSeasons(); await reload(); setSuccess('Mannschaft und Saison gespeichert.'); }} /></div></details>}
+          {selectedSeason && <details className="rounded-2xl border border-slate-200 bg-white"><summary className="cursor-pointer p-4 font-semibold">Mannschaft &amp; Saison bearbeiten · {selectedSeason.age_group}</summary><div id="club-selected-team-details" className="scroll-mt-24 space-y-3 p-4"><p className="text-sm text-slate-600">{seasonContextLabel(selectedSeason)} · {detail.name}</p><ManagerTeamDetailsEditor key={selectedSeason.id} clubId={clubId} season={selectedSeason} onSaved={async () => { await reloadSessionTeamSeasons(); await reload(); setSuccess('Mannschaft und Saison gespeichert.'); }} />
+            <ManagerTeamAppearance key={selectedSeason.team_id} clubId={clubId} clubName={detail.name} teamId={selectedSeason.team_id} teamLabel={seasonContextLabel(selectedSeason)} clubDesign={savedClubBranding} onSaved={reloadSessionTeamSeasons} />
+          </div></details>}
           <details className="rounded-2xl border border-slate-200 bg-white"><summary className="cursor-pointer p-4 font-semibold">Trainer zuordnen, einladen &amp; Fotos bearbeiten</summary><div className="grid gap-4 p-4 lg:grid-cols-2">
               <form
                 className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3"

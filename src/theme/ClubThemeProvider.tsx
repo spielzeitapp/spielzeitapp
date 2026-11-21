@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useSession } from "../auth/useSession";
 import {
+  BRANDING_CHANGED_EVENT,
   getClubBrandingForTeamSeason,
   hexToRgbChannels,
   readableAccentOnDark,
@@ -52,12 +53,20 @@ export const ClubThemeProvider: React.FC<React.PropsWithChildren<{ brandingOverr
     if (brandingOverride || !teamSeasonId || combinedView || isDemo) {
       return () => { cancelled = true; };
     }
-    void getClubBrandingForTeamSeason(teamSeasonId).then((result) => {
-      if (cancelled) return;
+    let latestRequest = 0;
+    const refresh = async () => {
+      const request = ++latestRequest;
+      const result = await getClubBrandingForTeamSeason(teamSeasonId);
+      if (cancelled || request !== latestRequest) return;
       if (result.error) console.warn('[ClubThemeProvider] branding could not be loaded:', result.error);
       setLoaded({ teamSeasonId, branding: result.data });
-    });
-    return () => { cancelled = true; };
+    };
+    void refresh();
+    window.addEventListener(BRANDING_CHANGED_EVENT, refresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(BRANDING_CHANGED_EVENT, refresh);
+    };
   }, [isDemo, teamSeasonId, combinedView, brandingOverride]);
 
   useEffect(() => {

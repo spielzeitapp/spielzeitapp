@@ -17,11 +17,9 @@ export function teamSwitcherTitle(input: TeamSeasonLabelInput): string {
 }
 
 export function teamSwitcherLogo(teamName: string, clubName: string, teamId?: string | null, teamLogo?: string | null, clubLogo?: string | null): string {
-  const crest = getClubLogo(teamName, { teamId, logoUrl: teamLogo });
-  const storedClubLogo = getClubLogo('', { logoUrl: clubLogo });
-  // Spielgemeinschaften can carry their own crest even when managed by another club.
-  if (!isPlaceholderLogoUrl(crest) && (teamLogo || /^\s*(?:U\d{1,2}\s+)?(?:SPG|NSG)\s/i.test(teamName))) return crest;
-  if (!isPlaceholderLogoUrl(storedClubLogo)) return storedClubLogo;
-  if (!isPlaceholderLogoUrl(crest)) return crest;
-  return getClubLogo(clubName);
+  const customCrest = getClubLogo('', { logoUrl: teamLogo });
+  if (!isPlaceholderLogoUrl(customCrest)) return customCrest;
+  const clubCrest = getClubLogo(clubName, { logoUrl: clubLogo });
+  if (!isPlaceholderLogoUrl(clubCrest)) return clubCrest;
+  return getClubLogo(teamName, { teamId });
 }
