@@ -24,9 +24,10 @@ export const jakoShopCatalog: JakoShopArticle[] = [
     name: 'T-Shirt Dynamic',
     category: 'Oberteile',
     color: 'Rot / Weiß / Dunkelrot',
-    image: photo('6170_114'),
+    image: '/vereinsshop/tshirt-nsg-preview.webp',
     url: source('t-shirt-dynamic-p13950/?color=114'),
     sizes: [...kids, ...unisex, '4XL', ...women],
+    description: 'Mit NSG-Wappen sowie Aufdrucken von Teamshop Breitler und Zöchling',
   },
   {
     id: '8670-114',
