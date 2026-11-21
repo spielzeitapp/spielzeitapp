@@ -5,6 +5,8 @@ import { supabase } from '../../lib/supabaseClient';
 import { marketAuthPath } from './marketAuth';
 import './clubShop.css';
 import { ShopTrialCatalog } from './ShopTrialCatalog';
+import { JakoShopPreview } from './JakoShopPreview';
+import { GOELSENTAL_TEST_SHOP_ID, jakoShopCatalog, type JakoShopArticle } from './jakoShopCatalog';
 import { isStagingApp } from '../../lib/appEnvironment';
 
 type Product={id:string;name:string;price_cents:number;sizes:string[];image_url:string;personalizable:boolean;active:boolean};
@@ -32,12 +34,17 @@ function exportOrders(orders:Order[],round:Round){
 export function ClubShop({clubId,clubName,onBack,embedded=false,manageOnly=false}:{clubId:string;clubName:string;onBack:()=>void;embedded?:boolean;manageOnly?:boolean}){
  const {user}=useAuth();const [state,setState]=useState<State>(empty),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [search,setSearch]=useState('');
+ const isGoelsentalTestShop=isStagingApp()&&clubId===GOELSENTAL_TEST_SHOP_ID;
  const [adminTab,setAdminTab]=useState('articles'),[showEditor,setShowEditor]=useState(false);
  const editorRef=useRef<HTMLFormElement>(null);
  function openEditor(){setShowEditor(true);requestAnimationFrame(()=>editorRef.current?.scrollIntoView({behavior:'smooth',block:'start'}));}
  const [view,setView]=useState(manageOnly?'manage':'shop'),[selected,setSelected]=useState<Product|null>(null),[size,setSize]=useState(''),[name,setName]=useState(''),[number,setNumber]=useState(''),[cart,setCart]=useState<Item[]>([]),[roundId,setRoundId]=useState('');
  const [settings,setSettings]=useState<Settings>({enabled:false,recipient:'',iban:'',dealer_email:'',manager_email:''});
  const [product,setProduct]=useState({id:'',active:true,name:'',price:'',sizes:'128, 140, 152, 164, S, M, L, XL',image_url:'',personalizable:false});
+ function prepareJakoArticle(article:JakoShopArticle){
+  setProduct({id:'',active:false,name:article.name,price:'',sizes:article.sizes.join(', '),image_url:article.image,personalizable:false});
+  openEditor();
+ }
  const [round,setRound]=useState({title:'',deadline:''}),[invoice,setInvoice]=useState('');
  const orderKey=useRef<string|null>(null);const generation=useRef(0);const mounted=useRef(true);
  async function call(action='state',data:unknown={}){
@@ -69,7 +76,7 @@ export function ClubShop({clubId,clubName,onBack,embedded=false,manageOnly=false
   {!manageOnly&&<><header className="club-shop-header"><button aria-label="Zurück zum Verein" onClick={onBack}><ArrowLeft/></button><span>{embedded?'Zurück zum Vereinsmarkt':clubName}{!embedded&&<small>Vereinsshop</small>}</span>{user&&<button aria-label="Shop aktualisieren" disabled={busy||loading} onClick={()=>void reload()}><RefreshCw size={20}/></button>}</header>
   <div className="club-shop-intro"><p className="club-shop-eyebrow">{clubName} · Unsere Kollektion</p><h1>Vereinsshop</h1><p className="club-shop-muted">Unser Verein. Unser Look.</p></div>
   <div className="club-shop-hero"><div className="club-shop-hero-icon"><ShoppingBag size={30}/></div><div><strong>Gemeinsam bestellen.</strong><p>Neue Vereinskleidung und Fanartikel – gesammelt für unseren Verein.</p><span>Auswählen · Vorauszahlen · Abholen</span></div></div></>}
-  {isStagingApp()&&!loading&&(!user||view==='shop')&&!products.some(p=>p.active)&&<ShopTrialCatalog/>}
+  {isStagingApp()&&!loading&&(!user||view==='shop')&&!products.some(p=>p.active)&&(isGoelsentalTestShop?<><JakoShopPreview/><details className="club-shop-panel"><summary>Gestaltungsvorschau mit Vereinslogos</summary><ShopTrialCatalog/></details></>:<ShopTrialCatalog/>)}
   {!user?<article className="club-shop-panel"><ShoppingBag/><h2>Mit deinem Vereinskonto bestellen</h2><p>Bestellungen, Vorauskassa und Abholung bleiben an einem Ort.</p><a className="club-shop-button" href={marketAuthPath('login',new URLSearchParams({next:window.location.pathname+window.location.search,context:'vereinsmarkt',marketClub:clubId}).toString())}>Anmelden</a></article>:<>
   {manageOnly?<nav className="club-shop-tabs manager-shop-tabs" aria-label="Shopverwaltung">{[['articles','Artikel'],['orders','Bestellungen'],['settings','Einstellungen']].map(([id,label])=><button key={id} aria-current={adminTab===id?'page':undefined} onClick={()=>setAdminTab(id)}>{label}</button>)}<button className="manager-shop-refresh" aria-label="Shop aktualisieren" disabled={busy||loading} onClick={()=>void reload()}><RefreshCw size={18}/></button></nav>:<nav className="club-shop-tabs" aria-label="Vereinsshop Bereiche">{[...(!manageOnly?[['shop','Shop'],['orders','Meine Bestellungen']]:[]),...(state.staff?[['manage','Verwaltung']]:[]),...(state.dealer?[['dealer','Händlerportal']]:[])].map(([id,label])=><button key={id} aria-current={view===id?'page':undefined} onClick={()=>{setView(id);setSelected(null);}}>{label}</button>)}</nav>}
   {error&&<p role="alert" className="club-shop-error">{error}</p>}{notice&&<p role="status" className="club-shop-notice"><Check size={18}/>{notice}</p>}
@@ -100,6 +107,11 @@ export function ClubShop({clubId,clubName,onBack,embedded=false,manageOnly=false
     {(!manageOnly||adminTab==='orders')&&<form className="club-shop-panel" onSubmit={e=>{e.preventDefault();void action('round',{title:round.title,deadline:new Date(round.deadline).toISOString()});}}><h3>Neue Bestellrunde</h3><label>Bezeichnung<input required maxLength={100} placeholder="z. B. Dezember" value={round.title} onChange={e=>setRound({...round,title:e.target.value})}/></label><label>Bestellschluss · Ortszeit<input required type="datetime-local" value={round.deadline} onChange={e=>setRound({...round,deadline:e.target.value})}/></label><button disabled={busy}>Bestellrunde eröffnen</button></form>}
     {(!manageOnly||adminTab==='articles')&&<>
     {manageOnly&&<div className="manager-shop-section"><div><h2>Dein Sortiment</h2><p>{products.length} Artikel · {products.filter(p=>p.active).length} im Shop sichtbar</p></div><button className="club-shop-button" onClick={()=>{setProduct({id:'',active:true,name:'',price:'',sizes:'128, 140, 152, 164, S, M, L, XL',image_url:'',personalizable:false});openEditor();}}>+ Artikel hinzufügen</button></div>}
+    {manageOnly&&isGoelsentalTestShop&&<details className="club-shop-panel manager-shop-help">
+      <summary>JAKO-Artikelvorlagen</summary>
+      <p>Foto und Größen werden übernommen. Ergänze den Vereinspreis und schalte den Artikel bei Bedarf sichtbar.</p>
+      <div className="club-shop-template-list">{jakoShopCatalog.map(article=><button key={article.id} type="button" className="manager-shop-secondary" disabled={busy||products.some(p=>p.name===article.name||p.image_url===article.image)} onClick={()=>prepareJakoArticle(article)}>{article.name}</button>)}</div>
+    </details>}
     {(!manageOnly||showEditor)&&<form ref={editorRef} className="club-shop-panel manager-shop-editor" onSubmit={e=>{e.preventDefault();void action('product',{...(product.id?{id:product.id}:{}),name:product.name,price_cents:Math.round(Number(product.price)*100),active:product.active,sizes:product.sizes.split(',').map(s=>s.trim()).filter(Boolean),image_url:product.image_url,personalizable:product.personalizable});}}><h3>{product.id?'Artikel bearbeiten':'Artikel hinzufügen'}</h3><label>Artikelname<input required maxLength={100} value={product.name} onChange={e=>setProduct({...product,name:e.target.value})}/></label><label>Endpreis in Euro · inklusive Aufdruck<input required type="number" min="0.01" max="9999.99" step="0.01" value={product.price} onChange={e=>setProduct({...product,price:e.target.value})}/></label><label>Größen · durch Komma getrennt<input required value={product.sizes} onChange={e=>setProduct({...product,sizes:e.target.value})}/></label><label>Produktfoto · HTTPS-Link<input type="url" value={product.image_url} onChange={e=>setProduct({...product,image_url:e.target.value})}/></label><label className="club-shop-check"><input type="checkbox" checked={product.personalizable} onChange={e=>setProduct({...product,personalizable:e.target.checked})}/>Name und Nummer möglich</label><button disabled={busy}>Artikel speichern</button>{product.id&&<button type="button" disabled={busy} onClick={()=>setProduct({id:'',active:true,name:'',price:'',sizes:'128, 140, 152, 164, S, M, L, XL',image_url:'',personalizable:false})}>Neuen Artikel anlegen</button>}{manageOnly&&<button type="button" className="manager-shop-secondary" onClick={()=>setShowEditor(false)}>Editor schließen</button>}</form>}
     <div className="manager-shop-products">{products.map(p=><article key={p.id} className="club-shop-panel manager-shop-product">
       <div className="manager-shop-product-image">{p.image_url?<img src={p.image_url} alt={p.name} loading="lazy"/>:<ShoppingBag size={38}/>}<span className={`club-shop-badge ${p.active?'is-paid':''}`}>{p.active?'Im Shop sichtbar':'Ausgeblendet'}</span></div>
