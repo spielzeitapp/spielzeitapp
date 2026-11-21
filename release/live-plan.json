@@ -80,7 +80,8 @@
     "supabase/migrations/20261120083138_exchange_completion_cancelled_fund.sql": "72e973e634b7c8571df8cefde8d5033662602f4e",
     "supabase/migrations/20261121105349_exchange_full_team_labels.sql": "53e6e812513a1c1d4e1b12b9e87c95d2e1bc44ee",
     "supabase/migrations/20261121105729_exchange_full_labels_privacy.sql": "a0c8dd1b0874db3edb3d203ea80f348a4a67bb93",
-    "supabase/migrations/20261121121350_exchange_shared_team_settings.sql": "68f711fdf4f4d4e0d0a56be28f3f2605ad8783cc"
+    "supabase/migrations/20261121121350_exchange_shared_team_settings.sql": "68f711fdf4f4d4e0d0a56be28f3f2605ad8783cc",
+    "supabase/migrations/20261121210904_exchange_member_registration_names.sql": "e7837f233cf2b17da04adbe3d6000dff6cee4429"
   },
   "functions": {
     "supabase/functions/generate-club-communications/index.ts": "8f84887c9197b0bcc6c050e436b211dca44a01e8"
