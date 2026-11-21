@@ -11,7 +11,7 @@ export function MarketTeamWizard({teams,chosen,onChange,busy,children}:{teams:Ma
  const chooseAge=(value:string)=>{setAge(value);const matches=remaining.filter(t=>marketTeamAge(t)===value);if(matches.length===1)add(matches[0].id);else setPhase('team');};
  return <div className="market-team-wizard" aria-label="Geführte Teamauswahl">
   <ol className="market-join-steps" aria-label="Teamauswahl"><li data-current={phase==='age'||phase==='team'}>1 Team</li><li data-current={phase==='more'}>2 Weitere Kinder</li><li data-current={phase==='review'}>3 Prüfen & fertig</li></ol>
-  <p className="market-team-wizard-note">Ein Elternkonto reicht für alle deine Kinder. Sind mehrere Kinder in demselben Team, genügt eine Auswahl. Kindernamen brauchst du hier nicht.</p>
+  <p className="market-team-wizard-note">Wähle jedes Team deiner Kinder einmal aus. Kindernamen sind nicht nötig.</p>
   {phase==='age'?<>
    <h3>{chosen.length?'Welches weitere U-Team?':'In welchem U-Team spielt dein Kind?'}</h3>
    <p>Wähle zuerst die Altersgruppe. Gibt es mehrere Teams, wählst du danach das passende aus.</p>
