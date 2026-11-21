@@ -1,0 +1,30 @@
+.market-teams-desktop-panel { padding: 16px 20px; }
+.market-teams-desktop-panel fieldset { min-width: 0; }
+.market-teams-desktop-panel .manager-market-team-count { margin-bottom: 12px; font-size: 13px; font-weight: 600; }
+.market-teams-desktop-panel .manager-market-team { display: grid; align-items: center; gap: 8px; border-bottom: 1px solid var(--manager-border, #e2e8f0); padding: 8px 0; }
+.market-teams-desktop-panel .manager-market-team > label:first-child { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.market-teams-desktop-panel .manager-market-team small { display: block; color: var(--manager-muted, #475569); font-size: 12px; }
+.market-teams-desktop-panel .manager-market-team input[type=checkbox] { width: 17px; height: 17px; flex: none; accent-color: var(--manager-action, #b91c1c); }
+.market-teams-desktop-panel :is(input[type=text], select) { width: 100%; min-height: 36px; padding: 4px 9px; border: 1px solid var(--manager-border, #cbd5e1); border-radius: 8px; background: var(--manager-surface, white); color: var(--manager-text, #0f172a); font-size: 14px; }
+.market-teams-desktop-panel :is(button, a) { font-size: 13px; font-weight: 600; }
+.market-teams-desktop-panel button { width: fit-content; min-height: 36px; border: 1px solid var(--manager-border, #cbd5e1); border-radius: 8px; padding: 4px 10px; }
+.market-teams-desktop-panel button:disabled { opacity: .5; }
+.market-teams-desktop-panel .manager-market-team-save { background: var(--manager-action, #b91c1c); color: var(--manager-on-action, white); }
+.market-teams-desktop-panel .manager-market-team-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
+.market-teams-desktop-panel :is(.manager-market-team-edit, .manager-market-team-create) { margin: 10px 0; padding: 12px; border: 1px solid var(--manager-border, #e2e8f0); border-radius: 10px; }
+.market-teams-desktop-panel :is(.manager-market-team-edit, .manager-market-team-create) label { display: block; margin-bottom: 8px; }
+.market-teams-desktop-panel .manager-market-team-edit { grid-column: 1 / -1; }
+.market-teams-desktop-panel [role=alert] { color: var(--manager-link, #b91c1c); }
+.market-teams-desktop-panel :is([role=alert], [role=status]) { margin: 10px 0; font-size: 14px; }
+.market-teams-desktop-columns { display: none; }
+@media (min-width: 1024px) {
+  .market-teams-desktop-panel .manager-market-team, .market-teams-desktop-columns {
+    display: grid;
+    grid-template-columns: minmax(150px, 1.15fr) minmax(140px, 1fr) 120px;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 12px;
+  }
+  .market-teams-desktop-columns { border-radius: 8px; font-size: 12px; font-weight: 600; }
+  .market-teams-desktop-input-label { display: none; }
+}

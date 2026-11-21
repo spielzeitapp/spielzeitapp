@@ -1,5 +1,5 @@
+import { ManagerMarketPage } from '../manager/ManagerMarketPage';
 import {MarketManagerPage} from '../features/marketManager/MarketManagerPage';
-import { ManagerMarketTeamsPage } from '../manager/ManagerMarketTeamsPage';
 import {TournamentRegistrationPage} from '../features/tournamentRegistration/RegistrationPage';
 import {TournamentRegistrationAdminPage} from '../features/tournamentRegistration/AdminPage';
 import {MarketSplash} from '../features/club/MarketSplash';
@@ -373,7 +373,6 @@ function InternalRoutes(): React.ReactElement {
         </Route>
       </Route>
       <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
-      <Route path="/manager/vereinsmarkt" element={<RequireAuth><ManagerMarketTeamsPage /></RequireAuth>} />
       <Route path="/manager/vereinsshop" element={<RequireAuth><ManagerShopPage /></RequireAuth>} />
       <Route path="/manager/login" element={<LoginPage />} />
       <Route path="/manager/intro/splash" element={<RequireAuth><ManagerSplashScreen /></RequireAuth>} />
@@ -408,6 +407,7 @@ function InternalRoutes(): React.ReactElement {
       >
         <Route index element={<ManagerHomeRoute />} />
         <Route path="dashboard" element={<ManagerDashboardPage />} />
+        <Route path="vereinsmarkt" element={<ManagerMarketPage />} />
         <Route path="termine" element={<ManagerMobileSchedulePage />} />
         <Route path="teams" element={<ManagerMobileTeamsPage />} />
         <Route path="team" element={<ManagerAppWorkspace><TeamPage /></ManagerAppWorkspace>} />
