@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { ArrowLeft, ChevronRight, FlaskConical, ShoppingBag, Trash2 } from 'lucide-react';
+import { ArrowLeft, ChevronRight, ShoppingBag, Trash2 } from 'lucide-react';
 import { jakoShopCatalog, type JakoShopArticle } from './jakoShopCatalog';
 
 type Filter = 'Alle' | JakoShopArticle['category'];
@@ -39,10 +39,6 @@ export function JakoShopPreview() {
   }
 
   return <section className="club-shop-trial" aria-label="JAKO-Kollektion">
-    <div className="club-shop-trial-note">
-      <FlaskConical size={22} />
-      <div><strong>Shopvorschau</strong><p>Vereinspreise folgen. Du kannst die Größenauswahl und den Warenkorb ausprobieren.</p></div>
-    </div>
     <div ref={content} tabIndex={-1}>
       {selected ? <article className="club-shop-panel">
         <button className="club-shop-trial-back" onClick={backToCatalog}><ArrowLeft size={18} /> Alle Artikel</button>
@@ -59,7 +55,7 @@ export function JakoShopPreview() {
         <p aria-live="polite">{notice}</p>
         <a href={selected.url} target="_blank" rel="noreferrer">Produktdetails bei JAKO</a>
       </article> : <>
-        <h2>JAKO-Kollektion</h2>
+        <p className="club-shop-muted club-shop-preview-status">Shopvorschau · Vereinspreise folgen</p>
         <div className="club-shop-tabs" role="group" aria-label="Artikel filtern">
           {filters.map(option => <button key={option} aria-pressed={filter === option} className={filter === option ? 'club-shop-filter-active' : undefined} onClick={() => setFilter(option)}>{option}</button>)}
         </div>
@@ -69,7 +65,6 @@ export function JakoShopPreview() {
               <img src={article.image} alt="" loading="lazy" />
               <small>{article.color}</small>
               <strong>{article.name}</strong>
-              <small>Vereinspreis folgt</small>
               <span className="club-shop-product-link">Artikel ansehen <ChevronRight size={16} /></span>
             </button>
           )}

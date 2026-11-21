@@ -55,3 +55,21 @@ html[data-market-theme=light] .club-shop-product-link{color:#ad2442}
   min-height: 44px;
   padding: 8px 12px;
 }
+
+.club-shop-header--compact {
+  margin-bottom: 10px;
+}
+.club-shop-header--compact h1 {
+  flex: 1;
+  margin: 0;
+}
+.club-shop-preview-status {
+  margin: 0;
+  font-size: 14px;
+}
+.club-shop-preview-status + .club-shop-tabs {
+  margin-block: 12px;
+}
+.club-shop-preview-status ~ .club-shop-grid {
+  margin-top: 0;
+}
