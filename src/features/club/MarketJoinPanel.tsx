@@ -1,6 +1,6 @@
 import {MarketTeamWizard} from './MarketTeamWizard';
 import {requestMarketHomeGuide} from './MarketHomeScreenGuide';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {Link, useSearchParams} from 'react-router-dom';
 import {supabase} from '../../lib/supabaseClient';
 import {useAuth} from '../../auth/AuthProvider';
@@ -14,6 +14,8 @@ export function marketInviteToken(value: string | null): string {
 /** Invitation stays in next through registration, confirmation and navigation. */
 export function MarketJoinPanel({clubId, clubName='deinem Verein', onJoined}: {clubId:string;clubName?:string;onJoined:()=>void}) {
  const {user}=useAuth();const [params,setParams]=useSearchParams();
+ const dialog=useRef<HTMLDialogElement>(null);const [joinOpen,setJoinOpen]=useState(true);
+ useEffect(()=>{const el=dialog.current;if(!joinOpen||!el)return;const previous=document.body.style.overflow;document.body.style.overflow='hidden';el.showModal();return()=>{el.close();document.body.style.overflow=previous;};},[joinOpen]);
  const token=marketInviteToken(params.get('invite'));
  const [accepted,setAccepted]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const [teams,setTeams]=useState<Array<{id:string;name:string;age_group:string|null}>>([]),[chosen,setChosen]=useState<string[]>([]),[loading,setLoading]=useState(false),[reload,setReload]=useState(0);
@@ -30,12 +32,16 @@ export function MarketJoinPanel({clubId, clubName='deinem Verein', onJoined}: {c
    if(result.error)throw result.error;
    if(result.data!==true)throw new Error('Beitritt fehlgeschlagen. Bitte erneut versuchen.');
    setParams(old=>{const p=new URLSearchParams(old);p.delete('invite');p.set('view','member');return p;},{replace:true});
+   dialog.current?.close();setJoinOpen(false);
    requestMarketHomeGuide(clubId);
    onJoined();
   }catch(e){setError(e&&typeof e==='object'&&'message' in e?String(e.message):'Beitritt fehlgeschlagen. Bitte erneut versuchen.');}
   finally{setBusy(false);}
  }
- return <section className="market-join" aria-label="Dem Vereinsmarkt beitreten">
+ if(!joinOpen)return <button type="button" className="public-market-cta" onClick={()=>setJoinOpen(true)}>Teams auswählen und beitreten</button>;
+ return <dialog ref={dialog} className="market-join-dialog" aria-label="Dem Vereinsmarkt beitreten" onCancel={e=>{e.preventDefault();if(!busy)setJoinOpen(false);}}>
+  <header className="market-join-dialog-header"><strong>{clubName==='deinem Verein'?'Vereinsmarkt':clubName}</strong><button type="button" disabled={busy} onClick={()=>setJoinOpen(false)} aria-label="Teamauswahl schließen">✕</button></header>
+  <section className="market-join" aria-label="Dem Vereinsmarkt beitreten">
   {!user&&<ol className="market-join-steps" aria-label="Anmeldung"><li data-current={!user}>1 Konto</li><li data-current={Boolean(user)}>2 Teams</li><li>3 Loslegen</li></ol>}
   <p className="public-market-eyebrow">Alle Eltern. Ein Vereinsmarkt.</p>
   <h2>Willkommen im Vereinsmarkt</h2>
@@ -54,7 +60,7 @@ export function MarketJoinPanel({clubId, clubName='deinem Verein', onJoined}: {c
    <small>Deine Auswahl gilt für diesen Vereinsmarkt.</small>
   </>}
   {error&&<p role="alert" className="exchange-alert">{error}</p>}
- </section>;
+ </section></dialog>;
 }
 
 type MarketMember={user_id:string;name:string;teams:string[];joined_at:string|null;blocked:boolean};
