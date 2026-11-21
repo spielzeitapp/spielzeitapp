@@ -502,6 +502,12 @@ export function ManagerClubDetailPage(): React.ReactElement {
           <ManagerSetupChecklist detail={detail} seasonId={setupSeasonId} onSelect={selectSetupSeason} onAction={setupAction} hideSelector initialStep={new URLSearchParams(location.search).get('setupStep')}
             preview={appPreviewOpen && selectedSeason ? <ManagerAppPreviewPanel key={setupSeasonId} clubId={clubId} teamSeasonId={setupSeasonId} branding={branding} logoFile={logoFile} compact onClose={() => setAppPreviewOpen(false)} /> : undefined} />
 
+          {detail.status === 'active' && <Link
+            to={`/vereinsmarkt-manager/${clubId}?section=teams`}
+            className="inline-flex min-h-11 w-fit items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+          >
+            Vereinsmarkt · Mannschaftsauswahl für Eltern →
+          </Link>}
           <ManagerClubPhotoTemplate key={clubId+setupSeasonId} clubId={clubId} seasonId={setupSeasonId} />
           <details className="rounded-2xl border border-slate-200 bg-white">
             <summary className="cursor-pointer p-4 font-semibold text-slate-900">Vereinsdaten · Name, Logo &amp; Farben für alle Mannschaften</summary>
