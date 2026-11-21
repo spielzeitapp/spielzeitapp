@@ -36,14 +36,14 @@ export function MarketJoinPanel({clubId, clubName='deinem Verein', onJoined}: {c
   finally{setBusy(false);}
  }
  return <section className="market-join" aria-label="Dem Vereinsmarkt beitreten">
-  <ol className="market-join-steps" aria-label="Anmeldung"><li data-current={!user}>1 Konto</li><li data-current={Boolean(user)}>2 Teams</li><li>3 Loslegen</li></ol>
+  {!user&&<ol className="market-join-steps" aria-label="Anmeldung"><li data-current={!user}>1 Konto</li><li data-current={Boolean(user)}>2 Teams</li><li>3 Loslegen</li></ol>}
   <p className="public-market-eyebrow">Alle Eltern. Ein Vereinsmarkt.</p>
-  <h2>Willkommen im Vereinsmarkt {clubName==='deinem Verein'?'':clubName}</h2>
-  <p>Trainingssachen anbieten, tauschen und weitergeben – auch wenn das Team oder dein Kind noch nicht in SpielzeitApp angelegt ist.</p>
+  <h2>Willkommen im Vereinsmarkt</h2>
+  <p>Fußballsachen kaufen, verkaufen, tauschen oder verschenken.</p>
   {!user?<>
    <Link className="public-market-cta" to={marketAuthPath('register',query)}>Neu? Jetzt registrieren</Link>
    <Link className="public-market-register" to={marketAuthPath('login',query)}>Schon ein Konto? Anmelden</Link>
-   <small>Ein Konto für Vereinsmarkt und SpielzeitApp. Nach der E-Mail-Bestätigung wählst du alle passenden Teams deiner Kinder aus. Ein Elternkonto reicht auch bei mehreren Kindern.</small>
+   <small>E-Mail bestätigen und die Teams deiner Kinder auswählen. Ein Konto genügt.</small>
   </>:<>
    {loading?<p role="status">Teams werden geladen…</p>:teams.length?<MarketTeamWizard key={`${clubId}:${user.id}:${reload}`} teams={teams} chosen={chosen} onChange={ids=>{setChosen(ids);setAccepted(false);}} busy={busy}>
    <label className="exchange-check"><input type="checkbox" checked={accepted} disabled={busy} onChange={e=>setAccepted(e.target.checked)}/>Ich bin erwachsen und meine Familie gehört zu diesem Verein bzw. dieser Spielgemeinschaft.</label>
@@ -51,7 +51,7 @@ export function MarketJoinPanel({clubId, clubName='deinem Verein', onJoined}: {c
    {!loading&&!busy&&(!chosen.length||!accepted)&&<p className="market-join-action-hint">{!chosen.length?'Wähle mindestens ein Team. Danach kannst du beitreten.':'Bitte bestätige oben, dass deine Familie zum Verein gehört.'}</p>}
    </MarketTeamWizard>:error?null:<p className="exchange-hint">Hier sind noch keine Teams für die Elternauswahl freigeschaltet. Bitte wende dich an die Vereinsverwaltung oder lade die Liste später erneut.</p>}
    {!loading&&<button type="button" className="market-text-button" disabled={busy} onClick={()=>setReload(n=>n+1)}>Teams neu laden</button>}
-   <small>Du kannst sofort loslegen – ohne Trainerfreigabe. Diese Auswahl gilt nur für den Vereinsmarkt. Team und Kind verknüpfst du später bei Bedarf in SpielzeitApp.</small>
+   <small>Deine Auswahl gilt für diesen Vereinsmarkt.</small>
   </>}
   {error&&<p role="alert" className="exchange-alert">{error}</p>}
  </section>;
