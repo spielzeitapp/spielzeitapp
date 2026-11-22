@@ -19,6 +19,14 @@ import {
 } from '../../lib/publicTeamTournament';
 import { TournamentClubLogo } from '../../components/tournament/TournamentClubLogo';
 
+function compareFixtureKickoff(
+  a: { kickoffAt?: string | null; time: string },
+  b: { kickoffAt?: string | null; time: string },
+) {
+  const difference = Date.parse(a.kickoffAt ?? '') - Date.parse(b.kickoffAt ?? '');
+  return Number.isFinite(difference) ? difference : a.time.localeCompare(b.time);
+}
+
 function PublicKickoffCountdown({ kickoffAt }: { kickoffAt: string }) {
   const [now, setNow] = useState(Date.now);
   const remaining = Math.ceil((Date.parse(kickoffAt) - now) / 1000);
@@ -127,15 +135,37 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const now = Date.now();
   const ownLive = groupedMatches.live[0];
   const nextOwn = groupedMatches.upcoming.find(match => Date.parse(match.kickoffAt) > now);
-  const featuredMatch = tab === 'ours' ? ownLive ?? nextOwn : undefined;
   const schedule = page?.schedule ?? [];
+  const isOwnScheduleFixture = (fixture: PublicTournamentScheduleFixture) =>
+    Boolean(page?.ownParticipantName && [
+      fixture.homeProjection ?? fixture.homeTeam,
+      fixture.awayProjection ?? fixture.awayTeam,
+    ].includes(page.ownParticipantName));
   const ownMatchForFixture = (fixture: PublicTournamentScheduleFixture) => {
-    if (!page?.ownParticipantName ||
-      (fixture.homeTeam !== page.ownParticipantName && fixture.awayTeam !== page.ownParticipantName)) return undefined;
+    if (!page || !isOwnScheduleFixture(fixture)) return undefined;
     return page.allMatches.find(match => fixture.kickoffAt
       ? match.kickoffAt === fixture.kickoffAt || Date.parse(match.kickoffAt) === Date.parse(fixture.kickoffAt)
       : match.kickoffTimeLabel === fixture.time);
   };
+  const unlinkedOwnFixtures = tab === 'ours' ? schedule.filter(fixture =>
+    isOwnScheduleFixture(fixture) && !ownMatchForFixture(fixture) && fixture.status !== 'canceled',
+  ) : [];
+  const ownScheduledResults = unlinkedOwnFixtures.filter(fixture =>
+    fixture.status === 'finished' || (fixture.homeGoals != null && fixture.awayGoals != null),
+  );
+  const ownScheduledOpen = unlinkedOwnFixtures.filter(fixture => !ownScheduledResults.includes(fixture));
+  const isWithinScheduledMatch = (fixture: PublicTournamentScheduleFixture) => {
+    const kickoff = Date.parse(fixture.kickoffAt ?? '');
+    return kickoff <= now && now < kickoff + (fixture.plannedMinutes ?? 0) * 60_000;
+  };
+  const nextScheduledOwn = [...ownScheduledOpen]
+    .sort(compareFixtureKickoff)
+    .find(fixture => Date.parse(fixture.kickoffAt ?? '') > now);
+  const featuredOwnFixture = ownLive ? undefined : ownScheduledOpen.find(fixture => fixture.status === 'live') ??
+    ownScheduledOpen.find(isWithinScheduledMatch) ??
+    (nextScheduledOwn && (!nextOwn || Date.parse(nextScheduledOwn.kickoffAt ?? '') < Date.parse(nextOwn.kickoffAt))
+      ? nextScheduledOwn : undefined);
+  const featuredMatch = tab === 'ours' && !featuredOwnFixture ? ownLive ?? nextOwn : undefined;
   const externalLiveFixtures = tab === 'games' ? schedule.filter(fixture => {
     if (fixture.status !== 'live') return false;
     const own = ownMatchForFixture(fixture);
@@ -167,8 +197,10 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const renderScheduledFixture = (fixture: NonNullable<PublicTeamTournamentPageDto['schedule']>[number], index: number) => {
     if (!page) return null;
     const own = ownMatchForFixture(fixture);
-    const ownHome = fixture.homeTeam === page.ownParticipantName;
-    const status = own?.status === 'live' || own?.status === 'finished' ? own.status : fixture.status;
+    const ownHome = (fixture.homeProjection ?? fixture.homeTeam) === page.ownParticipantName;
+    const isFeatured = fixture === featuredOwnFixture;
+    const status = own?.status === 'live' || own?.status === 'finished' ? own.status
+      : isFeatured && fixture.status !== 'live' && isWithinScheduledMatch(fixture) ? 'scheduled-live' : fixture.status;
     const ownScore = own && (own.status === 'live' || own.status === 'finished');
     const hg = ownScore ? (ownHome ? own.scoreOur : own.scoreOpp) : status === 'live' ? fixture.liveHomeGoals ?? null : fixture.homeGoals;
     const ag = ownScore ? (ownHome ? own.scoreOpp : own.scoreOur) : status === 'live' ? fixture.liveAwayGoals ?? null : fixture.awayGoals;
@@ -177,7 +209,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
       : fixture.phase === 'semifinal' ? 'Halbfinale' : fixture.phase === 'placement' ? 'Platzierungsspiel' : 'Turnierspiel');
     const content = <>
       <TournamentFanFixture
-        prominent={externalLiveFixtures.includes(fixture)}
+        prominent={isFeatured || externalLiveFixtures.includes(fixture)}
         home={fixture.homeProjection ?? fixture.homeTeam}
         away={fixture.awayProjection ?? fixture.awayTeam}
         homeGoals={hg}
@@ -195,6 +227,9 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
           Vorläufig · {fixture.homeTeam} gegen {fixture.awayTeam}
         </p>
       ) : null}
+      {isFeatured && status === 'upcoming' && fixture.kickoffAt ? (
+        <PublicKickoffCountdown key={fixture.kickoffAt} kickoffAt={fixture.kickoffAt} />
+      ) : null}
     </>;
     return own ? <Link key={fixture.id || index} to={`?spiel=${encodeURIComponent(own.id)}`} className="block rounded-xl" aria-label={`${own.opponentName} · Zum Spiel, Aufstellung und Spielverlauf`}>{content}</Link> : <React.Fragment key={fixture.id || index}>{content}</React.Fragment>;
 
@@ -203,6 +238,16 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
     ...groupedMatches.live.map(match => ({ time: match.kickoffTimeLabel, card: renderOwnCard(match, true) })),
     ...externalLiveFixtures.map((fixture, index) => ({ time: fixture.time, card: renderScheduledFixture(fixture, index) })),
   ].sort((a, b) => a.time.localeCompare(b.time)) : [];
+  const remainingOwnCards = tab === 'ours' ? [
+    ...groupedMatches.upcoming.filter(match => match !== featuredMatch)
+      .map(match => ({ kickoffAt: match.kickoffAt, time: match.kickoffTimeLabel, card: renderOwnCard(match) })),
+    ...ownScheduledOpen.filter(fixture => fixture !== featuredOwnFixture)
+      .map((fixture, index) => ({ kickoffAt: fixture.kickoffAt, time: fixture.time, card: renderScheduledFixture(fixture, index) })),
+  ].sort(compareFixtureKickoff) : [];
+  const ownResultCards = tab === 'ours' ? [
+    ...groupedMatches.results.map(match => ({ kickoffAt: match.kickoffAt, time: match.kickoffTimeLabel, card: renderOwnCard(match) })),
+    ...ownScheduledResults.map((fixture, index) => ({ kickoffAt: fixture.kickoffAt, time: fixture.time, card: renderScheduledFixture(fixture, index) })),
+  ].sort((a, b) => compareFixtureKickoff(b, a)) : [];
   const presentationMode=searchParams.get('modus');
   if(!embedded && page && presentationMode==='print') return <TournamentPresentation page={page} mode="print" error={error}/>;
   if(!embedded && page && presentationMode==='screen') {
@@ -274,16 +319,30 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
           </section>
         ) : null}
         {featuredMatch ? <section aria-label={featuredMatch.status==='live'?'Aktuelles Livespiel':'Nächstes eigenes Spiel'}>{renderOwnCard(featuredMatch,true)}</section> : null}
+        {featuredOwnFixture ? (
+          <section aria-label={featuredOwnFixture.status === 'live' || isWithinScheduledMatch(featuredOwnFixture) ? 'Aktuelles Spiel' : 'Nächstes eigenes Spiel'}>
+            {renderScheduledFixture(featuredOwnFixture, 0)}
+          </section>
+        ) : null}
         <nav aria-label="Turnierbereiche" className="space-y-1 rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-1">
           <div className="grid grid-cols-2 gap-1 sm:grid-cols-4" role="group" aria-label="Spiele und Tabelle">{[['ours','Unsere Spiele'],['games','Alle Spiele'],['ticker','Liveticker'],['tables','Tabellen']].map(([id,label])=><button key={id} type="button" aria-pressed={tab===id} onClick={()=>setTab(id)} className={`min-h-11 min-w-0 rounded-xl px-2 text-sm font-bold ${tab===id?'bg-[var(--t-accent)] text-white':'text-[var(--t-muted)]'}`}>{label}</button>)}</div>
           <div className="grid grid-cols-3 gap-1 border-t border-[var(--t-border)] pt-1" role="group" aria-label="Finalrunde, Torschützen und Mannschaft">{[['final','Finalrunde'],['scorers','Torschützen'],['roster','Unser Team']].map(([id,label])=><button key={id} type="button" aria-pressed={tab===id} onClick={()=>setTab(id)} className={`min-h-11 min-w-0 rounded-xl px-1 text-[13px] font-bold sm:text-sm ${tab===id?'bg-[var(--t-accent)] text-white':'text-[var(--t-muted)]'}`}>{label}</button>)}</div>
         </nav>
         {tab==='ours'? <section className="space-y-4">
-          {groupedMatches.upcoming.some(m=>m.id!==featuredMatch?.id) ? <div className="space-y-2"><h2 className={heading}>{featuredMatch?.status==='live'?'Danach':'Weitere Spiele'}</h2>{groupedMatches.upcoming.filter(m=>m.id!==featuredMatch?.id).map(m=>renderOwnCard(m))}</div> : groupedMatches.live.length ? null : page.allMatches.length ? <p className="text-sm text-[var(--t-muted)]">Keine weiteren Spiele geplant.</p> : <>{(page.schedule ?? []).filter(m=>m.homeTeam===page.ownParticipantName || m.awayTeam===page.ownParticipantName).map(renderScheduledFixture)}{!(page.schedule ?? []).some(m=>m.homeTeam===page.ownParticipantName || m.awayTeam===page.ownParticipantName)?<p className={card}>Unsere Mannschaft ist noch nicht zugeordnet.</p>:null}</>}
-          {groupedMatches.results.length ? (
+          {remainingOwnCards.length ? (
+            <div className="space-y-2">
+              <h2 className={heading}>{featuredMatch?.status === 'live' || featuredOwnFixture?.status === 'live' ? 'Danach' : 'Weitere Spiele'}</h2>
+              {remainingOwnCards.map(entry => entry.card)}
+            </div>
+          ) : !featuredMatch && !featuredOwnFixture ? (
+            <p className={page.allMatches.length || unlinkedOwnFixtures.length ? 'text-sm text-[var(--t-muted)]' : card}>
+              {page.allMatches.length || unlinkedOwnFixtures.length ? 'Keine weiteren Spiele geplant.' : 'Unsere Mannschaft ist noch nicht zugeordnet.'}
+            </p>
+          ) : null}
+          {ownResultCards.length ? (
             <div className="space-y-3">
               <h2 className={heading}>Ergebnisse</h2>
-              {groupedMatches.results.map(match => renderOwnCard(match))}
+              {ownResultCards.map(entry => entry.card)}
             </div>
           ) : null}
           {groupedMatches.canceled.length ? <details><summary className="cursor-pointer py-2 text-sm text-[var(--t-muted)]">Abgesagte Spiele · {groupedMatches.canceled.length}</summary><div className="space-y-2">{groupedMatches.canceled.map(m=>renderOwnCard(m))}</div></details> : null}
