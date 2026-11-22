@@ -2,10 +2,16 @@ import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { publicTeamTournamentPath } from '../../lib/publicTeamTournament';
 import type { EventRow } from '../../hooks/useEvents';
-import { isOwnPlayableTournamentSlot, type TournamentMatchSlotView } from '../../lib/tournamentPlan';
+import {
+  isOwnPlayableTournamentSlot,
+  tournamentSlotDisplayTitle,
+  tournamentSlotScoreDisplay,
+  type TournamentMatchSlotView,
+} from '../../lib/tournamentPlan';
 import {
   computeMatchCenterCountdown,
   isRudolfSteurerGedenkturnier,
+  pickTournamentMatchInProgress,
   RUDOLF_STEUrer_DEMO_PARTICIPANTS,
 } from '../../lib/matchCenterUtils';
 import {
@@ -13,7 +19,7 @@ import {
   pickTournamentFirstMatch,
   tournamentPhaseDisplayLabel,
 } from '../../lib/matchCenterTournamentVisuals';
-import { tournamentPrepareCtaLabel } from '../../lib/tournamentDayOrchestrator';
+import { pickLastFinishedTournamentSlot, tournamentPrepareCtaLabel } from '../../lib/tournamentDayOrchestrator';
 import { eventNotesTitle, formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
 import { safeOptionalText, safeText } from '../../lib/safeText';
 import { dsPrimaryCtaClass, dsSecondaryCtaClass } from '../../lib/premiumDesignSystem';
@@ -74,6 +80,12 @@ export function MatchCenterTournamentCard({
     now,
     { roundUpMinutes: showStartCountdown },
   );
+  const liveDaySlots = isTournamentDay && elapsedSinceStart >= 0
+    ? slots.filter((slot) => slot.tournament_event_id === event.id)
+    : [];
+  const currentMatch = pickTournamentMatchInProgress(liveDaySlots, now);
+  const featuredMatch = currentMatch?.slot ?? pickLastFinishedTournamentSlot(liveDaySlots);
+  const featuredScore = featuredMatch && tournamentSlotScoreDisplay(featuredMatch);
 
   const carouselTeams = useMemo((): MatchCenterParticipant[] => {
     if (participants.length > 0) return participants;
@@ -151,10 +163,27 @@ export function MatchCenterTournamentCard({
           </div>
         ) : null}
 
-        {liveDayMode === 'next_own_match' && nextOwnSlot ? (
+        {featuredMatch ? (
           <div className="mt-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3">
             <p className="text-[11px] font-bold uppercase tracking-[0.08em] sz-club-accent-text">
-              {isPlacementNext ? placementLabel : 'Nächstes Spiel'}
+              {currentMatch
+                ? (currentMatch.confirmedLive ? 'Jetzt live im Turnier' : 'Jetzt laut Spielplan')
+                : 'Letztes Turnierergebnis'}
+            </p>
+            <p className="mt-1 text-sm font-semibold leading-snug text-white">
+              {tournamentSlotDisplayTitle(featuredMatch)}
+              {featuredScore ? <span className="ml-2 tabular-nums">{featuredScore}</span> : null}
+            </p>
+            <p className="mt-1 text-[12px] text-white/70">
+              {[formatTimeHHmmDe(featuredMatch.kickoff_at), featuredMatch.pitch].filter(Boolean).join(' · ')}
+            </p>
+          </div>
+        ) : null}
+
+        {liveDayMode === 'next_own_match' && nextOwnSlot && currentMatch?.slot.id !== nextOwnSlot.id ? (
+          <div className="mt-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3">
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] sz-club-accent-text">
+              {isPlacementNext ? placementLabel : 'Unser nächstes Spiel'}
             </p>
             <p className="mt-1 text-sm font-semibold leading-snug text-white">
               {ourName}
@@ -167,7 +196,7 @@ export function MatchCenterTournamentCard({
           </div>
         ) : null}
 
-        {liveDayMode === 'active' && !nextOwnSlot && elapsedSinceStart >= 0 ? (
+        {liveDayMode === 'active' && !nextOwnSlot && !featuredMatch && elapsedSinceStart >= 0 ? (
           <div className="mt-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3">
             <p className="text-[11px] font-bold uppercase tracking-[0.08em] sz-club-accent-text">
               Turnier läuft
@@ -178,7 +207,7 @@ export function MatchCenterTournamentCard({
           </div>
         ) : null}
 
-        {(showStartCountdown || liveDayMode === 'next_own_match') && countdown ? (
+        {(showStartCountdown || (liveDayMode === 'next_own_match' && currentMatch?.slot.id !== nextOwnSlot?.id)) && countdown ? (
           <MatchCenterCountdown
             parts={countdown}
             variant="heroCompact"

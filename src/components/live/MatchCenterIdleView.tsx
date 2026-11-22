@@ -178,6 +178,31 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
     };
   }, [featuredTournament?.id, tournamentExtrasKey]);
 
+  const activeTournamentId = activeTournamentDay?.id;
+  useEffect(() => {
+    if (!activeTournamentId || tournamentCompleted) return;
+    let cancelled = false;
+    let loading = false;
+    const refreshSlots = async () => {
+      if (loading || document.visibilityState === 'hidden') return;
+      loading = true;
+      try {
+        const { data, error } = await fetchTournamentMatchSlots(activeTournamentId);
+        if (!cancelled && !error) setSlots(data);
+      } finally {
+        loading = false;
+      }
+    };
+    const update = () => void refreshSlots().catch(() => {});
+    const interval = window.setInterval(update, 30_000);
+    document.addEventListener('visibilitychange', update);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', update);
+    };
+  }, [activeTournamentId, tournamentCompleted]);
+
   const handleRefreshPlan = () => {
     if (!featuredTournament || !teamSeasonId || isFan || planSyncBusy) return;
     const planUrl = safeText(featuredTournament.official_tournament_url);

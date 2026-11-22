@@ -1,6 +1,7 @@
 import type { EventRow } from '../hooks/useEvents';
 import { isEventPubliclyVisible } from './championshipVisibility';
 import { safeText } from './safeText';
+import type { TournamentMatchSlotView } from './tournamentPlan';
 
 export type MatchCenterCountdown = {
   days: number;
@@ -115,6 +116,23 @@ export function computeMatchCenterCountdown(
   diff -= hours * 3_600_000;
   const minutes = Math.floor(diff / 60_000);
   return { days, hours, minutes };
+}
+
+export function pickTournamentMatchInProgress(slots: TournamentMatchSlotView[], now: Date) {
+  const nowMs = now.getTime();
+  let scheduled: { slot: TournamentMatchSlotView; startsAt: number } | null = null;
+  for (const slot of slots) {
+    if (!slot.home_team || !slot.away_team) continue;
+    const statuses = [slot.match_status, slot.official_status];
+    if (statuses.includes('finished') || statuses.includes('canceled') || statuses.includes('cancelled')) continue;
+    if (statuses.includes('live')) return { slot, confirmedLive: true };
+    const startsAt = Date.parse(slot.kickoff_at);
+    const endsAt = startsAt + slot.planned_minutes * 60_000;
+    if (startsAt <= nowMs && nowMs < endsAt && (!scheduled || startsAt > scheduled.startsAt)) {
+      scheduled = { slot, startsAt };
+    }
+  }
+  return scheduled ? { slot: scheduled.slot, confirmedLive: false } : null;
 }
 
 export function isRudolfSteurerGedenkturnier(title: unknown): boolean {
