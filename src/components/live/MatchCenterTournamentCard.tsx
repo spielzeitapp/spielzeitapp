@@ -65,13 +65,14 @@ function TournamentMatchupCard({
   const home = officialPairing?.home || safeText(slot.home_team) || ourTeamName;
   const away = officialPairing?.away || safeText(slot.away_team) || safeText(slot.opponent_name) || 'Gegner';
   const kickoff = formatTimeHHmmDe(slot.kickoff_at);
+  const isLive = status === 'Live';
 
   return (
-    <section aria-label={status ? `${title} · ${status}` : title} className="mt-2 mb-3 rounded-2xl border border-white/15 bg-[linear-gradient(135deg,rgb(var(--match-primary)),#0a0a0e_70%)] px-3 py-4 text-white">
+    <section aria-label={status ? `${title} · ${isLive ? 'Jetzt live' : status}` : title} className="mt-2 mb-3 rounded-2xl border border-white/15 bg-[linear-gradient(135deg,rgb(var(--match-primary)),#0a0a0e_70%)] px-3 py-4 text-white">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-bold">{title}</p>
-        {status ? (
-          <p className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${status === 'Live' ? 'bg-red-500/20 text-red-200' : 'bg-white/10 text-white/85'}`}>
+        {status === 'Jetzt laut Spielplan' ? (
+          <p className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white/85">
             {status}
           </p>
         ) : officialPairing?.provisional ? (
@@ -85,9 +86,17 @@ function TournamentMatchupCard({
             <p className="text-[13px] font-semibold leading-tight [overflow-wrap:anywhere]">{name}</p>
           </div>
         ))}
-        <p className={`col-start-2 row-start-1 self-start pt-3 text-center font-extrabold tabular-nums ${score ? 'text-[32px]' : 'text-lg text-white/55'}`}>
-          {score ?? 'VS'}
-        </p>
+        <div className={`col-start-2 row-start-1 flex flex-col items-center text-center ${isLive ? 'gap-1' : 'pt-3'}`}>
+          {isLive ? (
+            <p className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-emerald-400/35 bg-emerald-950 px-2 py-1 text-[10px] font-bold uppercase leading-none tracking-wide text-emerald-200">
+              <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              Jetzt live
+            </p>
+          ) : null}
+          <p className={`font-extrabold tabular-nums ${score ? 'text-[32px]' : 'text-lg text-white/55'}`}>
+            {score ?? 'VS'}
+          </p>
+        </div>
       </div>
       <p className="mt-3 text-center text-xs text-white/65">
         {[kickoff && `${kickoff} Uhr`, slot.pitch].filter(Boolean).join(' · ')}
