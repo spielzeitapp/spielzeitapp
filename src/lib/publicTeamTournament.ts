@@ -57,6 +57,8 @@ export type PublicTournamentScheduleFixture = {
   phase: string;
   groupLabel: string | null;
   roundLabel: string | null;
+  homeProjection?: string | null;
+  awayProjection?: string | null;
   homeGoals: number | null;
   awayGoals: number | null;
   kickoffAt?: string | null;

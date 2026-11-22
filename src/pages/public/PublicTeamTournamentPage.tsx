@@ -140,7 +140,8 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
       <p className="border-t border-[var(--t-border)] px-4 py-3 text-sm font-bold text-[var(--t-accent)]">{m.status==='finished'?'Spielverlauf öffnen':'Zum Spiel'} →</p>
     </Link>
   ) : null;
-  const fixtures = (page?.schedule ?? []).filter(m => m.id !== currentGroupFixture?.id && (tab !== 'final' || m.phase !== 'group') && !([...(groupedMatches.live),...(featuredMatch?[featuredMatch]:[])]).some(live => live.kickoffTimeLabel===m.time && (m.homeTeam===page?.ownParticipantName || m.awayTeam===page?.ownParticipantName)));
+  const fixtures = (page?.schedule ?? []).filter(m => m.id !== currentGroupFixture?.id && (tab !== 'final' || m.phase !== 'group') &&
+    !(featuredMatch?.kickoffTimeLabel === m.time && (m.homeTeam === page?.ownParticipantName || m.awayTeam === page?.ownParticipantName)));
   const scheduleFinished = (fixture: NonNullable<PublicTeamTournamentPageDto['schedule']>[number]) => {
     const own = (fixture.homeTeam === page?.ownParticipantName || fixture.awayTeam === page?.ownParticipantName) ? page?.allMatches.find(m=>m.kickoffTimeLabel===fixture.time) : null;
     return own ? own.status==='finished' : fixture.homeGoals!=null && fixture.awayGoals!=null;
@@ -151,11 +152,34 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
     if (!page) return null;
     const own = (fixture.homeTeam === page.ownParticipantName || fixture.awayTeam === page.ownParticipantName)
       ? page.allMatches.find(match => match.kickoffTimeLabel === fixture.time) : null;
-    if (own?.status === 'live') return null;
     const ownHome = fixture.homeTeam === page.ownParticipantName;
-    const hg = own ? (ownHome ? own.scoreOur : own.scoreOpp) : fixture.homeGoals;
-    const ag = own ? (ownHome ? own.scoreOpp : own.scoreOur) : fixture.awayGoals;
-    const content = <><TournamentFanFixture home={fixture.homeTeam} away={fixture.awayTeam} homeGoals={hg} awayGoals={ag} time={fixture.time} phase={fixture.roundLabel || (fixture.groupLabel?`Gruppe ${fixture.groupLabel}`:'Turnierspiel')} logos={page.teamLogos} ownName={page.ownParticipantName} ownLogo={page.teamLogoUrl} scorers={own ? page.scorers?.filter(s=>s.time===fixture.time) : []}/>{fixture.phase!=='group' && fixture.roundLabel ? <p className="px-2 pb-2 text-xs text-[var(--t-muted)]">{fixture.roundLabel}</p> : null}</>;
+    const status = own?.status === 'live' || own?.status === 'finished' ? own.status : fixture.status;
+    const ownScore = own && (own.status === 'live' || own.status === 'finished');
+    const hg = ownScore ? (ownHome ? own.scoreOur : own.scoreOpp) : status === 'live' ? fixture.liveHomeGoals ?? null : fixture.homeGoals;
+    const ag = ownScore ? (ownHome ? own.scoreOpp : own.scoreOur) : status === 'live' ? fixture.liveAwayGoals ?? null : fixture.awayGoals;
+    const provisional = fixture.phase !== 'group' && Boolean(fixture.homeProjection || fixture.awayProjection);
+    const phaseLabel = fixture.roundLabel || (fixture.groupLabel ? `Gruppe ${fixture.groupLabel}`
+      : fixture.phase === 'semifinal' ? 'Halbfinale' : fixture.phase === 'placement' ? 'Platzierungsspiel' : 'Turnierspiel');
+    const content = <>
+      <TournamentFanFixture
+        home={fixture.homeProjection ?? fixture.homeTeam}
+        away={fixture.awayProjection ?? fixture.awayTeam}
+        homeGoals={hg}
+        awayGoals={ag}
+        status={status}
+        time={fixture.time}
+        phase={phaseLabel}
+        logos={page.teamLogos}
+        ownName={page.ownParticipantName}
+        ownLogo={page.teamLogoUrl}
+        scorers={own ? page.scorers?.filter(s=>s.time===fixture.time) : []}
+      />
+      {provisional ? (
+        <p className="px-2 pt-2 text-xs font-semibold text-[var(--t-muted)]">
+          Vorläufig · {fixture.homeTeam} gegen {fixture.awayTeam}
+        </p>
+      ) : null}
+    </>;
     return own ? <Link key={fixture.id || index} to={`?spiel=${encodeURIComponent(own.id)}`} className="block rounded-xl" aria-label={`${own.opponentName} · Zum Spiel, Aufstellung und Spielverlauf`}>{content}</Link> : <React.Fragment key={fixture.id || index}>{content}</React.Fragment>;
 
   };

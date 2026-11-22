@@ -200,6 +200,8 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
       id, homeTeam: String(m.homeTeam), awayTeam: String(m.awayTeam), time: String(m.kickoffTimeHHmm),
       phase: String(m.phase), groupLabel: m.groupLabel == null ? null : String(m.groupLabel),
       roundLabel: m.roundLabel == null ? null : String(m.roundLabel),
+      homeProjection: m.homeConfirmed === false && m.homeProjection ? String(m.homeProjection) : null,
+      awayProjection: m.awayConfirmed === false && m.awayProjection ? String(m.awayProjection) : null,
       homeGoals: m.hasResult ? Number(m.homeGoals) : null, awayGoals: m.hasResult ? Number(m.awayGoals) : null,
       kickoffAt: slot?.kickoff_at ?? null, plannedMinutes: Number(m.plannedMinutes ?? slot?.planned_minutes ?? 0),
       status: m.isLive ? 'live' : m.hasResult ? 'finished' : 'upcoming',
