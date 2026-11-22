@@ -159,7 +159,7 @@ html[data-market-theme=light] .public-exchange .public-market-shop-shortcut butt
 
 /* Explicit selected states must outrank the light-theme neutral tile rule. */
 .public-exchange .public-market-categories{width:100%;grid-template-columns:repeat(4,minmax(0,1fr))}
-.public-exchange .public-market-categories button{position:relative;min-width:0;width:100%;box-sizing:border-box;overflow-wrap:anywhere}
+.public-exchange .public-market-categories button{position:relative;min-width:0;width:100%;box-sizing:border-box;overflow-wrap:normal;word-break:normal}
 html[data-market-theme=light] .public-exchange .public-market-categories button[aria-pressed=true],
 html[data-market-theme=dark] .public-exchange .public-market-categories button[aria-pressed=true],
 .public-exchange .public-market-categories button[aria-pressed=true]{background:#a51f40;color:#fff;border-color:#a51f40;box-shadow:inset 0 0 0 1px #a51f40;font-weight:800}
@@ -167,4 +167,9 @@ html[data-market-theme=light] .public-exchange .public-market-categories button[
 html[data-market-theme=dark] .public-exchange .public-market-categories button[aria-pressed=true] svg,
 .public-exchange .public-market-categories button[aria-pressed=true] svg{color:#fff}
 .public-exchange .public-market-filter-trigger>b{background:#a51f40;color:#fff;border:2px solid var(--market-bg,#fff);box-sizing:content-box}
-@media(max-width:500px){.public-exchange .public-market-categories button{font-size:clamp(10px,2.8vw,12px)}}
+@media (max-width: 500px) {
+  .public-exchange .public-market-categories button {
+    padding-inline: 2px;
+    font-size: clamp(10px, 2.8vw, 12px);
+  }
+}
