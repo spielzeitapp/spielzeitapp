@@ -9,3 +9,7 @@ export function inferMeinTurnierplanPhase(
 export function meinTurnierplanLiveByMatchId(
   analysis: import("../../src/lib/tournamentPlanImport").TournamentPlanAnalysis | null | undefined,
 ): Map<string, import("../../src/lib/tournamentPlanImport").TournamentPlanImportRawMatch>;
+
+export function resolveMeinTurnierplanFinalStandings(
+  analysis: import("../../src/lib/tournamentPlanImport").TournamentPlanAnalysis,
+): Array<{ rank: number; teamName: string }>;

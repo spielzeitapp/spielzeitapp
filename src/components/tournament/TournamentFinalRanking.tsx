@@ -1,10 +1,12 @@
 import React from 'react';
 import { Medal, Trophy } from 'lucide-react';
 import { FanTeamLogo } from './TournamentFanFixture';
+import { TC_CARD, TC_CARD_INNER } from './tournamentCenterStyles';
 
 type Props = {
   ranking: Array<{rank:number;teamName:string}>;
   inProgress?: boolean;
+  variant?: 'public' | 'app';
   logos?: Record<string,string>;
   ownName?: string | null;
   ownLogo?: string | null;
@@ -15,8 +17,11 @@ const medals: Record<number,{label:string;background:string;color:string}> = {
   3:{label:'Bronze',background:'#f7dbc5',color:'#9a3412'},
 };
 
-export function TournamentFinalRanking({ranking,logos,ownName,ownLogo,inProgress=false}:Props) {
-  return <section className="rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-4">
+export function TournamentFinalRanking({ranking,logos,ownName,ownLogo,inProgress=false,variant='public'}:Props) {
+  const card = variant === 'app'
+    ? `${TC_CARD} ${TC_CARD_INNER} text-[var(--text-main)] [--t-muted:var(--text-sub)] [--t-accent:rgb(var(--club-accent-text-rgb))] [--t-border:rgb(var(--club-border-rgb)/0.34)] [--t-surface:transparent] [--t-player-badge:rgb(var(--club-primary-rgb)/0.16)] [--t-fixture:linear-gradient(135deg,var(--surface,#121114),rgb(var(--club-primary-rgb)/0.16))] [[data-app-appearance=light]_&]:[--t-accent:var(--club-link-on-light,#a51d35)]`
+    : 'rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-4';
+  return <section className={card}>
     <h2 className="mb-4 flex items-center gap-2 text-[15px] font-extrabold uppercase tracking-[.14em] text-[var(--t-accent)]"><Trophy size={20} aria-hidden/>{inProgress?'Rangliste Finalrunde':'Endplatzierung'}</h2>
     {inProgress?<p className="mb-3 text-sm text-[var(--t-muted)]">Die Rangliste wird während der Finalrunde ergänzt.</p>:null}
     <ol className="space-y-2.5" aria-label={inProgress?'Rangliste der Finalrunde':'Endplatzierung des Turniers'}>
