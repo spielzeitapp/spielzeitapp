@@ -1057,6 +1057,7 @@ export async function updateMatchRow(
   matchId: string,
   patch: Record<string, unknown>,
   expectedFinishedScore?: { home: number; away: number },
+  expectedLivePeriods?: { periodScores: unknown; elapsed: number; running: boolean; startedAt: string | null },
 ): Promise<{ error: string | null }> {
   if (isDemoTournamentMatchId(matchId)) {
     if (isDemoTournamentSeedFinishedMatchId(matchId)) {
@@ -1101,6 +1102,18 @@ export async function updateMatchRow(
 
   const writable = await assertMatchTeamSeasonWritable(matchId);
   if (!writable.ok) return { error: writable.message };
+
+  if (expectedLivePeriods) {
+    const expected = expectedLivePeriods;
+    const query = supabase.from('matches').update(patch)
+      .eq('id', matchId).eq('status', 'live')
+      .eq('live_elapsed_seconds', expected.elapsed).eq('live_is_running', expected.running)
+      .eq('period_scores', JSON.stringify(expected.periodScores ?? {}));
+    const { data, error } = await (expected.startedAt
+      ? query.eq('live_started_at', expected.startedAt)
+      : query.is('live_started_at', null)).select('id').maybeSingle();
+    return { error: error?.message ?? (data ? null : 'Das Spiel wurde inzwischen aktualisiert. Bitte erneut prüfen.') };
+  }
 
   if (expectedFinishedScore) {
     const { data, error } = await supabase.from('matches').update(patch)

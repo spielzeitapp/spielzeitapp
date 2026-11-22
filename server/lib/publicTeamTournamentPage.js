@@ -147,7 +147,7 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
   if (matchIds.length) {
     const { data: matches } = await admin
       .from('matches')
-      .select('id, status, score_home, score_away, team_season_id, live_started_at, live_elapsed_seconds, live_is_running, u11_formation_id')
+      .select('id, status, score_home, score_away, team_season_id, live_started_at, live_elapsed_seconds, live_is_running, u11_formation_id, period_scores')
       .in('id', matchIds);
     for (const m of matches ?? []) {
       if (String(m.team_season_id) !== String(teamSeasonId)) continue;

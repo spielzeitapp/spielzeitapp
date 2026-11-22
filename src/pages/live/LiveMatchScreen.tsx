@@ -2,6 +2,7 @@ import { prepareTournamentMatchFromTemplate } from '../../lib/tournamentLineupTe
 import { fetchTournamentParticipants } from '../../lib/tournamentPlan';
 import { TournamentBlockControl } from '../../components/tournament/TournamentBlockControl';
 import { TournamentGoalBackfillDialog } from '../../components/tournament/TournamentGoalBackfillDialog';
+import { readTournamentMatchDecision, type TournamentMatchDecision } from '../../../server/lib/tournamentMatchDecision.js';
 import { planBlockChange, type BlockChange } from '../../lib/tournamentBlocks';
 import { DemoFormationPreview } from '../../demo/components/DemoFormationPreview';
 import { ClubLogo } from '../../components/branding/ClubLogo';
@@ -1171,6 +1172,8 @@ export const LiveMatchScreen: React.FC = () => {
   );
   const isRunning = matchClockStatus === 'live';
   const isPaused = matchClockStatus === 'paused';
+  const tournamentDecision = readTournamentMatchDecision(matchRow?.period_scores);
+  const isShootout = !matchIsFinished && tournamentDecision.shootout !== null;
   /** Tore nur bei laufender Uhr (DB: `live_is_running` + Status live). */
   const isClockRunning = isRunning;
   const goalBlockedMessage = useMemo(() => {
@@ -1587,6 +1590,9 @@ export const LiveMatchScreen: React.FC = () => {
   const [pauseConfirmOpen, setPauseConfirmOpen] = useState(false);
   const [pauseConfirmSaving, setPauseConfirmSaving] = useState(false);
   const [endeConfirmOpen, setEndeConfirmOpen] = useState(false);
+  const [extraTimeMinutes, setExtraTimeMinutes] = useState('5');
+  const [decisionSaving, setDecisionSaving] = useState(false);
+  const decisionSavingRef = useRef(false);
   const [minPlaytimeEndWarnOpen, setMinPlaytimeEndWarnOpen] = useState(false);
   const [spielAbschlussOpen, setSpielAbschlussOpen] = useState(false);
   const [calendarFinalized, setCalendarFinalized] = useState(false);
@@ -2677,6 +2683,41 @@ export const LiveMatchScreen: React.FC = () => {
     }
   }, [liveSubEventsDebugKey, events, liveLineupBasePlayerIds, matchRow?.status, rosterById, squadPlayerIds]);
   const periodScores = useMemo(() => parsePeriodScores(matchRow?.period_scores), [matchRow?.period_scores]);
+  const withTournamentDecision = (scores: Record<string, unknown>, decision = tournamentDecision) =>
+    decision.extraTime || decision.shootout ? { ...scores, tournamentDecision: decision } : scores;
+  const livePeriodSnapshot = matchRow && {
+    periodScores: matchRow.period_scores,
+    elapsed: matchRow.live_elapsed_seconds ?? 0,
+    running: matchRow.live_is_running ?? false,
+    startedAt: matchRow.live_started_at ?? null,
+  };
+
+  const saveTournamentDecision = async (decision: TournamentMatchDecision, startExtraTime = false) => {
+    if (!canControlLiveMatch || !tournamentNavContext || !livePeriodSnapshot ||
+      !effectiveMatchId || matchRow?.status !== 'live' || decisionSavingRef.current) return;
+    decisionSavingRef.current = true;
+    setDecisionSaving(true);
+    setSaveError(null);
+    try {
+      const patch = {
+        period_scores: withTournamentDecision(periodScores ?? {}, decision),
+        live_is_running: startExtraTime,
+        live_elapsed_seconds: currentMatchSeconds,
+        live_started_at: startExtraTime ? new Date().toISOString() : matchRow.live_started_at,
+      };
+      const { error } = await updateMatchRow(effectiveMatchId, patch, undefined, livePeriodSnapshot);
+      if (error) { setSaveError(error); queueRealtimeReload(); return; }
+      setMatchRow(previous => previous?.id === effectiveMatchId ? { ...previous, ...patch } : previous);
+      setEndeConfirmOpen(false);
+      broadcastLiveMatchStateChanged({
+        matchId: effectiveMatchId, status: 'updated', reason: 'tournament_decision',
+        teamSeasonId: matchRow.team_season_id, tournamentEventId: tournamentNavContext.tournamentEventId,
+      });
+    } finally {
+      decisionSavingRef.current = false;
+      setDecisionSaving(false);
+    }
+  };
 
   const persistSingle = useCallback(
     async (partial: Omit<MatchEngineEvent, 'id'>): Promise<{ ok: boolean; savedId?: string }> => {
@@ -2929,7 +2970,7 @@ export const LiveMatchScreen: React.FC = () => {
   }, [isDemo, effectiveMatchId, canControlLiveMatch, matchRow?.status]);
 
   const onStartClick = async () => {
-    if (!canControlLiveMatch || matchIsFinished || isRunning || !effectiveMatchId) return;
+    if (!canControlLiveMatch || matchIsFinished || isRunning || isShootout || !effectiveMatchId) return;
     if (!hasClockStarted) {
       if (!isDemo) {
         try {
@@ -3031,7 +3072,7 @@ export const LiveMatchScreen: React.FC = () => {
       const frozen = currentMatchSeconds;
       const section = resolveSectionForPause(periodScores);
       const totals = recomputeScoresFromEvents(events);
-      const nextPeriodScores = computeUpdatedPeriodScores(periodScores, section, totals);
+      const nextPeriodScores = withTournamentDecision(computeUpdatedPeriodScores(periodScores, section, totals));
       const { error } = await updateMatchRow(effectiveMatchId, {
         live_elapsed_seconds: frozen,
         live_is_running: false,
@@ -3057,6 +3098,10 @@ export const LiveMatchScreen: React.FC = () => {
     periodScores,
     events,
     persistSingle,
+    tournamentDecision.extraTime?.startSecond,
+    tournamentDecision.extraTime?.minutes,
+    tournamentDecision.shootout?.home,
+    tournamentDecision.shootout?.away,
   ]);
 
   useEffect(() => {
@@ -3066,12 +3111,14 @@ export const LiveMatchScreen: React.FC = () => {
   /** Ende: Uhr stoppen, Match in DB beenden, Endstand aus Toren — Kalender kommt bei „Spiel abschließen“. */
   const persistMatchEndWithoutCalendar = async () => {
     if (!canControlLiveMatch || matchIsFinished || !effectiveMatchId) return;
+    if (tournamentDecision.shootout && tournamentDecision.shootout.home === tournamentDecision.shootout.away) {
+      setSaveError('Bitte den entscheidenden Treffer im Schießen erfassen.');
+      return;
+    }
     const frozen = currentMatchSeconds;
     const { home: fh, away: fa } = recomputeScoresFromEvents(events);
-    const { ok } = await persistSingle({ type: 'end', timestamp: frozen });
-    if (!ok) return;
     const sectionForEnd = resolveSectionForEnd(periodScores);
-    const nextPeriodScores = computeUpdatedPeriodScores(periodScores, sectionForEnd, { home: fh, away: fa });
+    const nextPeriodScores = withTournamentDecision(computeUpdatedPeriodScores(periodScores, sectionForEnd, { home: fh, away: fa }));
     const { error } = await updateMatchRow(effectiveMatchId, {
       status: 'finished',
       live_is_running: false,
@@ -3080,9 +3127,10 @@ export const LiveMatchScreen: React.FC = () => {
       score_home: fh,
       score_away: fa,
       period_scores: nextPeriodScores,
-    });
-    if (error) setSaveError(error);
+    }, undefined, (tournamentDecision.extraTime || tournamentDecision.shootout) ? livePeriodSnapshot ?? undefined : undefined);
+    if (error) { setSaveError(error); queueRealtimeReload(); }
     else {
+      await persistSingle({ type: 'end', timestamp: frozen });
       setScoreHome(fh);
       setScoreAway(fa);
       setMatchRow((prev) =>
@@ -4728,6 +4776,34 @@ export const LiveMatchScreen: React.FC = () => {
   const trainerClockRowBtn = 'h-10 min-h-10 w-full sm:h-11 sm:min-h-11';
   const renderTrainerClockActionRow = (gapClass: string) => {
     if (matchIsFinished) return null;
+    if (isShootout && tournamentDecision.shootout) {
+      const score = tournamentDecision.shootout;
+      return (
+        <div className="space-y-2 py-1">
+          <div className="grid grid-cols-2 gap-2">
+            {([['home', stadiumHomeDisplay], ['away', stadiumAwayDisplay]] as const).map(([side, team]) => (
+              <div key={side} className="min-w-0 rounded-xl border border-white/15 p-2 text-center">
+                <p className="mb-1 break-words text-xs font-semibold">{team}</p>
+                <div className="flex items-center justify-center gap-2">
+                  {[-1, 1].map(change => (
+                    <button key={change} type="button"
+                      className="min-h-11 min-w-11 rounded-lg bg-white/10 text-sm font-bold disabled:opacity-35"
+                      aria-label={change > 0 ? `Treffer für ${team} erfassen` : `Treffer für ${team} abziehen`}
+                      disabled={decisionSaving || (change < 0 && score[side] === 0)}
+                      onClick={() => void saveTournamentDecision({ ...tournamentDecision, shootout: { ...score, [side]: score[side] + change } })}
+                    >{change > 0 ? '+1' : '−1'}</button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <button type="button" className={`${mbEnd} ${trainerClockRowBtn} disabled:opacity-40`}
+            disabled={decisionSaving || score.home === score.away} onClick={() => setEndeConfirmOpen(true)}>
+            Schießen beenden
+          </button>
+        </div>
+      );
+    }
     return (
       <div className={`grid grid-cols-3 items-stretch ${gapClass}`}>
         {matchClockStatus === 'live' ? (
@@ -4992,9 +5068,23 @@ export const LiveMatchScreen: React.FC = () => {
                         ●
                       </span>
                     ) : null}
-                    {matchIsFinished ? 'Endstand' : hasClockStarted ? 'Live' : 'Bereit'}
+                    {matchIsFinished ? 'Endstand' : isShootout ? 'Entscheidungsschießen' : tournamentDecision.extraTime ? 'Verlängerung' : hasClockStarted ? 'Live' : 'Bereit'}
                   </div>
                 </div>
+                {tournamentDecision.shootout ? (
+                  <p className="mt-1 text-center text-sm font-bold tabular-nums text-amber-200">
+                    {tournamentDecision.shootout.home}:{tournamentDecision.shootout.away} im Schießen
+                    {matchIsFinished && tournamentDecision.shootout.home !== tournamentDecision.shootout.away
+                      ? ` · Sieger: ${tournamentDecision.shootout.home > tournamentDecision.shootout.away ? stadiumHomeDisplay : stadiumAwayDisplay}`
+                      : null}
+                  </p>
+                ) : tournamentDecision.extraTime && !matchIsFinished ? (
+                  <p className="mt-1 text-center text-xs font-semibold tabular-nums text-white/70">
+                    Restzeit laut Plan {formatClock(Math.max(0, tournamentDecision.extraTime.minutes * 60 - (currentMatchSeconds - tournamentDecision.extraTime.startSecond)))}
+                  </p>
+                ) : tournamentDecision.extraTime && matchIsFinished ? (
+                  <p className="mt-1 text-center text-xs font-semibold text-white/70">Nach Verlängerung</p>
+                ) : null}
 
                 {matchReviewOpen && !spectatorView && canControlLiveMatch ? (
                   <div className="mt-1.5 flex justify-center px-2" role="status">
@@ -5340,7 +5430,7 @@ export const LiveMatchScreen: React.FC = () => {
             </div>
           )}
 
-          {canControlLiveMatch && tournamentNavContext && matchRow?.status === 'live' && !fairPlayExtraPlayerId && effectiveMatchId ? (
+          {canControlLiveMatch && tournamentNavContext && matchRow?.status === 'live' && !isShootout && !fairPlayExtraPlayerId && effectiveMatchId ? (
             <TournamentBlockControl key={effectiveMatchId} matchId={effectiveMatchId} seconds={currentMatchSeconds} running={isRunning} current={liveReplayState.slotsBySlot} squad={squadPlayerIds} name={id=>rosterById.get(id)?.name ?? 'Spieler'} busy={subSaving} onApply={applyTournamentBlock} basePath={basePath}/>
           ) : null}
 
@@ -7780,7 +7870,7 @@ export const LiveMatchScreen: React.FC = () => {
           >
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-3 pt-4 sm:px-5 sm:pt-5">
               <h3 id="ende-match-title" className="text-2xl font-black leading-tight tracking-tight text-white">
-                Spiel beenden?
+                {isShootout ? 'Entscheidungsschießen beenden?' : 'Spiel beenden?'}
               </h3>
               <p className="mt-2 text-[15px] font-medium leading-snug text-zinc-300 sm:text-base">
                 {isDemo
@@ -7792,6 +7882,33 @@ export const LiveMatchScreen: React.FC = () => {
                     </>
                   )}
               </p>
+              {tournamentNavContext && !isShootout && matchRow?.status === 'live' && displayScoreHome === displayScoreAway ? (
+                <div className="mt-4 space-y-2">
+                  {!tournamentDecision.extraTime ? (
+                    <div className="flex flex-wrap items-end gap-2">
+                      <label className="text-xs font-semibold text-white/75">
+                        Verlängerung (Min.)
+                        <input type="number" min={1} max={30} step={1} value={extraTimeMinutes}
+                          onChange={event => setExtraTimeMinutes(event.target.value)}
+                          className="mt-1 block min-h-11 w-24 rounded-lg border border-white/15 bg-black px-2 text-base text-white" />
+                      </label>
+                      <button type="button" className="min-h-11 rounded-lg border border-white/15 px-3 text-sm font-bold"
+                        disabled={decisionSaving || !Number.isInteger(Number(extraTimeMinutes)) || Number(extraTimeMinutes) < 1 || Number(extraTimeMinutes) > 30}
+                        onClick={() => void saveTournamentDecision({
+                          extraTime: { startSecond: currentMatchSeconds, minutes: Number(extraTimeMinutes) }, shootout: null,
+                        }, true)}>
+                        Verlängerung starten
+                      </button>
+                    </div>
+                  ) : null}
+                  <button type="button" className="min-h-11 w-full rounded-lg border border-white/15 px-3 text-sm font-bold"
+                    disabled={decisionSaving}
+                    onClick={() => void saveTournamentDecision({ ...tournamentDecision, shootout: { home: 0, away: 0 } })}>
+                    Entscheidungsschießen starten
+                  </button>
+                  {saveError ? <p role="alert" className="text-sm text-amber-400">{saveError}</p> : null}
+                </div>
+              ) : null}
             </div>
             <div
               className="sticky bottom-0 z-10 shrink-0 border-t border-white/[0.06] bg-zinc-950 px-4 pt-2.5 sm:px-5"
@@ -7810,6 +7927,7 @@ export const LiveMatchScreen: React.FC = () => {
                 <button
                   type="button"
                   className="flex h-14 min-h-14 min-w-0 flex-1 items-center justify-center rounded-xl bg-gradient-to-b from-red-600 to-red-950 px-3 text-sm font-black uppercase tracking-wide text-white shadow-[0_0_22px_rgba(220,38,38,0.38)] active:scale-[0.99]"
+                  disabled={decisionSaving || (isShootout && tournamentDecision.shootout?.home === tournamentDecision.shootout?.away)}
                   onClick={() => {
                     if (minimumPlaytimeEnabled && belowMinimumPlaytimeCount > 0) {
                       setEndeConfirmOpen(false);

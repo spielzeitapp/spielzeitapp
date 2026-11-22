@@ -37,6 +37,7 @@ export type PublicTournamentPlayer = {
 };
 
 export type PublicTournamentMatchDetails = {
+  decision?: import('../../server/lib/tournamentMatchDecision.js').TournamentMatchDecision;
   id: string;
   formation: string | null;
   startingPlayers: Array<{name:string;position:string}>;
