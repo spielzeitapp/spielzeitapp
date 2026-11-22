@@ -115,12 +115,16 @@ export function pickPublicTournamentGroupMatch(page: PublicTeamTournamentPageDto
       match.kickoffTimeLabel === fixture.time && (match.status === 'finished' || match.status === 'canceled'),
     );
   });
-  return currentGroup.find((fixture) => fixture.status === 'live')
-    ?? currentGroup.find((fixture) => {
-      const startsAt = Date.parse(fixture.kickoffAt ?? '');
-      return startsAt <= nowMs && nowMs < startsAt + (fixture.plannedMinutes ?? 0) * 60_000;
-    })
-    ?? null;
+  const live = currentGroup.find((fixture) => fixture.status === 'live');
+  if (live) return { fixture: live, state: 'live' as const };
+  const scheduled = currentGroup.find((fixture) => {
+    const startsAt = Date.parse(fixture.kickoffAt ?? '');
+    return startsAt <= nowMs && nowMs < startsAt + (fixture.plannedMinutes ?? 0) * 60_000;
+  });
+  if (scheduled) return { fixture: scheduled, state: 'on_schedule' as const };
+  const next = currentGroup.filter((fixture) => Date.parse(fixture.kickoffAt ?? '') > nowMs)
+    .sort((a, b) => Date.parse(a.kickoffAt ?? '') - Date.parse(b.kickoffAt ?? ''))[0];
+  return next ? { fixture: next, state: 'next' as const } : null;
 }
 
 export function publicTeamTournamentAbsoluteUrl(publicId: string): string {
