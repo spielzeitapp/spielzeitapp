@@ -57,6 +57,10 @@ export type TournamentPlanImportRawMatch = {
   groupLabel: string | null;
   phase: TournamentMatchPhase;
   kickoffTimeHHmm: string;
+  kickoffDate?: string | null;
+  isLive?: boolean;
+  liveHomeGoals?: number | null;
+  liveAwayGoals?: number | null;
   plannedMinutes: number;
   pitch: string | null;
   hasResult: boolean;

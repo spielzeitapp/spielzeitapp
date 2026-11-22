@@ -2,7 +2,7 @@ import { publicTournamentStandings } from './publicTournamentStandings.js';
 import { resolveTournamentOwnTeam } from './tournamentOwnTeam.js';
 import { tournamentTeamLogos } from './tournamentTeamLogos.js';
 import { buildPublicTournamentMatchDetails } from './publicTournamentMatchDetails.js';
-import { meinTurnierplanLiveByMatchId } from './meinTurnierplanModel.js';
+import { meinTurnierplanLiveByMatchId, normalizeMeinTurnierplanLiveMatches, supersededLiveMatches } from './meinTurnierplanModel.js';
 /**
  * Service-role loader for public team tournament page (TURNIER.1).
  * Does not open RLS — returns a sanitized DTO only.
@@ -12,6 +12,7 @@ import {
   isValidPublicTournamentId,
   isDemoPublicTournamentId,
   buildPublicTeamTournamentDto,
+  formatViennaTimeLabel,
   tournamentTitleFromNotes,
   assertPublicDtoSafe,
   buildPublicTournamentPlayers,
@@ -156,8 +157,30 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
   }
 
   const { data: sync } = await admin.from('tournament_sync_state').select('analysis,synced_at,own_team_name').eq('event_id', publicId).maybeSingle();
-  const analysis = sync?.analysis ?? {};
+  const viennaDate = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Vienna' });
+  const localProgress = slots.flatMap(slot => {
+    const status = matchById.get(slot.match_id)?.status;
+    const kickoff = Date.parse(slot.kickoff_at);
+    if ((status !== 'live' && status !== 'finished') || !Number.isFinite(kickoff)) return [];
+    return [{
+      slotId: slot.id,
+      externalMatchId: String(slot.external_match_id ?? '').replace(/^meinturnierplan:/, ''),
+      local: true,
+      pitch: slot.pitch,
+      kickoffDate: viennaDate.format(kickoff),
+      kickoffTimeHHmm: formatViennaTimeLabel(slot.kickoff_at),
+      isLive: status === 'live',
+      hasResult: status === 'finished',
+    }];
+  });
+  const analysis = normalizeMeinTurnierplanLiveMatches(sync?.analysis ?? {}, localProgress);
   const liveByMatch = meinTurnierplanLiveByMatchId(analysis);
+  const supersededLocalIds = new Set(analysis.provider === 'meinturnierplan'
+    ? [...supersededLiveMatches(localProgress, analysis.rawMatches ?? [])].map(match => match.slotId)
+    : []);
+  const officialResults = new Map((analysis.rawMatches ?? [])
+    .filter(match => match.hasResult && match.externalMatchId)
+    .map(match => [match.externalMatchId, match]));
   const enriched = [];
   for (const slot of slots) {
     const m = matchById.get(slot.match_id);
@@ -165,16 +188,20 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
     const organizerLive = liveByMatch.get(slot.external_match_id);
     const untouchedLocal = m.status === 'upcoming' && !m.live_started_at && !m.live_elapsed_seconds && !m.score_home && !m.score_away;
     const officialLive = Boolean(untouchedLocal && organizerLive);
-    const officialFallback = untouchedLocal && !officialLive && slot.official_status === 'finished' && slot.home_goals != null && slot.away_goals != null;
+    const supersededLocal = supersededLocalIds.has(slot.id);
+    const officialResult = officialResults.get(String(slot.external_match_id ?? '').replace(`${analysis.provider}:`, ''));
+    const officialHome = (slot.official_status === 'finished' ? slot.home_goals : null) ?? officialResult?.homeGoals;
+    const officialAway = (slot.official_status === 'finished' ? slot.away_goals : null) ?? officialResult?.awayGoals;
+    const officialFallback = (untouchedLocal || supersededLocal) && !officialLive && officialHome != null && officialAway != null;
     const ownHome = slot.away_team === slot.opponent_name;
     enriched.push({
       ...slot,
-      match_status: officialLive ? 'live' : officialFallback ? 'finished' : m.status ?? 'upcoming',
+      match_status: officialLive ? 'live' : officialFallback ? 'finished' : supersededLocal ? 'upcoming' : m.status ?? 'upcoming',
       organizer_live: officialLive,
       score_home: officialLive ? (ownHome ? organizerLive.liveHomeGoals : organizerLive.liveAwayGoals)
-        : officialFallback ? (ownHome ? slot.home_goals : slot.away_goals) : m.score_home ?? 0,
+        : officialFallback ? (ownHome ? officialHome : officialAway) : m.score_home ?? 0,
       score_away: officialLive ? (ownHome ? organizerLive.liveAwayGoals : organizerLive.liveHomeGoals)
-        : officialFallback ? (ownHome ? slot.away_goals : slot.home_goals) : m.score_away ?? 0,
+        : officialFallback ? (ownHome ? officialAway : officialHome) : m.score_away ?? 0,
     });
   }
 
