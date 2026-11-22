@@ -3646,9 +3646,13 @@ export const LiveMatchScreen: React.FC = () => {
     ],
   );
 
+  const allTickerGroups = useMemo(
+    () => groupTickerRowsByDisplayMinute(buildLiveTickerRows(events, 'all')),
+    [events],
+  );
   const trainerTickerGroups = useMemo(
-    () => groupTickerRowsByDisplayMinute(buildLiveTickerRows(events, eventsFilter)),
-    [events, eventsFilter],
+    () => eventsFilter === 'all' ? allTickerGroups : groupTickerRowsByDisplayMinute(buildLiveTickerRows(events, eventsFilter)),
+    [events, eventsFilter, allTickerGroups],
   );
 
   useEffect(() => {
@@ -4524,6 +4528,8 @@ export const LiveMatchScreen: React.FC = () => {
   const layoutShell = 'mx-auto w-full max-w-none';
   const spectatorView = !canControlLiveMatch;
   const matchboardVisible = mainTab === 'hub';
+  const spectatorLiveHub = spectatorView && matchboardVisible && matchRow?.status === 'live';
+  const spectatorTickerGroups = spectatorLiveHub ? allTickerGroups.slice(0, 2) : [];
   const finishedMatchDate = calendarStartsAt ? new Date(calendarStartsAt) : null;
   const finishedMatchDateValid = Boolean(finishedMatchDate && !Number.isNaN(finishedMatchDate.getTime()));
   const finishedMatchWeekday = finishedMatchDateValid
@@ -4765,7 +4771,7 @@ export const LiveMatchScreen: React.FC = () => {
 
   /** Höhe unter globalem App-Header (main pt, safe-area-korrekt); Matchboard+Hub fix, Module scrollen (inkl. pb für Bottom-Nav). */
   const videoScreenActive = mainTab === 'videos';
-  const liveShellOuter = 'live-shell-viewport relative flex flex-col overflow-hidden text-white';
+  const liveShellOuter = `relative flex flex-col overflow-hidden text-white ${spectatorLiveHub ? '' : 'live-shell-viewport'}`;
   const wechselScreenActive = Boolean(canControlLiveMatch && wechselSheetOpen && !matchIsFinished);
 
   const kickoffProfilePhotoUrl = kickoffProfilePlayer
@@ -4836,7 +4842,7 @@ export const LiveMatchScreen: React.FC = () => {
         className={`border-b bg-black/78 shadow-[0_4px_32px_rgba(0,0,0,0.5)] backdrop-blur-md ${
           mainTab === 'lineup' ? 'border-white/10' : 'border-red-500/35'
         } ${
-          mainTab === 'hub'
+          mainTab === 'hub' && !spectatorLiveHub
             ? 'flex min-h-0 flex-1 touch-pan-y flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]'
             : 'shrink-0'
         }`}
@@ -5283,9 +5289,41 @@ export const LiveMatchScreen: React.FC = () => {
             <TournamentBlockControl key={effectiveMatchId} matchId={effectiveMatchId} seconds={currentMatchSeconds} running={isRunning} current={liveReplayState.slotsBySlot} squad={squadPlayerIds} name={id=>rosterById.get(id)?.name ?? 'Spieler'} busy={subSaving} onApply={applyTournamentBlock} basePath={basePath}/>
           ) : null}
 
+          {spectatorLiveHub ? (
+            <section aria-label="Spielverlauf live" className="mx-auto mt-2 max-w-xl overflow-hidden rounded-2xl border border-white/10 bg-black/55">
+              <div className="flex items-center justify-between gap-2 px-3 py-1">
+                <h2 className="flex min-w-0 items-center gap-2 text-sm font-bold text-white">
+                  <Radio className="h-4 w-4 shrink-0 text-red-400" aria-hidden />
+                  Spielverlauf
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEventsFilter('all');
+                    setMainTab('events');
+                  }}
+                  className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-2 text-xs font-semibold text-red-200 hover:bg-white/10"
+                >
+                  Zum Liveticker <span className="ml-1" aria-hidden>›</span>
+                </button>
+              </div>
+              {spectatorTickerGroups.length ? (
+                <ul className="border-t border-white/10 px-1.5 py-1">
+                  {spectatorTickerGroups.map((group, index) =>
+                    renderTrainerTickerMinuteGroup(group, index, spectatorTickerGroups.length),
+                  )}
+                </ul>
+              ) : (
+                <p className="border-t border-white/10 px-3 py-3 text-sm text-white/65">
+                  Noch keine Spielereignisse erfasst.
+                </p>
+              )}
+            </section>
+          ) : null}
+
           {mainTab === 'hub' ? (
             <nav
-              className={`${spectatorView ? hubNavSpectator : hubNavTrainer} ${matchIsFinished ? 'mt-3 pb-[var(--app-bottomnav-pad)] lg:pb-4' : 'pb-[calc(170px+env(safe-area-inset-bottom,0px))]'}`}
+              className={`${spectatorView ? hubNavSpectator : hubNavTrainer} ${spectatorLiveHub ? 'mx-auto max-w-xl pb-2' : matchIsFinished ? 'mt-3 pb-[var(--app-bottomnav-pad)] lg:pb-4' : 'pb-[calc(170px+env(safe-area-inset-bottom,0px))]'}`}
               aria-label="Live Hub"
             >
               <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('overview')}>
@@ -5302,13 +5340,13 @@ export const LiveMatchScreen: React.FC = () => {
                   <span className={`block font-medium text-white/48 ${matchIsFinished ? 'mt-1 text-xs' : 'text-[10px]'}`}>Formation</span>
                 </span>
               </button>
-              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('events')}>
+              {!spectatorLiveHub ? <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('events')}>
                 <Radio className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
                 <span className="min-w-0 flex-1">
                   <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Liveticker</span>
                   <span className={`block font-medium text-white/48 ${matchIsFinished ? 'mt-1 text-xs' : 'text-[10px]'}`}>Spielverlauf</span>
                 </span>
-              </button>
+              </button> : null}
               {!spectatorView ? (
                 <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('time')}>
                   <BarChart3 className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
