@@ -192,18 +192,22 @@ export function parseMeinTurnierplanModel(json) {
       if ((!homeTeam && !homeSource) || (!awayTeam && !awaySource)) continue;
       const isLive = isActive(m);
       const hasResult = scored(m);
+      // Once a result is official, the assigned teams are known even if the
+      // provider still flags an earlier source fixture as active.
+      const homeConfirmed = Boolean(homeTeam) && (hasResult || sourceConfirmed(m.sourceTeam1));
+      const awayConfirmed = Boolean(awayTeam) && (hasResult || sourceConfirmed(m.sourceTeam2));
       const court = json.courts?.[m.courtId];
       rawMatches.push({
         homeTeam:
-          homeTeam && sourceConfirmed(m.sourceTeam1)
+          homeConfirmed
             ? homeTeam
             : homeSource?.label || homeTeam,
         awayTeam:
-          awayTeam && sourceConfirmed(m.sourceTeam2)
+          awayConfirmed
             ? awayTeam
             : awaySource?.label || awayTeam,
-        homeConfirmed: Boolean(homeTeam) && sourceConfirmed(m.sourceTeam1),
-        awayConfirmed: Boolean(awayTeam) && sourceConfirmed(m.sourceTeam2),
+        homeConfirmed,
+        awayConfirmed,
         homeCandidates: candidates(m.sourceTeam1),
         awayCandidates: candidates(m.sourceTeam2),
         homeSource,
@@ -232,6 +236,8 @@ export function parseMeinTurnierplanModel(json) {
         ),
         pitch: text(court?.displayId) ? `Platz ${text(court.displayId)}` : null,
         hasResult,
+        ...(hasResult && m.withPenaltyShootout === true ? { resultDecision: "shootout" }
+          : hasResult && m.withExtraTime === true ? { resultDecision: "extra_time" } : {}),
         homeGoals: hasResult ? num(m.score1) : null,
         awayGoals: hasResult ? num(m.score2) : null,
         ...(isLive ? {

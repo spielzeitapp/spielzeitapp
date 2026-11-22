@@ -37,6 +37,7 @@ export type PublicTournamentPlayer = {
 };
 
 export type PublicTournamentMatchDetails = {
+  officialDecision?: PublicTournamentScheduleFixture['resultDecision'];
   decision?: import('../../server/lib/tournamentMatchDecision.js').TournamentMatchDecision;
   id: string;
   formation: string | null;
@@ -51,6 +52,7 @@ export type PublicTournamentMatchDetails = {
 };
 
 export type PublicTournamentScheduleFixture = {
+  resultDecision?: 'extra_time' | 'shootout';
   id: string;
   homeTeam: string;
   awayTeam: string;

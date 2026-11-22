@@ -215,6 +215,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
         homeGoals={hg}
         awayGoals={ag}
         status={status}
+        officialDecision={fixture.resultDecision}
         time={fixture.time}
         phase={phaseLabel}
         logos={page.teamLogos}

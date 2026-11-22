@@ -60,6 +60,7 @@ export type TournamentPlanImportRawMatch = {
   plannedMinutes: number;
   pitch: string | null;
   hasResult: boolean;
+  resultDecision?: 'extra_time' | 'shootout';
   homeGoals: number | null;
   awayGoals: number | null;
   externalMatchId?: string | null;

@@ -1,5 +1,5 @@
 import { prepareTournamentMatchFromTemplate } from '../../lib/tournamentLineupTemplates';
-import { fetchTournamentParticipants } from '../../lib/tournamentPlan';
+import { fetchTournamentParticipants, tournamentOfficialOwnScore } from '../../lib/tournamentPlan';
 import { TournamentBlockControl } from '../../components/tournament/TournamentBlockControl';
 import { TournamentGoalBackfillDialog } from '../../components/tournament/TournamentGoalBackfillDialog';
 import { readTournamentMatchDecision, type TournamentMatchDecision } from '../../../server/lib/tournamentMatchDecision.js';
@@ -1162,8 +1162,16 @@ export const LiveMatchScreen: React.FC = () => {
 
   const matchClub = useMatchClubBranding(isDemo ? null : matchRow?.team_season_id);
   const matchOpponentLogos = useClubOpponentLogos(matchRow?.opponent ? [matchRow.opponent] : [], isDemo ? null : matchRow?.team_season_id ?? null);
-  const matchIsFinished = matchRow?.status === 'finished';
-  const oefbSource = useOefbLiveReport(effectiveMatchId, !isDemo && matchIsFinished);
+  const [tournamentNavContext, setTournamentNavContext] =
+    useState<TournamentMatchNavigationContext | null>(null);
+  const currentTournamentSlot = tournamentNavContext?.currentSlot;
+  const importedTournamentEnd = matchRow?.status === 'upcoming' &&
+    currentTournamentSlot?.match_id === effectiveMatchId &&
+    currentTournamentSlot?.result_source === 'official' &&
+    currentTournamentSlot.match_status === 'finished'
+    ? tournamentOfficialOwnScore(currentTournamentSlot) : null;
+  const matchIsFinished = matchRow?.status === 'finished' || importedTournamentEnd !== null;
+  const oefbSource = useOefbLiveReport(effectiveMatchId, !isDemo && matchIsFinished && !importedTournamentEnd);
   const useSourceLineup = Boolean(oefbSource.report && !startingPlayerIds.filter(Boolean).length);
   const useSourceTicker = Boolean(oefbSource.report && !events.length);
   const matchClockStatus = useMemo(
@@ -1596,8 +1604,6 @@ export const LiveMatchScreen: React.FC = () => {
   const [minPlaytimeEndWarnOpen, setMinPlaytimeEndWarnOpen] = useState(false);
   const [spielAbschlussOpen, setSpielAbschlussOpen] = useState(false);
   const [calendarFinalized, setCalendarFinalized] = useState(false);
-  const [tournamentNavContext, setTournamentNavContext] =
-    useState<TournamentMatchNavigationContext | null>(null);
   const matchTypeDisplay = tournamentNavContext ? 'Turnier' : getMatchTypeLabel(calendarMatchType) ?? 'Meisterschaftsspiel';
   const [tournamentPlanSyncBusy, setTournamentPlanSyncBusy] = useState(false);
   const [tournamentPlanSyncStatus, setTournamentPlanSyncStatus] = useState<string | null>(null);
@@ -1698,14 +1704,14 @@ export const LiveMatchScreen: React.FC = () => {
    * sonst +1 im Handler und max(totals, state) = Doppelzählung beim Tor.
    */
   const useSavedTournamentResult = matchIsFinished && tournamentNavContext !== null;
-  const displayScoreHome = useSavedTournamentResult && matchRow?.score_home != null ? matchRow.score_home : Math.max(
+  const displayScoreHome = importedTournamentEnd?.home ?? (useSavedTournamentResult && matchRow?.score_home != null ? matchRow.score_home : Math.max(
     totalsFromEvents.home,
     Number(matchRow?.score_home ?? 0),
-  );
-  const displayScoreAway = useSavedTournamentResult && matchRow?.score_away != null ? matchRow.score_away : Math.max(
+  ));
+  const displayScoreAway = importedTournamentEnd?.away ?? (useSavedTournamentResult && matchRow?.score_away != null ? matchRow.score_away : Math.max(
     totalsFromEvents.away,
     Number(matchRow?.score_away ?? 0),
-  );
+  ));
   const finishedScoreHasTwoDigits = displayScoreHome >= 10 || displayScoreAway >= 10;
 
   useEffect(() => {
@@ -4009,7 +4015,7 @@ export const LiveMatchScreen: React.FC = () => {
     queueRealtimeReload,
   ]);
 
-  const matchReviewOpen = matchIsFinished && !calendarFinalized;
+  const matchReviewOpen = matchIsFinished && !calendarFinalized && !importedTournamentEnd;
 
   const periodDisplayLine = useMemo(() => {
     if (matchReviewOpen) return 'NACHARBEIT OFFEN';
@@ -4865,7 +4871,7 @@ export const LiveMatchScreen: React.FC = () => {
       Zum Turnierplan
     </Link>
   ) : null;
-  const missingOwnGoals = Math.max(0, (matchRow?.score_home ?? 0) - totalsFromEvents.home);
+  const missingOwnGoals = Math.max(0, (importedTournamentEnd?.home ?? matchRow?.score_home ?? 0) - totalsFromEvents.home);
   const canBackfillOwnGoals = canControlLiveMatch && !isDemo && matchIsFinished &&
     Boolean(tournamentNavContext) && sides.isOwnTeamHome;
   const openGoalBackfill = canBackfillOwnGoals && missingOwnGoals > 0 ? (
@@ -4894,7 +4900,7 @@ export const LiveMatchScreen: React.FC = () => {
           key={effectiveMatchId}
           matchId={effectiveMatchId}
           recordedGoals={goalBackfill.recordedGoals}
-          maxMinute={tournamentGoalBackfillMaxMinute(matchRow ?? { live_elapsed_seconds: null, planned_match_minutes: null })}
+          maxMinute={importedTournamentEnd ? 90 : tournamentGoalBackfillMaxMinute(matchRow ?? { live_elapsed_seconds: null, planned_match_minutes: null })}
           players={roster}
           onClose={() => setGoalBackfill(null)}
           onSaved={() => {
@@ -4909,7 +4915,7 @@ export const LiveMatchScreen: React.FC = () => {
               teamSeasonId: matchRow?.team_season_id,
               tournamentEventId: tournamentNavContext?.tournamentEventId,
             });
-            void ensureResultFeedPostForMatch(effectiveMatchId).then((result) => {
+            if (!importedTournamentEnd) void ensureResultFeedPostForMatch(effectiveMatchId).then((result) => {
               if (!result.ok) setSaveError(`Tor gespeichert. Feed konnte nicht aktualisiert werden: ${result.error}`);
             });
           }}
@@ -5360,7 +5366,7 @@ export const LiveMatchScreen: React.FC = () => {
                     </button>
                   ) : null}
 
-                  {!calendarFinalized && (!tournamentNavContext || matchIsFinished) ? (
+                  {!calendarFinalized && !importedTournamentEnd && (!tournamentNavContext || matchIsFinished) ? (
                     <button
                       type="button"
                       disabled={!matchIsFinished}

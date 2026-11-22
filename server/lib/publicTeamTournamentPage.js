@@ -198,6 +198,7 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
     const slot = slotsByExternalId.get(`${analysis.provider}:${id}`) ?? slotsByExternalId.get(id);
     return {
       id, homeTeam: String(m.homeTeam), awayTeam: String(m.awayTeam), time: String(m.kickoffTimeHHmm),
+      resultDecision: m.resultDecision === 'extra_time' || m.resultDecision === 'shootout' ? m.resultDecision : undefined,
       phase: String(m.phase), groupLabel: m.groupLabel == null ? null : String(m.groupLabel),
       roundLabel: m.roundLabel == null ? null : String(m.roundLabel),
       homeProjection: m.homeConfirmed === false && m.homeProjection ? String(m.homeProjection) : null,
@@ -268,6 +269,12 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
     [currentRows,kickoffRows,benchRows,publicEvents] = results.map(result=>result.data ?? []);
   }
   dto.matchDetails = buildPublicTournamentMatchDetails({matches:[...matchById.values()],roster,events:publicEvents,currentRows,kickoffRows,benchRows,unavailable:detailsUnavailable});
+  const decisionByFixture = new Map(dto.schedule.map(fixture => [fixture.id, fixture.resultDecision]));
+  const decisionByMatch = new Map(slots.filter(slot => slot.match_id && slot.external_match_id).map(slot => [
+    slot.match_id, decisionByFixture.get(slot.external_match_id) ??
+      decisionByFixture.get(slot.external_match_id.slice((analysis.provider?.length ?? 0) + 1)),
+  ]));
+  for (const detail of dto.matchDetails) detail.officialDecision = decisionByMatch.get(detail.id);
   const detailNames = dto.matchDetails.flatMap(detail=>[...detail.startingPlayers.map(p=>p.name),...detail.benchPlayers,...detail.events.flatMap(event=>[event.playerName,event.otherPlayerName,event.removedPlayerName].filter(Boolean))]);
   const profileNames = [...dto.fanRoster, ...dto.scorers.map(s => s.name),...detailNames];
   const profileIds = roster.map(row => row.player_id).filter(Boolean);
