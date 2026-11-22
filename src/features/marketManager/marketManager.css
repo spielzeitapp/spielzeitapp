@@ -60,3 +60,74 @@ html[data-market-manager-shell] .market-manager-home .market-manager-nav-viewpor
 .market-manager-home .vm-dashboard-orders > span {
   flex: 1;
 }
+
+.market-manager-home .vm-shop-management > .club-shop {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.vm-shop-management-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vm-shop-management-heading h1 {
+  flex: 1;
+  margin: 0;
+}
+
+.market-manager-home .vm-shop-management-heading > button {
+  flex: 0 0 44px;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 14px;
+  background: var(--mt-card);
+}
+
+.vm-shop-management .manager-shop-tabs {
+  gap: 6px;
+  margin: 16px 0;
+}
+
+.market-manager-home .vm-shop-management .manager-shop-tabs > button {
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.market-manager-home .vm-shop-management .manager-shop-tabs > [aria-current=page],
+.market-manager-home .vm-shop-management :is(.club-shop-button, form > button) {
+  border-color: #c84b6470;
+  background: linear-gradient(125deg, #a8253c, #621b2c);
+  color: #fff;
+}
+
+.market-manager-home .vm-shop-management .club-shop-button,
+.market-manager-home .vm-shop-management form > button {
+  border-radius: 14px;
+}
+
+.market-manager-home .vm-shop-management .manager-shop-secondary {
+  border-color: var(--mt-line);
+  background: var(--mt-field);
+  color: var(--mt-text);
+  box-shadow: none;
+}
+
+.vm-shop-management .club-shop-stats {
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.vm-shop-management .club-shop-stats > div {
+  padding: 10px;
+  background: var(--mt-card);
+}
