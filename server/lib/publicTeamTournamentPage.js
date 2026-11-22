@@ -192,7 +192,20 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
   });
 
   dto.finalRanking = (analysis.finalStandings ?? []).map(r => ({rank:Number(r.rank),teamName:String(r.teamName)}));
-  dto.schedule = (analysis.rawMatches ?? []).map(m => ({id:String(m.externalMatchId ?? ''),homeTeam:String(m.homeTeam),awayTeam:String(m.awayTeam),time:String(m.kickoffTimeHHmm),phase:String(m.phase),groupLabel:m.groupLabel == null ? null : String(m.groupLabel),roundLabel:m.roundLabel == null ? null : String(m.roundLabel),homeGoals:m.hasResult ? Number(m.homeGoals) : null,awayGoals:m.hasResult ? Number(m.awayGoals) : null}));
+  const slotsByExternalId = new Map(slots.map(slot => [slot.external_match_id, slot]));
+  dto.schedule = (analysis.rawMatches ?? []).map(m => {
+    const id = String(m.externalMatchId ?? '');
+    const slot = slotsByExternalId.get(`${analysis.provider}:${id}`) ?? slotsByExternalId.get(id);
+    return {
+      id, homeTeam: String(m.homeTeam), awayTeam: String(m.awayTeam), time: String(m.kickoffTimeHHmm),
+      phase: String(m.phase), groupLabel: m.groupLabel == null ? null : String(m.groupLabel),
+      roundLabel: m.roundLabel == null ? null : String(m.roundLabel),
+      homeGoals: m.hasResult ? Number(m.homeGoals) : null, awayGoals: m.hasResult ? Number(m.awayGoals) : null,
+      kickoffAt: slot?.kickoff_at ?? null, plannedMinutes: Number(m.plannedMinutes ?? slot?.planned_minutes ?? 0),
+      status: m.isLive ? 'live' : m.hasResult ? 'finished' : 'upcoming',
+      liveHomeGoals: m.liveHomeGoals ?? null, liveAwayGoals: m.liveAwayGoals ?? null,
+    };
+  });
   dto.syncedAt = sync?.synced_at ?? null;
   dto.ownParticipantName = sync?.own_team_name ?? resolveTournamentOwnTeam(analysis.teams ?? [], [rawTeamName]);
   const standings = publicTournamentStandings(analysis, enriched, dto.ownParticipantName);

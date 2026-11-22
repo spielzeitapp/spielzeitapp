@@ -11,11 +11,34 @@ import { MapPin, Moon, Sun, Share2 } from 'lucide-react';
 import {
   fetchPublicTeamTournamentPage,
   groupPublicTournamentMatches,
+  pickPublicTournamentGroupMatch,
   sharePublicTeamTournamentPage,
   type PublicTeamTournamentPageDto,
   type PublicTournamentPlayer,
 } from '../../lib/publicTeamTournament';
 import { TournamentClubLogo } from '../../components/tournament/TournamentClubLogo';
+
+function PublicKickoffCountdown({ kickoffAt }: { kickoffAt: string }) {
+  const [now, setNow] = useState(Date.now);
+  const remaining = Math.ceil((Date.parse(kickoffAt) - now) / 1000);
+
+  useEffect(() => {
+    if (!Number.isFinite(remaining) || remaining <= 0) return;
+    const timer = window.setTimeout(() => setNow(Date.now()), 1000);
+    return () => window.clearTimeout(timer);
+  }, [remaining]);
+
+  if (!Number.isFinite(remaining) || remaining <= 0) return null;
+  const hours = Math.floor(remaining / 3600);
+  const minutes = String(Math.floor((remaining % 3600) / 60)).padStart(2, '0');
+  const seconds = String(remaining % 60).padStart(2, '0');
+  return (
+    <div role="timer" className="flex items-center justify-center gap-2 border-t border-[var(--t-border)] bg-[var(--t-surface)] px-4 py-2.5">
+      <span className="text-sm font-semibold text-[var(--t-muted)]">Anpfiff in</span>
+      <span className="text-xl font-extrabold tabular-nums text-[var(--t-accent)]">{hours ? `${hours}:` : ''}{minutes}:{seconds}</span>
+    </div>
+  );
+}
 
 export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publicIdOverride?:string;embedded?:boolean} = {}): React.ReactElement {
   const { publicId: routePublicId = '' } = useParams<{ publicId: string }>();
@@ -100,9 +123,16 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const rosterPlayers = (page?.fanRoster ?? []).map(profileFor).sort((a,b) => (a.number ?? Infinity) - (b.number ?? Infinity) || a.name.localeCompare(b.name, 'de'));
   const selectedMatch = page?.allMatches.find(match => match.id === matchId);
   const groupedMatches = groupPublicTournamentMatches(page?.allMatches ?? []);
-  const featuredMatch = groupedMatches.live[0] ?? groupedMatches.upcoming[0] ?? null;
-  const renderOwnCard = (m: PublicTeamTournamentPageDto['allMatches'][number], prominent=false) => page ? <Link key={m.id} to={`?spiel=${encodeURIComponent(m.id)}`} className="block overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--t-accent)]" aria-label={`${m.kickoffTimeLabel} · ${m.opponentName} · Zum Spiel`}><TournamentFanFixture prominent={prominent} home={page.ownParticipantName || m.ourTeamName} away={m.opponentName} status={m.status} clock={page.matchDetails?.find(d=>d.id===m.id)} homeGoals={m.scoreOur} awayGoals={m.scoreOpp} time={m.kickoffTimeLabel} phase={m.groupLabel?`Gruppe ${m.groupLabel}`:'Turnierspiel'} logos={page.teamLogos} ownName={page.ownParticipantName} ownLogo={page.teamLogoUrl} scorers={page.scorers?.filter(s=>s.time===m.kickoffTimeLabel)}/><p className="border-t border-[var(--t-border)] px-4 py-3 text-sm font-bold text-[var(--t-accent)]">{m.status==='finished'?'Spielverlauf öffnen':'Zum Spiel'} →</p></Link> : null;
-  const fixtures = (page?.schedule ?? []).filter(m => (tab !== 'final' || m.phase !== 'group') && !([...(groupedMatches.live),...(featuredMatch?[featuredMatch]:[])]).some(live => live.kickoffTimeLabel===m.time && (m.homeTeam===page?.ownParticipantName || m.awayTeam===page?.ownParticipantName)));
+  const currentGroupFixture = page && !groupedMatches.live.length ? pickPublicTournamentGroupMatch(page, Date.now()) : null;
+  const featuredMatch = groupedMatches.live[0] ?? (currentGroupFixture ? null : groupedMatches.upcoming[0]) ?? null;
+  const renderOwnCard = (m: PublicTeamTournamentPageDto['allMatches'][number], prominent = false) => page ? (
+    <Link key={m.id} to={`?spiel=${encodeURIComponent(m.id)}`} className="block overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--t-accent)]" aria-label={`${m.kickoffTimeLabel} · ${m.opponentName} · Zum Spiel`}>
+      <TournamentFanFixture prominent={prominent} home={page.ownParticipantName || m.ourTeamName} away={m.opponentName} status={m.status} clock={page.matchDetails?.find(d=>d.id===m.id)} homeGoals={m.scoreOur} awayGoals={m.scoreOpp} time={m.kickoffTimeLabel} phase={m.groupLabel?`Gruppe ${m.groupLabel}`:'Turnierspiel'} logos={page.teamLogos} ownName={page.ownParticipantName} ownLogo={page.teamLogoUrl} scorers={page.scorers?.filter(s=>s.time===m.kickoffTimeLabel)}/>
+      {prominent && m.status === 'upcoming' ? <PublicKickoffCountdown key={m.kickoffAt} kickoffAt={m.kickoffAt} /> : null}
+      <p className="border-t border-[var(--t-border)] px-4 py-3 text-sm font-bold text-[var(--t-accent)]">{m.status==='finished'?'Spielverlauf öffnen':'Zum Spiel'} →</p>
+    </Link>
+  ) : null;
+  const fixtures = (page?.schedule ?? []).filter(m => m.id !== currentGroupFixture?.id && (tab !== 'final' || m.phase !== 'group') && !([...(groupedMatches.live),...(featuredMatch?[featuredMatch]:[])]).some(live => live.kickoffTimeLabel===m.time && (m.homeTeam===page?.ownParticipantName || m.awayTeam===page?.ownParticipantName)));
   const scheduleFinished = (fixture: NonNullable<PublicTeamTournamentPageDto['schedule']>[number]) => {
     const own = (fixture.homeTeam === page?.ownParticipantName || fixture.awayTeam === page?.ownParticipantName) ? page?.allMatches.find(m=>m.kickoffTimeLabel===fixture.time) : null;
     return own ? own.status==='finished' : fixture.homeGoals!=null && fixture.awayGoals!=null;
@@ -158,6 +188,24 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
           <details className="mt-2 text-xs text-[var(--t-muted)]"><summary className="cursor-pointer py-1 font-semibold">Turnierinfos & Aktualisierung</summary><p className="mt-2">{[page.teamName,page.seasonLabel].filter(Boolean).join(' · ')}</p><p className="mt-1 flex items-center gap-1"><MapPin size={14}/>{page.venue}</p><p className="mt-1">{page.allMatches.some(m=>m.status==='live')?'Läuft':page.tournamentStatusLabel}{page.syncedAt ? ` · Veranstalterstand ${new Date(page.syncedAt).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'})}` : ''}</p></details>
         </section> : null}
         {error?<p role="status" className="text-[var(--t-warning)]">Aktualisierung nicht möglich – letzter geladener Stand.</p>:null}
+        {currentGroupFixture ? (
+          <section aria-label="Aktuelles Gruppenspiel">
+            <h2 className={heading}>{currentGroupFixture.status === 'live' ? 'Gerade live in unserer Gruppe' : 'Jetzt laut Spielplan'}</h2>
+            <TournamentFanFixture
+              prominent
+              home={currentGroupFixture.homeTeam}
+              away={currentGroupFixture.awayTeam}
+              status={currentGroupFixture.status}
+              homeGoals={currentGroupFixture.liveHomeGoals ?? null}
+              awayGoals={currentGroupFixture.liveAwayGoals ?? null}
+              time={currentGroupFixture.time}
+              phase={`Gruppe ${currentGroupFixture.groupLabel}`}
+              logos={page.teamLogos}
+              ownName={page.ownParticipantName}
+              ownLogo={page.teamLogoUrl}
+            />
+          </section>
+        ) : null}
         {featuredMatch ? <section aria-label={featuredMatch.status==='live'?'Aktuelles Livespiel':'Nächstes eigenes Spiel'}>{renderOwnCard(featuredMatch,true)}</section> : null}
         <nav aria-label="Turnierbereiche" className="space-y-1 rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-1">
           <div className="grid grid-cols-2 gap-1 sm:grid-cols-4" role="group" aria-label="Spiele und Tabelle">{[['ours','Unsere Spiele'],['games','Alle Spiele'],['ticker','Liveticker'],['tables','Tabellen']].map(([id,label])=><button key={id} type="button" aria-pressed={tab===id} onClick={()=>setTab(id)} className={`min-h-11 min-w-0 rounded-xl px-2 text-sm font-bold ${tab===id?'bg-[var(--t-accent)] text-white':'text-[var(--t-muted)]'}`}>{label}</button>)}</div>
