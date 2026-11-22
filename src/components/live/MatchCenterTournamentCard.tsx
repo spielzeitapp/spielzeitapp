@@ -6,6 +6,7 @@ import { publicTeamTournamentPath } from '../../lib/publicTeamTournament';
 import type { EventRow } from '../../hooks/useEvents';
 import {
   isOwnPlayableTournamentSlot,
+  isOurTournamentScheduleSlot,
   ourTournamentScheduleSlots,
   tournamentSlotScoreDisplay,
   type TournamentMatchSlotView,
@@ -152,6 +153,7 @@ export function MatchCenterTournamentCard({
   const group = resolveMatchCenterTournamentGroup(liveDaySlots, ourTournamentScheduleSlots(liveDaySlots));
   const currentMatch = pickTournamentMatchInProgress(group.slots, now);
   const currentSlot = currentMatch?.slot;
+  const ownMatchInProgress = currentSlot != null && isOurTournamentScheduleSlot(currentSlot);
   const currentMatchId = currentSlot?.match_id;
   const hasOfficialLiveScore = currentSlot?.official_home_goals != null && currentSlot.official_away_goals != null;
   const currentScore = currentSlot && currentMatch?.confirmedLive && (hasOfficialLiveScore || currentSlot.result_source === 'spielzeitapp')
@@ -186,7 +188,7 @@ export function MatchCenterTournamentCard({
     placementLabel !== 'Turnierspiel';
 
   const ourName = safeText(ourTeamName) || 'Unser Team';
-  const nextMatchToShow = liveDayMode === 'next_own_match' && !currentMatch ? nextOwnSlot : null;
+  const nextMatchToShow = liveDayMode === 'next_own_match' && !ownMatchInProgress ? nextOwnSlot : null;
   const prepareHref = nextOwnSlot?.match_id
     ? `/app/matches/${nextOwnSlot.match_id}/prepare`
     : `/app/events/${event.id}`;
