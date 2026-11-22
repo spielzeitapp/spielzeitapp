@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient';
 import { debugAssertMatchEventDbType } from './matchEventScores';
 import type { FieldSlotId } from '../types/match';
 import { assertTeamSeasonWritable } from './seasonTransition';
+import { listRoster } from './rosterService';
 import {
   appendDemoLiveEvent,
   deleteDemoLiveEvent,
@@ -30,6 +31,7 @@ import {
 import {
   clampEffectiveMatchSeconds,
   computeLiveMatchSecondsFromClockState,
+  displayMatchMinuteFromEffectiveSeconds,
   getBenchPlayers,
   getOnFieldIdsInSlotOrder,
   fieldSlotMapToStartingIds,
@@ -283,6 +285,7 @@ export function matchEventDbRowToEngine(row: MatchEventDbRow): MatchEngineEvent 
 }
 
 export type InsertMatchEventPayload = {
+  id?: string;
   match_id: string;
   type: string;
   minute: number;
@@ -804,6 +807,61 @@ export async function saveMatchEvent(payload: InsertMatchEventPayload): Promise<
   }
   const id = (data as { id?: string } | null)?.id ?? null;
   return { id, error: null };
+}
+
+export function tournamentGoalBackfillMaxMinute(match: Pick<LiveMatchRow, 'live_elapsed_seconds' | 'planned_match_minutes'>): number {
+  return displayMatchMinuteFromEffectiveSeconds(
+    Math.max(match.live_elapsed_seconds ?? 0, (match.planned_match_minutes ?? 12) * 60),
+  );
+}
+
+export async function saveMissingTournamentGoal(params: {
+  matchId: string;
+  recordedGoals: number;
+  minute: number;
+  playerId: string | null;
+}): Promise<{ id: string | null; error: string | null }> {
+  const { matchId, recordedGoals, minute, playerId } = params;
+  const [match, events, slot] = await Promise.all([
+    fetchMatchById(matchId),
+    fetchMatchEvents(matchId),
+    supabase.from('tournament_matches').select('is_own_team').eq('match_id', matchId).maybeSingle(),
+  ]);
+  const loadError = match.error ?? events.error ?? slot.error?.message;
+  if (loadError) return { id: null, error: loadError };
+  if (!slot.data || slot.data.is_own_team === false || match.data?.status !== 'finished') {
+    return { id: null, error: 'Das eigene Turnierspiel muss beendet sein.' };
+  }
+
+  // Turnier-Liveticker speichern eigene Tore als `goal`, unabhängig von der Ansetzung im Spielplan.
+  const ourGoals = events.data.filter((event) => event.type === 'goal').length;
+  if (ourGoals !== recordedGoals || ourGoals >= (match.data.score_home ?? 0)) {
+    return { id: null, error: 'Der Spielverlauf hat sich geändert. Bitte erneut prüfen.' };
+  }
+  const maxMinute = tournamentGoalBackfillMaxMinute(match.data);
+  if (!Number.isInteger(minute) || minute < 1 || minute > maxMinute) {
+    return { id: null, error: `Bitte eine Spielminute zwischen 1 und ${maxMinute} eingeben.` };
+  }
+  if (playerId) {
+    const roster = await listRoster(match.data.team_season_id, 'all');
+    if (roster.error) return { id: null, error: roster.error };
+    if (!roster.data.some((player) => player.id === playerId)) {
+      return { id: null, error: 'Spieler gehört nicht zur Mannschaftssaison.' };
+    }
+  }
+
+  // Pro fehlendem Tor eine feste ID. Gleichzeitige Speicherungen können es nur einmal anlegen.
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`tournament-backfill:${matchId}:${ourGoals + 1}`));
+  const bytes = new Uint8Array(digest, 0, 16);
+  bytes[6] = (bytes[6] & 0x0f) | 0x80;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  const id = [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)].join('-');
+  const timestamp = (minute - 1) * 60 + 1;
+  return saveMatchEvent({
+    ...engineEventToInsertPayload(matchId, { type: 'goal', timestamp, playerId: playerId ?? undefined, ownGoal: playerId === null }),
+    id,
+  });
 }
 
 export async function deleteMatchEventById(eventId: string): Promise<{ error: string | null }> {

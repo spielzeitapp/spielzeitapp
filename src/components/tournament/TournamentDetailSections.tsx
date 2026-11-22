@@ -192,6 +192,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const [scoreReview, setScoreReview] = useState<TournamentMatchSlotView | null>(null);
   const [scoreSaving, setScoreSaving] = useState(false);
   const [scoreError, setScoreError] = useState<string | null>(null);
+  const [alignedMatchId, setAlignedMatchId] = useState<string | null>(null);
 
   const [participantModalOpen, setParticipantModalOpen] = useState(false);
   const [participantName, setParticipantName] = useState('');
@@ -316,6 +317,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
         tournamentEventId,
       });
       setScoreReview(null);
+      setAlignedMatchId(scoreReview.match_id);
       setToastMessage('Endstand übernommen');
       await reload();
     } catch {
@@ -1301,6 +1303,14 @@ export const TournamentDetailSections: React.FC<Props> = ({
           ))}
         </section>
       ) : null}
+      {canAlignScores && alignedMatchId && ownSlots.some((slot) => slot.match_id === alignedMatchId) ? (
+        <Link
+          className={addButtonClass}
+          to={`${basePath}/live?matchId=${encodeURIComponent(alignedMatchId)}&tab=events`}
+        >
+          Übernommener Endstand · Zum Spielverlauf
+        </Link>
+      ) : null}
       {scoreReview && reviewedOfficialScore && canAlignScores ? (
         <Modal open onClose={() => { if (!scoreSaving) setScoreReview(null); }} title="Endstand übernehmen">
           <div className="space-y-3">
@@ -1310,7 +1320,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
             {scoreError ? <p role="alert" className="text-sm text-red-300">{scoreError}</p> : null}
             <div className="flex flex-wrap justify-end gap-2">
               <AppButton variant="secondary" disabled={scoreSaving} onClick={() => setScoreReview(null)}>Abbrechen</AppButton>
-              <AppButton disabled={scoreSaving} onClick={() => void confirmOfficialScore()}>{scoreSaving ? 'Wird übernommen …' : 'Endstand übernehmen'}</AppButton>
+              <AppButton variant="primary" disabled={scoreSaving} onClick={() => void confirmOfficialScore()}>{scoreSaving ? 'Wird übernommen …' : 'Endstand übernehmen'}</AppButton>
             </div>
           </div>
         </Modal>

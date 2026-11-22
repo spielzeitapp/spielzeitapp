@@ -1,6 +1,7 @@
 import { prepareTournamentMatchFromTemplate } from '../../lib/tournamentLineupTemplates';
 import { fetchTournamentParticipants } from '../../lib/tournamentPlan';
 import { TournamentBlockControl } from '../../components/tournament/TournamentBlockControl';
+import { TournamentGoalBackfillDialog } from '../../components/tournament/TournamentGoalBackfillDialog';
 import { planBlockChange, type BlockChange } from '../../lib/tournamentBlocks';
 import { DemoFormationPreview } from '../../demo/components/DemoFormationPreview';
 import { ClubLogo } from '../../components/branding/ClubLogo';
@@ -58,6 +59,7 @@ import {
   fetchMatchById,
   deleteMatchEventById,
   fetchMatchEvents,
+  tournamentGoalBackfillMaxMinute,
   getMatchLiveClockStatus,
   LIVE_FIELD_SLOT_ORDER,
   persistExtraPlayerOff,
@@ -1413,6 +1415,7 @@ export const LiveMatchScreen: React.FC = () => {
   const opponentDisplayName = cleanTeamDisplayName(headerOpponent);
   const [mainTab, setMainTab] = useState<'hub' | 'overview' | 'lineup' | 'events' | 'time' | 'videos'>('hub');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
+  const [goalBackfill, setGoalBackfill] = useState<{ matchId: string; recordedGoals: number } | null>(null);
   useEffect(() => {
     const tab = (searchParams.get('tab') ?? '').trim().toLowerCase();
     if (tab === 'time' || tab === 'statistik' || tab === 'spielzeiten') {
@@ -4786,6 +4789,19 @@ export const LiveMatchScreen: React.FC = () => {
       Zum Turnierplan
     </Link>
   ) : null;
+  const missingOwnGoals = Math.max(0, (matchRow?.score_home ?? 0) - totalsFromEvents.home);
+  const canBackfillOwnGoals = canControlLiveMatch && !isDemo && matchIsFinished &&
+    Boolean(tournamentNavContext) && sides.isOwnTeamHome;
+  const openGoalBackfill = canBackfillOwnGoals && missingOwnGoals > 0 ? (
+    <button
+      type="button"
+      className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/15 bg-black/45 px-3 py-2 text-sm font-semibold text-white hover:bg-white/10"
+      onClick={() => setGoalBackfill({ matchId: effectiveMatchId, recordedGoals: totalsFromEvents.home })}
+    >
+      Tor und Torschützen nachtragen
+      <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs tabular-nums">{missingOwnGoals}</span>
+    </button>
+  ) : null;
 
   const kickoffProfilePhotoUrl = kickoffProfilePlayer
     ? (kickoffProfilePlayer.avatar_url ?? '').trim() || null
@@ -4797,6 +4813,32 @@ export const LiveMatchScreen: React.FC = () => {
 
   return (
     <>
+      {canBackfillOwnGoals && goalBackfill?.matchId === effectiveMatchId ? (
+        <TournamentGoalBackfillDialog
+          key={effectiveMatchId}
+          matchId={effectiveMatchId}
+          recordedGoals={goalBackfill.recordedGoals}
+          maxMinute={tournamentGoalBackfillMaxMinute(matchRow ?? { live_elapsed_seconds: null, planned_match_minutes: null })}
+          players={roster}
+          onClose={() => setGoalBackfill(null)}
+          onSaved={() => {
+            setGoalBackfill(null);
+            setMainTab('events');
+            setEventsFilter('all');
+            queueRealtimeReload();
+            broadcastLiveMatchStateChanged({
+              matchId: effectiveMatchId,
+              status: 'updated',
+              reason: 'tournament_goal_backfill',
+              teamSeasonId: matchRow?.team_season_id,
+              tournamentEventId: tournamentNavContext?.tournamentEventId,
+            });
+            void ensureResultFeedPostForMatch(effectiveMatchId).then((result) => {
+              if (!result.ok) setSaveError(`Tor gespeichert. Feed konnte nicht aktualisiert werden: ${result.error}`);
+            });
+          }}
+        />
+      ) : null}
       {kickoffProfilePlayer ? (
         <PlayerProfileModal
           player={kickoffProfilePlayer}
@@ -5379,6 +5421,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </button>
               ) : null}
 
+              {openGoalBackfill}
               {tournamentPlanLink}
             </nav>
           ) : mainTab !== 'lineup' && mainTab !== 'videos' ? (
@@ -5961,6 +6004,7 @@ export const LiveMatchScreen: React.FC = () => {
 
         {mainTab === 'events' && (
           <div className="flex min-h-0 flex-1 flex-col gap-3 px-1 pb-1 sm:px-2">
+            {openGoalBackfill}
             <div className="grid grid-cols-4 gap-1 rounded-xl border border-white/10 bg-black/40 p-1" role="group" aria-label="Liveticker filtern">
               {(
                 [
