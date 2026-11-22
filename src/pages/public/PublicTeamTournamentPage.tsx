@@ -15,6 +15,7 @@ import {
   sharePublicTeamTournamentPage,
   type PublicTeamTournamentPageDto,
   type PublicTournamentPlayer,
+  type PublicTournamentScheduleFixture,
 } from '../../lib/publicTeamTournament';
 import { TournamentClubLogo } from '../../components/tournament/TournamentClubLogo';
 
@@ -126,8 +127,22 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const now = Date.now();
   const ownLive = groupedMatches.live[0];
   const nextOwn = groupedMatches.upcoming.find(match => Date.parse(match.kickoffAt) > now);
-  const featuredMatch = tab === 'ours' ? ownLive ?? nextOwn : tab === 'games' ? ownLive : undefined;
-  const groupHighlight = tab === 'games' && page && !ownLive ? pickPublicTournamentGroupMatch(page, now) : null;
+  const featuredMatch = tab === 'ours' ? ownLive ?? nextOwn : undefined;
+  const schedule = page?.schedule ?? [];
+  const ownMatchForFixture = (fixture: PublicTournamentScheduleFixture) => {
+    if (!page?.ownParticipantName ||
+      (fixture.homeTeam !== page.ownParticipantName && fixture.awayTeam !== page.ownParticipantName)) return undefined;
+    return page.allMatches.find(match => fixture.kickoffAt
+      ? match.kickoffAt === fixture.kickoffAt || Date.parse(match.kickoffAt) === Date.parse(fixture.kickoffAt)
+      : match.kickoffTimeLabel === fixture.time);
+  };
+  const externalLiveFixtures = tab === 'games' ? schedule.filter(fixture => {
+    if (fixture.status !== 'live') return false;
+    const own = ownMatchForFixture(fixture);
+    return !own || own.status === 'upcoming';
+  }) : [];
+  const hasLiveGames = tab === 'games' && (groupedMatches.live.length > 0 || externalLiveFixtures.length > 0);
+  const groupHighlight = tab === 'games' && page && !hasLiveGames ? pickPublicTournamentGroupMatch(page, now) : null;
   const currentGroupFixture = groupHighlight?.fixture;
   const highlightedOwnMatch = currentGroupFixture && page?.ownParticipantName &&
     (currentGroupFixture.homeTeam === page.ownParticipantName || currentGroupFixture.awayTeam === page.ownParticipantName)
@@ -140,18 +155,18 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
       <p className="border-t border-[var(--t-border)] px-4 py-3 text-sm font-bold text-[var(--t-accent)]">{m.status==='finished'?'Spielverlauf öffnen':'Zum Spiel'} →</p>
     </Link>
   ) : null;
-  const fixtures = (page?.schedule ?? []).filter(m => m.id !== currentGroupFixture?.id && (tab !== 'final' || m.phase !== 'group') &&
+  const fixtures = schedule.filter(m => m !== currentGroupFixture && !externalLiveFixtures.includes(m) &&
+    !(tab === 'games' && ownMatchForFixture(m)?.status === 'live') && (tab !== 'final' || m.phase !== 'group') &&
     !(featuredMatch?.kickoffTimeLabel === m.time && (m.homeTeam === page?.ownParticipantName || m.awayTeam === page?.ownParticipantName)));
   const scheduleFinished = (fixture: NonNullable<PublicTeamTournamentPageDto['schedule']>[number]) => {
-    const own = (fixture.homeTeam === page?.ownParticipantName || fixture.awayTeam === page?.ownParticipantName) ? page?.allMatches.find(m=>m.kickoffTimeLabel===fixture.time) : null;
+    const own = ownMatchForFixture(fixture);
     return own ? own.status==='finished' : fixture.homeGoals!=null && fixture.awayGoals!=null;
   };
   const scheduledUpcoming = fixtures.filter(m=>!scheduleFinished(m)).sort((a,b)=>a.time.localeCompare(b.time));
   const scheduledResults = fixtures.filter(scheduleFinished).sort((a,b)=>b.time.localeCompare(a.time));
   const renderScheduledFixture = (fixture: NonNullable<PublicTeamTournamentPageDto['schedule']>[number], index: number) => {
     if (!page) return null;
-    const own = (fixture.homeTeam === page.ownParticipantName || fixture.awayTeam === page.ownParticipantName)
-      ? page.allMatches.find(match => match.kickoffTimeLabel === fixture.time) : null;
+    const own = ownMatchForFixture(fixture);
     const ownHome = fixture.homeTeam === page.ownParticipantName;
     const status = own?.status === 'live' || own?.status === 'finished' ? own.status : fixture.status;
     const ownScore = own && (own.status === 'live' || own.status === 'finished');
@@ -162,6 +177,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
       : fixture.phase === 'semifinal' ? 'Halbfinale' : fixture.phase === 'placement' ? 'Platzierungsspiel' : 'Turnierspiel');
     const content = <>
       <TournamentFanFixture
+        prominent={externalLiveFixtures.includes(fixture)}
         home={fixture.homeProjection ?? fixture.homeTeam}
         away={fixture.awayProjection ?? fixture.awayTeam}
         homeGoals={hg}
@@ -183,6 +199,10 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
     return own ? <Link key={fixture.id || index} to={`?spiel=${encodeURIComponent(own.id)}`} className="block rounded-xl" aria-label={`${own.opponentName} · Zum Spiel, Aufstellung und Spielverlauf`}>{content}</Link> : <React.Fragment key={fixture.id || index}>{content}</React.Fragment>;
 
   };
+  const liveGameCards = hasLiveGames ? [
+    ...groupedMatches.live.map(match => ({ time: match.kickoffTimeLabel, card: renderOwnCard(match, true) })),
+    ...externalLiveFixtures.map((fixture, index) => ({ time: fixture.time, card: renderScheduledFixture(fixture, index) })),
+  ].sort((a, b) => a.time.localeCompare(b.time)) : [];
   const presentationMode=searchParams.get('modus');
   if(!embedded && page && presentationMode==='print') return <TournamentPresentation page={page} mode="print" error={error}/>;
   if(!embedded && page && presentationMode==='screen') {
@@ -220,6 +240,12 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
           <details className="mt-2 text-xs text-[var(--t-muted)]"><summary className="cursor-pointer py-1 font-semibold">Turnierinfos & Aktualisierung</summary><p className="mt-2">{[page.teamName,page.seasonLabel].filter(Boolean).join(' · ')}</p><p className="mt-1 flex items-center gap-1"><MapPin size={14}/>{page.venue}</p><p className="mt-1">{page.allMatches.some(m=>m.status==='live')?'Läuft':page.tournamentStatusLabel}{page.syncedAt ? ` · Veranstalterstand ${new Date(page.syncedAt).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'})}` : ''}</p></details>
         </section> : null}
         {error?<p role="status" className="text-[var(--t-warning)]">Aktualisierung nicht möglich – letzter geladener Stand.</p>:null}
+        {hasLiveGames ? (
+          <section aria-label="Laufende Turnierspiele" className="space-y-3">
+            <h2 className={heading}>Gerade live</h2>
+            {liveGameCards.map(entry => entry.card)}
+          </section>
+        ) : null}
         {groupHighlight && currentGroupFixture ? (
           <section aria-label="Spiel unserer Gruppe">
             <h2 className={heading}>
