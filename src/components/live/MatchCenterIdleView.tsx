@@ -238,17 +238,24 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
     [activeTournamentDay, tournamentCompleted, ownSlots, slots],
   );
   const nextOwnSlot = useMemo(() => {
-    if (!activeTournamentDay || tournamentCompleted || awaitingNext) return null;
-    return pickNextOpenTournamentSlot(ownSlots.filter((slot) =>
-      isOwnPlayableTournamentSlot(slot) && slot.match_status !== 'live',
-    ));
-  }, [activeTournamentDay, tournamentCompleted, awaitingNext, ownSlots]);
+    if (!activeTournamentDay || tournamentCompleted) return null;
+    const open = slots.filter((slot) =>
+      slot.tournament_event_id === activeTournamentId &&
+      ![slot.match_status, slot.official_status].some(status =>
+        /^(live|finished|ended|completed|canceled|cancelled)$/i.test(status ?? ''),
+      ),
+    );
+    return pickNextOpenTournamentSlot(open.filter(isOwnPlayableTournamentSlot)) ??
+      pickNextOpenTournamentSlot(open.filter((slot) =>
+        slot.official_own_pairing && Date.parse(slot.kickoff_at) > now.getTime(),
+      ));
+  }, [activeTournamentDay, activeTournamentId, tournamentCompleted, slots, now]);
 
   const liveDayMode = activeTournamentDay
-    ? awaitingNext
-      ? 'awaiting_next_round'
-      : nextOwnSlot
-        ? 'next_own_match'
+    ? nextOwnSlot
+      ? 'next_own_match'
+      : awaitingNext
+        ? 'awaiting_next_round'
         : tournamentCompleted
           ? 'completed'
           : 'active'

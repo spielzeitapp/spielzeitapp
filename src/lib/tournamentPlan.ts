@@ -1,6 +1,7 @@
 import { mergeTournamentParticipantLogos } from './tournamentParticipantLogos';
 import { meinTurnierplanLiveByMatchId } from '../../server/lib/meinTurnierplanModel.js';
 import { safeOptionalText, safeText } from './safeText';
+import type { TournamentPlanAnalysis } from './tournamentPlanImport';
 import { supabase } from './supabaseClient';
 import { upsertMatchForSetup, updateMatchRow } from './liveMatchService';
 import {
@@ -91,6 +92,12 @@ export type TournamentMatchSlotView = TournamentMatchSlot & {
   has_lineup: boolean;
   has_squad: boolean;
   result_source?: 'official' | 'spielzeitapp';
+  official_own_pairing?: {
+    home: string;
+    away: string;
+    roundLabel?: string | null;
+    provisional: boolean;
+  };
 };
 
 export type TournamentMatchDisplayStatus =
@@ -745,6 +752,26 @@ function enrichOfficialOnlySlot(row: TournamentMatchSlot): TournamentMatchSlotVi
   };
 }
 
+export function indexOfficialOwnKnockoutPairings(analysis: TournamentPlanAnalysis | null, ownName: string | null) {
+  const pairings = new Map<string, NonNullable<TournamentMatchSlotView['official_own_pairing']>>();
+  if (!analysis || !ownName) return pairings;
+  for (const match of analysis.rawMatches ?? []) {
+    if (!match.externalMatchId || !isKnockoutLikePhase(match.phase) || match.hasResult) continue;
+    const home = match.homeConfirmed === true ? match.homeTeam : match.homeProjection || match.homeTeam;
+    const away = match.awayConfirmed === true ? match.awayTeam : match.awayProjection || match.awayTeam;
+    if ((home === ownName) === (away === ownName)) continue;
+    const pairing = {
+      home,
+      away,
+      roundLabel: match.roundLabel,
+      provisional: match.homeConfirmed === false || match.awayConfirmed === false,
+    };
+    pairings.set(match.externalMatchId, pairing);
+    pairings.set(`${analysis.provider}:${match.externalMatchId}`, pairing);
+  }
+  return pairings;
+}
+
 export async function fetchTournamentMatchSlots(
   tournamentEventId: string,
 ): Promise<{ data: TournamentMatchSlotView[]; error: string | null }> {
@@ -771,14 +798,17 @@ export async function fetchTournamentMatchSlots(
 
   if (error) return { data: [], error: normalizeTournamentDbError(error.message ?? '', error.code) };
   const { data: sync } = await supabase.from('tournament_sync_state')
-    .select('analysis').eq('event_id', tournamentEventId).maybeSingle();
+    .select('analysis, own_team_name').eq('event_id', tournamentEventId).maybeSingle();
   const liveByMatch = meinTurnierplanLiveByMatchId(sync?.analysis);
+  const ownPairings = indexOfficialOwnKnockoutPairings(sync?.analysis ?? null, sync?.own_team_name ?? null);
   const rows = (data ?? []).map((row) => {
     const slot = mapFetchedMatchSlotRow(row);
+    const pairing = ownPairings.get(slot.external_match_id ?? '');
+    const displaySlot = !slot.match_id && pairing ? { ...slot, official_own_pairing: pairing } : slot;
     const live = liveByMatch.get(slot.external_match_id);
-    if (!live) return slot;
+    if (!live) return displaySlot;
     return {
-      ...slot,
+      ...displaySlot,
       official_status: 'live',
       official_home_goals: live.liveHomeGoals ?? null,
       official_away_goals: live.liveAwayGoals ?? null,

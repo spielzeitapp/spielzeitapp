@@ -51,6 +51,7 @@ function TournamentMatchupCard({
   ourTeamName,
   logoByName,
   action,
+  officialPairing,
 }: {
   slot: TournamentMatchSlotView;
   title: string;
@@ -59,9 +60,10 @@ function TournamentMatchupCard({
   ourTeamName: string;
   logoByName: ReadonlyMap<string, string | null>;
   action?: { to: string; label: string };
+  officialPairing?: TournamentMatchSlotView['official_own_pairing'];
 }) {
-  const home = safeText(slot.home_team) || ourTeamName;
-  const away = safeText(slot.away_team) || safeText(slot.opponent_name) || 'Gegner';
+  const home = officialPairing?.home || safeText(slot.home_team) || ourTeamName;
+  const away = officialPairing?.away || safeText(slot.away_team) || safeText(slot.opponent_name) || 'Gegner';
   const kickoff = formatTimeHHmmDe(slot.kickoff_at);
 
   return (
@@ -72,6 +74,8 @@ function TournamentMatchupCard({
           <p className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${status === 'Live' ? 'bg-red-500/20 text-red-200' : 'bg-white/10 text-white/85'}`}>
             {status}
           </p>
+        ) : officialPairing?.provisional ? (
+          <p className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white/85">Vorläufig</p>
         ) : null}
       </div>
       <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2">
@@ -179,7 +183,7 @@ export function MatchCenterTournamentCard({
   const teamsDisplay = teamCount ?? (carouselTeams.length > 0 ? carouselTeams.length : null);
   const firstMatch = pickTournamentFirstMatch(slots.filter(isOwnPlayableTournamentSlot).filter(slot => (slot.match_status ?? '').toLowerCase() !== 'finished'));
   const placementLabel = nextOwnSlot
-    ? tournamentPhaseDisplayLabel(nextOwnSlot.phase, nextOwnSlot.group_label)
+    ? nextOwnSlot.official_own_pairing?.roundLabel || tournamentPhaseDisplayLabel(nextOwnSlot.phase, nextOwnSlot.group_label)
     : null;
   const isPlacementNext =
     Boolean(placementLabel) &&
@@ -263,6 +267,7 @@ export function MatchCenterTournamentCard({
             ourTeamName={ourName}
             logoByName={logoByName}
             action={prepareAction}
+            officialPairing={nextMatchToShow.official_own_pairing}
           />
         ) : null}
 
