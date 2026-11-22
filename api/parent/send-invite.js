@@ -9,6 +9,7 @@
  * Secrets stay server-side. Invite origin is bound to the Supabase project ref.
  * Client Host/Origin headers are never trusted.
  */
+import clubShopTestOrder from '../../server/lib/clubShopTestOrder.js';
 import authEmailHook from '../../server/lib/authEmailEndpoint.js';
 export const config={api:{bodyParser:false}};
 
@@ -327,6 +328,11 @@ export default async function handler(req, res) {
     const body = parseBody(req);
     if (body === null) {
       return res.status(400).json({ ok: false, error: 'Invalid JSON' });
+    }
+
+    if(req.query?.shop_test_order==='1'){
+      req.body=body;
+      return await clubShopTestOrder(req,res);
     }
 
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;

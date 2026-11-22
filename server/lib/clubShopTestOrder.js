@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { sendDirectInviteEmail } from '../../server/lib/sendParentInviteEmail.js';
+import { sendDirectInviteEmail } from './sendParentInviteEmail.js';
 
 const clubId = '3db6fce2-a4c1-44a5-a333-19d1d4d62e6a';
 const roundId = 'd742211b-e25c-4c5f-9caa-bedc2a5bf619';

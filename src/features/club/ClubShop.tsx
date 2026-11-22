@@ -19,7 +19,7 @@ const testRoundId='d742211b-e25c-4c5f-9caa-bedc2a5bf619';
 async function runTestShopAction(action:string,id?:string) {
  const {data:{session}}=await supabase.auth.getSession();
  if(!session) throw new Error('Bitte erneut anmelden.');
- const response=await fetch('/api/shop/test-order',{
+ const response=await fetch('/api/parent/send-invite?shop_test_order=1',{
   method:'POST',
   headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},
   body:JSON.stringify({action,id}),
