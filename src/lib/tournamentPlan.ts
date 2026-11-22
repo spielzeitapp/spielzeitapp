@@ -342,6 +342,41 @@ export function tournamentSlotScoreDisplay(slot: TournamentMatchSlotView): strin
   return `${ourOrHome}:${oppOrAway}`;
 }
 
+export function tournamentOfficialOwnScore(slot: TournamentMatchSlotView) {
+  const home = slot.official_home_goals;
+  const away = slot.official_away_goals;
+  if (home == null || away == null) return null;
+  const opponent = safeText(slot.opponent_name).toLowerCase();
+  const opponentIsHome = Boolean(opponent) && safeText(slot.home_team).toLowerCase() === opponent;
+  const opponentIsAway = Boolean(opponent) && safeText(slot.away_team).toLowerCase() === opponent;
+  if (opponentIsHome === opponentIsAway) return null;
+  return opponentIsAway ? { home, away } : { home: away, away: home };
+}
+
+export async function applyOfficialTournamentResult(slot: TournamentMatchSlotView) {
+  const matchId = slot.match_id;
+  const agreed = tournamentOfficialOwnScore(slot);
+  if (!matchId || !agreed || !isOwnPlayableTournamentSlot(slot)) {
+    return { error: 'Kein zugeordnetes Veranstalterergebnis verfügbar.' };
+  }
+
+  const { data, error } = await fetchTournamentMatchSlots(slot.tournament_event_id);
+  if (error) return { error };
+  const latest = data.find((fixture) => fixture.id === slot.id && fixture.match_id === matchId);
+  const official = latest && tournamentOfficialOwnScore(latest);
+  if (!latest || !official || !isOwnPlayableTournamentSlot(latest) ||
+    latest.match_status !== 'finished' || latest.official_status !== 'finished' ||
+    official.home !== agreed.home || official.away !== agreed.away ||
+    latest.score_home !== slot.score_home || latest.score_away !== slot.score_away) {
+    return { error: 'Der Spielstand hat sich geändert. Bitte aktualisieren und erneut prüfen.' };
+  }
+
+  return updateMatchRow(matchId, { score_home: official.home, score_away: official.away }, {
+    home: latest.score_home,
+    away: latest.score_away,
+  });
+}
+
 export function formatTournamentGoalDifference(diff: number): string {
   if (diff > 0) return `+${diff}`;
   return String(diff);

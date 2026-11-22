@@ -1688,11 +1688,12 @@ export const LiveMatchScreen: React.FC = () => {
    * Gesamtstand nur aus Events + Matchzeile (DB), nie aus separat hochgezähltem Local-State —
    * sonst +1 im Handler und max(totals, state) = Doppelzählung beim Tor.
    */
-  const displayScoreHome = Math.max(
+  const useSavedTournamentResult = matchIsFinished && tournamentNavContext !== null;
+  const displayScoreHome = useSavedTournamentResult && matchRow?.score_home != null ? matchRow.score_home : Math.max(
     totalsFromEvents.home,
     Number(matchRow?.score_home ?? 0),
   );
-  const displayScoreAway = Math.max(
+  const displayScoreAway = useSavedTournamentResult && matchRow?.score_away != null ? matchRow.score_away : Math.max(
     totalsFromEvents.away,
     Number(matchRow?.score_away ?? 0),
   );

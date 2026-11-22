@@ -998,6 +998,7 @@ async function assertMatchTeamSeasonWritable(
 export async function updateMatchRow(
   matchId: string,
   patch: Record<string, unknown>,
+  expectedFinishedScore?: { home: number; away: number },
 ): Promise<{ error: string | null }> {
   if (isDemoTournamentMatchId(matchId)) {
     if (isDemoTournamentSeedFinishedMatchId(matchId)) {
@@ -1042,6 +1043,14 @@ export async function updateMatchRow(
 
   const writable = await assertMatchTeamSeasonWritable(matchId);
   if (!writable.ok) return { error: writable.message };
+
+  if (expectedFinishedScore) {
+    const { data, error } = await supabase.from('matches').update(patch)
+      .eq('id', matchId).eq('status', 'finished')
+      .eq('score_home', expectedFinishedScore.home).eq('score_away', expectedFinishedScore.away)
+      .select('id').maybeSingle();
+    return { error: error?.message ?? (data ? null : 'Der Endstand hat sich geändert oder ist nicht bearbeitbar. Bitte aktualisieren.') };
+  }
 
   const { error } = await supabase.from('matches').update(patch).eq('id', matchId);
   if (error) {
