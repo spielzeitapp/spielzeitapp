@@ -73,3 +73,8 @@ html[data-market-theme=light] .club-shop-product-link{color:#ad2442}
 .club-shop-preview-status ~ .club-shop-grid {
   margin-top: 0;
 }
+
+.club-shop .club-shop-test-primary {
+  background: #8e2038;
+  color: #fff;
+}

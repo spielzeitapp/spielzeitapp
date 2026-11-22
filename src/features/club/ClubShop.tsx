@@ -15,6 +15,20 @@ type Round={id:string;title:string;deadline:string;status:string;version:number;
 type Order={id:string;round_id:string;owner_label:string;owner_id:string;items:Item[];total_cents:number;paid_at:string|null;submitted_at:string|null;collected_at:string|null;cancelled_at:string|null};
 type Settings={enabled:boolean;recipient?:string;iban?:string;dealer_email?:string;manager_email?:string};
 type State={staff:boolean;admin:boolean;dealer:boolean;settings:Settings;products:Product[];rounds:Round[];orders:Order[]};
+const testRoundId='d742211b-e25c-4c5f-9caa-bedc2a5bf619';
+async function runTestShopAction(action:string,id?:string) {
+ const {data:{session}}=await supabase.auth.getSession();
+ if(!session) throw new Error('Bitte erneut anmelden.');
+ const response=await fetch('/api/shop/test-order',{
+  method:'POST',
+  headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},
+  body:JSON.stringify({action,id}),
+ });
+ const result=await response.json().catch(()=>null);
+ if(!response.ok) throw new Error(result?.error||'Der Testschritt konnte nicht ausgeführt werden.');
+ return result?.sent!==false;
+}
+
 const empty:State={staff:false,admin:false,dealer:false,settings:{enabled:false},products:[],rounds:[],orders:[]};
 export const shopMoney=(c:number)=>new Intl.NumberFormat('de-AT',{style:'currency',currency:'EUR'}).format(c/100);
 export const shopStatus=(o:Order,r?:Round)=>o.cancelled_at?'Storniert':o.collected_at?'Ausgegeben':o.submitted_at?(['ready','closed'].includes(r?.status||'')?'Abholbereit':r?.status==='processing'?'In Bearbeitung':'Beim Händler'):o.paid_at?'Bezahlt':r&&r.status!=='open'?'Nicht übernommen':'Zahlung offen';
@@ -33,6 +47,7 @@ function exportOrders(orders:Order[],round:Round){
 
 export function ClubShop({clubId,clubName,onBack,embedded=false,manageOnly=false,cartHeader}:{clubId:string;clubName:string;onBack:()=>void;embedded?:boolean;manageOnly?:boolean;cartHeader?:HTMLElement|null}){
  const {user}=useAuth();const [state,setState]=useState<State>(empty),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
+ const [review,setReview]=useState(false);
  const [search,setSearch]=useState('');
  const isGoelsentalTestShop=isStagingApp()&&clubId===GOELSENTAL_TEST_SHOP_ID;
  const [adminTab,setAdminTab]=useState('articles'),[showEditor,setShowEditor]=useState(false);
@@ -55,20 +70,65 @@ export function ClubShop({clubId,clubName,onBack,embedded=false,manageOnly=false
  async function action(kind:string,data:unknown){if(busy)return;setBusy(true);setError('');setNotice('');try{await call(kind,data);await reload();setNotice('Gespeichert.');}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
  const rounds=state.rounds||[],products=state.products||[],orders=state.orders||[];
  const activeRound=rounds.find(r=>r.id===roundId)||rounds.find(r=>r.status==='open'&&new Date(r.deadline)>new Date())||rounds[0];
+ const testRound=isGoelsentalTestShop&&activeRound?.id===testRoundId;
  const roundOrders=orders.filter(o=>o.round_id===activeRound?.id),paid=roundOrders.filter(o=>o.paid_at&&!o.cancelled_at),submitted=roundOrders.filter(o=>o.submitted_at&&!o.cancelled_at);
  const total=cart.reduce((n,i)=>n+(products.find(p=>p.id===i.productId)?.price_cents||0)*i.quantity,0);
- const canOrder=state.settings?.enabled&&activeRound?.status==='open'&&new Date(activeRound.deadline)>new Date();
- const changeCart=(next:Item[])=>{orderKey.current=null;setCart(next);};
- async function checkout(){if(!canOrder||!cart.length||busy)return;setBusy(true);setError('');try{orderKey.current ||= crypto.randomUUID();await call('order',{id:orderKey.current,round_id:activeRound.id,items:cart,expected_total:total});setCart([]);orderKey.current=null;setView('orders');await reload();setNotice('Bestellung erfasst. Bitte überweise den Betrag bis zum Bestellschluss.');}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
+ const testCustomer=user?.email?.toLowerCase()==='office@jb-harmonikas.at';
+ const canOrder=(!testRound||testCustomer)&&state.settings?.enabled&&activeRound?.status==='open'&&new Date(activeRound.deadline)>new Date();
+ const changeCart=(next:Item[])=>{orderKey.current=null;setReview(false);setCart(next);};
+ async function checkout(){
+  if(!canOrder||!cart.length||busy)return;
+  setBusy(true);
+  setError('');
+  try{
+   orderKey.current ||= crypto.randomUUID();
+   const id=orderKey.current;
+   await call('order',{id,round_id:activeRound.id,items:cart,expected_total:total});
+   setCart([]);
+   setReview(false);
+   orderKey.current=null;
+   setView('orders');
+   await reload();
+   if(testRound){
+    const sent=await runTestShopAction('order-mail',id).catch(()=>false);
+    setNotice(sent?'Testbestellung erfasst. Die Bestellmails wurden verarbeitet.':'Testbestellung erfasst. Mailversand fehlgeschlagen. Du kannst ihn bei der Bestellung erneut anstoßen.');
+   }else setNotice('Bestellung erfasst. Bitte überweise den Betrag bis zum Bestellschluss.');
+  }catch(e){setError((e as Error).message);}finally{setBusy(false);}
+ }
+ async function testAction(kind:string,id?:string){
+  if(busy)return;
+  setBusy(true);
+  setError('');
+  setNotice('');
+  try{
+   const sent=await runTestShopAction(kind,id);
+   if(kind==='close-intake')await reload();
+   setNotice(kind==='close-intake'?'Test-Bestellschluss gesetzt.':sent?'Bestellmail verarbeitet.':'Mailversand fehlgeschlagen. Bitte erneut versuchen.');
+  }catch(e){setError((e as Error).message);}finally{setBusy(false);}
+ }
+ async function releaseTestRound(){
+  if(busy||!activeRound)return;
+  setBusy(true);
+  setError('');
+  setNotice('');
+  try{
+   await call('release',{id:activeRound.id,version:activeRound.version});
+   await reload();
+   const sent=await runTestShopAction('release-mail').catch(()=>false);
+   setNotice(sent?'Sammelauftrag freigegeben. Händlermail verarbeitet.':'Sammelauftrag freigegeben. Händlermail konnte nicht versendet werden.');
+  }catch(e){setError((e as Error).message);}finally{setBusy(false);}
+ }
  const mutateRound=(kind:string,extra={})=>activeRound&&action(kind,{id:activeRound.id,version:activeRound.version,...extra});
  const btn=(label:string,fn:()=>void,disabled=false)=><button type="button" className="club-shop-button" disabled={busy||disabled} onClick={fn}>{label}</button>;
  const roundPicker=<label>Bestellrunde<select value={activeRound?.id||''} onChange={e=>setRoundId(e.target.value)}>{rounds.map(r=><option key={r.id} value={r.id}>{r.title} · {roundStatus[r.status]}</option>)}</select></label>;
- function orderCard(o:Order,staff=false){const r=rounds.find(r=>r.id===o.round_id);return <article className="club-shop-panel" key={o.id}>
+ function orderCard(o:Order,staff=false){const r=rounds.find(r=>r.id===o.round_id);const demo=isGoelsentalTestShop&&r?.id===testRoundId;return <article className="club-shop-panel" key={o.id}>
   <div className="club-shop-row"><strong>{staff?o.owner_label:r?.title}</strong><span className={`club-shop-badge ${o.paid_at?'is-paid':''}`}>{shopStatus(o,r)}</span></div>
   <small>Bestellnummer: {o.id}</small>{o.items.map((i,n)=><p key={n}>{i.quantity} × {i.title} · {i.size}{i.name&&` · ${i.name}`}{i.number&&` · Nr. ${i.number}`}</p>)}<strong>{shopMoney(o.total_cents)}</strong>
-  {!o.paid_at&&!o.cancelled_at&&r?.status==='open'&&new Date(r.deadline)>new Date()&&<><p>Vorauskassa bis {r&&date(r.deadline)}</p><dl><dt>Empfänger</dt><dd>{r?.recipient}</dd><dt>IBAN</dt><dd>{r?.iban}</dd><dt>Zahlungsreferenz</dt><dd>SHOP-{o.id}</dd></dl>{btn('Zahlungsdaten kopieren',()=>{void navigator.clipboard.writeText(`${r?.recipient}\n${r?.iban}\n${shopMoney(o.total_cents)}\nSHOP-${o.id}`).then(()=>setNotice('Zahlungsdaten kopiert.')).catch(()=>setError('Kopieren nicht möglich. Bitte Zahlungsdaten oben verwenden.'));})}<p className="club-shop-muted">Erst der Verein bestätigt den tatsächlichen Zahlungseingang. Nur bezahlte Bestellungen werden gesammelt freigegeben.</p>{r?.status==='open'&&btn('Unbezahlte Bestellung stornieren',()=>{if(window.confirm('Diese unbezahlte Bestellung stornieren?'))void action('cancel',{id:o.id});})}</>}
-  {!o.paid_at&&!o.cancelled_at&&r&&(r.status!=='open'||new Date(r.deadline)<=new Date())&&<p>Bestellschluss erreicht. Diese Bestellung wurde noch nicht übernommen. Bei bereits überwiesenem Geld bitte den Shopverantwortlichen kontaktieren.</p>}
-  {staff&&!o.cancelled_at&&!o.paid_at&&r?.status==='open'&&btn('Zahlungseingang bestätigen',()=>{if(window.confirm(`${shopMoney(o.total_cents)} von ${o.owner_label} am Vereinskonto eingegangen?`))void action('paid',{id:o.id});})}
+  {!demo&&!o.paid_at&&!o.cancelled_at&&r?.status==='open'&&new Date(r.deadline)>new Date()&&<><p>Vorauskassa bis {r&&date(r.deadline)}</p><dl><dt>Empfänger</dt><dd>{r?.recipient}</dd><dt>IBAN</dt><dd>{r?.iban}</dd><dt>Zahlungsreferenz</dt><dd>SHOP-{o.id}</dd></dl>{btn('Zahlungsdaten kopieren',()=>{void navigator.clipboard.writeText(`${r?.recipient}\n${r?.iban}\n${shopMoney(o.total_cents)}\nSHOP-${o.id}`).then(()=>setNotice('Zahlungsdaten kopiert.')).catch(()=>setError('Kopieren nicht möglich. Bitte Zahlungsdaten oben verwenden.'));})}<p className="club-shop-muted">Erst der Verein bestätigt den tatsächlichen Zahlungseingang. Nur bezahlte Bestellungen werden gesammelt freigegeben.</p>{r?.status==='open'&&btn('Unbezahlte Bestellung stornieren',()=>{if(window.confirm('Diese unbezahlte Bestellung stornieren?'))void action('cancel',{id:o.id});})}</>}
+  {!demo&&!o.paid_at&&!o.cancelled_at&&r&&(r.status!=='open'||new Date(r.deadline)<=new Date())&&<p>Bestellschluss erreicht. Diese Bestellung wurde noch nicht übernommen. Bei bereits überwiesenem Geld bitte den Shopverantwortlichen kontaktieren.</p>}
+  {demo&&<p>TEST · Vorauskassa wird simuliert. Bitte nichts überweisen. Verwendungszweck SHOP-{o.id}</p>}
+  {demo&&!staff&&testCustomer&&btn('Versand der Bestellmail prüfen',()=>void testAction('order-mail',o.id))}
+  {staff&&!o.cancelled_at&&!o.paid_at&&r?.status==='open'&&btn(demo?'Testzahlung bestätigen':'Zahlungseingang bestätigen',()=>{if(window.confirm(demo?'Zahlungseingang für diese Testbestellung simulieren?':`${shopMoney(o.total_cents)} von ${o.owner_label} am Vereinskonto eingegangen?`))void action('paid',{id:o.id});})}
   {staff&&o.submitted_at&&!o.collected_at&&r?.status==='ready'&&btn('Ausgabe bestätigen',()=>void action('collect',{id:o.id}))}
  </article>;}
  if(manageOnly&&!loading&&!state.staff)return <section className="club-shop"><h1>Artikelverwaltung</h1><p role="alert">{error||'Nur Vereinsadmins und zugeordnete Shopverantwortliche können hier Artikel verwalten.'}</p><button className="club-shop-button" onClick={onBack}>Zur Vereinszentrale</button></section>;
@@ -84,16 +144,17 @@ export function ClubShop({clubId,clubName,onBack,embedded=false,manageOnly=false
   {view==='shop'&&<>
    {products.some(p=>p.active)&&<label className="club-shop-search"><Search size={20}/><input type="search" aria-label="Vereinsartikel suchen" placeholder="Was suchst du im Vereinsshop?" value={search} onChange={e=>setSearch(e.target.value)}/></label>}
    {!state.settings?.enabled&&<div className="club-shop-panel"><Package/><h2>Noch nicht freigeschaltet</h2><p>Der Verein richtet Sortiment, Händler und Vorauskassa ein. Es werden noch keine Bestellungen angenommen.</p></div>}
+   {testRound&&!testCustomer&&<p className="club-shop-muted">Für eine Testbestellung mit dem Konto JB Harmonikas anmelden.</p>}
    {activeRound?<article className="club-shop-round">{roundPicker}<p><Clock size={16}/> Bestellschluss: {date(activeRound.deadline)}</p><strong>{roundStatus[activeRound.status]}</strong></article>:<p>Noch keine Bestellrunde eröffnet.</p>}
    {search&&products.some(p=>p.active)&&!products.some(p=>p.active&&p.name.toLocaleLowerCase('de-AT').includes(search.toLocaleLowerCase('de-AT')))&&<p className="club-shop-muted">Keine passenden Artikel. Versuche einen anderen Suchbegriff.</p>}
    {selected?<article className="club-shop-panel">{btn('Zur Artikelübersicht',()=>setSelected(null))}<h2>{selected.name}</h2>{selected.image_url&&<img className="club-shop-photo" src={selected.image_url} alt={selected.name}/>}<strong>{shopMoney(selected.price_cents)}</strong><label>Größe<select value={size} onChange={e=>setSize(e.target.value)}><option value="">Bitte wählen</option>{selected.sizes.map(s=><option key={s}>{s}</option>)}</select></label>{selected.personalizable&&<div className="club-shop-fields"><label>Wunschname · optional<input maxLength={24} value={name} onChange={e=>setName(e.target.value)}/></label><label>Nummer · optional<input inputMode="numeric" maxLength={2} value={number} onChange={e=>setNumber(e.target.value.replace(/\D/g,''))}/></label></div>}{btn('In den Warenkorb',()=>{changeCart([...cart,{productId:selected.id,size,name:name.trim(),number,quantity:1}]);setSelected(null);},!size||!canOrder||cart.length>=50)}</article>:<div className="club-shop-grid">{products.filter(p=>p.active&&p.name.toLocaleLowerCase('de-AT').includes(search.toLocaleLowerCase('de-AT'))).map(p=><button className="club-shop-product" key={p.id} onClick={()=>{setSelected(p);setSize(p.sizes.length===1?p.sizes[0]:'');setName('');setNumber('');}}>{p.image_url?<img src={p.image_url} alt=""/>:<div className="club-shop-placeholder"><ShoppingBag size={36}/></div>}<strong>{p.name}</strong><span>{shopMoney(p.price_cents)}</span><small>{p.personalizable?'Name & Nummer möglich':'Vereinskollektion'}</small><span className="club-shop-product-link">Artikel ansehen <ChevronRight size={16}/></span></button>)}</div>}
-   {cart.length>0&&<article className="club-shop-panel"><h2>Dein Warenkorb</h2>{cart.map((i,n)=><div className="club-shop-cart-row" key={n}><span>{products.find(p=>p.id===i.productId)?.name} · {i.size}<small>{[i.name,i.number&&`Nr. ${i.number}`].filter(Boolean).join(' · ')}</small></span><input disabled={busy} aria-label={`Menge Artikel ${n+1}`} type="number" min={1} max={99} value={i.quantity} onChange={e=>changeCart(cart.map((row,k)=>k===n?{...row,quantity:Math.min(99,Math.max(1,Number(e.target.value)||1))}:row))}/><button disabled={busy} aria-label={`Artikel ${n+1} entfernen`} onClick={()=>changeCart(cart.filter((_,k)=>k!==n))}>Entfernen</button></div>)}<div className="club-shop-row"><strong>Gesamt</strong><strong>{shopMoney(total)}</strong></div><p>Bestellung nur gegen Vorauskassa an den Verein. Aufnahme in die Sammelbestellung erst nach bestätigtem Zahlungseingang. Preise verstehen sich inklusive der angebotenen Aufdrucke.</p>{btn('Zahlungspflichtig bestellen · Vorauskassa',()=>void checkout(),!canOrder)}</article>}
+   {cart.length>0&&<article className="club-shop-panel"><h2>{testRound&&review?'Testbestellung prüfen':'Dein Warenkorb'}</h2>{cart.map((i,n)=><div className="club-shop-cart-row" key={n}><span>{products.find(p=>p.id===i.productId)?.name} · {i.size}<small>{[i.name,i.number&&`Nr. ${i.number}`].filter(Boolean).join(' · ')}</small></span><input disabled={busy} aria-label={`Menge Artikel ${n+1}`} type="number" min={1} max={99} value={i.quantity} onChange={e=>changeCart(cart.map((row,k)=>k===n?{...row,quantity:Math.min(99,Math.max(1,Number(e.target.value)||1))}:row))}/><button disabled={busy} aria-label={`Artikel ${n+1} entfernen`} onClick={()=>changeCart(cart.filter((_,k)=>k!==n))}>Entfernen</button></div>)}<div className="club-shop-row"><strong>Gesamt</strong><strong>{shopMoney(total)}</strong></div><p>Bestellung nur gegen Vorauskassa an den Verein. Aufnahme in die Sammelbestellung erst nach bestätigtem Zahlungseingang. Preise verstehen sich inklusive der angebotenen Aufdrucke.</p>{testRound?<><p>TEST · Beispielpreise und simulierte Vorauskassa. Bitte nichts überweisen.</p>{review&&<h3>Vorauskassa und Abholung beim Verein</h3>}<button type="button" className="club-shop-button club-shop-test-primary" disabled={busy||!canOrder} onClick={()=>review?void checkout():setReview(true)}>{review?'Testbestellung abschicken':'Weiter zur Bestellübersicht'}</button></>:btn('Zahlungspflichtig bestellen · Vorauskassa',()=>void checkout(),!canOrder)}</article>}
   </>}
   {view==='orders'&&<>{orders.filter(o=>o.owner_id===user.id).length?orders.filter(o=>o.owner_id===user.id).map(o=>orderCard(o)):<article className="club-shop-panel"><ShoppingBag/><h2>Noch keine Bestellungen</h2><p>Deine Bestellungen und Zahlungsdaten erscheinen hier.</p></article>}</>}
   {(view==='manage'&&state.staff||view==='dealer'&&state.dealer)&&<>
    {(!manageOnly||adminTab==='orders')&&<><h2>{view==='dealer'?'Händlerportal':'Bestellverwaltung'}</h2>{roundPicker}{activeRound&&<>
    <article className="club-shop-round"><h3>{activeRound.title}</h3><p>Bestellschluss {date(activeRound.deadline)}</p><strong>{roundStatus[activeRound.status]}</strong></article>
-   {view==='manage'?<><div className="club-shop-stats"><div><strong>{paid.length}</strong>bezahlt</div><div><strong>{roundOrders.filter(o=>!o.paid_at&&!o.cancelled_at).length}</strong>offen</div><div><strong>{shopMoney(paid.reduce((n,o)=>n+o.total_cents,0))}</strong>eingegangen</div></div>{activeRound.status==='open'&&<article className="club-shop-panel"><h3>Sammelbestellung freigeben</h3><p>Nur bezahlte Bestellungen werden übernommen. Offene Zahlungen bleiben zurück. Freigabe nach dem Bestellschluss.</p>{btn(`${paid.length} bezahlte Bestellungen freigeben`,()=>{if(window.confirm('Sammelbestellung verbindlich an den Händler freigeben?'))void mutateRound('release');},!paid.length||new Date(activeRound.deadline)>new Date())}</article>}{roundOrders.map(o=>orderCard(o,true))}</>:<>
+   {view==='manage'?<><div className="club-shop-stats"><div><strong>{paid.length}</strong>bezahlt</div><div><strong>{roundOrders.filter(o=>!o.paid_at&&!o.cancelled_at).length}</strong>offen</div><div><strong>{shopMoney(paid.reduce((n,o)=>n+o.total_cents,0))}</strong>eingegangen</div></div>{activeRound.status==='open'&&<article className="club-shop-panel"><h3>Sammelbestellung freigeben</h3>{testRound&&new Date(activeRound.deadline)>new Date()&&btn('Test-Bestellschluss setzen',()=>void testAction('close-intake'),!paid.length)}<p>Nur bezahlte Bestellungen werden übernommen. Offene Zahlungen bleiben zurück. Freigabe nach dem Bestellschluss.</p>{btn(`${paid.length} bezahlte Bestellungen freigeben`,()=>{if(window.confirm(testRound?'Test-Sammelauftrag freigeben?':'Sammelbestellung verbindlich an den Händler freigeben?')){if(testRound)void releaseTestRound();else void mutateRound('release');}},!paid.length||new Date(activeRound.deadline)>new Date())}</article>}{testRound&&activeRound.status!=='open'&&btn('Versand der Händlermail prüfen',()=>void testAction('release-mail'))}{roundOrders.map(o=>orderCard(o,true))}</>:<>
     <article className="club-shop-panel"><h3>Artikelübersicht</h3>{submitted.length?<><div className="club-shop-table-wrap"><table><thead><tr><th>Artikel</th><th>Größe</th><th>Menge</th></tr></thead><tbody>{Object.values(submitted.flatMap(o=>o.items).reduce((a,i)=>{const key=JSON.stringify([i.productId,i.size]);a[key] ||= {title:i.title||'',size:i.size,quantity:0};a[key].quantity+=i.quantity;return a;},{} as Record<string,{title:string;size:string;quantity:number}>)).map((i,n)=><tr key={n}><td>{i.title}</td><td>{i.size}</td><td>{i.quantity}</td></tr>)}</tbody></table></div>{btn('Größen- und Aufdruckliste herunterladen',()=>exportOrders(submitted,activeRound))}<p>CSV für Excel · eine Zeile je Artikel und Familie.</p></>:<p>Noch keine freigegebenen Bestellungen.</p>}</article>
     {activeRound.status==='released'&&<article className="club-shop-panel"><h3>Lieferbarkeit geprüft?</h3><p>Bei fehlenden Artikeln zuerst mit dem Shopverantwortlichen klären. Bestätigung gilt für den vollständigen Auftrag.</p>{btn('Vollständigen Auftrag bestätigen',()=>void mutateRound('confirm'))}</article>}
     {['confirmed','processing','ready'].includes(activeRound.status)&&<article className="club-shop-panel"><h3>Sammelrechnung</h3><label>Geschützter HTTPS-Link zur Rechnung<input type="url" placeholder="https://…" value={invoice} onChange={e=>setInvoice(e.target.value)}/></label>{btn('Rechnungslink hinterlegen',()=>void mutateRound('invoice',{url:invoice}),!/^https:\/\//.test(invoice))}<p>Eine Rechnung an den Verein. Keine Einzelrechnungen an Eltern.</p></article>}
