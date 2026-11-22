@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { BarChart3, FileText, Radio, Shirt } from 'lucide-react';
+import { useInternalBasePath } from '../../demo/demoPaths';
 import { publicTeamTournamentPath } from '../../lib/publicTeamTournament';
 import type { EventRow } from '../../hooks/useEvents';
 import {
@@ -32,6 +34,13 @@ import { TournamentClubLogo } from '../tournament/TournamentClubLogo';
 import { TournamentFirstMatchPreview } from './TournamentMatchCenterPoster';
 
 type LiveDayMode = 'upcoming' | 'active' | 'next_own_match' | 'awaiting_next_round' | 'completed';
+
+const liveMatchViews = [
+  { view: 'overview', label: 'Übersicht', Icon: FileText },
+  { view: 'formation', label: 'Aufstellung', Icon: Shirt },
+  { view: 'ticker', label: 'Liveticker', Icon: Radio },
+  { view: 'stats', label: 'Statistik', Icon: BarChart3 },
+] as const;
 
 function TournamentMatchupCard({
   slot,
@@ -118,6 +127,7 @@ export function MatchCenterTournamentCard({
   planSyncBusy = false,
   onRefreshPlan,
 }: Props) {
+  const basePath = useInternalBasePath();
   const title =
     safeText(
       eventNotesTitle(event.notes) ?? safeOptionalText(event.opponent) ?? 'Turnier',
@@ -142,6 +152,7 @@ export function MatchCenterTournamentCard({
   const group = resolveMatchCenterTournamentGroup(liveDaySlots, ourTournamentScheduleSlots(liveDaySlots));
   const currentMatch = pickTournamentMatchInProgress(group.slots, now);
   const currentSlot = currentMatch?.slot;
+  const currentMatchId = currentSlot?.match_id;
   const hasOfficialLiveScore = currentSlot?.official_home_goals != null && currentSlot.official_away_goals != null;
   const currentScore = currentSlot && currentMatch?.confirmedLive && (hasOfficialLiveScore || currentSlot.result_source === 'spielzeitapp')
     ? tournamentSlotScoreDisplay(currentSlot)
@@ -175,7 +186,7 @@ export function MatchCenterTournamentCard({
     placementLabel !== 'Turnierspiel';
 
   const ourName = safeText(ourTeamName) || 'Unser Team';
-  const nextMatchToShow = liveDayMode === 'next_own_match' && currentSlot?.id !== nextOwnSlot?.id ? nextOwnSlot : null;
+  const nextMatchToShow = liveDayMode === 'next_own_match' && !currentMatch ? nextOwnSlot : null;
   const prepareHref = nextOwnSlot?.match_id
     ? `/app/matches/${nextOwnSlot.match_id}/prepare`
     : `/app/events/${event.id}`;
@@ -214,7 +225,23 @@ export function MatchCenterTournamentCard({
           />
         ) : null}
 
-        {liveDayMode === 'awaiting_next_round' ? (
+        {currentMatchId ? (
+          <nav aria-label="Laufendes Spiel" className="mb-3 grid grid-cols-2 gap-2">
+            {liveMatchViews.map(({ view, label, Icon }) => (
+              <Link
+                key={view}
+                to={`${tournamentHref}?spiel=${encodeURIComponent(currentMatchId)}&ansicht=${view}`}
+                state={{ returnTo: `${basePath}/live` }}
+                className="flex min-h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm font-semibold text-white hover:bg-white/10"
+              >
+                <Icon className="h-4 w-4 shrink-0 sz-club-accent-text" aria-hidden />
+                {label}
+              </Link>
+            ))}
+          </nav>
+        ) : null}
+
+        {liveDayMode === 'awaiting_next_round' && !currentMatch ? (
           <div className="mt-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3">
             <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-amber-200/90">
               Vorrunde beendet
