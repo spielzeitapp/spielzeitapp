@@ -42,7 +42,8 @@ export function extractMeinTurnierplanEmbeddedJson(html, tournamentId) {
   }
   const state = assignedObject(html, 'preloadedState');
   for (const entry of Object.values(state?.tournaments ?? {})) {
-    if ((entry?.slug ?? entry?.data?.slug) === tournamentId && entry?.data) return entry.data;
+    if (!entry?.data) continue;
+    if ([entry.slug, entry.data.slug, entry.data.slugId].includes(tournamentId)) return entry.data;
   }
   return null;
 }
