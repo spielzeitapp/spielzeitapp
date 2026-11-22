@@ -208,3 +208,14 @@ html[data-market-theme=light] .public-exchange .public-market-header .public-mar
     margin-inline-start: auto;
   }
 }
+
+/* Search and filters share one row; the existing category tiles keep their size. */
+.public-exchange .public-market-search-row{display:flex;align-items:stretch;gap:10px;margin:16px 0 0;min-width:0}
+.public-exchange .public-market-search-row .exchange-search{flex:1;min-width:0;margin:0}
+.public-exchange .public-market-filter-trigger{position:relative;display:flex;align-items:center;justify-content:center;gap:7px;flex:none;min-height:52px;padding:0 14px;border:1px solid #ffffff25;border-radius:14px;background:#171318;color:#f6f5f7;font:inherit;font-size:14px;font-weight:750}
+.public-market-filter-trigger b{position:absolute;top:-6px;right:-4px;display:grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border-radius:12px;background:#b32040;color:white;font-size:11px}
+html[data-market-theme=light] .public-exchange .public-market-filter-trigger{background:#fff;color:#211d25;border-color:#d6ceda}
+.exchange-filter-sort{display:grid;gap:8px;font-size:14px;font-weight:700;margin-bottom:20px}
+.exchange-filter-sort select{width:100%;min-height:48px;padding:10px 12px;border:1px solid #ffffff25;border-radius:12px;background:#171318;color:#f6f5f7;font:inherit}
+html[data-market-theme=light] .exchange-filter-sort select{background:#fff;color:#211d25;border-color:#d6ceda}
+@media(max-width:370px){.public-exchange .public-market-filter-trigger{width:52px;padding:0}.public-market-filter-trigger>span{display:none}}

@@ -1,10 +1,11 @@
 import {ExchangeArticleChoices} from './ExchangeArticleChoices';
 import React,{useEffect,useRef,useState} from 'react';
 import {X} from 'lucide-react';
-import {isExchangeShoe,EMPTY_EXCHANGE_FILTERS,exchangeSizeOptions,selectExchangeItems, type CatalogItem,type ExchangeFilters} from './exchangeCatalog';
+import {isExchangeShoe,EMPTY_EXCHANGE_FILTERS,exchangeSizeOptions,selectExchangeItems, type CatalogItem,type ExchangeFilters,type CatalogSort} from './exchangeCatalog';
 
-export function ExchangeFilterSheet({value,items,view,userId,search,onApply,onClose}:{value:ExchangeFilters;items:CatalogItem[];view:'all'|'mine';userId:string;search:string;onApply:(filters:ExchangeFilters)=>void;onClose:()=>void}){
+export function ExchangeFilterSheet({value,items,view,userId,search,sort,onApply,onClose}:{value:ExchangeFilters;items:CatalogItem[];view:'all'|'mine';userId:string;search:string;sort?:CatalogSort;onApply:(filters:ExchangeFilters,sort?:CatalogSort)=>void;onClose:()=>void}){
   const [draft,setDraft]=useState(value);
+  const [draftSort,setDraftSort]=useState<CatalogSort>(sort||'newest');
   const dialog=useRef<HTMLDialogElement>(null);
   useEffect(()=>{const node=dialog.current;node?.showModal();return()=>node?.close();},[]);
   const count=selectExchangeItems(items,view,userId,draft,search).length;
@@ -13,12 +14,13 @@ export function ExchangeFilterSheet({value,items,view,userId,search,onApply,onCl
   return <dialog ref={dialog} className="exchange-filter-sheet" aria-labelledby="exchange-filter-title" onCancel={onClose} onClose={onClose}>
     <header><div><span className="exchange-sheet-handle"/><h2 id="exchange-filter-title">Angebote filtern</h2></div><button type="button" aria-label="Filter schließen" onClick={onClose}><X size={22}/></button></header>
     <div className="exchange-filter-body">
+      {sort!==undefined&&<label className="exchange-filter-sort">Sortierung<select aria-label="Öffentliche Angebote sortieren" value={draftSort} onChange={e=>setDraftSort(e.target.value as CatalogSort)}><option value="newest">Neueste zuerst</option><option value="price-asc">Preis aufsteigend</option><option value="price-desc">Preis absteigend</option></select></label>}
       <ExchangeArticleChoices value={draft.category} allowAll onChange={category=>setDraft(previous=>({...previous,category,size:''}))}/>
       {group(isExchangeShoe(draft.category)?'Schuhgröße':'Größe','size',exchangeSizeOptions(draft.category,items),'Alle')}
       {!draft.category&&<p className="exchange-filter-tip">Für Schuhgrößen wähle zuerst „Schuhe“.</p>}
       {group('Angebot','offer',['Gratis','Tauschen','Verkaufen','Fürs Team'],'Alle')}
       {teams.length>0&&group('Mannschaft','team',teams,'Alle Mannschaften')}
     </div>
-    <footer><button type="button" onClick={()=>setDraft({...EMPTY_EXCHANGE_FILTERS})}>Zurücksetzen</button><button type="button" className="exchange-primary sz-club-primary" onClick={()=>onApply(draft)}>{count} {count===1?'Angebot':'Angebote'} anzeigen</button></footer>
+    <footer><button type="button" onClick={()=>{setDraft({...EMPTY_EXCHANGE_FILTERS});setDraftSort('newest');}}>Zurücksetzen</button><button type="button" className="exchange-primary sz-club-primary" onClick={()=>onApply(draft,sort===undefined?undefined:draftSort)}>{count} {count===1?'Angebot':'Angebote'} anzeigen</button></footer>
   </dialog>;
 }
