@@ -20,7 +20,7 @@ import {
   pickTournamentFirstMatch,
   tournamentPhaseDisplayLabel,
 } from '../../lib/matchCenterTournamentVisuals';
-import { pickLastFinishedTournamentSlot, tournamentPrepareCtaLabel } from '../../lib/tournamentDayOrchestrator';
+import { tournamentPrepareCtaLabel } from '../../lib/tournamentDayOrchestrator';
 import { eventNotesTitle, formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
 import { safeOptionalText, safeText } from '../../lib/safeText';
 import { dsPrimaryCtaClass, dsSecondaryCtaClass } from '../../lib/premiumDesignSystem';
@@ -40,13 +40,15 @@ function TournamentMatchupCard({
   score,
   ourTeamName,
   logoByName,
+  action,
 }: {
   slot: TournamentMatchSlotView;
   title: string;
-  status: 'Live' | 'Jetzt laut Spielplan' | 'Letztes Ergebnis' | null;
+  status: 'Live' | 'Jetzt laut Spielplan' | null;
   score?: string | null;
   ourTeamName: string;
   logoByName: ReadonlyMap<string, string | null>;
+  action?: { to: string; label: string };
 }) {
   const home = safeText(slot.home_team) || ourTeamName;
   const away = safeText(slot.away_team) || safeText(slot.opponent_name) || 'Gegner';
@@ -76,6 +78,11 @@ function TournamentMatchupCard({
       <p className="mt-3 text-center text-xs text-white/65">
         {[kickoff && `${kickoff} Uhr`, slot.pitch].filter(Boolean).join(' · ')}
       </p>
+      {action ? (
+        <Link to={action.to} className="mt-2 flex min-h-11 items-center justify-center rounded-xl border border-white/15 px-3 text-sm font-semibold text-white hover:bg-white/10">
+          {action.label}
+        </Link>
+      ) : null}
     </section>
   );
 }
@@ -122,20 +129,19 @@ export function MatchCenterTournamentCard({
     liveDayMode === 'next_own_match' ||
     liveDayMode === 'awaiting_next_round';
 
-  const elapsedSinceStart = now.getTime() - Date.parse(event.starts_at);
-  const showStartCountdown = liveDayMode === 'upcoming' || elapsedSinceStart < 60_000;
+  const hasTournamentStarted = now.getTime() >= Date.parse(event.starts_at);
+  const showStartCountdown = !hasTournamentStarted;
   const countdown = computeMatchCenterCountdown(
     showStartCountdown ? event.starts_at : nextOwnSlot?.kickoff_at,
     now,
     { roundUpMinutes: showStartCountdown },
   );
-  const liveDaySlots = isTournamentDay && elapsedSinceStart >= 0
+  const liveDaySlots = isTournamentDay && hasTournamentStarted
     ? slots.filter((slot) => slot.tournament_event_id === event.id)
     : [];
   const group = resolveMatchCenterTournamentGroup(liveDaySlots, ourTournamentScheduleSlots(liveDaySlots));
   const currentMatch = pickTournamentMatchInProgress(group.slots, now);
   const currentSlot = currentMatch?.slot;
-  const lastResult = currentMatch ? null : pickLastFinishedTournamentSlot(group.slots);
   const hasOfficialLiveScore = currentSlot?.official_home_goals != null && currentSlot.official_away_goals != null;
   const currentScore = currentSlot && currentMatch?.confirmedLive && (hasOfficialLiveScore || currentSlot.result_source === 'spielzeitapp')
     ? tournamentSlotScoreDisplay(currentSlot)
@@ -168,15 +174,6 @@ export function MatchCenterTournamentCard({
     placementLabel !== 'Gruppenspiel' &&
     placementLabel !== 'Turnierspiel';
 
-  const badgeLabel =
-    liveDayMode === 'awaiting_next_round'
-      ? 'Vorrunde beendet'
-      : isTournamentDay && elapsedSinceStart >= 0
-        ? 'Turnier läuft'
-        : premium
-          ? 'Turnier'
-          : 'Nächstes Turnier';
-
   const ourName = safeText(ourTeamName) || 'Unser Team';
   const nextMatchToShow = liveDayMode === 'next_own_match' && currentSlot?.id !== nextOwnSlot?.id ? nextOwnSlot : null;
   const prepareHref = nextOwnSlot?.match_id
@@ -187,22 +184,36 @@ export function MatchCenterTournamentCard({
     : 'Nächstes Spiel vorbereiten';
   const tournamentHref = publicTeamTournamentPath(event.id);
 
-  const showPreparePrimary = liveDayMode === 'next_own_match' && !isFan && Boolean(nextOwnSlot?.match_id);
-  const primaryCtaLabel = showPreparePrimary ? prepareLabel : 'Turnierseite ansehen';
-  const primaryCtaTo = showPreparePrimary ? prepareHref : tournamentHref;
+  const prepareAction = liveDayMode === 'next_own_match' && !isFan && nextOwnSlot?.match_id
+    ? { to: prepareHref, label: prepareLabel }
+    : undefined;
 
   return (
     <article style={club.style} className="relative overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--quiet">
-      <TournamentCompactCard
-        title={title}
-        startsAt={event.starts_at}
-        meetingAt={event.meeting_at}
-        location={event.location ?? event.address}
-        badgeLabel={badgeLabel}
-        hideCountdown
-      />
+      {!hasTournamentStarted ? (
+        <TournamentCompactCard
+          title={title}
+          startsAt={event.starts_at}
+          meetingAt={event.meeting_at}
+          location={event.location ?? event.address}
+          badgeLabel={premium ? 'Turnier' : 'Nächstes Turnier'}
+          hideCountdown
+        />
+      ) : null}
 
       <div className="relative bg-[#060608] px-3 pb-2 pt-0.5 sm:px-4 sm:pb-2">
+        {currentMatch ? (
+          <TournamentMatchupCard
+            slot={currentMatch.slot}
+            title={group.label ?? tournamentPhaseDisplayLabel(currentMatch.slot.phase, currentMatch.slot.group_label)}
+            status={currentMatch.confirmedLive ? 'Live' : 'Jetzt laut Spielplan'}
+            score={currentScore}
+            ourTeamName={ourName}
+            logoByName={logoByName}
+            action={currentSlot?.id === nextOwnSlot?.id ? prepareAction : undefined}
+          />
+        ) : null}
+
         {liveDayMode === 'awaiting_next_round' ? (
           <div className="mt-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3">
             <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-amber-200/90">
@@ -215,17 +226,6 @@ export function MatchCenterTournamentCard({
           </div>
         ) : null}
 
-        {currentMatch ? (
-          <TournamentMatchupCard
-            slot={currentMatch.slot}
-            title={group.label ?? tournamentPhaseDisplayLabel(currentMatch.slot.phase, currentMatch.slot.group_label)}
-            status={currentMatch.confirmedLive ? 'Live' : 'Jetzt laut Spielplan'}
-            score={currentScore}
-            ourTeamName={ourName}
-            logoByName={logoByName}
-          />
-        ) : null}
-
         {nextMatchToShow ? (
           <TournamentMatchupCard
             slot={nextMatchToShow}
@@ -233,18 +233,8 @@ export function MatchCenterTournamentCard({
             status={null}
             ourTeamName={ourName}
             logoByName={logoByName}
+            action={prepareAction}
           />
-        ) : null}
-
-        {liveDayMode === 'active' && !nextOwnSlot && !currentMatch && !lastResult && elapsedSinceStart >= 0 ? (
-          <div className="mt-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3">
-            <p className="text-[11px] font-bold uppercase tracking-[0.08em] sz-club-accent-text">
-              Turnier läuft
-            </p>
-            <p className="mt-1 text-[12px] leading-snug text-white/65">
-              Zwischen den Spielen — öffne das Turniercenter für Tabelle und Spielplan.
-            </p>
-          </div>
         ) : null}
 
         {(showStartCountdown || nextMatchToShow) && countdown ? (
@@ -256,7 +246,7 @@ export function MatchCenterTournamentCard({
           />
         ) : null}
 
-        {carouselTeams.length > 0 && liveDayMode === 'upcoming' ? (
+        {carouselTeams.length > 0 && !hasTournamentStarted && liveDayMode === 'upcoming' ? (
           <div className="mt-1">
             <div className="mb-0 flex items-center justify-between gap-1.5">
               <p className="text-xs font-bold uppercase tracking-[0.08em] text-white/38">
@@ -281,7 +271,7 @@ export function MatchCenterTournamentCard({
           </div>
         ) : null}
 
-        {!loadingExtras && liveDayMode === 'upcoming' ? (
+        {!loadingExtras && !hasTournamentStarted && liveDayMode === 'upcoming' ? (
           <div className="mt-1">
             <TournamentFirstMatchPreview
               slot={firstMatch}
@@ -292,36 +282,16 @@ export function MatchCenterTournamentCard({
         ) : null}
 
         <Link
-          to={primaryCtaTo}
+          to={tournamentHref}
           className={`${dsPrimaryCtaClass()} mt-1.5 mb-1 inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center px-4 py-3 text-[14px] font-semibold`}
         >
-          {primaryCtaLabel}
+          Turnierseite ansehen
         </Link>
 
-        {!isFan && !showPreparePrimary ? (
+        {!isFan && !hasTournamentStarted && !prepareAction ? (
           <Link to={`/app/events/${event.id}`} className={`${dsSecondaryCtaClass()} mb-2 inline-flex min-h-[44px] w-full items-center justify-center rounded-xl px-4 text-[13px] font-semibold`}>
             Zur Turniervorbereitung
           </Link>
-        ) : null}
-
-        {showPreparePrimary ? (
-          <Link
-            to={tournamentHref}
-            className={`${dsSecondaryCtaClass()} mb-[max(0.5rem,env(safe-area-inset-bottom,0px))] inline-flex min-h-[44px] w-full touch-manipulation items-center justify-center rounded-xl px-4 text-[13px] font-semibold`}
-          >
-            Turnierseite ansehen
-          </Link>
-        ) : null}
-
-        {lastResult ? (
-          <TournamentMatchupCard
-            slot={lastResult}
-            title={group.label ?? tournamentPhaseDisplayLabel(lastResult.phase, lastResult.group_label)}
-            status="Letztes Ergebnis"
-            score={tournamentSlotScoreDisplay(lastResult)}
-            ourTeamName={ourName}
-            logoByName={logoByName}
-          />
         ) : null}
 
         {liveDayMode === 'awaiting_next_round' && !isFan && onRefreshPlan ? (
