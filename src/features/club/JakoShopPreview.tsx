@@ -3,19 +3,23 @@ import { ArrowLeft, ChevronRight, ShoppingBag, Trash2 } from 'lucide-react';
 import { jakoShopCatalog, type JakoShopArticle } from './jakoShopCatalog';
 
 type Filter = 'Alle' | JakoShopArticle['category'];
-type CartLine = { article: JakoShopArticle; size: string; quantity: number };
+type CartLine = { article: JakoShopArticle; size: string; quantity: number; child: string; unitPrice: number };
+const money = new Intl.NumberFormat('de-AT', { style: 'currency', currency: 'EUR' });
+const demoChildren = ['Beispielkind 1', 'Beispielkind 2'];
 const filters: Filter[] = ['Alle', 'Oberteile', 'Hosen', 'Zubehör'];
 
 export function JakoShopPreview() {
   const [filter, setFilter] = useState<Filter>('Alle');
   const [selected, setSelected] = useState<JakoShopArticle | null>(null);
   const [size, setSize] = useState('');
+  const [child, setChild] = useState('');
   const [cart, setCart] = useState<CartLine[]>([]);
   const [notice, setNotice] = useState('');
   const content = useRef<HTMLDivElement>(null);
 
   function openArticle(article: JakoShopArticle) {
     setSelected(article);
+    setChild('');
     setSize(article.sizes.length === 1 ? article.sizes[0] : '');
     setNotice('');
     requestAnimationFrame(() => content.current?.focus());
@@ -28,11 +32,19 @@ export function JakoShopPreview() {
     requestAnimationFrame(() => content.current?.querySelector<HTMLButtonElement>(`[data-article="${articleId}"]`)?.focus());
   }
 
+  function previewPrice(article: JakoShopArticle, lines: CartLine[]) {
+    const supportAlreadyUsed = lines.some(line => line.child === child && line.unitPrice < line.article.previewPriceCents);
+    return child === demoChildren[0] && !supportAlreadyUsed
+      ? article.previewSupportedPriceCents ?? article.previewPriceCents
+      : article.previewPriceCents;
+  }
+
   function addToCart(article: JakoShopArticle) {
-    if (!article.sizes.includes(size)) return;
+    if (!article.sizes.includes(size) || (article.previewSupportedPriceCents !== undefined && !child)) return;
     setCart(previous => {
-      const sameLine = (line: CartLine) => line.article.id === article.id && line.size === size;
-      if (!previous.some(sameLine)) return [...previous, { article, size, quantity: 1 }];
+      const unitPrice = previewPrice(article, previous);
+      const sameLine = (line: CartLine) => line.article.id === article.id && line.size === size && line.child === child && line.unitPrice === unitPrice;
+      if (!previous.some(sameLine)) return [...previous, { article, size, child, unitPrice, quantity: 1 }];
       return previous.map(line => sameLine(line) ? { ...line, quantity: line.quantity + 1 } : line);
     });
     setNotice(`${article.name} · ${size} zum Probe-Warenkorb hinzugefügt.`);
@@ -46,16 +58,28 @@ export function JakoShopPreview() {
         <p className="club-shop-eyebrow">JAKO · Art. {selected.id}</p>
         <h2>{selected.name}</h2>
         <p>{selected.color}{selected.description && ` · ${selected.description}`}</p>
-        <strong>Vereinspreis folgt</strong>
+        <p className="club-shop-muted">Beispielpreise für TEST</p>
+        <strong>{money.format(selected.previewPriceCents / 100)} regulär</strong>
+        {selected.previewSupportedPriceCents !== undefined && <>
+          <p>{money.format(selected.previewSupportedPriceCents / 100)} mit voller Jahresunterstützung</p>
+          <label>Für welches Kind?
+            <select value={child} onChange={event => { setChild(event.target.value); setNotice(''); }}>
+              <option value="">Beispielkind wählen</option>
+              <option value={demoChildren[0]}>{demoChildren[0]} · volle Unterstützung</option>
+              <option value={demoChildren[1]}>{demoChildren[1]} · Unterstützung bereits genutzt</option>
+            </select>
+          </label>
+          {child && <p aria-live="polite"><strong>Preis für dieses Kind: {money.format(previewPrice(selected, cart) / 100)}</strong></p>}
+        </>}
         <fieldset className="club-shop-trial-sizes">
           <legend>Größe wählen</legend>
           <div>{selected.sizes.map(option => <button key={option} aria-pressed={size === option} onClick={() => { setSize(option); setNotice(''); }}>{option}</button>)}</div>
         </fieldset>
-        <button className="club-shop-button" disabled={!size} onClick={() => addToCart(selected)}>Zum Probe-Warenkorb hinzufügen</button>
+        <button className="club-shop-button" disabled={!size || (selected.previewSupportedPriceCents !== undefined && !child)} onClick={() => addToCart(selected)}>Zum Probe-Warenkorb hinzufügen</button>
         <p aria-live="polite">{notice}</p>
         <a href={selected.url} target="_blank" rel="noreferrer">Produktdetails bei JAKO</a>
       </article> : <>
-        <p className="club-shop-muted club-shop-preview-status">Shopvorschau · Vereinspreise folgen</p>
+        <p className="club-shop-muted club-shop-preview-status">Shopvorschau · Beispielpreise</p>
         <div className="club-shop-tabs" role="group" aria-label="Artikel filtern">
           {filters.map(option => <button key={option} aria-pressed={filter === option} className={filter === option ? 'club-shop-filter-active' : undefined} onClick={() => setFilter(option)}>{option}</button>)}
         </div>
@@ -65,6 +89,8 @@ export function JakoShopPreview() {
               <img src={article.image} alt="" loading="lazy" />
               <small>{article.color}</small>
               <strong>{article.name}</strong>
+              <span>{money.format(article.previewPriceCents / 100)}</span>
+              {article.previewSupportedPriceCents !== undefined && <small>{money.format(article.previewSupportedPriceCents / 100)} mit voller Unterstützung</small>}
               <span className="club-shop-product-link">Artikel ansehen <ChevronRight size={16} /></span>
             </button>
           )}
@@ -73,10 +99,18 @@ export function JakoShopPreview() {
     </div>
     {cart.length > 0 && <article className="club-shop-panel" aria-label="Probe-Warenkorb">
       <h2><ShoppingBag size={22} /> Probe-Warenkorb</h2>
-      {cart.map(({ article, size: lineSize, quantity }) => <div className="club-shop-cart-row" key={`${article.id}:${lineSize}`}>
-        <span><strong>{quantity} × {article.name}</strong><small>{lineSize}</small></span>
-        <button aria-label={`${article.name} · ${lineSize} entfernen`} onClick={() => setCart(previous => previous.filter(line => line.article.id !== article.id || line.size !== lineSize))}><Trash2 size={18} /></button>
+      {cart.map(line => <div className="club-shop-cart-row" key={`${line.article.id}:${line.size}:${line.child}:${line.unitPrice}`}>
+        <span>
+          <strong>{line.quantity} × {line.article.name}</strong>
+          <small>{line.size}{line.child && ` · ${line.child}`}</small>
+          <small>{money.format(line.unitPrice * line.quantity / 100)}{line.unitPrice < line.article.previewPriceCents && ' · mit Unterstützung'}</small>
+        </span>
+        <button aria-label={`${line.article.name} · ${line.size} · ${money.format(line.unitPrice / 100)} entfernen`} onClick={() => setCart(previous => previous.filter(item => item !== line))}><Trash2 size={18} /></button>
       </div>)}
+      <div className="club-shop-row">
+        <strong>Beispielsumme</strong>
+        <strong>{money.format(cart.reduce((total, line) => total + line.quantity * line.unitPrice, 0) / 100)}</strong>
+      </div>
       <p>Deine Auswahl dient zur Vorschau. Bestellungen sind nach der Shopfreigabe möglich.</p>
     </article>}
   </section>;

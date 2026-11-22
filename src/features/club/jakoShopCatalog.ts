@@ -15,12 +15,15 @@ export type JakoShopArticle = {
   image: string;
   url: string;
   sizes: string[];
+  previewPriceCents: number;
+  previewSupportedPriceCents?: number;
   description?: string;
 };
 
 export const jakoShopCatalog: JakoShopArticle[] = [
   {
     id: '6170-114',
+    previewPriceCents: 3000,
     name: 'T-Shirt Dynamic',
     category: 'Oberteile',
     color: 'Rot / Weiß / Dunkelrot',
@@ -31,6 +34,7 @@ export const jakoShopCatalog: JakoShopArticle[] = [
   },
   {
     id: '8670-114',
+    previewPriceCents: 4500,
     name: 'Ziptop Dynamic',
     category: 'Oberteile',
     color: 'Rot / Weiß / Dunkelrot',
@@ -41,6 +45,7 @@ export const jakoShopCatalog: JakoShopArticle[] = [
   },
   {
     id: '8495-08',
+    previewPriceCents: 3500,
     name: 'Trainingshose Active',
     category: 'Hosen',
     color: 'Schwarz / Weiß',
@@ -50,6 +55,7 @@ export const jakoShopCatalog: JakoShopArticle[] = [
   },
   {
     id: '4499-800',
+    previewPriceCents: 2000,
     name: 'Sporthose Allround',
     category: 'Hosen',
     color: 'Schwarz',
@@ -59,6 +65,8 @@ export const jakoShopCatalog: JakoShopArticle[] = [
   },
   {
     id: '1814-103',
+    previewPriceCents: 4000,
+    previewSupportedPriceCents: 2000,
     name: 'Rucksack Iconic',
     category: 'Zubehör',
     color: 'Rot / Weinrot',
