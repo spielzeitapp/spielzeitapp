@@ -140,3 +140,71 @@ html[data-market-theme=light] .public-exchange .public-market-header .public-mar
 
 /* Anchor to the visible rectangle, including cold PWA launch, quick switch and keyboard. */
 .public-market-nav-viewport,html[data-market-shell][data-viewport-entry=app][data-ios-standalone-fullscreen] .public-market-nav-viewport{position:fixed;top:var(--market-nav-visible-top,0px);bottom:auto;height:var(--market-nav-visible-height,100dvh);display:flex;align-items:flex-end;transform:none}
+
+.public-market-brand:has(.public-market-shop-cart) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.public-market-brand:has(.public-market-shop-cart) > div {
+  flex: 1;
+  min-width: 0;
+}
+.public-market-shop-cart-slot {
+  display: contents;
+}
+.public-market-shop-cart {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #ba405688;
+  border-radius: 50%;
+  background: #531728;
+  color: #fff;
+}
+.public-market-shop-cart:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+.public-market-shop-cart-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border: 1px solid #fff;
+  border-radius: 20px;
+  background: #a8253c;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+@media (max-width: 360px) {
+  .public-exchange .public-market-header:has(.public-market-shop-cart) {
+    flex-wrap: wrap;
+  }
+  .public-exchange .public-market-header:has(.public-market-shop-cart) > .public-market-brand {
+    flex-basis: calc(100% - 52px);
+  }
+  .public-market-header:has(.public-market-shop-cart) > .market-theme-toggle {
+    margin-inline-start: auto;
+  }
+}
+
+@media (min-width: 361px) and (max-width: 450px) {
+  .public-exchange .public-market-header:has(.public-market-shop-cart):has(.public-market-app-switch) {
+    flex-wrap: wrap;
+  }
+  .public-exchange .public-market-header:has(.public-market-shop-cart):has(.public-market-app-switch) > .public-market-brand {
+    flex-basis: calc(100% - 52px);
+  }
+  .public-market-header:has(.public-market-shop-cart):has(.public-market-app-switch) > .market-theme-toggle {
+    margin-inline-start: auto;
+  }
+}

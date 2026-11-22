@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ArrowLeft, Check, ChevronRight, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import { jakoShopCatalog, type JakoShopArticle } from './jakoShopCatalog';
 
@@ -9,7 +10,7 @@ const money = new Intl.NumberFormat('de-AT', { style: 'currency', currency: 'EUR
 const demoChildren = ['Beispielkind 1', 'Beispielkind 2'];
 const filters: Filter[] = ['Alle', 'Oberteile', 'Hosen', 'Zubehör'];
 
-export function JakoShopPreview() {
+export function JakoShopPreview({ cartHeader }: { cartHeader?: HTMLElement | null }) {
   const [filter, setFilter] = useState<Filter>('Alle');
   const [selected, setSelected] = useState<JakoShopArticle | null>(null);
   const [size, setSize] = useState('');
@@ -53,7 +54,10 @@ export function JakoShopPreview() {
 
   function goTo(next: OrderStep) {
     setStep(next);
-    requestAnimationFrame(() => content.current?.focus());
+    requestAnimationFrame(() => {
+      content.current?.focus({ preventScroll: true });
+      content.current?.scrollIntoView({ block: 'start' });
+    });
   }
 
   function addToCart(article: JakoShopArticle) {
@@ -82,11 +86,19 @@ export function JakoShopPreview() {
   }
 
   return <section className="club-shop-trial" aria-label="JAKO-Kollektion">
+    {cartHeader && createPortal(
+      <button type="button" className="public-market-shop-cart" aria-label={`Warenkorb, ${itemCount} Artikel`}
+        aria-current={step === 'cart' ? 'page' : undefined} title="Warenkorb" onClick={() => goTo('cart')}>
+        <ShoppingBag size={21} aria-hidden="true" />
+        {itemCount > 0 && <span className="public-market-shop-cart-count" aria-hidden="true">{itemCount}</span>}
+      </button>,
+      cartHeader,
+    )}
     <div ref={content} tabIndex={-1}>
       {step === 'shop' && <>
-        <button type="button" className="club-shop-trial-back" onClick={() => goTo('cart')}>
+        {!cartHeader && <button type="button" className="club-shop-trial-back" onClick={() => goTo('cart')}>
           <ShoppingBag size={18} /> Probe-Warenkorb ({itemCount})
-        </button>
+        </button>}
         {selected ? <article className="club-shop-panel">
           <button className="club-shop-trial-back" onClick={backToCatalog}><ArrowLeft size={18} /> Alle Artikel</button>
           <img className="club-shop-trial-detail" src={selected.image} alt={`${selected.name} in ${selected.color}`} />
