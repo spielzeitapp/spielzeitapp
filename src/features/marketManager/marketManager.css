@@ -53,3 +53,10 @@ html[data-market-manager-shell] .market-manager-home .market-manager-nav-viewpor
  .market-manager-home .vm-header-brand strong{font-size:14px}
  .market-manager-home .vm-header-brand small{font-size:10px}
 }
+
+.market-manager-home button.vm-dashboard-orders {
+  grid-column: 1 / -1;
+}
+.market-manager-home .vm-dashboard-orders > span {
+  flex: 1;
+}
