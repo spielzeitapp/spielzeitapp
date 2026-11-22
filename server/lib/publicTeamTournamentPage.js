@@ -2,6 +2,7 @@ import { publicTournamentStandings } from './publicTournamentStandings.js';
 import { resolveTournamentOwnTeam } from './tournamentOwnTeam.js';
 import { tournamentTeamLogos } from './tournamentTeamLogos.js';
 import { buildPublicTournamentMatchDetails } from './publicTournamentMatchDetails.js';
+import { meinTurnierplanLiveByMatchId } from './meinTurnierplanModel.js';
 /**
  * Service-role loader for public team tournament page (TURNIER.1).
  * Does not open RLS — returns a sanitized DTO only.
@@ -154,17 +155,26 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
     }
   }
 
+  const { data: sync } = await admin.from('tournament_sync_state').select('analysis,synced_at,own_team_name').eq('event_id', publicId).maybeSingle();
+  const analysis = sync?.analysis ?? {};
+  const liveByMatch = meinTurnierplanLiveByMatchId(analysis);
   const enriched = [];
   for (const slot of slots) {
     const m = matchById.get(slot.match_id);
     if (!m) continue;
-    const officialFallback = m.status === 'upcoming' && !m.live_started_at && !m.live_elapsed_seconds && !m.score_home && !m.score_away && slot.official_status === 'finished' && slot.home_goals != null && slot.away_goals != null;
+    const organizerLive = liveByMatch.get(slot.external_match_id);
+    const untouchedLocal = m.status === 'upcoming' && !m.live_started_at && !m.live_elapsed_seconds && !m.score_home && !m.score_away;
+    const officialLive = Boolean(untouchedLocal && organizerLive);
+    const officialFallback = untouchedLocal && !officialLive && slot.official_status === 'finished' && slot.home_goals != null && slot.away_goals != null;
     const ownHome = slot.away_team === slot.opponent_name;
     enriched.push({
       ...slot,
-      match_status: officialFallback ? 'finished' : m.status ?? 'upcoming',
-      score_home: Number(officialFallback ? (ownHome ? slot.home_goals : slot.away_goals) : m.score_home ?? 0),
-      score_away: Number(officialFallback ? (ownHome ? slot.away_goals : slot.home_goals) : m.score_away ?? 0),
+      match_status: officialLive ? 'live' : officialFallback ? 'finished' : m.status ?? 'upcoming',
+      organizer_live: officialLive,
+      score_home: officialLive ? (ownHome ? organizerLive.liveHomeGoals : organizerLive.liveAwayGoals)
+        : officialFallback ? (ownHome ? slot.home_goals : slot.away_goals) : m.score_home ?? 0,
+      score_away: officialLive ? (ownHome ? organizerLive.liveAwayGoals : organizerLive.liveHomeGoals)
+        : officialFallback ? (ownHome ? slot.away_goals : slot.home_goals) : m.score_away ?? 0,
     });
   }
 
@@ -181,11 +191,23 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
     slots: enriched,
   });
 
-  const { data: sync } = await admin.from('tournament_sync_state').select('analysis,synced_at,own_team_name').eq('event_id', publicId).maybeSingle();
-  const analysis = sync?.analysis ?? {};
-
   dto.finalRanking = (analysis.finalStandings ?? []).map(r => ({rank:Number(r.rank),teamName:String(r.teamName)}));
-  dto.schedule = (analysis.rawMatches ?? []).map(m => ({id:String(m.externalMatchId ?? ''),homeTeam:String(m.homeTeam),awayTeam:String(m.awayTeam),time:String(m.kickoffTimeHHmm),phase:String(m.phase),groupLabel:m.groupLabel == null ? null : String(m.groupLabel),roundLabel:m.roundLabel == null ? null : String(m.roundLabel),homeGoals:m.hasResult ? Number(m.homeGoals) : null,awayGoals:m.hasResult ? Number(m.awayGoals) : null}));
+  const slotsByExternalId = new Map(slots.map(slot => [slot.external_match_id, slot]));
+  dto.schedule = (analysis.rawMatches ?? []).map(m => {
+    const id = String(m.externalMatchId ?? '');
+    const slot = slotsByExternalId.get(`${analysis.provider}:${id}`) ?? slotsByExternalId.get(id);
+    return {
+      id, homeTeam: String(m.homeTeam), awayTeam: String(m.awayTeam), time: String(m.kickoffTimeHHmm),
+      phase: String(m.phase), groupLabel: m.groupLabel == null ? null : String(m.groupLabel),
+      roundLabel: m.roundLabel == null ? null : String(m.roundLabel),
+      homeProjection: m.homeConfirmed === false && m.homeProjection ? String(m.homeProjection) : null,
+      awayProjection: m.awayConfirmed === false && m.awayProjection ? String(m.awayProjection) : null,
+      homeGoals: m.hasResult ? Number(m.homeGoals) : null, awayGoals: m.hasResult ? Number(m.awayGoals) : null,
+      kickoffAt: slot?.kickoff_at ?? null, plannedMinutes: Number(m.plannedMinutes ?? slot?.planned_minutes ?? 0),
+      status: m.isLive ? 'live' : m.hasResult ? 'finished' : 'upcoming',
+      liveHomeGoals: m.liveHomeGoals ?? null, liveAwayGoals: m.liveAwayGoals ?? null,
+    };
+  });
   dto.syncedAt = sync?.synced_at ?? null;
   dto.ownParticipantName = sync?.own_team_name ?? resolveTournamentOwnTeam(analysis.teams ?? [], [rawTeamName]);
   const standings = publicTournamentStandings(analysis, enriched, dto.ownParticipantName);

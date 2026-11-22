@@ -178,6 +178,31 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
     };
   }, [featuredTournament?.id, tournamentExtrasKey]);
 
+  const activeTournamentId = activeTournamentDay?.id;
+  useEffect(() => {
+    if (!activeTournamentId || tournamentCompleted) return;
+    let cancelled = false;
+    let loading = false;
+    const refreshSlots = async () => {
+      if (loading || document.visibilityState === 'hidden') return;
+      loading = true;
+      try {
+        const { data, error } = await fetchTournamentMatchSlots(activeTournamentId);
+        if (!cancelled && !error) setSlots(data);
+      } finally {
+        loading = false;
+      }
+    };
+    const update = () => void refreshSlots().catch(() => {});
+    const interval = window.setInterval(update, 30_000);
+    document.addEventListener('visibilitychange', update);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', update);
+    };
+  }, [activeTournamentId, tournamentCompleted]);
+
   const handleRefreshPlan = () => {
     if (!featuredTournament || !teamSeasonId || isFan || planSyncBusy) return;
     const planUrl = safeText(featuredTournament.official_tournament_url);
@@ -213,15 +238,24 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
     [activeTournamentDay, tournamentCompleted, ownSlots, slots],
   );
   const nextOwnSlot = useMemo(() => {
-    if (!activeTournamentDay || tournamentCompleted || awaitingNext) return null;
-    return pickNextOpenTournamentSlot(ownSlots.filter(isOwnPlayableTournamentSlot));
-  }, [activeTournamentDay, tournamentCompleted, awaitingNext, ownSlots]);
+    if (!activeTournamentDay || tournamentCompleted) return null;
+    const open = slots.filter((slot) =>
+      slot.tournament_event_id === activeTournamentId &&
+      ![slot.match_status, slot.official_status].some(status =>
+        /^(live|finished|ended|completed|canceled|cancelled)$/i.test(status ?? ''),
+      ),
+    );
+    return pickNextOpenTournamentSlot(open.filter(isOwnPlayableTournamentSlot)) ??
+      pickNextOpenTournamentSlot(open.filter((slot) =>
+        slot.official_own_pairing && Date.parse(slot.kickoff_at) > now.getTime(),
+      ));
+  }, [activeTournamentDay, activeTournamentId, tournamentCompleted, slots, now]);
 
   const liveDayMode = activeTournamentDay
-    ? awaitingNext
-      ? 'awaiting_next_round'
-      : nextOwnSlot
-        ? 'next_own_match'
+    ? nextOwnSlot
+      ? 'next_own_match'
+      : awaitingNext
+        ? 'awaiting_next_round'
         : tournamentCompleted
           ? 'completed'
           : 'active'
@@ -245,10 +279,10 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
 
   if (featuredTournament && !tournamentCompleted) {
     const headerSubtitle =
-      liveDayMode === 'awaiting_next_round'
-        ? 'Vorrunde beendet — warte auf nächstes Spiel'
-        : liveDayMode === 'next_own_match'
-          ? 'Turnier läuft — nächstes Spiel'
+      now.getTime() < Date.parse(featuredTournament.starts_at)
+        ? 'Nächstes Turnier'
+        : liveDayMode === 'awaiting_next_round'
+          ? 'Vorrunde beendet — warte auf nächstes Spiel'
           : activeTournamentDay
             ? 'Turnier läuft'
             : 'Nächstes Turnier';

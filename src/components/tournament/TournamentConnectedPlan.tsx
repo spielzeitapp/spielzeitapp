@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Bell, BellRing, RefreshCw } from "lucide-react";
 import { Modal } from "../../app/ui/Modal";
 import { supabase } from "../../lib/supabaseClient";
@@ -8,6 +8,8 @@ import {
   type TournamentPlanAnalysis,
 } from "../../lib/tournamentPlanImport";
 import type { TournamentStandingsBundle } from "../../lib/tournamentGroupStandings";
+import { TournamentLogoContext } from "./TournamentClubLogo";
+import { FanTeamLogo, TournamentFanFixture } from "./TournamentFanFixture";
 import {
   TC_CARD,
   TC_CARD_INNER,
@@ -260,6 +262,7 @@ export function TournamentOpponentOutlook({
 }: {
   state: ConnectedTournament | null;
 }) {
+  const logos = useContext(TournamentLogoContext);
   const name = state?.own_team_name;
   if (!state || !name) return null;
   const ownRank = state.analysis.groupStandings?.flatMap((g) =>
@@ -267,6 +270,9 @@ export function TournamentOpponentOutlook({
       .filter((r) => r.teamName === name)
       .map((r) => ({ group: g.groupLabel, rank: r.rank })),
   )[0];
+  const isOwnGroupSeed = (source: { type: string; groupLabel?: string; rank?: number } | null | undefined) =>
+    Boolean(ownRank && source?.type === "group" &&
+      source.groupLabel === ownRank.group && source.rank === ownRank.rank);
   const matches = (state.analysis.rawMatches ?? []).filter(
     (m) =>
       m.phase !== "group" &&
@@ -277,50 +283,55 @@ export function TournamentOpponentOutlook({
         m.awayProjection === name ||
         m.homeCandidates?.includes(name) ||
         m.awayCandidates?.includes(name) ||
-        [m.homeSource, m.awaySource].some(
-          (s) =>
-            s?.type === "group" &&
-            s.groupLabel === ownRank?.group &&
-            s.rank === ownRank?.rank,
-        )),
+        [m.homeSource, m.awaySource].some(isOwnGroupSeed)),
   );
   if (!matches.length) return null;
   return (
     <section className={TC_CARD}>
-      <div className={`${TC_CARD_INNER} space-y-3`}>
+      <div className={`${TC_CARD_INNER} space-y-3 [--t-text:var(--text-main)] [--t-muted:var(--text-sub)] [--t-accent:rgb(var(--club-accent-text-rgb))] [--t-border:rgb(var(--club-border-rgb)/0.34)] [--t-fixture:linear-gradient(135deg,var(--surface,#121114),rgb(var(--club-primary-rgb)/0.16))] [[data-app-appearance=light]_&]:[--t-accent:var(--club-link-on-light,#a51d35)]`}>
         <p className={TC_SECTION_LABEL}>Ausblick Finalrunde</p>
         {matches.slice(0, 3).map((m) => {
-          const ours =
+          const ownHome =
             m.homeTeam === name ||
             m.homeProjection === name ||
-            m.homeCandidates?.includes(name);
-          const source = ours ? m.awaySource : m.homeSource;
-          const projection =
-            (ours ? m.awayProjection : m.homeProjection) ||
-            (ours ? m.awayCandidates : m.homeCandidates)?.join(" oder ");
-          const opponent = ours ? m.awayTeam : m.homeTeam;
-          const confirmed =
-            m.homeConfirmed !== false && m.awayConfirmed !== false;
+            m.homeCandidates?.includes(name) ||
+            (m.homeConfirmed !== true && isOwnGroupSeed(m.homeSource));
+          const source = ownHome ? m.awaySource : m.homeSource;
+          const candidates = (ownHome ? m.awayCandidates : m.homeCandidates) ?? [];
+          const projection = ownHome ? m.awayProjection : m.homeProjection;
+          const homeConfirmed = m.homeConfirmed ?? !m.homeSource;
+          const awayConfirmed = m.awayConfirmed ?? !m.awaySource;
+          const opponentConfirmed = ownHome ? awayConfirmed : homeConfirmed;
+          const opponent = opponentConfirmed
+            ? (ownHome ? m.awayTeam : m.homeTeam)
+            : projection || (candidates.length === 1 ? candidates[0] : source?.label) ||
+              (ownHome ? m.awayTeam : m.homeTeam);
+          const showCandidates = !opponentConfirmed && !projection && candidates.length > 1;
           return (
-            <div
-              key={m.externalMatchId ?? m.kickoffTimeHHmm}
-              className="rounded-xl border border-white/10 p-3"
-            >
-              <p className="text-[16px] font-bold">
-                {m.roundLabel ??
-                  (m.phase === "semifinal" ? "Halbfinale" : "Finalrunde")}{" "}
-                · {m.kickoffTimeHHmm}
-              </p>
-              <p className="text-[16px] text-white/80">
-                {confirmed
-                  ? `Bestätigt: ${opponent}`
-                  : `Aktuell möglich: ${projection ?? opponent}`}
-              </p>
-              {!confirmed ? (
-                <p className="mt-1 text-[14px] text-white/55">
-                  {source?.label} · Vorläufig nach Veranstaltertabelle; noch
-                  nicht bestätigt.
-                </p>
+            <div key={m.externalMatchId ?? m.kickoffTimeHHmm}>
+              <TournamentFanFixture
+                home={ownHome ? name : opponent}
+                away={ownHome ? opponent : name}
+                homeGoals={null}
+                awayGoals={null}
+                time={m.kickoffTimeHHmm}
+                phase={m.roundLabel || (m.phase === "semifinal" ? "Halbfinale" : "Finalrunde")}
+                logos={logos}
+              />
+              {!homeConfirmed || !awayConfirmed ? (
+                <div className="space-y-1.5 px-2 pt-2 text-xs font-semibold text-[var(--t-muted)]">
+                  <p>Vorläufig{source?.label && source.label !== opponent ? ` · ${source.label}` : ""}</p>
+                  {showCandidates ? (
+                    <ul aria-label="Mögliche Gegner" className="space-y-1">
+                      {candidates.map((team) => (
+                        <li key={team} className="flex items-center gap-2">
+                          <FanTeamLogo name={team} logos={logos} small />
+                          <span>{team}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
               ) : null}
             </div>
           );

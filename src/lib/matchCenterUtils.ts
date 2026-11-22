@@ -1,6 +1,7 @@
 import type { EventRow } from '../hooks/useEvents';
 import { isEventPubliclyVisible } from './championshipVisibility';
 import { safeText } from './safeText';
+import type { TournamentMatchSlotView } from './tournamentPlan';
 
 export type MatchCenterCountdown = {
   days: number;
@@ -102,17 +103,65 @@ export function pickActiveTournamentDayEvent(events: EventRow[], now: Date): Eve
 export function computeMatchCenterCountdown(
   startsAtIso: string | null | undefined,
   now: Date,
+  options?: { roundUpMinutes?: boolean },
 ): MatchCenterCountdown | null {
   if (!safeText(startsAtIso)) return null;
   const target = new Date(String(startsAtIso)).getTime();
   if (Number.isNaN(target)) return null;
-  let diff = Math.max(0, target - now.getTime());
+  const remainingMs = Math.max(0, target - now.getTime());
+  let diff = options?.roundUpMinutes ? Math.ceil(remainingMs / 60_000) * 60_000 : remainingMs;
   const days = Math.floor(diff / 86_400_000);
   diff -= days * 86_400_000;
   const hours = Math.floor(diff / 3_600_000);
   diff -= hours * 3_600_000;
   const minutes = Math.floor(diff / 60_000);
   return { days, hours, minutes };
+}
+
+export function pickTournamentMatchInProgress(slots: TournamentMatchSlotView[], now: Date) {
+  const nowMs = now.getTime();
+  let scheduled: { slot: TournamentMatchSlotView; startsAt: number } | null = null;
+  for (const slot of slots) {
+    if (!slot.home_team || !slot.away_team) continue;
+    const statuses = [slot.match_status, slot.official_status];
+    if (statuses.includes('finished') || statuses.includes('canceled') || statuses.includes('cancelled')) continue;
+    if (statuses.includes('live')) return { slot, confirmedLive: true };
+    const startsAt = Date.parse(slot.kickoff_at);
+    const endsAt = startsAt + slot.planned_minutes * 60_000;
+    if (startsAt <= nowMs && nowMs < endsAt && (!scheduled || startsAt > scheduled.startsAt)) {
+      scheduled = { slot, startsAt };
+    }
+  }
+  return scheduled ? { slot: scheduled.slot, confirmedLive: false } : null;
+}
+
+function isTournamentGroupPhase(slot: TournamentMatchSlotView): boolean {
+  const phase = safeText(slot.phase).toLowerCase();
+  return !phase || phase === 'group' || phase === 'gruppe' || phase === 'vorrunde';
+}
+
+function tournamentGroupKey(slot: TournamentMatchSlotView): string {
+  if (!isTournamentGroupPhase(slot)) return '';
+  return safeText(slot.group_label).toLowerCase().replace(/^gruppe\s+/, '');
+}
+
+export function resolveMatchCenterTournamentGroup(
+  slots: TournamentMatchSlotView[],
+  ownSlots: TournamentMatchSlotView[],
+) {
+  const ownGroup = ownSlots.find((slot) => Boolean(tournamentGroupKey(slot)));
+  if (!ownGroup) return { label: null, slots: ownSlots };
+
+  const groupKey = tournamentGroupKey(ownGroup);
+  const groupSlots = slots.filter((slot) => tournamentGroupKey(slot) === groupKey);
+  const groupFinished = groupSlots.every((slot) =>
+    slot.match_status === 'finished' || slot.official_status === 'finished',
+  );
+  const ownPlayoffs = ownSlots.filter((slot) => !isTournamentGroupPhase(slot));
+  if (groupFinished && ownPlayoffs.length > 0) return { label: null, slots: ownPlayoffs };
+
+  const label = safeText(ownGroup.group_label).replace(/^gruppe\s+/i, '');
+  return { label: `Gruppe ${label}`, slots: groupSlots };
 }
 
 export function isRudolfSteurerGedenkturnier(title: unknown): boolean {

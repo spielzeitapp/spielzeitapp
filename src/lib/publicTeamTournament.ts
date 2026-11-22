@@ -49,6 +49,25 @@ export type PublicTournamentMatchDetails = {
   unavailable: boolean;
 };
 
+export type PublicTournamentScheduleFixture = {
+  id: string;
+  homeTeam: string;
+  awayTeam: string;
+  time: string;
+  phase: string;
+  groupLabel: string | null;
+  roundLabel: string | null;
+  homeProjection?: string | null;
+  awayProjection?: string | null;
+  homeGoals: number | null;
+  awayGoals: number | null;
+  kickoffAt?: string | null;
+  plannedMinutes?: number;
+  status?: PublicTeamTournamentMatchStatus;
+  liveHomeGoals?: number | null;
+  liveAwayGoals?: number | null;
+};
+
 export type PublicTeamTournamentPageDto = {
   matchDetails?: PublicTournamentMatchDetails[];
   fanPlayers?: PublicTournamentPlayer[];
@@ -63,7 +82,7 @@ export type PublicTeamTournamentPageDto = {
   standingsProvisional?: boolean;
   groupTables?: Array<{groupLabel:string;rows:Array<{teamName:string;rank:number;played:number;goalsFor:number;goalsAgainst:number;points:number}>}>;
   finalRanking?: Array<{rank:number;teamName:string}>;
-  schedule?: Array<{id:string;homeTeam:string;awayTeam:string;time:string;phase:string;groupLabel:string|null;roundLabel:string|null;homeGoals:number|null;awayGoals:number|null}>;
+  schedule?: PublicTournamentScheduleFixture[];
   publicId: string;
   tournamentName: string;
   dateLabel: string;
@@ -81,6 +100,33 @@ export type PublicTeamTournamentPageDto = {
 
 export function publicTeamTournamentPath(publicId: string): string {
   return `/turnier/${encodeURIComponent(String(publicId).trim())}`;
+}
+
+export function pickPublicTournamentGroupMatch(page: PublicTeamTournamentPageDto, nowMs: number) {
+  if (page.tournamentStatus === 'finished' || page.tournamentStatus === 'canceled') return null;
+  const fixtures = page.schedule ?? [];
+  const ownName = page.ownParticipantName;
+  const isOwnFixture = (fixture: PublicTournamentScheduleFixture) =>
+    Boolean(ownName && (fixture.homeTeam === ownName || fixture.awayTeam === ownName));
+  const group = fixtures.find((fixture) => fixture.phase === 'group' && fixture.groupLabel && isOwnFixture(fixture))?.groupLabel
+    ?? page.allMatches.find((match) => match.phase === 'group' && match.groupLabel)?.groupLabel;
+  if (!group) return null;
+  const currentGroup = fixtures.filter((fixture) => {
+    if (fixture.phase !== 'group' || fixture.groupLabel !== group || fixture.homeGoals != null || fixture.status === 'finished' || fixture.status === 'canceled') return false;
+    return !isOwnFixture(fixture) || !page.allMatches.some((match) =>
+      match.kickoffTimeLabel === fixture.time && (match.status === 'finished' || match.status === 'canceled'),
+    );
+  });
+  const live = currentGroup.find((fixture) => fixture.status === 'live');
+  if (live) return { fixture: live, state: 'live' as const };
+  const scheduled = currentGroup.find((fixture) => {
+    const startsAt = Date.parse(fixture.kickoffAt ?? '');
+    return startsAt <= nowMs && nowMs < startsAt + (fixture.plannedMinutes ?? 0) * 60_000;
+  });
+  if (scheduled) return { fixture: scheduled, state: 'on_schedule' as const };
+  const next = currentGroup.filter((fixture) => Date.parse(fixture.kickoffAt ?? '') > nowMs)
+    .sort((a, b) => Date.parse(a.kickoffAt ?? '') - Date.parse(b.kickoffAt ?? ''))[0];
+  return next ? { fixture: next, state: 'next' as const } : null;
 }
 
 export function publicTeamTournamentAbsoluteUrl(publicId: string): string {

@@ -2,6 +2,19 @@ import { tournamentLogoUrl } from './tournamentTeamLogos.js';
 /** Shared provider model: confirmed participants and projections stay distinct. */
 const text = (value) => String(value ?? "").trim();
 const num = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
+const isActive = (match) => [true, 1, '1'].includes(match?.isActive);
+const hasScores = (match) => /^\d+$/.test(text(match?.score1)) && /^\d+$/.test(text(match?.score2));
+
+export function meinTurnierplanLiveByMatchId(analysis) {
+  const index = new Map();
+  if (analysis?.provider !== 'meinturnierplan') return index;
+  for (const match of analysis.rawMatches ?? []) {
+    if (!match.isLive || !match.externalMatchId) continue;
+    index.set(match.externalMatchId, match);
+    index.set(`meinturnierplan:${match.externalMatchId}`, match);
+  }
+  return index;
+}
 export function inferMeinTurnierplanPhase(mapping, a, b) {
   const round = num(mapping?.round),
     match = num(mapping?.match);
@@ -120,12 +133,7 @@ export function parseMeinTurnierplanModel(json) {
     }
     return null;
   };
-  const scored = (m) =>
-    m &&
-    m.score1 != null &&
-    m.score2 != null &&
-    /^\d+$/.test(text(m.score1)) &&
-    /^\d+$/.test(text(m.score2));
+  const scored = (m) => !isActive(m) && hasScores(m);
   const sourceConfirmed = (s) => {
     if (!s) return true;
     if (s.type === "group") {
@@ -182,8 +190,8 @@ export function parseMeinTurnierplanModel(json) {
       const homeTeam = name(m.homeParticipant),
         awayTeam = name(m.awayParticipant);
       if ((!homeTeam && !homeSource) || (!awayTeam && !awaySource)) continue;
-      const valid = (v) => v != null && text(v) !== "" && /^\d+$/.test(text(v));
-      const hasResult = valid(m.score1) && valid(m.score2);
+      const isLive = isActive(m);
+      const hasResult = scored(m);
       const court = json.courts?.[m.courtId];
       rawMatches.push({
         homeTeam:
@@ -226,6 +234,11 @@ export function parseMeinTurnierplanModel(json) {
         hasResult,
         homeGoals: hasResult ? num(m.score1) : null,
         awayGoals: hasResult ? num(m.score2) : null,
+        ...(isLive ? {
+          isLive,
+          liveHomeGoals: hasScores(m) ? num(m.score1) : null,
+          liveAwayGoals: hasScores(m) ? num(m.score2) : null,
+        } : {}),
         externalMatchId: `mtp-game-${m.gameId ?? m.displayId ?? (kind === "ko" ? `ko-${m.modeMapping?.round}-${m.modeMapping?.match}` : `g-${m.groupId}-${i}`)}`,
         roundLabel:
           kind === "ko" && num(m.modeMapping?.round) === 1

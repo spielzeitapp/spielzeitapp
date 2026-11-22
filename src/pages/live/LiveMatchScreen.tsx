@@ -1,6 +1,7 @@
 import { prepareTournamentMatchFromTemplate } from '../../lib/tournamentLineupTemplates';
 import { fetchTournamentParticipants } from '../../lib/tournamentPlan';
 import { TournamentBlockControl } from '../../components/tournament/TournamentBlockControl';
+import { TournamentGoalBackfillDialog } from '../../components/tournament/TournamentGoalBackfillDialog';
 import { planBlockChange, type BlockChange } from '../../lib/tournamentBlocks';
 import { DemoFormationPreview } from '../../demo/components/DemoFormationPreview';
 import { ClubLogo } from '../../components/branding/ClubLogo';
@@ -12,7 +13,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { FinishedMatchAttendance } from '../../components/match/FinishedMatchAttendance';
 import { MatchHeadToHead } from '../../components/match/MatchHeadToHead';
-import { ArrowLeft, BarChart3, Clapperboard, FileText, MapPin, Radio, Shirt } from 'lucide-react';
+import { ArrowLeft, BarChart3, CalendarDays, Clapperboard, FileText, MapPin, Radio, Shirt } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { usePlayers, type PlayerItem } from '../../hooks/usePlayers';
 import { PlayerProfileModal } from '../../components/team/PlayerProfileModal';
@@ -58,6 +59,7 @@ import {
   fetchMatchById,
   deleteMatchEventById,
   fetchMatchEvents,
+  tournamentGoalBackfillMaxMinute,
   getMatchLiveClockStatus,
   LIVE_FIELD_SLOT_ORDER,
   persistExtraPlayerOff,
@@ -150,6 +152,7 @@ import {
   type TournamentMatchNavigationContext,
 } from '../../lib/tournamentMatchNavigation';
 import { TournamentNextMatchWorkflowCta } from '../../components/tournament/TournamentNextMatchWorkflowCta';
+import { publicTeamTournamentPath } from '../../lib/publicTeamTournament';
 import { syncOfficialPlanAfterTournamentMatchFinish } from '../../lib/tournamentPlanSync';
 import { broadcastLiveMatchStateChanged, subscribeLiveMatchStateChanged } from '../../lib/liveMatchBroadcast';
 import { useDemoMode } from '../../demo/DemoContext';
@@ -1410,6 +1413,7 @@ export const LiveMatchScreen: React.FC = () => {
   const opponentDisplayName = cleanTeamDisplayName(headerOpponent);
   const [mainTab, setMainTab] = useState<'hub' | 'overview' | 'lineup' | 'events' | 'time' | 'videos'>('hub');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
+  const [goalBackfill, setGoalBackfill] = useState<{ matchId: string; recordedGoals: number } | null>(null);
   useEffect(() => {
     const tab = (searchParams.get('tab') ?? '').trim().toLowerCase();
     if (tab === 'time' || tab === 'statistik' || tab === 'spielzeiten') {
@@ -1685,11 +1689,12 @@ export const LiveMatchScreen: React.FC = () => {
    * Gesamtstand nur aus Events + Matchzeile (DB), nie aus separat hochgezähltem Local-State —
    * sonst +1 im Handler und max(totals, state) = Doppelzählung beim Tor.
    */
-  const displayScoreHome = Math.max(
+  const useSavedTournamentResult = matchIsFinished && tournamentNavContext !== null;
+  const displayScoreHome = useSavedTournamentResult && matchRow?.score_home != null ? matchRow.score_home : Math.max(
     totalsFromEvents.home,
     Number(matchRow?.score_home ?? 0),
   );
-  const displayScoreAway = Math.max(
+  const displayScoreAway = useSavedTournamentResult && matchRow?.score_away != null ? matchRow.score_away : Math.max(
     totalsFromEvents.away,
     Number(matchRow?.score_away ?? 0),
   );
@@ -3644,9 +3649,13 @@ export const LiveMatchScreen: React.FC = () => {
     ],
   );
 
+  const allTickerGroups = useMemo(
+    () => groupTickerRowsByDisplayMinute(buildLiveTickerRows(events, 'all')),
+    [events],
+  );
   const trainerTickerGroups = useMemo(
-    () => groupTickerRowsByDisplayMinute(buildLiveTickerRows(events, eventsFilter)),
-    [events, eventsFilter],
+    () => eventsFilter === 'all' ? allTickerGroups : groupTickerRowsByDisplayMinute(buildLiveTickerRows(events, eventsFilter)),
+    [events, eventsFilter, allTickerGroups],
   );
 
   useEffect(() => {
@@ -4522,6 +4531,9 @@ export const LiveMatchScreen: React.FC = () => {
   const layoutShell = 'mx-auto w-full max-w-none';
   const spectatorView = !canControlLiveMatch;
   const matchboardVisible = mainTab === 'hub';
+  const compactLiveHub = matchboardVisible && matchRow?.status === 'live';
+  const spectatorLiveHub = spectatorView && compactLiveHub;
+  const spectatorTickerGroups = spectatorLiveHub ? allTickerGroups.slice(0, 2) : [];
   const finishedMatchDate = calendarStartsAt ? new Date(calendarStartsAt) : null;
   const finishedMatchDateValid = Boolean(finishedMatchDate && !Number.isNaN(finishedMatchDate.getTime()));
   const finishedMatchWeekday = finishedMatchDateValid
@@ -4761,10 +4773,33 @@ export const LiveMatchScreen: React.FC = () => {
     );
   };
 
-  /** Höhe unter globalem App-Header (main pt, safe-area-korrekt); Matchboard+Hub fix, Module scrollen (inkl. pb für Bottom-Nav). */
+  /** Der laufende Live-Hub scrollt im App-Layout; die Unteransichten haben eigene Scrollflächen. */
   const videoScreenActive = mainTab === 'videos';
-  const liveShellOuter = 'live-shell-viewport relative flex flex-col overflow-hidden text-white';
+  const liveShellOuter = `relative flex flex-col overflow-hidden text-white ${compactLiveHub ? '' : 'live-shell-viewport'}`;
   const wechselScreenActive = Boolean(canControlLiveMatch && wechselSheetOpen && !matchIsFinished);
+  const tournamentPlanLink = tournamentNavContext ? (
+    <Link
+      to={`${publicTeamTournamentPath(tournamentNavContext.tournamentEventId)}?bereich=spielplan`}
+      state={{ returnTo: `${basePath}/live?matchId=${encodeURIComponent(effectiveMatchId)}${mainTab === 'events' ? '&tab=events' : ''}` }}
+      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/15 bg-black/45 px-3 py-2 text-sm font-semibold text-white hover:bg-white/10 ${mainTab === 'events' ? 'ml-auto' : 'col-span-2'}`}
+    >
+      <CalendarDays className="h-4 w-4 shrink-0 text-red-400" aria-hidden />
+      Zum Turnierplan
+    </Link>
+  ) : null;
+  const missingOwnGoals = Math.max(0, (matchRow?.score_home ?? 0) - totalsFromEvents.home);
+  const canBackfillOwnGoals = canControlLiveMatch && !isDemo && matchIsFinished &&
+    Boolean(tournamentNavContext) && sides.isOwnTeamHome;
+  const openGoalBackfill = canBackfillOwnGoals && missingOwnGoals > 0 ? (
+    <button
+      type="button"
+      className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/15 bg-black/45 px-3 py-2 text-sm font-semibold text-white hover:bg-white/10"
+      onClick={() => setGoalBackfill({ matchId: effectiveMatchId, recordedGoals: totalsFromEvents.home })}
+    >
+      Tor und Torschützen nachtragen
+      <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs tabular-nums">{missingOwnGoals}</span>
+    </button>
+  ) : null;
 
   const kickoffProfilePhotoUrl = kickoffProfilePlayer
     ? (kickoffProfilePlayer.avatar_url ?? '').trim() || null
@@ -4776,6 +4811,32 @@ export const LiveMatchScreen: React.FC = () => {
 
   return (
     <>
+      {canBackfillOwnGoals && goalBackfill?.matchId === effectiveMatchId ? (
+        <TournamentGoalBackfillDialog
+          key={effectiveMatchId}
+          matchId={effectiveMatchId}
+          recordedGoals={goalBackfill.recordedGoals}
+          maxMinute={tournamentGoalBackfillMaxMinute(matchRow ?? { live_elapsed_seconds: null, planned_match_minutes: null })}
+          players={roster}
+          onClose={() => setGoalBackfill(null)}
+          onSaved={() => {
+            setGoalBackfill(null);
+            setMainTab('events');
+            setEventsFilter('all');
+            queueRealtimeReload();
+            broadcastLiveMatchStateChanged({
+              matchId: effectiveMatchId,
+              status: 'updated',
+              reason: 'tournament_goal_backfill',
+              teamSeasonId: matchRow?.team_season_id,
+              tournamentEventId: tournamentNavContext?.tournamentEventId,
+            });
+            void ensureResultFeedPostForMatch(effectiveMatchId).then((result) => {
+              if (!result.ok) setSaveError(`Tor gespeichert. Feed konnte nicht aktualisiert werden: ${result.error}`);
+            });
+          }}
+        />
+      ) : null}
       {kickoffProfilePlayer ? (
         <PlayerProfileModal
           player={kickoffProfilePlayer}
@@ -4834,7 +4895,7 @@ export const LiveMatchScreen: React.FC = () => {
         className={`border-b bg-black/78 shadow-[0_4px_32px_rgba(0,0,0,0.5)] backdrop-blur-md ${
           mainTab === 'lineup' ? 'border-white/10' : 'border-red-500/35'
         } ${
-          mainTab === 'hub'
+          mainTab === 'hub' && !compactLiveHub
             ? 'flex min-h-0 flex-1 touch-pan-y flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]'
             : 'shrink-0'
         }`}
@@ -5281,9 +5342,41 @@ export const LiveMatchScreen: React.FC = () => {
             <TournamentBlockControl key={effectiveMatchId} matchId={effectiveMatchId} seconds={currentMatchSeconds} running={isRunning} current={liveReplayState.slotsBySlot} squad={squadPlayerIds} name={id=>rosterById.get(id)?.name ?? 'Spieler'} busy={subSaving} onApply={applyTournamentBlock} basePath={basePath}/>
           ) : null}
 
+          {spectatorLiveHub ? (
+            <section aria-label="Spielverlauf live" className="mx-auto mt-2 max-w-xl overflow-hidden rounded-2xl border border-white/10 bg-black/55">
+              <div className="flex items-center justify-between gap-2 px-3 py-1">
+                <h2 className="flex min-w-0 items-center gap-2 text-sm font-bold text-white">
+                  <Radio className="h-4 w-4 shrink-0 text-red-400" aria-hidden />
+                  Spielverlauf
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEventsFilter('all');
+                    setMainTab('events');
+                  }}
+                  className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-2 text-xs font-semibold text-red-200 hover:bg-white/10"
+                >
+                  Zum Liveticker <span className="ml-1" aria-hidden>›</span>
+                </button>
+              </div>
+              {spectatorTickerGroups.length ? (
+                <ul className="border-t border-white/10 px-1.5 py-1">
+                  {spectatorTickerGroups.map((group, index) =>
+                    renderTrainerTickerMinuteGroup(group, index, spectatorTickerGroups.length),
+                  )}
+                </ul>
+              ) : (
+                <p className="border-t border-white/10 px-3 py-3 text-sm text-white/65">
+                  Noch keine Spielereignisse erfasst.
+                </p>
+              )}
+            </section>
+          ) : null}
+
           {mainTab === 'hub' ? (
             <nav
-              className={`${spectatorView ? hubNavSpectator : hubNavTrainer} ${matchIsFinished ? 'mt-3 pb-[var(--app-bottomnav-pad)] lg:pb-4' : 'pb-[calc(170px+env(safe-area-inset-bottom,0px))]'}`}
+              className={`${spectatorView ? hubNavSpectator : hubNavTrainer} ${compactLiveHub ? `mx-auto pb-2 ${spectatorView ? 'max-w-xl' : 'max-w-2xl'}` : matchIsFinished ? 'mt-3 pb-[var(--app-bottomnav-pad)] lg:pb-4' : 'pb-[calc(170px+env(safe-area-inset-bottom,0px))]'}`}
               aria-label="Live Hub"
             >
               <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('overview')}>
@@ -5300,13 +5393,13 @@ export const LiveMatchScreen: React.FC = () => {
                   <span className={`block font-medium text-white/48 ${matchIsFinished ? 'mt-1 text-xs' : 'text-[10px]'}`}>Formation</span>
                 </span>
               </button>
-              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('events')}>
+              {!spectatorLiveHub ? <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('events')}>
                 <Radio className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
                 <span className="min-w-0 flex-1">
                   <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Liveticker</span>
                   <span className={`block font-medium text-white/48 ${matchIsFinished ? 'mt-1 text-xs' : 'text-[10px]'}`}>Spielverlauf</span>
                 </span>
-              </button>
+              </button> : null}
               {!spectatorView ? (
                 <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('time')}>
                   <BarChart3 className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
@@ -5326,6 +5419,8 @@ export const LiveMatchScreen: React.FC = () => {
                 </button>
               ) : null}
 
+              {openGoalBackfill}
+              {tournamentPlanLink}
             </nav>
           ) : mainTab !== 'lineup' && mainTab !== 'videos' ? (
             <div className={liveModuleBackBar} aria-label="Zurück zum Live Hub">
@@ -5337,6 +5432,7 @@ export const LiveMatchScreen: React.FC = () => {
                 <span aria-hidden>←</span>
                 <span>Livespiel</span>
               </button>
+              {mainTab === 'events' ? tournamentPlanLink : null}
             </div>
           ) : null}
         </div>
@@ -5906,6 +6002,7 @@ export const LiveMatchScreen: React.FC = () => {
 
         {mainTab === 'events' && (
           <div className="flex min-h-0 flex-1 flex-col gap-3 px-1 pb-1 sm:px-2">
+            {openGoalBackfill}
             <div className="grid grid-cols-4 gap-1 rounded-xl border border-white/10 bg-black/40 p-1" role="group" aria-label="Liveticker filtern">
               {(
                 [
@@ -5939,7 +6036,7 @@ export const LiveMatchScreen: React.FC = () => {
                 Keine Einträge für diesen Filter.
               </p>
             ) : (
-              <ul className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain rounded-xl border border-zinc-600/25 bg-black/45 px-1.5 py-1 [-webkit-overflow-scrolling:touch] [scrollbar-gutter:stable] sm:px-2">
+              <ul className="min-h-0 touch-pan-y overflow-y-auto overscroll-y-contain rounded-xl border border-zinc-600/25 bg-black/45 px-1.5 py-1 [-webkit-overflow-scrolling:touch] [scrollbar-gutter:stable] sm:px-2">
                 {trainerTickerGroups.map((g, i, arr) => renderTrainerTickerMinuteGroup(g, i, arr.length))}
               </ul>
             )}

@@ -17,6 +17,7 @@ import { Modal } from '../../app/ui/Modal';
 import { dsScheduleGlassButtonClass, DS_LIST_GAP } from '../../lib/premiumDesignSystem';
 import {
   addTournamentParticipant,
+  applyOfficialTournamentResult,
   computeTournamentHeroSummary,
   computeTournamentTeamBalance,
   createTournamentMatchSlot,
@@ -32,6 +33,7 @@ import {
   removeTournamentParticipant,
   TOURNAMENT_DEFAULT_PLANNED_MINUTES,
   tournamentImportSuccessMessage,
+  tournamentOfficialOwnScore,
   type TournamentMatchSlotView,
   type TournamentParticipant,
 } from '../../lib/tournamentPlan';
@@ -66,7 +68,7 @@ import {
   markOfficialTournamentSynced,
   syncOfficialTournamentPlan,
 } from '../../lib/tournamentPlanSync';
-import { subscribeLiveMatchStateChanged } from '../../lib/liveMatchBroadcast';
+import { broadcastLiveMatchStateChanged, subscribeLiveMatchStateChanged } from '../../lib/liveMatchBroadcast';
 import { openOfficialTournamentPlanUrl } from '../../lib/tournamentOfficialPlanUrl';
 import {
   buildTournamentCompletionFeedCaption,
@@ -186,6 +188,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const [slots, setSlots] = useState<TournamentMatchSlotView[]>([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
+  const [scoreReview, setScoreReview] = useState<TournamentMatchSlotView | null>(null);
+  const [scoreSaving, setScoreSaving] = useState(false);
+  const [scoreError, setScoreError] = useState<string | null>(null);
+  const [alignedMatchId, setAlignedMatchId] = useState<string | null>(null);
 
   const [participantModalOpen, setParticipantModalOpen] = useState(false);
   const [participantName, setParticipantName] = useState('');
@@ -283,6 +289,42 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
   const existingTeamNames = useMemo(() => participants.map((p) => p.team_name), [participants]);
   const ownSlots = useMemo(() => ownPlayableTournamentSlots(slots), [slots]);
+  const scoreConflicts = ownSlots.flatMap((slot) => {
+    if (slot.result_source === 'official' || (slot.match_status !== 'finished' && slot.match_status !== 'live')) return [];
+    const official = tournamentOfficialOwnScore(slot);
+    return official && (slot.score_home !== official.home || slot.score_away !== official.away) ? [{ slot, official }] : [];
+  });
+  const reviewedOfficialScore = scoreReview && tournamentOfficialOwnScore(scoreReview);
+  const canAlignScores = canManage && !tournamentCanceled && !isDemo;
+
+  const confirmOfficialScore = async () => {
+    if (!canAlignScores || !scoreReview?.match_id || scoreSaving) return;
+    setScoreSaving(true);
+    setScoreError(null);
+    try {
+      const { error } = await applyOfficialTournamentResult(scoreReview);
+      if (error) {
+        setScoreError(error);
+        await reload();
+        return;
+      }
+      broadcastLiveMatchStateChanged({
+        matchId: scoreReview.match_id,
+        status: 'updated',
+        reason: 'official_tournament_score',
+        teamSeasonId,
+        tournamentEventId,
+      });
+      setScoreReview(null);
+      setAlignedMatchId(scoreReview.match_id);
+      setToastMessage('Endstand übernommen');
+      await reload();
+    } catch {
+      setScoreError('Endstand konnte nicht übernommen werden.');
+    } finally {
+      setScoreSaving(false);
+    }
+  };
   const ourScheduleSlots = useMemo(() => ourTournamentScheduleSlots(slots), [slots]);
   const ownMatchCounts = useMemo(() => countOwnTournamentMatchesByPhase(slots), [slots]);
   const awaitingFurtherPhase = useMemo(
@@ -1240,7 +1282,48 @@ export const TournamentDetailSections: React.FC<Props> = ({
       ) : null}
 
 
-      {slots.some(s => s.is_own_team !== false && s.result_source !== 'official' && ['live','finished'].includes(s.match_status ?? '') && s.official_home_goals != null && s.official_away_goals != null && (s.score_home !== (s.away_team === s.opponent_name ? s.official_home_goals : s.official_away_goals) || s.score_away !== (s.away_team === s.opponent_name ? s.official_away_goals : s.official_home_goals))) ? <p role="status" className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-[16px] text-amber-200">Unser Liveticker und der Veranstalter melden unterschiedliche Spielstände. Die Tabelle zeigt den Veranstalterstand; unsere Tore und Torschützen bleiben erhalten.</p> : null}
+      {scoreConflicts.length > 0 ? (
+        <section aria-label="Endstand abgleichen" className="space-y-3 rounded-xl border border-amber-400/25 bg-amber-400/5 p-3">
+          <h2 className="text-base font-bold text-amber-200">Spielstände weichen ab</h2>
+          {scoreConflicts.map(({ slot, official }) => (
+            <div key={slot.id} className="space-y-2 rounded-lg border border-white/10 bg-black/30 p-3">
+              <p className="text-sm font-semibold text-white">{ourTeamName} gegen {slot.opponent_name}</p>
+              <p className="text-sm tabular-nums text-white/75">
+                Unser Liveticker <strong>{slot.score_home}:{slot.score_away}</strong>
+                <span className="mx-2" aria-hidden>·</span>
+                Veranstalter <strong>{official.home}:{official.away}</strong>
+              </p>
+              {canAlignScores && slot.match_status === 'finished' && slot.official_status === 'finished' ? (
+                <AppButton variant="secondary" onClick={() => { setScoreError(null); setScoreReview(slot); }}>
+                  Veranstalterstand übernehmen
+                </AppButton>
+              ) : null}
+            </div>
+          ))}
+        </section>
+      ) : null}
+      {canAlignScores && alignedMatchId && ownSlots.some((slot) => slot.match_id === alignedMatchId) ? (
+        <Link
+          className={addButtonClass}
+          to={`${basePath}/live?matchId=${encodeURIComponent(alignedMatchId)}&tab=events`}
+        >
+          Übernommener Endstand · Zum Spielverlauf
+        </Link>
+      ) : null}
+      {scoreReview && reviewedOfficialScore && canAlignScores ? (
+        <Modal open onClose={() => { if (!scoreSaving) setScoreReview(null); }} title="Endstand übernehmen">
+          <div className="space-y-3">
+            <p className="text-sm text-white/80">
+              {ourTeamName} gegen {scoreReview.opponent_name} wird mit <strong>{reviewedOfficialScore.home}:{reviewedOfficialScore.away}</strong> gewertet. Erfasste Spielereignisse und Torschützen bleiben erhalten.
+            </p>
+            {scoreError ? <p role="alert" className="text-sm text-red-300">{scoreError}</p> : null}
+            <div className="flex flex-wrap justify-end gap-2">
+              <AppButton variant="secondary" disabled={scoreSaving} onClick={() => setScoreReview(null)}>Abbrechen</AppButton>
+              <AppButton variant="primary" disabled={scoreSaving} onClick={() => void confirmOfficialScore()}>{scoreSaving ? 'Wird übernommen …' : 'Endstand übernehmen'}</AppButton>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
       <TournamentOpponentOutlook state={connectedPlan} />
       {listError ? <p role="alert" className="text-sm text-red-300">{listError}</p> : null}
       {!canManage ? <section className={TC_CARD}><div className={`${TC_CARD_INNER} space-y-3`}>

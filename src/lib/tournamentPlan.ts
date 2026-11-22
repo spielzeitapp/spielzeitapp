@@ -1,5 +1,7 @@
 import { mergeTournamentParticipantLogos } from './tournamentParticipantLogos';
+import { meinTurnierplanLiveByMatchId } from '../../server/lib/meinTurnierplanModel.js';
 import { safeOptionalText, safeText } from './safeText';
+import type { TournamentPlanAnalysis } from './tournamentPlanImport';
 import { supabase } from './supabaseClient';
 import { upsertMatchForSetup, updateMatchRow } from './liveMatchService';
 import {
@@ -90,6 +92,12 @@ export type TournamentMatchSlotView = TournamentMatchSlot & {
   has_lineup: boolean;
   has_squad: boolean;
   result_source?: 'official' | 'spielzeitapp';
+  official_own_pairing?: {
+    home: string;
+    away: string;
+    roundLabel?: string | null;
+    provisional: boolean;
+  };
 };
 
 export type TournamentMatchDisplayStatus =
@@ -340,6 +348,41 @@ export function tournamentSlotScoreDisplay(slot: TournamentMatchSlotView): strin
     if (opponent === home.toLowerCase()) return `${oppOrAway}:${ourOrHome}`;
   }
   return `${ourOrHome}:${oppOrAway}`;
+}
+
+export function tournamentOfficialOwnScore(slot: TournamentMatchSlotView) {
+  const home = slot.official_home_goals;
+  const away = slot.official_away_goals;
+  if (home == null || away == null) return null;
+  const opponent = safeText(slot.opponent_name).toLowerCase();
+  const opponentIsHome = Boolean(opponent) && safeText(slot.home_team).toLowerCase() === opponent;
+  const opponentIsAway = Boolean(opponent) && safeText(slot.away_team).toLowerCase() === opponent;
+  if (opponentIsHome === opponentIsAway) return null;
+  return opponentIsAway ? { home, away } : { home: away, away: home };
+}
+
+export async function applyOfficialTournamentResult(slot: TournamentMatchSlotView) {
+  const matchId = slot.match_id;
+  const agreed = tournamentOfficialOwnScore(slot);
+  if (!matchId || !agreed || !isOwnPlayableTournamentSlot(slot)) {
+    return { error: 'Kein zugeordnetes Veranstalterergebnis verfügbar.' };
+  }
+
+  const { data, error } = await fetchTournamentMatchSlots(slot.tournament_event_id);
+  if (error) return { error };
+  const latest = data.find((fixture) => fixture.id === slot.id && fixture.match_id === matchId);
+  const official = latest && tournamentOfficialOwnScore(latest);
+  if (!latest || !official || !isOwnPlayableTournamentSlot(latest) ||
+    latest.match_status !== 'finished' || latest.official_status !== 'finished' ||
+    official.home !== agreed.home || official.away !== agreed.away ||
+    latest.score_home !== slot.score_home || latest.score_away !== slot.score_away) {
+    return { error: 'Der Spielstand hat sich geändert. Bitte aktualisieren und erneut prüfen.' };
+  }
+
+  return updateMatchRow(matchId, { score_home: official.home, score_away: official.away }, {
+    home: latest.score_home,
+    away: latest.score_away,
+  });
 }
 
 export function formatTournamentGoalDifference(diff: number): string {
@@ -675,14 +718,15 @@ async function enrichTournamentMatchSlots(
       return enrichOfficialOnlySlot(r);
     }
     const m = matchById.get(matchId);
-    const officialFallback = m?.status === 'upcoming' && !m.live_started_at && !m.live_elapsed_seconds && !m.score_home && !m.score_away && r.official_status === 'finished' && r.official_home_goals != null && r.official_away_goals != null;
+    const officialFallback = m?.status === 'upcoming' && !m.live_started_at && !m.live_elapsed_seconds && !m.score_home && !m.score_away &&
+      (r.official_status === 'live' || (r.official_status === 'finished' && r.official_home_goals != null && r.official_away_goals != null));
     const ownHome = r.away_team === r.opponent_name;
     return {
       ...r,
       result_source: officialFallback ? 'official' : 'spielzeitapp',
-      match_status: officialFallback ? 'finished' : m?.status ?? null,
-      score_home: Number(officialFallback ? (ownHome ? r.official_home_goals : r.official_away_goals) : m?.score_home ?? 0),
-      score_away: Number(officialFallback ? (ownHome ? r.official_away_goals : r.official_home_goals) : m?.score_away ?? 0),
+      match_status: officialFallback ? r.official_status ?? null : m?.status ?? null,
+      score_home: Number((officialFallback ? (ownHome ? r.official_home_goals : r.official_away_goals) : m?.score_home) ?? 0),
+      score_away: Number((officialFallback ? (ownHome ? r.official_away_goals : r.official_home_goals) : m?.score_away) ?? 0),
       has_lineup: (lineupCounts.get(matchId) ?? 0) > 0,
       has_squad: (benchCounts.get(matchId) ?? 0) > 0,
     };
@@ -706,6 +750,26 @@ function enrichOfficialOnlySlot(row: TournamentMatchSlot): TournamentMatchSlotVi
     has_lineup: false,
     has_squad: false,
   };
+}
+
+export function indexOfficialOwnKnockoutPairings(analysis: TournamentPlanAnalysis | null, ownName: string | null) {
+  const pairings = new Map<string, NonNullable<TournamentMatchSlotView['official_own_pairing']>>();
+  if (!analysis || !ownName) return pairings;
+  for (const match of analysis.rawMatches ?? []) {
+    if (!match.externalMatchId || !isKnockoutLikePhase(match.phase) || match.hasResult) continue;
+    const home = match.homeConfirmed === true ? match.homeTeam : match.homeProjection || match.homeTeam;
+    const away = match.awayConfirmed === true ? match.awayTeam : match.awayProjection || match.awayTeam;
+    if ((home === ownName) === (away === ownName)) continue;
+    const pairing = {
+      home,
+      away,
+      roundLabel: match.roundLabel,
+      provisional: match.homeConfirmed === false || match.awayConfirmed === false,
+    };
+    pairings.set(match.externalMatchId, pairing);
+    pairings.set(`${analysis.provider}:${match.externalMatchId}`, pairing);
+  }
+  return pairings;
 }
 
 export async function fetchTournamentMatchSlots(
@@ -733,7 +797,23 @@ export async function fetchTournamentMatchSlots(
   }
 
   if (error) return { data: [], error: normalizeTournamentDbError(error.message ?? '', error.code) };
-  const rows = (data ?? []).map((row) => mapFetchedMatchSlotRow(row));
+  const { data: sync } = await supabase.from('tournament_sync_state')
+    .select('analysis, own_team_name').eq('event_id', tournamentEventId).maybeSingle();
+  const liveByMatch = meinTurnierplanLiveByMatchId(sync?.analysis);
+  const ownPairings = indexOfficialOwnKnockoutPairings(sync?.analysis ?? null, sync?.own_team_name ?? null);
+  const rows = (data ?? []).map((row) => {
+    const slot = mapFetchedMatchSlotRow(row);
+    const pairing = ownPairings.get(slot.external_match_id ?? '');
+    const displaySlot = !slot.match_id && pairing ? { ...slot, official_own_pairing: pairing } : slot;
+    const live = liveByMatch.get(slot.external_match_id);
+    if (!live) return displaySlot;
+    return {
+      ...displaySlot,
+      official_status: 'live',
+      official_home_goals: live.liveHomeGoals ?? null,
+      official_away_goals: live.liveAwayGoals ?? null,
+    };
+  });
   const enriched = await enrichTournamentMatchSlots(rows);
   return { data: enriched, error: null };
 }

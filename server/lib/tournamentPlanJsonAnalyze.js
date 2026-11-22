@@ -28,6 +28,7 @@ const MEIN_TURNIERPLAN_HOSTS = new Set([
 
 import {
   isSupportedTournamentPlanHost,
+  isPlausibleMeinTurnierplanTournamentId,
   resolveMeinTurnierplanShowitUrl,
   resolveMeinTurnierplanTournamentId,
 } from './meinTurnierplanUrl.js';
@@ -247,9 +248,13 @@ async function fetchEmbeddedPlan(pageUrl, tournamentId, fetchImpl) {
     if (!res.ok) return { ok: false, reachable: false, error: `HTTP ${res.status}` };
     const payload = extractMeinTurnierplanEmbeddedJson(await res.text(), tournamentId);
     const analysis = payload && parseMeinTurnierplanJson(payload);
+    const canonicalId = payload?.slugId === tournamentId
+      && typeof payload.slug === 'string' && isPlausibleMeinTurnierplanTournamentId(payload.slug)
+      ? payload.slug : null;
     if (!analysis?.matchCount) return { ok: false, reachable: true,
+      canonicalId,
       error: 'Webseite erreichbar, aber keine lesbaren Teams und Spiele gefunden.' };
-    return { ok: true, reachable: true, analysis, finalUrl: res.url || pageUrl };
+    return { ok: true, reachable: true, analysis, canonicalId, finalUrl: res.url || pageUrl };
   } catch (err) {
     return { ok: false, reachable: false, error: err instanceof Error ? err.message : String(err) };
   }
@@ -294,7 +299,7 @@ export async function analyzeTournamentPlanJson(url, fetchImpl = fetch) {
   }
 
   const resolution = await resolveMeinTurnierplanTournamentId(trimmed, fetchImpl);
-  const extractedId = resolution.detectedId;
+  let extractedId = resolution.detectedId;
   const urlDiagnostics = {
     originalUrl: resolution.originalUrl,
     normalizedUrl: resolution.normalizedUrl,
@@ -324,8 +329,11 @@ export async function analyzeTournamentPlanJson(url, fetchImpl = fetch) {
   let fetchResult = { ok: false, attemptedEndpoints: [], apiReachable: false, endpointAttempts: [] };
   // Compact links expose a complete public schedule directly in their HTML.
   if (compactLink) htmlResult = await fetchEmbeddedPlan(pageUrl, extractedId, fetchImpl);
+  if (htmlResult?.canonicalId) extractedId = htmlResult.canonicalId;
   if (!htmlResult?.ok) {
-    fetchResult = await fetchMeinTurnierplanJsonWithFallbacks(extractedId, fetchImpl, { refererUrl });
+    fetchResult = await fetchMeinTurnierplanJsonWithFallbacks(extractedId, fetchImpl, {
+      refererUrl: htmlResult?.canonicalId ? buildMeinTurnierplanShowitUrl(extractedId) : refererUrl,
+    });
   }
   if (!htmlResult && !fetchResult.ok) {
     htmlResult = await fetchEmbeddedPlan(pageUrl, extractedId, fetchImpl);

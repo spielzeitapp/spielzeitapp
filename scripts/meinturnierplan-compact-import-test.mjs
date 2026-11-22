@@ -57,4 +57,27 @@ const state = { tournaments: { a: { slug: '9rlioyuf', data: payload } } };
 assert.deepEqual(extractMeinTurnierplanEmbeddedJson(`<script>window.preloadedState=${JSON.stringify(state)};</script>`, '9rlioyuf'), payload);
 assert.equal(extractMeinTurnierplanEmbeddedJson(`<script>window.preloadedState=${JSON.stringify(state)};</script>`, 'other123'), null);
 assert.equal(extractMeinTurnierplanEmbeddedJson('<script>window._cpStadiumData = {broken};</script>', '9rlioyuf'), null);
+
+// Public QR links may use a different slug from the data API.
+const qrUrl = 'https://www.meinturnierplan.de/c/ya24p937/';
+const qrPayload = { ...payload, slugId: 'ya24p937', slug: '2n6flj21wl' };
+const qrHtml = (data) => `<script>window.preloadedState=${JSON.stringify({
+  openTournamentSlug: '2n6flj21wl',
+  tournaments: { a: { slug: '2n6flj21wl', data } },
+})};</script>`;
+const qr = await analyzeTournamentPlanJson(qrUrl, async (endpoint) => {
+  assert.equal(endpoint, qrUrl);
+  return new Response(qrHtml(qrPayload));
+});
+assert.equal(qr.ok, true);
+assert.equal(qr.extractedId, '2n6flj21wl');
+assert.equal(qr.analysis.matchCount, 15);
+
+const qrFallback = await analyzeTournamentPlanJson(qrUrl, async (endpoint) => {
+  if (endpoint === qrUrl) return new Response(qrHtml({ ...qrPayload, groupMatches: [] }));
+  assert.equal(new URL(endpoint).searchParams.get('id'), '2n6flj21wl');
+  return Response.json(qrPayload);
+});
+assert.equal(qrFallback.ok, true);
+assert.equal(qrFallback.diagnostics.source, 'server_api');
 console.log('PASS: compact schedule (6 teams, 15 matches, 5 Rohrbach matches), API fallback, legacy JSON, and failure diagnostics');
