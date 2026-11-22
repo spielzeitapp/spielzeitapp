@@ -280,7 +280,12 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
         </nav>
         {tab==='ours'? <section className="space-y-4">
           {groupedMatches.upcoming.some(m=>m.id!==featuredMatch?.id) ? <div className="space-y-2"><h2 className={heading}>{featuredMatch?.status==='live'?'Danach':'Weitere Spiele'}</h2>{groupedMatches.upcoming.filter(m=>m.id!==featuredMatch?.id).map(m=>renderOwnCard(m))}</div> : groupedMatches.live.length ? null : page.allMatches.length ? <p className="text-sm text-[var(--t-muted)]">Keine weiteren Spiele geplant.</p> : <>{(page.schedule ?? []).filter(m=>m.homeTeam===page.ownParticipantName || m.awayTeam===page.ownParticipantName).map(renderScheduledFixture)}{!(page.schedule ?? []).some(m=>m.homeTeam===page.ownParticipantName || m.awayTeam===page.ownParticipantName)?<p className={card}>Unsere Mannschaft ist noch nicht zugeordnet.</p>:null}</>}
-          {groupedMatches.results.length ? <div className="space-y-3"><h2 className={heading}>Letztes Ergebnis</h2>{renderOwnCard(groupedMatches.results[0])}{groupedMatches.results.length>1?<details><summary className="min-h-11 cursor-pointer py-3 font-bold text-[var(--t-accent)]">Weitere Ergebnisse · {groupedMatches.results.length-1}</summary><div className="space-y-4">{groupedMatches.results.slice(1).map(m=>renderOwnCard(m))}</div></details>:null}</div>:null}
+          {groupedMatches.results.length ? (
+            <div className="space-y-3">
+              <h2 className={heading}>Ergebnisse</h2>
+              {groupedMatches.results.map(match => renderOwnCard(match))}
+            </div>
+          ) : null}
           {groupedMatches.canceled.length ? <details><summary className="cursor-pointer py-2 text-sm text-[var(--t-muted)]">Abgesagte Spiele · {groupedMatches.canceled.length}</summary><div className="space-y-2">{groupedMatches.canceled.map(m=>renderOwnCard(m))}</div></details> : null}
         </section> : null}
 
