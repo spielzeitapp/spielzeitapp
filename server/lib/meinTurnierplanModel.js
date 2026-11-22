@@ -2,19 +2,114 @@ import { tournamentLogoUrl } from './tournamentTeamLogos.js';
 /** Shared provider model: confirmed participants and projections stay distinct. */
 const text = (value) => String(value ?? "").trim();
 const num = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
-const isActive = (match) => [true, 1, '1'].includes(match?.isActive);
+const providerActive = (match) => [true, 1, '1'].includes(match?.isActive);
 const hasScores = (match) => /^\d+$/.test(text(match?.score1)) && /^\d+$/.test(text(match?.score2));
+
+// The provider can leave the last group game marked active during the final round.
+export function supersededLiveMatches(matches, additionalProgress = []) {
+  const candidates = [...matches, ...additionalProgress];
+  const knownPitches = new Set(candidates.map(match => text(match.pitch).toLowerCase()).filter(Boolean));
+  const pitchOf = match => text(match.pitch).toLowerCase() ||
+    (knownPitches.size === 1 ? knownPitches.values().next().value : '');
+  const timeOf = match => /^\d{2}:\d{2}$/.test(text(match.kickoffTimeHHmm)) ? match.kickoffTimeHHmm : '';
+  const dated = candidates.every(match => !timeOf(match) || match.kickoffDate);
+  const startOf = match => dated ? `${match.kickoffDate}T${timeOf(match)}` : timeOf(match);
+  const latestByPitch = new Map();
+  const priority = match => match.isLive ? match.local ? 2 : 1 : 0;
+
+  for (const match of candidates) {
+    if ((!match.isLive && !match.hasResult) || !timeOf(match)) continue;
+    const pitch = pitchOf(match);
+    if (!pitch && knownPitches.size > 1) continue;
+    const start = startOf(match);
+    const latest = latestByPitch.get(pitch);
+    if (!latest || start > latest.start || (start === latest.start && (
+      priority(match) > priority(latest.match) ||
+      (priority(match) === priority(latest.match) && text(match.externalMatchId) > text(latest.match.externalMatchId))
+    ))) latestByPitch.set(pitch, { start, match });
+  }
+
+  return new Set(matches.filter(match => {
+    if (!match.isLive || !timeOf(match)) return false;
+    const latest = latestByPitch.get(pitchOf(match));
+    if (!latest || latest.match === match) return false;
+    const start = startOf(match);
+    return latest.start > start || (
+      latest.start === start && latest.match.isLive &&
+      (!match.externalMatchId || match.externalMatchId !== latest.match.externalMatchId)
+    );
+  }));
+}
+
+export function normalizeMeinTurnierplanLiveMatches(analysis, additionalProgress = []) {
+  if (analysis?.provider !== 'meinturnierplan') return analysis;
+  const matches = analysis.rawMatches ?? [];
+  const superseded = supersededLiveMatches(matches, additionalProgress);
+  if (!superseded.size) return analysis;
+  return {
+    ...analysis,
+    rawMatches: matches.map(match => {
+      if (!superseded.has(match)) return match;
+      const { isLive, liveHomeGoals, liveAwayGoals, ...fixture } = match;
+      const hasResult = liveHomeGoals != null && liveAwayGoals != null;
+      return {
+        ...fixture,
+        hasResult,
+        homeGoals: hasResult ? liveHomeGoals : null,
+        awayGoals: hasResult ? liveAwayGoals : null,
+      };
+    }),
+  };
+}
 
 export function meinTurnierplanLiveByMatchId(analysis) {
   const index = new Map();
   if (analysis?.provider !== 'meinturnierplan') return index;
-  for (const match of analysis.rawMatches ?? []) {
+  for (const match of normalizeMeinTurnierplanLiveMatches(analysis).rawMatches ?? []) {
     if (!match.isLive || !match.externalMatchId) continue;
     index.set(match.externalMatchId, match);
     index.set(`meinturnierplan:${match.externalMatchId}`, match);
   }
   return index;
 }
+export function resolveMeinTurnierplanFinalStandings(analysis) {
+  const ranked = new Map();
+  const teamRanks = new Map();
+  const teamKey = teamName => text(teamName).toLocaleLowerCase('de');
+  const canPlace = (rank, teamName) => Number.isSafeInteger(rank) && rank > 0 && teamName &&
+    (!ranked.has(rank) || teamKey(ranked.get(rank)) === teamKey(teamName)) &&
+    (!teamRanks.has(teamKey(teamName)) || teamRanks.get(teamKey(teamName)) === rank);
+  const place = (rank, teamName) => {
+    if (!ranked.has(rank)) ranked.set(rank, teamName);
+    teamRanks.set(teamKey(teamName), rank);
+  };
+
+  for (const row of analysis.finalStandings ?? []) {
+    const rank = Number(row.rank);
+    const teamName = text(row.teamName);
+    if (canPlace(rank, teamName)) place(rank, teamName);
+  }
+
+  if (analysis.provider === 'meinturnierplan') {
+    for (const match of analysis.rawMatches ?? []) {
+      const { homeGoals, awayGoals } = match;
+      if (match.isLive || !match.hasResult || !Number.isInteger(homeGoals) ||
+        !Number.isInteger(awayGoals) || homeGoals === awayGoals ||
+        match.homeConfirmed === false || match.awayConfirmed === false) continue;
+      const rank = match.phase === 'final' && match.roundLabel === 'Finale' ? 1
+        : match.phase === 'placement' ? Number(match.roundLabel?.match(/^Spiel um Platz (\d+)$/)?.[1]) : NaN;
+      const homeWins = homeGoals > awayGoals;
+      const winner = text(homeWins ? match.homeTeam : match.awayTeam);
+      const loser = text(homeWins ? match.awayTeam : match.homeTeam);
+      if (teamKey(winner) === teamKey(loser) || !canPlace(rank, winner) || !canPlace(rank + 1, loser)) continue;
+      place(rank, winner);
+      place(rank + 1, loser);
+    }
+  }
+
+  return [...ranked.entries()].sort(([a], [b]) => a - b).map(([rank, teamName]) => ({ rank, teamName }));
+}
+
 export function inferMeinTurnierplanPhase(mapping, a, b) {
   const round = num(mapping?.round),
     match = num(mapping?.match);
@@ -133,6 +228,24 @@ export function parseMeinTurnierplanModel(json) {
     }
     return null;
   };
+  const pitchOf = match => {
+    const court = json.courts?.[match.courtId];
+    const label = text(court?.displayId);
+    const index = text(match.courtId);
+    return label ? `Platz ${label}` : index ? `Platz ${/^\d+$/.test(index) ? num(index) + 1 : index}` : null;
+  };
+  const scheduleMeta = new Map([...(json.groupMatches ?? []), ...(json.finalMatches ?? [])].map(match => {
+    const scheduledAt = text(match.dateAndTime);
+    return [match, {
+      pitch: pitchOf(match),
+      kickoffDate: scheduledAt.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? null,
+      kickoffTimeHHmm: scheduledAt.match(/\b(\d{2}:\d{2})(?::\d{2})?$/)?.[1] ?? "",
+      isLive: providerActive(match),
+      hasResult: hasScores(match),
+    }];
+  }));
+  const superseded = supersededLiveMatches([...scheduleMeta.values()]);
+  const isActive = match => providerActive(match) && !superseded.has(scheduleMeta.get(match));
   const scored = (m) => !isActive(m) && hasScores(m);
   const sourceConfirmed = (s) => {
     if (!s) return true;
@@ -192,18 +305,22 @@ export function parseMeinTurnierplanModel(json) {
       if ((!homeTeam && !homeSource) || (!awayTeam && !awaySource)) continue;
       const isLive = isActive(m);
       const hasResult = scored(m);
-      const court = json.courts?.[m.courtId];
+      // Once a result is official, the assigned teams are known even if the
+      // provider still flags an earlier source fixture as active.
+      const homeConfirmed = Boolean(homeTeam) && (hasResult || sourceConfirmed(m.sourceTeam1));
+      const awayConfirmed = Boolean(awayTeam) && (hasResult || sourceConfirmed(m.sourceTeam2));
+      const timing = scheduleMeta.get(m);
       rawMatches.push({
         homeTeam:
-          homeTeam && sourceConfirmed(m.sourceTeam1)
+          homeConfirmed
             ? homeTeam
             : homeSource?.label || homeTeam,
         awayTeam:
-          awayTeam && sourceConfirmed(m.sourceTeam2)
+          awayConfirmed
             ? awayTeam
             : awaySource?.label || awayTeam,
-        homeConfirmed: Boolean(homeTeam) && sourceConfirmed(m.sourceTeam1),
-        awayConfirmed: Boolean(awayTeam) && sourceConfirmed(m.sourceTeam2),
+        homeConfirmed,
+        awayConfirmed,
         homeCandidates: candidates(m.sourceTeam1),
         awayCandidates: candidates(m.sourceTeam2),
         homeSource,
@@ -219,8 +336,8 @@ export function parseMeinTurnierplanModel(json) {
                 m.sourceTeam1,
                 m.sourceTeam2,
               ),
-        kickoffTimeHHmm:
-          text(m.dateAndTime).match(/\b(\d{2}:\d{2})(?::\d{2})?$/)?.[1] ?? "",
+        kickoffTimeHHmm: timing.kickoffTimeHHmm,
+        kickoffDate: timing.kickoffDate,
         plannedMinutes: Math.max(
           1,
           Math.min(
@@ -230,8 +347,10 @@ export function parseMeinTurnierplanModel(json) {
             ) || 10,
           ),
         ),
-        pitch: text(court?.displayId) ? `Platz ${text(court.displayId)}` : null,
+        pitch: timing.pitch,
         hasResult,
+        ...(hasResult && m.withPenaltyShootout === true ? { resultDecision: "shootout" }
+          : hasResult && m.withExtraTime === true ? { resultDecision: "extra_time" } : {}),
         homeGoals: hasResult ? num(m.score1) : null,
         awayGoals: hasResult ? num(m.score2) : null,
         ...(isLive ? {
@@ -248,7 +367,7 @@ export function parseMeinTurnierplanModel(json) {
             : null,
       });
     }
-  return {
+  const analysis = {
     provider: "meinturnierplan",
     tournamentName: text(json.name),
     teamCount: teams.length,
@@ -263,10 +382,11 @@ export function parseMeinTurnierplanModel(json) {
     teams,
     rawMatches,
     groupStandings,
-    finalStandings: ((json.finalMatches?.length ? json.finalMatches : json.groupMatches ?? []).every(scored) ? json.finalRankTable ?? [] : [])
+    finalStandings: (json.finalRankTable ?? [])
       .map((r) => ({ rank: num(r.rank), teamName: name(r.participant) }))
       .filter((r) => r.teamName),
     rankingRuleCode: text(json.sortCrit),
     suggestedPollingSeconds: Math.max(60, num(json.polling) || 90),
   };
+  return { ...analysis, finalStandings: resolveMeinTurnierplanFinalStandings(analysis) };
 }

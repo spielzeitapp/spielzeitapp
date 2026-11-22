@@ -815,6 +815,23 @@ export function tournamentGoalBackfillMaxMinute(match: Pick<LiveMatchRow, 'live_
   );
 }
 
+export function tournamentGoalBackfillLimit(
+  match: Pick<LiveMatchRow, 'status' | 'score_home' | 'score_away' | 'live_started_at' | 'live_elapsed_seconds'>,
+  slot: { is_own_team?: boolean | null; official_status?: string | null; home_goals?: number | null; away_goals?: number | null;
+    home_team?: string | null; away_team?: string | null; opponent_name?: string | null },
+): number | null {
+  if (slot.is_own_team === false) return null;
+  if (match.status === 'finished') return match.score_home ?? 0;
+  if (match.status !== 'upcoming' || match.live_started_at || match.live_elapsed_seconds ||
+    match.score_home || match.score_away || slot.official_status !== 'finished' ||
+    slot.home_goals == null || slot.away_goals == null || !slot.opponent_name) return null;
+  const opponent = slot.opponent_name.trim().toLowerCase();
+  const opponentHome = slot.home_team?.trim().toLowerCase() === opponent;
+  const opponentAway = slot.away_team?.trim().toLowerCase() === opponent;
+  if (opponentHome === opponentAway) return null;
+  return opponentAway ? slot.home_goals : slot.away_goals;
+}
+
 export async function saveMissingTournamentGoal(params: {
   matchId: string;
   recordedGoals: number;
@@ -825,20 +842,21 @@ export async function saveMissingTournamentGoal(params: {
   const [match, events, slot] = await Promise.all([
     fetchMatchById(matchId),
     fetchMatchEvents(matchId),
-    supabase.from('tournament_matches').select('is_own_team').eq('match_id', matchId).maybeSingle(),
+    supabase.from('tournament_matches').select('is_own_team, official_status, home_goals, away_goals, home_team, away_team, opponent_name').eq('match_id', matchId).maybeSingle(),
   ]);
   const loadError = match.error ?? events.error ?? slot.error?.message;
   if (loadError) return { id: null, error: loadError };
-  if (!slot.data || slot.data.is_own_team === false || match.data?.status !== 'finished') {
+  const goalLimit = slot.data && match.data ? tournamentGoalBackfillLimit(match.data, slot.data) : null;
+  if (goalLimit == null || !match.data) {
     return { id: null, error: 'Das eigene Turnierspiel muss beendet sein.' };
   }
 
   // Turnier-Liveticker speichern eigene Tore als `goal`, unabhängig von der Ansetzung im Spielplan.
   const ourGoals = events.data.filter((event) => event.type === 'goal').length;
-  if (ourGoals !== recordedGoals || ourGoals >= (match.data.score_home ?? 0)) {
+  if (ourGoals !== recordedGoals || ourGoals >= goalLimit) {
     return { id: null, error: 'Der Spielverlauf hat sich geändert. Bitte erneut prüfen.' };
   }
-  const maxMinute = tournamentGoalBackfillMaxMinute(match.data);
+  const maxMinute = match.data.status === 'upcoming' ? 90 : tournamentGoalBackfillMaxMinute(match.data);
   if (!Number.isInteger(minute) || minute < 1 || minute > maxMinute) {
     return { id: null, error: `Bitte eine Spielminute zwischen 1 und ${maxMinute} eingeben.` };
   }
@@ -1057,6 +1075,7 @@ export async function updateMatchRow(
   matchId: string,
   patch: Record<string, unknown>,
   expectedFinishedScore?: { home: number; away: number },
+  expectedLivePeriods?: { periodScores: unknown; elapsed: number; running: boolean; startedAt: string | null },
 ): Promise<{ error: string | null }> {
   if (isDemoTournamentMatchId(matchId)) {
     if (isDemoTournamentSeedFinishedMatchId(matchId)) {
@@ -1101,6 +1120,18 @@ export async function updateMatchRow(
 
   const writable = await assertMatchTeamSeasonWritable(matchId);
   if (!writable.ok) return { error: writable.message };
+
+  if (expectedLivePeriods) {
+    const expected = expectedLivePeriods;
+    const query = supabase.from('matches').update(patch)
+      .eq('id', matchId).eq('status', 'live')
+      .eq('live_elapsed_seconds', expected.elapsed).eq('live_is_running', expected.running)
+      .eq('period_scores', JSON.stringify(expected.periodScores ?? {}));
+    const { data, error } = await (expected.startedAt
+      ? query.eq('live_started_at', expected.startedAt)
+      : query.is('live_started_at', null)).select('id').maybeSingle();
+    return { error: error?.message ?? (data ? null : 'Das Spiel wurde inzwischen aktualisiert. Bitte erneut prüfen.') };
+  }
 
   if (expectedFinishedScore) {
     const { data, error } = await supabase.from('matches').update(patch)

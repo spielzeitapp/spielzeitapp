@@ -6,7 +6,10 @@ export function inferMeinTurnierplanPhase(
   a?: unknown,
   b?: unknown,
 ): import("../../src/lib/tournamentPlanImport").TournamentMatchPhase;
-export function meinTurnierplanLiveByMatchId(analysis: unknown): Map<
-  string | null | undefined,
-  { liveHomeGoals?: number | null; liveAwayGoals?: number | null }
->;
+export function meinTurnierplanLiveByMatchId(
+  analysis: import("../../src/lib/tournamentPlanImport").TournamentPlanAnalysis | null | undefined,
+): Map<string, import("../../src/lib/tournamentPlanImport").TournamentPlanImportRawMatch>;
+
+export function resolveMeinTurnierplanFinalStandings(
+  analysis: import("../../src/lib/tournamentPlanImport").TournamentPlanAnalysis,
+): Array<{ rank: number; teamName: string }>;

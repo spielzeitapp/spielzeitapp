@@ -1,4 +1,6 @@
 import { PublicTeamTournamentPage } from '../../pages/public/PublicTeamTournamentPage';
+import { resolveMeinTurnierplanFinalStandings } from '../../../server/lib/meinTurnierplanModel.js';
+import { TournamentFinalRanking } from './TournamentFinalRanking';
 import { tournamentTeamLogos } from '../../../server/lib/tournamentTeamLogos.js';
 import { TournamentLogoContext } from './TournamentClubLogo';
 import { fetchTournamentLineupTemplate } from '../../lib/tournamentLineupTemplates';
@@ -820,6 +822,13 @@ export const TournamentDetailSections: React.FC<Props> = ({
     });
   }, [connectedPlan, combinedStandings, groupStandings, liveGroupStandings]);
 
+  const finalRanking = useMemo(() =>
+    connectedPlan ? resolveMeinTurnierplanFinalStandings(connectedPlan.analysis) : [],
+  [connectedPlan]);
+  const finalRoundInProgress = connectedPlan?.analysis.rawMatches.some(
+    match => match.phase !== 'group' && !match.hasResult,
+  ) ?? false;
+
   const standingsLoading = groupStandingsLoading && standingsBundle.source !== 'live';
 
   const showFullStandingsTable = useCallback(() => {
@@ -1339,7 +1348,14 @@ export const TournamentDetailSections: React.FC<Props> = ({
           onDelete={!tournamentCanceled && slot.match_id ? () => void handleRemoveSlot(slot.match_id!) : undefined}/>) }
         {!tournamentCanceled ? <button type="button" className={addButtonClass} onClick={openMatchModal}><Plus className="h-4 w-4"/>Turnierspiel hinzufügen</button> : null}
       </div> : null}
-      {canManage && activeTab === 'table' ? <TournamentTableTab bundle={standingsBundle} loading={standingsLoading} /> : null}
+      {canManage && activeTab === 'table' ? (
+        <TournamentTableTab bundle={standingsBundle} loading={standingsLoading} finalRanking={
+          finalRanking.length ? (
+            <TournamentFinalRanking variant="app" ranking={finalRanking} inProgress={finalRoundInProgress}
+              logos={tournamentTeamLogos(connectedPlan?.analysis)} ownName={connectedPlan?.own_team_name || ourTeamName} />
+          ) : null
+        } />
+      ) : null}
 
       {canManage && activeTab === 'teams' ? (
         <div className={`flex flex-col ${TC_STACK_GAP}`}>

@@ -11,14 +11,15 @@ import { TournamentStandingsGroupList } from './TournamentStandingsGroupList';
 type Props = {
   bundle: TournamentStandingsBundle;
   loading?: boolean;
+  finalRanking?: React.ReactNode;
 };
 
-export function TournamentTableTab({ bundle, loading = false }: Props) {
+export function TournamentTableTab({ bundle, loading = false, finalRanking }: Props) {
   const sourceHint = tournamentStandingsSourceHint(bundle.source);
   const hasStandings = bundle.groups.length > 0;
 
   if (loading && !hasStandings) {
-    return (
+    return finalRanking ?? (
       <section className={TC_CARD}>
         <div className={TC_CARD_INNER}>
           <p className="text-[14px] text-white/55">Gruppentabelle wird geladen…</p>
@@ -28,7 +29,7 @@ export function TournamentTableTab({ bundle, loading = false }: Props) {
   }
 
   if (!hasStandings) {
-    return (
+    return finalRanking ?? (
       <CenterEmptyState
         icon={ListOrdered}
         title="Keine Tabelle verfügbar"
@@ -39,6 +40,7 @@ export function TournamentTableTab({ bundle, loading = false }: Props) {
 
   return (
     <div className="flex flex-col gap-2">
+      {finalRanking}
       {sourceHint ? (
         <p className="px-0.5 text-[11px] leading-snug text-white/45">{sourceHint}</p>
       ) : null}

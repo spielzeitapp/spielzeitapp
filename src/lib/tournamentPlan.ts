@@ -805,7 +805,7 @@ export async function fetchTournamentMatchSlots(
     const slot = mapFetchedMatchSlotRow(row);
     const pairing = ownPairings.get(slot.external_match_id ?? '');
     const displaySlot = !slot.match_id && pairing ? { ...slot, official_own_pairing: pairing } : slot;
-    const live = liveByMatch.get(slot.external_match_id);
+    const live = liveByMatch.get(slot.external_match_id ?? '');
     if (!live) return displaySlot;
     return {
       ...displaySlot,

@@ -68,7 +68,8 @@ function TournamentMatchupCard({
   const isLive = status === 'Live';
 
   return (
-    <section aria-label={status ? `${title} · ${isLive ? 'Jetzt live' : status}` : title} className="mt-2 mb-3 rounded-2xl border border-white/15 bg-[linear-gradient(135deg,rgb(var(--match-primary)),#0a0a0e_70%)] px-3 py-4 text-white">
+    <section aria-label={status ? `${title} · ${isLive ? 'Jetzt live' : status}` : title} className="relative isolate mt-2 mb-3 w-full overflow-hidden rounded-2xl border sz-club-schedule-hero-card px-3 py-4 text-white sm:px-4">
+      <div className="sz-club-schedule-match-lines pointer-events-none absolute inset-0 -z-10" aria-hidden="true" />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-bold">{title}</p>
         {status === 'Jetzt laut Spielplan' ? (
@@ -215,7 +216,7 @@ export function MatchCenterTournamentCard({
     : undefined;
 
   return (
-    <article style={club.style} className="relative overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--quiet">
+    <article style={club.style} className={hasTournamentStarted ? 'min-w-0 w-full' : 'relative overflow-hidden rounded-2xl border sz-club-surface sz-club-surface--quiet'}>
       {!hasTournamentStarted ? (
         <TournamentCompactCard
           title={title}
@@ -227,7 +228,7 @@ export function MatchCenterTournamentCard({
         />
       ) : null}
 
-      <div className="relative bg-[#060608] px-3 pb-2 pt-0.5 sm:px-4 sm:pb-2">
+      <div className={hasTournamentStarted ? 'min-w-0 w-full pb-2' : 'relative bg-[#060608] px-3 pb-2 pt-0.5 sm:px-4'}>
         {currentMatch ? (
           <TournamentMatchupCard
             slot={currentMatch.slot}

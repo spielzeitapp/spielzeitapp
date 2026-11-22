@@ -16,6 +16,7 @@ import {
 import { demoFixtures } from '../demo/demoFixtures';
 
 export type TournamentMatchNavigationContext = {
+  currentSlot?: TournamentMatchSlotView;
   tournamentEventId: string;
   tournamentTitle: string;
   nextSlot: TournamentMatchSlotView | null;
@@ -37,6 +38,7 @@ export async function fetchTournamentMatchNavigationContext(
       afterMatchId: options?.afterCurrentMatch ? id : null,
     });
     return {
+      currentSlot: slots.find(slot => slot.match_id === id),
       tournamentEventId: demoTournamentEventId,
       tournamentTitle: demoFixtures.tournament.name,
       nextSlot,
@@ -80,6 +82,7 @@ export async function fetchTournamentMatchNavigationContext(
   });
 
   return {
+    currentSlot: slots.find(slot => slot.match_id === id),
     tournamentEventId,
     tournamentTitle,
     nextSlot,

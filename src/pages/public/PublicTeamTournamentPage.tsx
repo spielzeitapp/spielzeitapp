@@ -17,6 +17,14 @@ import {
 } from '../../lib/publicTeamTournament';
 import { TournamentClubLogo } from '../../components/tournament/TournamentClubLogo';
 
+function compareFixtureKickoff(
+  a: { kickoffAt?: string | null; time: string },
+  b: { kickoffAt?: string | null; time: string },
+) {
+  const difference = Date.parse(a.kickoffAt ?? '') - Date.parse(b.kickoffAt ?? '');
+  return Number.isFinite(difference) ? difference : a.time.localeCompare(b.time);
+}
+
 function PublicKickoffCountdown({ kickoffAt }: { kickoffAt: string }) {
   const [now, setNow] = useState(Date.now);
   const remaining = Math.ceil((Date.parse(kickoffAt) - now) / 1000);
@@ -124,15 +132,42 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const now = Date.now();
   const ownLive = groupedMatches.live[0];
   const nextOwn = groupedMatches.upcoming.find(match => Date.parse(match.kickoffAt) > now);
-  const featuredMatch = tab === 'ours' ? ownLive ?? nextOwn : undefined;
   const schedule = page?.schedule ?? [];
+  const finalRanking = page?.finalRanking?.length ? (
+    <TournamentFinalRanking ranking={page.finalRanking} logos={page.teamLogos}
+      ownName={page.ownParticipantName || page.teamName} ownLogo={page.teamLogoUrl}
+      inProgress={schedule.some(match => match.phase !== 'group' && (match.status === 'live' || match.status === 'upcoming'))} />
+  ) : null;
+  const isOwnScheduleFixture = (fixture: PublicTournamentScheduleFixture) =>
+    Boolean(page?.ownParticipantName && [
+      fixture.homeProjection ?? fixture.homeTeam,
+      fixture.awayProjection ?? fixture.awayTeam,
+    ].includes(page.ownParticipantName));
   const ownMatchForFixture = (fixture: PublicTournamentScheduleFixture) => {
-    if (!page?.ownParticipantName ||
-      (fixture.homeTeam !== page.ownParticipantName && fixture.awayTeam !== page.ownParticipantName)) return undefined;
+    if (!page || !isOwnScheduleFixture(fixture)) return undefined;
     return page.allMatches.find(match => fixture.kickoffAt
       ? match.kickoffAt === fixture.kickoffAt || Date.parse(match.kickoffAt) === Date.parse(fixture.kickoffAt)
       : match.kickoffTimeLabel === fixture.time);
   };
+  const unlinkedOwnFixtures = tab === 'ours' ? schedule.filter(fixture =>
+    isOwnScheduleFixture(fixture) && !ownMatchForFixture(fixture) && fixture.status !== 'canceled',
+  ) : [];
+  const ownScheduledResults = unlinkedOwnFixtures.filter(fixture =>
+    fixture.status === 'finished' || (fixture.homeGoals != null && fixture.awayGoals != null),
+  );
+  const ownScheduledOpen = unlinkedOwnFixtures.filter(fixture => !ownScheduledResults.includes(fixture));
+  const isWithinScheduledMatch = (fixture: PublicTournamentScheduleFixture) => {
+    const kickoff = Date.parse(fixture.kickoffAt ?? '');
+    return kickoff <= now && now < kickoff + (fixture.plannedMinutes ?? 0) * 60_000;
+  };
+  const nextScheduledOwn = [...ownScheduledOpen]
+    .sort(compareFixtureKickoff)
+    .find(fixture => Date.parse(fixture.kickoffAt ?? '') > now);
+  const featuredOwnFixture = ownLive ? undefined : ownScheduledOpen.find(fixture => fixture.status === 'live') ??
+    ownScheduledOpen.find(isWithinScheduledMatch) ??
+    (nextScheduledOwn && (!nextOwn || Date.parse(nextScheduledOwn.kickoffAt ?? '') < Date.parse(nextOwn.kickoffAt))
+      ? nextScheduledOwn : undefined);
+  const featuredMatch = tab === 'ours' && !featuredOwnFixture ? ownLive ?? nextOwn : undefined;
   const externalLiveFixtures = tab === 'games' ? schedule.filter(fixture => {
     if (fixture.status !== 'live') return false;
     const own = ownMatchForFixture(fixture);
@@ -164,8 +199,10 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const renderScheduledFixture = (fixture: NonNullable<PublicTeamTournamentPageDto['schedule']>[number], index: number) => {
     if (!page) return null;
     const own = ownMatchForFixture(fixture);
-    const ownHome = fixture.homeTeam === page.ownParticipantName;
-    const status = own?.status === 'live' || own?.status === 'finished' ? own.status : fixture.status;
+    const ownHome = (fixture.homeProjection ?? fixture.homeTeam) === page.ownParticipantName;
+    const isFeatured = fixture === featuredOwnFixture;
+    const status = own?.status === 'live' || own?.status === 'finished' ? own.status
+      : isFeatured && fixture.status !== 'live' && isWithinScheduledMatch(fixture) ? 'scheduled-live' : fixture.status;
     const ownScore = own && (own.status === 'live' || own.status === 'finished');
     const hg = ownScore ? (ownHome ? own.scoreOur : own.scoreOpp) : status === 'live' ? fixture.liveHomeGoals ?? null : fixture.homeGoals;
     const ag = ownScore ? (ownHome ? own.scoreOpp : own.scoreOur) : status === 'live' ? fixture.liveAwayGoals ?? null : fixture.awayGoals;
@@ -174,12 +211,13 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
       : fixture.phase === 'semifinal' ? 'Halbfinale' : fixture.phase === 'placement' ? 'Platzierungsspiel' : 'Turnierspiel');
     const content = <>
       <TournamentFanFixture
-        prominent={externalLiveFixtures.includes(fixture)}
+        prominent={isFeatured || externalLiveFixtures.includes(fixture)}
         home={fixture.homeProjection ?? fixture.homeTeam}
         away={fixture.awayProjection ?? fixture.awayTeam}
         homeGoals={hg}
         awayGoals={ag}
         status={status}
+        officialDecision={fixture.resultDecision}
         time={fixture.time}
         phase={phaseLabel}
         logos={page.teamLogos}
@@ -192,6 +230,9 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
           Vorläufig · {fixture.homeTeam} gegen {fixture.awayTeam}
         </p>
       ) : null}
+      {isFeatured && status === 'upcoming' && fixture.kickoffAt ? (
+        <PublicKickoffCountdown key={fixture.kickoffAt} kickoffAt={fixture.kickoffAt} />
+      ) : null}
     </>;
     return own ? <Link key={fixture.id || index} to={`?spiel=${encodeURIComponent(own.id)}`} className="block rounded-xl" aria-label={`${own.opponentName} · Zum Spiel, Aufstellung und Spielverlauf`}>{content}</Link> : <React.Fragment key={fixture.id || index}>{content}</React.Fragment>;
 
@@ -200,6 +241,16 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
     ...groupedMatches.live.map(match => ({ time: match.kickoffTimeLabel, card: renderOwnCard(match, true) })),
     ...externalLiveFixtures.map((fixture, index) => ({ time: fixture.time, card: renderScheduledFixture(fixture, index) })),
   ].sort((a, b) => a.time.localeCompare(b.time)) : [];
+  const remainingOwnCards = tab === 'ours' ? [
+    ...groupedMatches.upcoming.filter(match => match !== featuredMatch)
+      .map(match => ({ kickoffAt: match.kickoffAt, time: match.kickoffTimeLabel, card: renderOwnCard(match) })),
+    ...ownScheduledOpen.filter(fixture => fixture !== featuredOwnFixture)
+      .map((fixture, index) => ({ kickoffAt: fixture.kickoffAt, time: fixture.time, card: renderScheduledFixture(fixture, index) })),
+  ].sort(compareFixtureKickoff) : [];
+  const ownResultCards = tab === 'ours' ? [
+    ...groupedMatches.results.map(match => ({ kickoffAt: match.kickoffAt, time: match.kickoffTimeLabel, card: renderOwnCard(match) })),
+    ...ownScheduledResults.map((fixture, index) => ({ kickoffAt: fixture.kickoffAt, time: fixture.time, card: renderScheduledFixture(fixture, index) })),
+  ].sort((a, b) => compareFixtureKickoff(b, a)) : [];
   const presentationMode=searchParams.get('modus');
   if(!embedded && page && (presentationMode==='screen'||presentationMode==='print')) return <TournamentPresentation page={page} mode={presentationMode} error={error}/>;
   const ContentTag=embedded?'div':'main';
@@ -267,28 +318,42 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
           </section>
         ) : null}
         {featuredMatch ? <section aria-label={featuredMatch.status==='live'?'Aktuelles Livespiel':'Nächstes eigenes Spiel'}>{renderOwnCard(featuredMatch,true)}</section> : null}
+        {featuredOwnFixture ? (
+          <section aria-label={featuredOwnFixture.status === 'live' || isWithinScheduledMatch(featuredOwnFixture) ? 'Aktuelles Spiel' : 'Nächstes eigenes Spiel'}>
+            {renderScheduledFixture(featuredOwnFixture, 0)}
+          </section>
+        ) : null}
         <nav aria-label="Turnierbereiche" className="space-y-1 rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-1">
           <div className="grid grid-cols-2 gap-1 sm:grid-cols-4" role="group" aria-label="Spiele und Tabelle">{[['ours','Unsere Spiele'],['games','Alle Spiele'],['ticker','Liveticker'],['tables','Tabellen']].map(([id,label])=><button key={id} type="button" aria-pressed={tab===id} onClick={()=>setTab(id)} className={`min-h-11 min-w-0 rounded-xl px-2 text-sm font-bold ${tab===id?'bg-[var(--t-accent)] text-white':'text-[var(--t-muted)]'}`}>{label}</button>)}</div>
           <div className="grid grid-cols-3 gap-1 border-t border-[var(--t-border)] pt-1" role="group" aria-label="Finalrunde, Torschützen und Mannschaft">{[['final','Finalrunde'],['scorers','Torschützen'],['roster','Unser Team']].map(([id,label])=><button key={id} type="button" aria-pressed={tab===id} onClick={()=>setTab(id)} className={`min-h-11 min-w-0 rounded-xl px-1 text-[13px] font-bold sm:text-sm ${tab===id?'bg-[var(--t-accent)] text-white':'text-[var(--t-muted)]'}`}>{label}</button>)}</div>
         </nav>
         {tab==='ours'? <section className="space-y-4">
-          {groupedMatches.upcoming.some(m=>m.id!==featuredMatch?.id) ? <div className="space-y-2"><h2 className={heading}>{featuredMatch?.status==='live'?'Danach':'Weitere Spiele'}</h2>{groupedMatches.upcoming.filter(m=>m.id!==featuredMatch?.id).map(m=>renderOwnCard(m))}</div> : groupedMatches.live.length ? null : page.allMatches.length ? <p className="text-sm text-[var(--t-muted)]">Keine weiteren Spiele geplant.</p> : <>{(page.schedule ?? []).filter(m=>m.homeTeam===page.ownParticipantName || m.awayTeam===page.ownParticipantName).map(renderScheduledFixture)}{!(page.schedule ?? []).some(m=>m.homeTeam===page.ownParticipantName || m.awayTeam===page.ownParticipantName)?<p className={card}>Unsere Mannschaft ist noch nicht zugeordnet.</p>:null}</>}
-          {groupedMatches.results.length ? (
+          {remainingOwnCards.length ? (
+            <div className="space-y-2">
+              <h2 className={heading}>{featuredMatch?.status === 'live' || featuredOwnFixture?.status === 'live' ? 'Danach' : 'Weitere Spiele'}</h2>
+              {remainingOwnCards.map(entry => entry.card)}
+            </div>
+          ) : !featuredMatch && !featuredOwnFixture ? (
+            <p className={page.allMatches.length || unlinkedOwnFixtures.length ? 'text-sm text-[var(--t-muted)]' : card}>
+              {page.allMatches.length || unlinkedOwnFixtures.length ? 'Keine weiteren Spiele geplant.' : 'Unsere Mannschaft ist noch nicht zugeordnet.'}
+            </p>
+          ) : null}
+          {ownResultCards.length ? (
             <div className="space-y-3">
               <h2 className={heading}>Ergebnisse</h2>
-              {groupedMatches.results.map(match => renderOwnCard(match))}
+              {ownResultCards.map(entry => entry.card)}
             </div>
           ) : null}
           {groupedMatches.canceled.length ? <details><summary className="cursor-pointer py-2 text-sm text-[var(--t-muted)]">Abgesagte Spiele · {groupedMatches.canceled.length}</summary><div className="space-y-2">{groupedMatches.canceled.map(m=>renderOwnCard(m))}</div></details> : null}
         </section> : null}
 
-        {tab==='tables'?<>{!(page.groupTables?.length)?<p className={card}>Noch keine Gruppentabellen vorhanden.</p>:page.groupTables.map(g=><section className={card} key={g.groupLabel}><h2 className={heading}>Gruppe {g.groupLabel}</h2><table className="w-full table-fixed text-[15px]"><thead className="text-xs text-[var(--t-muted)]"><tr><th className="w-7 py-2 text-left">#</th><th className="text-left">Mannschaft</th><th className="w-8">Sp.</th><th className="w-12">Tore</th><th className="w-9">Pkt.</th></tr></thead><tbody>{g.rows.map(r=><tr key={r.teamName} className="border-t border-[var(--t-border)]"><td className="py-3 font-bold">{r.rank || '–'}</td><td className="py-3 pr-2 font-semibold break-words"><span className="flex items-center gap-2">{<FanTeamLogo name={r.teamName} logos={page.teamLogos} ownName={page.ownParticipantName} ownLogo={page.teamLogoUrl} small/>}{r.teamName}</span></td><td className="text-center tabular-nums">{r.played}</td><td className="text-center tabular-nums">{r.goalsFor}:{r.goalsAgainst}</td><td className="text-center font-extrabold tabular-nums">{r.points}</td></tr>)}</tbody></table></section>)}<p className="text-sm text-[var(--t-muted)]">{page.standingsProvisional ? 'Vorläufig · eigene abgeschlossene Spiele und Veranstalterergebnisse berücksichtigt. Sortierung: Punkte, Tordifferenz, erzielte Tore; die offizielle Platzierung kann bei Gleichstand abweichen.' : 'Veranstaltertabelle'}</p></>:null}
+        {tab==='tables'?<>{finalRanking}{!(page.groupTables?.length)?<p className={card}>Noch keine Gruppentabellen vorhanden.</p>:page.groupTables.map(g=><section className={card} key={g.groupLabel}><h2 className={heading}>Gruppe {g.groupLabel}</h2><table className="w-full table-fixed text-[15px]"><thead className="text-xs text-[var(--t-muted)]"><tr><th className="w-7 py-2 text-left">#</th><th className="text-left">Mannschaft</th><th className="w-8">Sp.</th><th className="w-12">Tore</th><th className="w-9">Pkt.</th></tr></thead><tbody>{g.rows.map(r=><tr key={r.teamName} className="border-t border-[var(--t-border)]"><td className="py-3 font-bold">{r.rank || '–'}</td><td className="py-3 pr-2 font-semibold break-words"><span className="flex items-center gap-2">{<FanTeamLogo name={r.teamName} logos={page.teamLogos} ownName={page.ownParticipantName} ownLogo={page.teamLogoUrl} small/>}{r.teamName}</span></td><td className="text-center tabular-nums">{r.played}</td><td className="text-center tabular-nums">{r.goalsFor}:{r.goalsAgainst}</td><td className="text-center font-extrabold tabular-nums">{r.points}</td></tr>)}</tbody></table></section>)}<p className="text-sm text-[var(--t-muted)]">{page.standingsProvisional ? 'Vorläufig · eigene abgeschlossene Spiele und Veranstalterergebnisse berücksichtigt. Sortierung: Punkte, Tordifferenz, erzielte Tore; die offizielle Platzierung kann bei Gleichstand abweichen.' : 'Veranstaltertabelle'}</p></>:null}
         {tab==='games'||tab==='final'? <section className="space-y-4"><h2 className={heading}>{tab==='final'?'Final- und Platzierungsspiele':'Spielplan & Ergebnisse'}</h2>
           {tab==='games'?<><div className="grid grid-cols-2 gap-2 rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-1" role="group" aria-label="Spielplan oder Ergebnisse">{([['upcoming','Spielplan',scheduledUpcoming.length],['results','Ergebnisse',scheduledResults.length]] as const).map(([value,label,count])=><button key={value} type="button" aria-pressed={scheduleView===value} onClick={()=>setScheduleView(value)} className={`min-h-11 rounded-xl px-2 text-sm font-bold ${scheduleView===value?'bg-[var(--t-accent)] text-white':'text-[var(--t-muted)]'}`}>{label} · {count}</button>)}</div>{scheduleView==='upcoming'?(scheduledUpcoming.length?scheduledUpcoming.map(renderScheduledFixture):<p className={card}>Keine weiteren Spiele geplant.</p>):(scheduledResults.length?scheduledResults.map(renderScheduledFixture):<p className={card}>Noch keine Ergebnisse vorhanden.</p>)}</>:!fixtures.length?<p className={card}>Noch keine Spiele hinterlegt.</p>:<>{scheduledUpcoming.map(renderScheduledFixture)}{scheduledResults.map(renderScheduledFixture)}</>}
-          {tab==='final'&&page.finalRanking?.length?<TournamentFinalRanking ranking={page.finalRanking} logos={page.teamLogos} ownName={page.ownParticipantName || page.teamName} ownLogo={page.teamLogoUrl}/>:null}</section>:null}
+          {tab==='final'?finalRanking:null}</section>:null}
 
 
-        {tab==='ticker'?<section className="space-y-4"><h2 className={heading}>Unser Turnier-Liveticker</h2>{groupedMatches.live.map(m=><PublicTournamentMatchView key={m.id} timelineOnly page={page} match={m} view="ticker" onView={view=>setSearchParams({spiel:m.id,ansicht:view})}/>)}{groupedMatches.results.map(m=><details key={m.id} className="overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)]"><summary className="cursor-pointer list-none"><TournamentFanFixture home={page.ownParticipantName || m.ourTeamName} away={m.opponentName} status={m.status} homeGoals={m.scoreOur} awayGoals={m.scoreOpp} time={m.kickoffTimeLabel} phase={m.groupLabel?`Gruppe ${m.groupLabel}`:'Turnierspiel'} logos={page.teamLogos} ownName={page.ownParticipantName} ownLogo={page.teamLogoUrl}/><span className="block border-t border-[var(--t-border)] px-4 py-3 text-sm font-bold text-[var(--t-accent)]">Spielverlauf aufklappen ⌄</span></summary><PublicTournamentMatchView timelineOnly page={page} match={m} view="ticker" onView={view=>setSearchParams({spiel:m.id,ansicht:view})}/></details>)}{!groupedMatches.live.length&&!groupedMatches.results.length?<p className={card}>Noch keine Spiele mitgetickert.</p>:null}</section>:null}
+        {tab==='ticker'?<section className="space-y-4"><h2 className={heading}>Unser Turnier-Liveticker</h2>{groupedMatches.live.map(m=><PublicTournamentMatchView key={m.id} timelineOnly page={page} match={m} view="ticker" onView={view=>setSearchParams({spiel:m.id,ansicht:view})}/>)}{groupedMatches.results.map(m=><details key={m.id} className="overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)]"><summary className="cursor-pointer list-none"><TournamentFanFixture home={page.ownParticipantName || m.ourTeamName} away={m.opponentName} status={m.status} clock={page.matchDetails?.find(d=>d.id===m.id)} homeGoals={m.scoreOur} awayGoals={m.scoreOpp} time={m.kickoffTimeLabel} phase={m.groupLabel?`Gruppe ${m.groupLabel}`:'Turnierspiel'} logos={page.teamLogos} ownName={page.ownParticipantName} ownLogo={page.teamLogoUrl}/><span className="block border-t border-[var(--t-border)] px-4 py-3 text-sm font-bold text-[var(--t-accent)]">Spielverlauf aufklappen ⌄</span></summary><PublicTournamentMatchView timelineOnly page={page} match={m} view="ticker" onView={view=>setSearchParams({spiel:m.id,ansicht:view})}/></details>)}{!groupedMatches.live.length&&!groupedMatches.results.length?<p className={card}>Noch keine Spiele mitgetickert.</p>:null}</section>:null}
 
         {tab==='scorers'?<section className={card}><h2 className={heading}>Unsere Torschützenliste</h2>{page.scorers?.some(s=>s.example)?<p className="mb-3 text-sm text-[var(--t-warning)]">TEST-Beispieldaten aus unserem Kader – keine bestätigten historischen Torschützen.</p>:null}{scorerTotals.length?<ol className="space-y-3">{scorerTotals.map((s,i)=><li key={s.name}><TournamentFanPlayerCard player={profileFor(s.name)} clubName={page.ownParticipantName || page.teamName} clubLogo={page.teamLogoUrl} goals={s.goals} rank={i+1}/></li>)}</ol>:<p>Noch keine Torschützen erfasst.</p>}</section>:null}
         {tab==='roster'?<section className={card}><h2 className={heading}>Unser Team</h2>{page.fanRosterExample?<p className="mb-3 text-sm text-[var(--t-muted)]">TEST-Beispiel mit Bildern und Nummern aus unserem aktuellen Kader.</p>:null}{rosterPlayers.length?<ul className="space-y-3">{rosterPlayers.map(player=><li key={player.name}><TournamentFanPlayerCard player={player} clubName={page.ownParticipantName || page.teamName} clubLogo={page.teamLogoUrl}/></li>)}</ul>:<p>Der Turnierkader ist noch nicht festgelegt.</p>}</section>:null}
