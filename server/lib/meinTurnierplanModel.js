@@ -72,6 +72,44 @@ export function meinTurnierplanLiveByMatchId(analysis) {
   }
   return index;
 }
+export function resolveMeinTurnierplanFinalStandings(analysis) {
+  const ranked = new Map();
+  const teamRanks = new Map();
+  const teamKey = teamName => text(teamName).toLocaleLowerCase('de');
+  const canPlace = (rank, teamName) => Number.isSafeInteger(rank) && rank > 0 && teamName &&
+    (!ranked.has(rank) || teamKey(ranked.get(rank)) === teamKey(teamName)) &&
+    (!teamRanks.has(teamKey(teamName)) || teamRanks.get(teamKey(teamName)) === rank);
+  const place = (rank, teamName) => {
+    if (!ranked.has(rank)) ranked.set(rank, teamName);
+    teamRanks.set(teamKey(teamName), rank);
+  };
+
+  for (const row of analysis.finalStandings ?? []) {
+    const rank = Number(row.rank);
+    const teamName = text(row.teamName);
+    if (canPlace(rank, teamName)) place(rank, teamName);
+  }
+
+  if (analysis.provider === 'meinturnierplan') {
+    for (const match of analysis.rawMatches ?? []) {
+      const { homeGoals, awayGoals } = match;
+      if (match.isLive || !match.hasResult || !Number.isInteger(homeGoals) ||
+        !Number.isInteger(awayGoals) || homeGoals === awayGoals ||
+        match.homeConfirmed === false || match.awayConfirmed === false) continue;
+      const rank = match.phase === 'final' && match.roundLabel === 'Finale' ? 1
+        : match.phase === 'placement' ? Number(match.roundLabel?.match(/^Spiel um Platz (\d+)$/)?.[1]) : NaN;
+      const homeWins = homeGoals > awayGoals;
+      const winner = text(homeWins ? match.homeTeam : match.awayTeam);
+      const loser = text(homeWins ? match.awayTeam : match.homeTeam);
+      if (teamKey(winner) === teamKey(loser) || !canPlace(rank, winner) || !canPlace(rank + 1, loser)) continue;
+      place(rank, winner);
+      place(rank + 1, loser);
+    }
+  }
+
+  return [...ranked.entries()].sort(([a], [b]) => a - b).map(([rank, teamName]) => ({ rank, teamName }));
+}
+
 export function inferMeinTurnierplanPhase(mapping, a, b) {
   const round = num(mapping?.round),
     match = num(mapping?.match);
@@ -329,7 +367,7 @@ export function parseMeinTurnierplanModel(json) {
             : null,
       });
     }
-  return {
+  const analysis = {
     provider: "meinturnierplan",
     tournamentName: text(json.name),
     teamCount: teams.length,
@@ -344,10 +382,11 @@ export function parseMeinTurnierplanModel(json) {
     teams,
     rawMatches,
     groupStandings,
-    finalStandings: ((json.finalMatches?.length ? json.finalMatches : json.groupMatches ?? []).every(scored) ? json.finalRankTable ?? [] : [])
+    finalStandings: (json.finalRankTable ?? [])
       .map((r) => ({ rank: num(r.rank), teamName: name(r.participant) }))
       .filter((r) => r.teamName),
     rankingRuleCode: text(json.sortCrit),
     suggestedPollingSeconds: Math.max(60, num(json.polling) || 90),
   };
+  return { ...analysis, finalStandings: resolveMeinTurnierplanFinalStandings(analysis) };
 }

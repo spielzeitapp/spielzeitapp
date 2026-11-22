@@ -2,7 +2,7 @@ import { publicTournamentStandings } from './publicTournamentStandings.js';
 import { resolveTournamentOwnTeam } from './tournamentOwnTeam.js';
 import { tournamentTeamLogos } from './tournamentTeamLogos.js';
 import { buildPublicTournamentMatchDetails } from './publicTournamentMatchDetails.js';
-import { meinTurnierplanLiveByMatchId, normalizeMeinTurnierplanLiveMatches, supersededLiveMatches } from './meinTurnierplanModel.js';
+import { meinTurnierplanLiveByMatchId, normalizeMeinTurnierplanLiveMatches, resolveMeinTurnierplanFinalStandings, supersededLiveMatches } from './meinTurnierplanModel.js';
 /**
  * Service-role loader for public team tournament page (TURNIER.1).
  * Does not open RLS — returns a sanitized DTO only.
@@ -218,7 +218,7 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
     slots: enriched,
   });
 
-  dto.finalRanking = (analysis.finalStandings ?? []).map(r => ({rank:Number(r.rank),teamName:String(r.teamName)}));
+  dto.finalRanking = resolveMeinTurnierplanFinalStandings(analysis);
   const slotsByExternalId = new Map(slots.map(slot => [slot.external_match_id, slot]));
   dto.schedule = (analysis.rawMatches ?? []).map(m => {
     const id = String(m.externalMatchId ?? '');
