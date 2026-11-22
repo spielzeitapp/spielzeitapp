@@ -239,7 +239,9 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
   );
   const nextOwnSlot = useMemo(() => {
     if (!activeTournamentDay || tournamentCompleted || awaitingNext) return null;
-    return pickNextOpenTournamentSlot(ownSlots.filter(isOwnPlayableTournamentSlot));
+    return pickNextOpenTournamentSlot(ownSlots.filter((slot) =>
+      isOwnPlayableTournamentSlot(slot) && slot.match_status !== 'live',
+    ));
   }, [activeTournamentDay, tournamentCompleted, awaitingNext, ownSlots]);
 
   const liveDayMode = activeTournamentDay

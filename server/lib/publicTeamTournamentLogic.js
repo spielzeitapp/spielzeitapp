@@ -148,12 +148,13 @@ export function toPublicMatchDto(slot, ourTeamName) {
   const our = normalizeOefbImportedTeamName(ourTeamName) || 'Unser Team';
   const opp = String(slot.opponent_name ?? slot.opponentName ?? '').trim() || 'Gegner';
   const status = normalizeMatchStatus(slot.match_status ?? slot.status);
+  const hasOrganizerScore = !slot.organizer_live || (slot.score_home != null && slot.score_away != null);
   const scoreOur =
-    status === 'finished' || status === 'live'
+    (status === 'finished' || status === 'live') && hasOrganizerScore
       ? Number(slot.score_home ?? slot.scoreOur ?? 0)
       : null;
   const scoreOpp =
-    status === 'finished' || status === 'live'
+    (status === 'finished' || status === 'live') && hasOrganizerScore
       ? Number(slot.score_away ?? slot.scoreOpp ?? 0)
       : null;
   return {

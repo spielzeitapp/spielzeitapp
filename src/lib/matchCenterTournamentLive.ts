@@ -62,7 +62,7 @@ export function pickTournamentEventsForLiveScan(events: EventRow[], now: Date): 
 export function pickLiveTournamentSlot(slots: TournamentMatchSlotView[]): TournamentMatchSlotView | null {
   return (
     slots.find(
-      (s) => isOwnPlayableTournamentSlot(s) && (s.match_status ?? '').toLowerCase() === 'live',
+      (s) => isOwnPlayableTournamentSlot(s) && s.result_source !== 'official' && (s.match_status ?? '').toLowerCase() === 'live',
     ) ?? null
   );
 }
