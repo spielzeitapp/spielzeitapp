@@ -1,4 +1,5 @@
-export const EXCHANGE_MAIN_CATEGORIES = ['T-Shirt','Hose','Pulli','Trainingsanzug','Jacke','Schuhe','Zubehör','Sonstiges'];
+export const EXCHANGE_CLOTHING_CATEGORIES = ['T-Shirt','Hose','Pulli','Trainingsanzug','Jacke'];
+export const EXCHANGE_MAIN_CATEGORIES = [...EXCHANGE_CLOTHING_CATEGORIES,'Schuhe','Zubehör','Sonstiges'];
 export const EXCHANGE_SHOE_TYPES = ['Fußballschuhe','Hallenschuhe','Laufschuhe'];
 export const EXCHANGE_ACCESSORIES = ['Schienbeinschoner','Torwarthandschuhe','Sporttaschen','Rucksäcke','Bälle','Trinkflaschen','Trainingszubehör'];
 export const EXCHANGE_CATEGORIES = [...EXCHANGE_MAIN_CATEGORIES,...EXCHANGE_SHOE_TYPES,...EXCHANGE_ACCESSORIES];
@@ -6,7 +7,7 @@ export const isExchangeShoe=(category:string)=>category==='Schuhe'||EXCHANGE_SHO
 export const isExchangeAccessory=(category:string)=>category==='Zubehör'||EXCHANGE_ACCESSORIES.includes(category);
 export const exchangeSizeSystem=(category:string)=>isExchangeShoe(category)?'shoes':category==='Bälle'?'balls':category==='Torwarthandschuhe'?'gloves':isExchangeAccessory(category)?'accessory':'clothes';
 export const exchangeCategoryGroup=(category:string)=>isExchangeShoe(category)?'Schuhe':isExchangeAccessory(category)?'Zubehör':category;
-export const matchesExchangeCategory=(category:string,filter:string)=>!filter||category===filter||(filter==='Schuhe'&&isExchangeShoe(category))||(filter==='Zubehör'&&(isExchangeAccessory(category)||category==='Sonstiges'));
+export const matchesExchangeCategory=(category:string,filter:string)=>!filter||category===filter||(filter==='Bekleidung'&&EXCHANGE_CLOTHING_CATEGORIES.includes(category))||(filter==='Schuhe'&&isExchangeShoe(category))||(filter==='Zubehör'&&(isExchangeAccessory(category)||category==='Sonstiges'));
 export const CLOTHING_SIZES = ['92','98','104','110','116','122','128','134','140','146','152','158','164','170','176','XS','S','M','L','XL','XXL'];
 export const SHOE_SIZES = Array.from({length:22},(_,i)=>String(i+25));
 export type ExchangeFilters = { category: string; size: string; team: string; offer: string };

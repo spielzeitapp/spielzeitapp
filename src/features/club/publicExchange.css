@@ -219,3 +219,8 @@ html[data-market-theme=light] .public-exchange .public-market-filter-trigger{bac
 .exchange-filter-sort select{width:100%;min-height:48px;padding:10px 12px;border:1px solid #ffffff25;border-radius:12px;background:#171318;color:#f6f5f7;font:inherit}
 html[data-market-theme=light] .exchange-filter-sort select{background:#fff;color:#211d25;border-color:#d6ceda}
 @media(max-width:370px){.public-exchange .public-market-filter-trigger{width:52px;padding:0}.public-market-filter-trigger>span{display:none}}
+
+.public-market-categories button[aria-pressed=true]{background:#a8253c18;border-color:#a8253c;color:inherit}
+.public-market-shop-shortcut{display:flex;justify-content:flex-end;margin:-8px 0 16px}
+.public-exchange .public-market-shop-shortcut button{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border:1px solid #a8253c70;border-radius:14px;background:transparent;color:#ef526a;font:inherit;font-size:14px;font-weight:750}
+html[data-market-theme=light] .public-exchange .public-market-shop-shortcut button{color:#a51f40;border-color:#bd466580;background:#fff}

@@ -25,12 +25,12 @@ import {MarketSplash} from './MarketSplash';
 import {useSavedListings} from './useSavedListings';
 import {useSavedOffers,marketSelectedOffer,type SavedOffer} from './useSavedOffers';
 import {SaveListingButton} from './SaveListingButton';
-import {MarketShoesIcon,ShinGuardIcon} from './FootballMarketIcons';
+import {MarketShoesIcon} from './FootballMarketIcons';
 import { safeMarketAppReturn } from './marketSwitch';
 import { useAuth } from '../../auth/AuthProvider';
 import React,{useEffect,useState} from 'react';
 import {Link,Navigate,useLocation,useNavigate,useParams,useSearchParams} from 'react-router-dom';
-import {Home,Search,Plus,MessageCircle,User,Shirt,ShoppingBag,ArrowLeft,LockKeyhole,SlidersHorizontal,Heart,ClipboardList,MoreHorizontal} from 'lucide-react';
+import {LayoutGrid,Backpack,Home,Search,Plus,MessageCircle,User,Shirt,ShoppingBag,ArrowLeft,LockKeyhole,SlidersHorizontal,Heart,ClipboardList,MoreHorizontal} from 'lucide-react';
 import {ExchangeFilterSheet} from './ExchangeFilterSheet';
 import {EMPTY_EXCHANGE_FILTERS,selectExchangeItems,type ExchangeFilters,type CatalogSort} from './exchangeCatalog';
 import {isStagingApp} from '../../lib/appEnvironment';
@@ -108,7 +108,8 @@ function PublicExchangeContent(){
  </section>:view==='shop'?isStagingApp()?<ClubShop clubId={clubId} clubName={club} cartHeader={shopCartHeader} onBack={()=>go('start')}/>:<section className="public-market-panel"><Shirt size={32}/><h1>Lieber neu?</h1><p>Hier kann dein Verein später neue Vereinskleidung oder den Shop seines Ausrüsters anbieten.</p><strong>Noch kein Shop freigeschaltet.</strong><button onClick={()=>go('start')}>Zum Vereinsmarkt</button></section>:view==='app'?<section className="public-market-panel"><h1>Mehr Verein. Eine App.</h1><p>Termine, Mannschaften und Vereinsleben an einem Ort.</p><a className="public-market-cta" href="https://spielzeitapp.at/landingpage">SpielzeitApp kennenlernen</a></section>:<>
  {view==='start'&&<><p className="public-market-eyebrow">Alle Teams. Ein Verein.</p><h1>Vereinsmarkt</h1><p className="public-market-intro">Fußballsachen weitergeben. Im Verein verbunden.</p></>}
  <div className="public-market-search-row"><div className="exchange-search"><Search size={20}/><input aria-label="Öffentliche Angebote suchen" placeholder="Was suchst du?" type="search" value={search} onChange={e=>{setSearch(e.target.value);}}/></div><button type="button" className="public-market-filter-trigger" aria-label={`Filter öffnen${Object.values(filters).filter(Boolean).length?`: ${Object.values(filters).filter(Boolean).length} aktiv`:""}`} aria-haspopup="dialog" onClick={()=>setFilterOpen(true)}><SlidersHorizontal size={20}/><span>Filter</span>{Object.values(filters).some(Boolean)&&<b>{Object.values(filters).filter(Boolean).length}</b>}</button></div>
- <div className="public-market-categories">{[{label:'Alle Artikel',Icon:Shirt,category:''},{label:'Schuhe',Icon:MarketShoesIcon,category:'Schuhe'},{label:'Zubehör',Icon:ShinGuardIcon,category:'Zubehör'},{label:'Neu im Shop',Icon:ShoppingBag,category:'shop'}].map(({label,Icon,category})=><button key={label} onClick={()=>{if(category==='shop')go('shop');else{setFilters({...EMPTY_EXCHANGE_FILTERS,category});go('suchen');}}}><Icon size={23}/>{label}</button>)}</div>
+ <div className="public-market-categories">{[{label:'Alle Artikel',Icon:LayoutGrid,category:''},{label:'Bekleidung',Icon:Shirt,category:'Bekleidung'},{label:'Schuhe',Icon:MarketShoesIcon,category:'Schuhe'},{label:'Zubehör',Icon:Backpack,category:'Zubehör'}].map(({label,Icon,category})=><button key={label} type="button" aria-pressed={filters.category===category} onClick={()=>{setFilters({...EMPTY_EXCHANGE_FILTERS,category});go('suchen');}}><Icon size={23}/>{label}</button>)}</div>
+ <div className="public-market-shop-shortcut"><button type="button" onClick={()=>go('shop')}><ShoppingBag size={18}/>Zum Vereinsshop →</button></div>
 
  <div className="exchange-result-row"><h2>{view==='start'?'Frisch eingestellt':`${shown.length} ${shown.length===1?'Angebot':'Angebote'}`}</h2>{view==='start'&&<button className="exchange-back" onClick={()=>go('suchen')}>Alle ansehen</button>}</div>
  {shown.length?<div className={view==='start'?'public-market-rail':'exchange-grid'}>{(view==='start'?shown.slice(0,8):shown).map(card)}</div>:<div className="exchange-empty"><Shirt/><h3>{items.length?'Keine passenden Angebote':'Zu klein? Gib es weiter.'}</h3><p>{items.length?'Ändere deine Suche oder setze die Filter zurück.':'Hier finden Trainingssachen ein neues Team. Stelle das erste öffentliche Inserat ein.'}</p></div>}
