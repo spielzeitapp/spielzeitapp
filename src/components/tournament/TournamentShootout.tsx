@@ -64,14 +64,14 @@ export function TournamentShootout({ shootout, home, away, finished, controls }:
         );
       })}
       {controls ? (
-        <div className="flex flex-wrap gap-2 border-t border-current/15 pt-2">
+        <div className="grid gap-2 border-t border-current/15 pt-2 sm:grid-cols-2">
           <button type="button" disabled={controls.busy || !shootout.attempts.length}
-            className="min-h-11 flex-1 rounded-lg border border-current/25 px-2 text-sm font-semibold disabled:opacity-40"
+            className="min-h-11 rounded-lg border border-current/25 px-2 text-sm font-semibold disabled:opacity-40"
             onClick={controls.undo}>
             <RotateCcw aria-hidden="true" className="mr-1 inline h-4 w-4" /> Letzten Schuss zurück
           </button>
           <button type="button" disabled={controls.busy || shootout.home === shootout.away}
-            className="min-h-11 flex-1 rounded-lg bg-red-700 px-2 text-sm font-bold text-white disabled:opacity-40"
+            className="min-h-11 rounded-lg bg-red-700 px-2 text-sm font-bold text-white disabled:opacity-40"
             onClick={controls.finish}>
             Schießen beenden
           </button>
