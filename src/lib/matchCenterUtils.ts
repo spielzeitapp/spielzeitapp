@@ -135,6 +135,35 @@ export function pickTournamentMatchInProgress(slots: TournamentMatchSlotView[], 
   return scheduled ? { slot: scheduled.slot, confirmedLive: false } : null;
 }
 
+function isTournamentGroupPhase(slot: TournamentMatchSlotView): boolean {
+  const phase = safeText(slot.phase).toLowerCase();
+  return !phase || phase === 'group' || phase === 'gruppe' || phase === 'vorrunde';
+}
+
+function tournamentGroupKey(slot: TournamentMatchSlotView): string {
+  if (!isTournamentGroupPhase(slot)) return '';
+  return safeText(slot.group_label).toLowerCase().replace(/^gruppe\s+/, '');
+}
+
+export function resolveMatchCenterTournamentGroup(
+  slots: TournamentMatchSlotView[],
+  ownSlots: TournamentMatchSlotView[],
+) {
+  const ownGroup = ownSlots.find((slot) => Boolean(tournamentGroupKey(slot)));
+  if (!ownGroup) return { label: null, slots: ownSlots };
+
+  const groupKey = tournamentGroupKey(ownGroup);
+  const groupSlots = slots.filter((slot) => tournamentGroupKey(slot) === groupKey);
+  const groupFinished = groupSlots.every((slot) =>
+    slot.match_status === 'finished' || slot.official_status === 'finished',
+  );
+  const ownPlayoffs = ownSlots.filter((slot) => !isTournamentGroupPhase(slot));
+  if (groupFinished && ownPlayoffs.length > 0) return { label: null, slots: ownPlayoffs };
+
+  const label = safeText(ownGroup.group_label).replace(/^gruppe\s+/i, '');
+  return { label: `Gruppe ${label}`, slots: groupSlots };
+}
+
 export function isRudolfSteurerGedenkturnier(title: unknown): boolean {
   const t = safeText(title).toLowerCase();
   return t.includes('rudolf steurer') || t.includes('gedenkturnier');

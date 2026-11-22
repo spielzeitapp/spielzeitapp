@@ -4,7 +4,7 @@ import { publicTeamTournamentPath } from '../../lib/publicTeamTournament';
 import type { EventRow } from '../../hooks/useEvents';
 import {
   isOwnPlayableTournamentSlot,
-  tournamentSlotDisplayTitle,
+  ourTournamentScheduleSlots,
   tournamentSlotScoreDisplay,
   type TournamentMatchSlotView,
 } from '../../lib/tournamentPlan';
@@ -12,6 +12,7 @@ import {
   computeMatchCenterCountdown,
   isRudolfSteurerGedenkturnier,
   pickTournamentMatchInProgress,
+  resolveMatchCenterTournamentGroup,
   RUDOLF_STEUrer_DEMO_PARTICIPANTS,
 } from '../../lib/matchCenterUtils';
 import {
@@ -27,6 +28,7 @@ import { MatchCenterCountdown } from './MatchCenterCountdown';
 import { ParticipantLogoChip } from './ParticipantLogoChip';
 import { useMatchClubBranding } from '../../hooks/useMatchClubBranding';
 import { TournamentCompactCard } from '../tournament/TournamentCompactCard';
+import { TournamentClubLogo } from '../tournament/TournamentClubLogo';
 import { TournamentFirstMatchPreview } from './TournamentMatchCenterPoster';
 
 type LiveDayMode = 'upcoming' | 'active' | 'next_own_match' | 'awaiting_next_round' | 'completed';
@@ -83,9 +85,13 @@ export function MatchCenterTournamentCard({
   const liveDaySlots = isTournamentDay && elapsedSinceStart >= 0
     ? slots.filter((slot) => slot.tournament_event_id === event.id)
     : [];
-  const currentMatch = pickTournamentMatchInProgress(liveDaySlots, now);
-  const featuredMatch = currentMatch?.slot ?? pickLastFinishedTournamentSlot(liveDaySlots);
-  const featuredScore = featuredMatch && tournamentSlotScoreDisplay(featuredMatch);
+  const group = resolveMatchCenterTournamentGroup(liveDaySlots, ourTournamentScheduleSlots(liveDaySlots));
+  const currentMatch = pickTournamentMatchInProgress(group.slots, now);
+  const featuredMatch = currentMatch?.slot ?? pickLastFinishedTournamentSlot(group.slots);
+  const hasOfficialLiveScore = featuredMatch?.official_home_goals != null && featuredMatch.official_away_goals != null;
+  const featuredScore = featuredMatch && (
+    !currentMatch || (currentMatch.confirmedLive && (hasOfficialLiveScore || featuredMatch.result_source === 'spielzeitapp'))
+  ) ? tournamentSlotScoreDisplay(featuredMatch) : null;
 
   const carouselTeams = useMemo((): MatchCenterParticipant[] => {
     if (participants.length > 0) return participants;
@@ -127,6 +133,8 @@ export function MatchCenterTournamentCard({
   const nextOpponent = nextOwnSlot ? safeText(nextOwnSlot.opponent_name) || 'Gegner' : null;
   const nextPitch = nextOwnSlot ? safeOptionalText(nextOwnSlot.pitch) : null;
   const ourName = safeText(ourTeamName) || 'Unser Team';
+  const featuredHome = safeText(featuredMatch?.home_team) || ourName;
+  const featuredAway = safeText(featuredMatch?.away_team) || safeText(featuredMatch?.opponent_name) || 'Gegner';
   const prepareHref = nextOwnSlot?.match_id
     ? `/app/matches/${nextOwnSlot.match_id}/prepare`
     : `/app/events/${event.id}`;
@@ -164,20 +172,30 @@ export function MatchCenterTournamentCard({
         ) : null}
 
         {featuredMatch ? (
-          <div className="mt-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3">
-            <p className="text-[11px] font-bold uppercase tracking-[0.08em] sz-club-accent-text">
-              {currentMatch
-                ? (currentMatch.confirmedLive ? 'Jetzt live im Turnier' : 'Jetzt laut Spielplan')
-                : 'Letztes Turnierergebnis'}
+          <section className="mt-2 mb-3 rounded-2xl border border-white/15 bg-[linear-gradient(135deg,rgb(var(--match-primary)),#0a0a0e_70%)] px-3 py-4 text-white">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-bold">{group.label ?? tournamentPhaseDisplayLabel(featuredMatch.phase, featuredMatch.group_label)}</p>
+              <p className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${currentMatch?.confirmedLive ? 'bg-red-500/20 text-red-200' : 'bg-white/10 text-white/85'}`}>
+                {currentMatch
+                  ? (currentMatch.confirmedLive ? 'Live' : 'Jetzt laut Spielplan')
+                  : 'Letztes Ergebnis'}
+              </p>
+            </div>
+            <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2">
+              {[featuredHome, featuredAway].map((name, index) => (
+                <div key={index} className={`flex min-w-0 flex-col items-center gap-2 text-center ${index === 0 ? 'col-start-1' : 'col-start-3'} row-start-1`}>
+                  <TournamentClubLogo name={name} logoUrl={logoByName.get(name.toLowerCase())} size="lg" />
+                  <p className="text-[13px] font-semibold leading-tight [overflow-wrap:anywhere]">{name}</p>
+                </div>
+              ))}
+              <p className={`col-start-2 row-start-1 self-start pt-3 text-center font-extrabold tabular-nums ${featuredScore ? 'text-[32px]' : 'text-lg text-white/55'}`}>
+                {featuredScore ?? 'VS'}
+              </p>
+            </div>
+            <p className="mt-3 text-center text-xs text-white/65">
+              {[`${formatTimeHHmmDe(featuredMatch.kickoff_at)} Uhr`, featuredMatch.pitch].filter(Boolean).join(' · ')}
             </p>
-            <p className="mt-1 text-sm font-semibold leading-snug text-white">
-              {tournamentSlotDisplayTitle(featuredMatch)}
-              {featuredScore ? <span className="ml-2 tabular-nums">{featuredScore}</span> : null}
-            </p>
-            <p className="mt-1 text-[12px] text-white/70">
-              {[formatTimeHHmmDe(featuredMatch.kickoff_at), featuredMatch.pitch].filter(Boolean).join(' · ')}
-            </p>
-          </div>
+          </section>
         ) : null}
 
         {liveDayMode === 'next_own_match' && nextOwnSlot && currentMatch?.slot.id !== nextOwnSlot.id ? (
