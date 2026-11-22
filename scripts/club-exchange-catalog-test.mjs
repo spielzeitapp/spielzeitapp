@@ -41,3 +41,9 @@ try{
  await click('Filter schließen');assert.equal(closed,1);
  console.log('PASS: combined filters, text/size search, own listings, stable price/date sorting, shoe/clothing sizes, draft-only changes, apply count, reset and close');
 }finally{if(app)await renderer.act(async()=>app.unmount());}
+
+const {EXCHANGE_CLOTHING_CATEGORIES,matchesExchangeCategory}=await compile('src/features/club/exchangeCatalog.ts');
+for(const category of EXCHANGE_CLOTHING_CATEGORIES)assert.equal(matchesExchangeCategory(category,'Bekleidung'),true);
+for(const category of ['Schuhe','Fußballschuhe','Rucksäcke','Zubehör','Sonstiges'])assert.equal(matchesExchangeCategory(category,'Bekleidung'),false);
+assert.equal(matchesExchangeCategory('Rucksäcke','Zubehör'),true);
+console.log('PASS clothing group covers jackets, pullovers, jerseys, shirts, trousers and tracksuits; backpacks remain accessories');

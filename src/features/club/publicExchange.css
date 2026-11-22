@@ -140,3 +140,19 @@ html[data-market-theme=light] .public-exchange .public-market-header .public-mar
 
 /* Anchor to the visible rectangle, including cold PWA launch, quick switch and keyboard. */
 .public-market-nav-viewport,html[data-market-shell][data-viewport-entry=app][data-ios-standalone-fullscreen] .public-market-nav-viewport{position:fixed;top:var(--market-nav-visible-top,0px);bottom:auto;height:var(--market-nav-visible-height,100dvh);display:flex;align-items:flex-end;transform:none}
+
+/* Search and filters share one row; the existing category tiles keep their size. */
+.public-exchange .public-market-search-row{display:flex;align-items:stretch;gap:10px;margin:16px 0 0;min-width:0}
+.public-exchange .public-market-search-row .exchange-search{flex:1;min-width:0;margin:0}
+.public-exchange .public-market-filter-trigger{position:relative;display:flex;align-items:center;justify-content:center;gap:7px;flex:none;min-height:52px;padding:0 14px;border:1px solid #ffffff25;border-radius:14px;background:#171318;color:#f6f5f7;font:inherit;font-size:14px;font-weight:750}
+.public-market-filter-trigger b{position:absolute;top:-6px;right:-4px;display:grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border-radius:12px;background:#b32040;color:white;font-size:11px}
+html[data-market-theme=light] .public-exchange .public-market-filter-trigger{background:#fff;color:#211d25;border-color:#d6ceda}
+.exchange-filter-sort{display:grid;gap:8px;font-size:14px;font-weight:700;margin-bottom:20px}
+.exchange-filter-sort select{width:100%;min-height:48px;padding:10px 12px;border:1px solid #ffffff25;border-radius:12px;background:#171318;color:#f6f5f7;font:inherit}
+html[data-market-theme=light] .exchange-filter-sort select{background:#fff;color:#211d25;border-color:#d6ceda}
+@media(max-width:370px){.public-exchange .public-market-filter-trigger{width:52px;padding:0}.public-market-filter-trigger>span{display:none}}
+
+.public-market-categories button[aria-pressed=true]{background:#a8253c18;border-color:#a8253c;color:inherit}
+.public-market-shop-shortcut{display:flex;justify-content:flex-end;margin:-8px 0 16px}
+.public-exchange .public-market-shop-shortcut button{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border:1px solid #a8253c70;border-radius:14px;background:transparent;color:#ef526a;font:inherit;font-size:14px;font-weight:750}
+html[data-market-theme=light] .public-exchange .public-market-shop-shortcut button{color:#a51f40;border-color:#bd466580;background:#fff}
