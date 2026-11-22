@@ -224,3 +224,15 @@ html[data-market-theme=light] .exchange-filter-sort select{background:#fff;color
 .public-market-shop-shortcut{display:flex;justify-content:flex-end;margin:-8px 0 16px}
 .public-exchange .public-market-shop-shortcut button{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border:1px solid #a8253c70;border-radius:14px;background:transparent;color:#ef526a;font:inherit;font-size:14px;font-weight:750}
 html[data-market-theme=light] .public-exchange .public-market-shop-shortcut button{color:#a51f40;border-color:#bd466580;background:#fff}
+
+/* Explicit selected states must outrank the light-theme neutral tile rule. */
+.public-exchange .public-market-categories{width:100%;grid-template-columns:repeat(4,minmax(0,1fr))}
+.public-exchange .public-market-categories button{position:relative;min-width:0;width:100%;box-sizing:border-box;overflow-wrap:anywhere}
+html[data-market-theme=light] .public-exchange .public-market-categories button[aria-pressed=true],
+html[data-market-theme=dark] .public-exchange .public-market-categories button[aria-pressed=true],
+.public-exchange .public-market-categories button[aria-pressed=true]{background:#a51f40;color:#fff;border-color:#a51f40;box-shadow:inset 0 0 0 1px #a51f40;font-weight:800}
+html[data-market-theme=light] .public-exchange .public-market-categories button[aria-pressed=true] svg,
+html[data-market-theme=dark] .public-exchange .public-market-categories button[aria-pressed=true] svg,
+.public-exchange .public-market-categories button[aria-pressed=true] svg{color:#fff}
+.public-exchange .public-market-filter-trigger>b{background:#a51f40;color:#fff;border:2px solid var(--market-bg,#fff);box-sizing:content-box}
+@media(max-width:500px){.public-exchange .public-market-categories button{font-size:clamp(10px,2.8vw,12px)}}
