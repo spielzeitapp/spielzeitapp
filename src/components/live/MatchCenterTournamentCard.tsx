@@ -33,6 +33,53 @@ import { TournamentFirstMatchPreview } from './TournamentMatchCenterPoster';
 
 type LiveDayMode = 'upcoming' | 'active' | 'next_own_match' | 'awaiting_next_round' | 'completed';
 
+function TournamentMatchupCard({
+  slot,
+  title,
+  status,
+  score,
+  ourTeamName,
+  logoByName,
+}: {
+  slot: TournamentMatchSlotView;
+  title: string;
+  status: 'Live' | 'Jetzt laut Spielplan' | 'Letztes Ergebnis' | null;
+  score?: string | null;
+  ourTeamName: string;
+  logoByName: ReadonlyMap<string, string | null>;
+}) {
+  const home = safeText(slot.home_team) || ourTeamName;
+  const away = safeText(slot.away_team) || safeText(slot.opponent_name) || 'Gegner';
+  const kickoff = formatTimeHHmmDe(slot.kickoff_at);
+
+  return (
+    <section aria-label={status ? `${title} · ${status}` : title} className="mt-2 mb-3 rounded-2xl border border-white/15 bg-[linear-gradient(135deg,rgb(var(--match-primary)),#0a0a0e_70%)] px-3 py-4 text-white">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-bold">{title}</p>
+        {status ? (
+          <p className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${status === 'Live' ? 'bg-red-500/20 text-red-200' : 'bg-white/10 text-white/85'}`}>
+            {status}
+          </p>
+        ) : null}
+      </div>
+      <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2">
+        {[home, away].map((name, index) => (
+          <div key={index} className={`flex min-w-0 flex-col items-center gap-2 text-center ${index === 0 ? 'col-start-1' : 'col-start-3'} row-start-1`}>
+            <TournamentClubLogo name={name} logoUrl={logoByName.get(name.toLowerCase())} size="lg" />
+            <p className="text-[13px] font-semibold leading-tight [overflow-wrap:anywhere]">{name}</p>
+          </div>
+        ))}
+        <p className={`col-start-2 row-start-1 self-start pt-3 text-center font-extrabold tabular-nums ${score ? 'text-[32px]' : 'text-lg text-white/55'}`}>
+          {score ?? 'VS'}
+        </p>
+      </div>
+      <p className="mt-3 text-center text-xs text-white/65">
+        {[kickoff && `${kickoff} Uhr`, slot.pitch].filter(Boolean).join(' · ')}
+      </p>
+    </section>
+  );
+}
+
 type Props = {
   event: EventRow;
   ourTeamName: string;
@@ -87,11 +134,12 @@ export function MatchCenterTournamentCard({
     : [];
   const group = resolveMatchCenterTournamentGroup(liveDaySlots, ourTournamentScheduleSlots(liveDaySlots));
   const currentMatch = pickTournamentMatchInProgress(group.slots, now);
-  const featuredMatch = currentMatch?.slot ?? pickLastFinishedTournamentSlot(group.slots);
-  const hasOfficialLiveScore = featuredMatch?.official_home_goals != null && featuredMatch.official_away_goals != null;
-  const featuredScore = featuredMatch && (
-    !currentMatch || (currentMatch.confirmedLive && (hasOfficialLiveScore || featuredMatch.result_source === 'spielzeitapp'))
-  ) ? tournamentSlotScoreDisplay(featuredMatch) : null;
+  const currentSlot = currentMatch?.slot;
+  const lastResult = currentMatch ? null : pickLastFinishedTournamentSlot(group.slots);
+  const hasOfficialLiveScore = currentSlot?.official_home_goals != null && currentSlot.official_away_goals != null;
+  const currentScore = currentSlot && currentMatch?.confirmedLive && (hasOfficialLiveScore || currentSlot.result_source === 'spielzeitapp')
+    ? tournamentSlotScoreDisplay(currentSlot)
+    : null;
 
   const carouselTeams = useMemo((): MatchCenterParticipant[] => {
     if (participants.length > 0) return participants;
@@ -129,12 +177,8 @@ export function MatchCenterTournamentCard({
           ? 'Turnier'
           : 'Nächstes Turnier';
 
-  const nextKickoff = nextOwnSlot ? formatTimeHHmmDe(nextOwnSlot.kickoff_at) : null;
-  const nextOpponent = nextOwnSlot ? safeText(nextOwnSlot.opponent_name) || 'Gegner' : null;
-  const nextPitch = nextOwnSlot ? safeOptionalText(nextOwnSlot.pitch) : null;
   const ourName = safeText(ourTeamName) || 'Unser Team';
-  const featuredHome = safeText(featuredMatch?.home_team) || ourName;
-  const featuredAway = safeText(featuredMatch?.away_team) || safeText(featuredMatch?.opponent_name) || 'Gegner';
+  const nextMatchToShow = liveDayMode === 'next_own_match' && currentSlot?.id !== nextOwnSlot?.id ? nextOwnSlot : null;
   const prepareHref = nextOwnSlot?.match_id
     ? `/app/matches/${nextOwnSlot.match_id}/prepare`
     : `/app/events/${event.id}`;
@@ -171,50 +215,28 @@ export function MatchCenterTournamentCard({
           </div>
         ) : null}
 
-        {featuredMatch ? (
-          <section className="mt-2 mb-3 rounded-2xl border border-white/15 bg-[linear-gradient(135deg,rgb(var(--match-primary)),#0a0a0e_70%)] px-3 py-4 text-white">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs font-bold">{group.label ?? tournamentPhaseDisplayLabel(featuredMatch.phase, featuredMatch.group_label)}</p>
-              <p className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${currentMatch?.confirmedLive ? 'bg-red-500/20 text-red-200' : 'bg-white/10 text-white/85'}`}>
-                {currentMatch
-                  ? (currentMatch.confirmedLive ? 'Live' : 'Jetzt laut Spielplan')
-                  : 'Letztes Ergebnis'}
-              </p>
-            </div>
-            <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2">
-              {[featuredHome, featuredAway].map((name, index) => (
-                <div key={index} className={`flex min-w-0 flex-col items-center gap-2 text-center ${index === 0 ? 'col-start-1' : 'col-start-3'} row-start-1`}>
-                  <TournamentClubLogo name={name} logoUrl={logoByName.get(name.toLowerCase())} size="lg" />
-                  <p className="text-[13px] font-semibold leading-tight [overflow-wrap:anywhere]">{name}</p>
-                </div>
-              ))}
-              <p className={`col-start-2 row-start-1 self-start pt-3 text-center font-extrabold tabular-nums ${featuredScore ? 'text-[32px]' : 'text-lg text-white/55'}`}>
-                {featuredScore ?? 'VS'}
-              </p>
-            </div>
-            <p className="mt-3 text-center text-xs text-white/65">
-              {[`${formatTimeHHmmDe(featuredMatch.kickoff_at)} Uhr`, featuredMatch.pitch].filter(Boolean).join(' · ')}
-            </p>
-          </section>
+        {currentMatch ? (
+          <TournamentMatchupCard
+            slot={currentMatch.slot}
+            title={group.label ?? tournamentPhaseDisplayLabel(currentMatch.slot.phase, currentMatch.slot.group_label)}
+            status={currentMatch.confirmedLive ? 'Live' : 'Jetzt laut Spielplan'}
+            score={currentScore}
+            ourTeamName={ourName}
+            logoByName={logoByName}
+          />
         ) : null}
 
-        {liveDayMode === 'next_own_match' && nextOwnSlot && currentMatch?.slot.id !== nextOwnSlot.id ? (
-          <div className="mt-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3">
-            <p className="text-[11px] font-bold uppercase tracking-[0.08em] sz-club-accent-text">
-              {isPlacementNext ? placementLabel : 'Unser nächstes Spiel'}
-            </p>
-            <p className="mt-1 text-sm font-semibold leading-snug text-white">
-              {ourName}
-              <span className="mx-1.5 font-medium text-white/45">vs</span>
-              {nextOpponent}
-            </p>
-            <p className="mt-1 text-[12px] text-white/70">
-              {[nextKickoff ? `${nextKickoff} Uhr` : null, nextPitch].filter(Boolean).join(' · ')}
-            </p>
-          </div>
+        {nextMatchToShow ? (
+          <TournamentMatchupCard
+            slot={nextMatchToShow}
+            title={isPlacementNext && placementLabel ? placementLabel : 'Unser nächstes Spiel'}
+            status={null}
+            ourTeamName={ourName}
+            logoByName={logoByName}
+          />
         ) : null}
 
-        {liveDayMode === 'active' && !nextOwnSlot && !featuredMatch && elapsedSinceStart >= 0 ? (
+        {liveDayMode === 'active' && !nextOwnSlot && !currentMatch && !lastResult && elapsedSinceStart >= 0 ? (
           <div className="mt-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3">
             <p className="text-[11px] font-bold uppercase tracking-[0.08em] sz-club-accent-text">
               Turnier läuft
@@ -225,7 +247,7 @@ export function MatchCenterTournamentCard({
           </div>
         ) : null}
 
-        {(showStartCountdown || (liveDayMode === 'next_own_match' && currentMatch?.slot.id !== nextOwnSlot?.id)) && countdown ? (
+        {(showStartCountdown || nextMatchToShow) && countdown ? (
           <MatchCenterCountdown
             parts={countdown}
             variant="heroCompact"
@@ -289,6 +311,17 @@ export function MatchCenterTournamentCard({
           >
             Turnierseite ansehen
           </Link>
+        ) : null}
+
+        {lastResult ? (
+          <TournamentMatchupCard
+            slot={lastResult}
+            title={group.label ?? tournamentPhaseDisplayLabel(lastResult.phase, lastResult.group_label)}
+            status="Letztes Ergebnis"
+            score={tournamentSlotScoreDisplay(lastResult)}
+            ourTeamName={ourName}
+            logoByName={logoByName}
+          />
         ) : null}
 
         {liveDayMode === 'awaiting_next_round' && !isFan && onRefreshPlan ? (
