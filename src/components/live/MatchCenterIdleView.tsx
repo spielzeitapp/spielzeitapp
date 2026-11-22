@@ -245,13 +245,15 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
 
   if (featuredTournament && !tournamentCompleted) {
     const headerSubtitle =
-      liveDayMode === 'awaiting_next_round'
-        ? 'Vorrunde beendet — warte auf nächstes Spiel'
-        : liveDayMode === 'next_own_match'
-          ? 'Turnier läuft — nächstes Spiel'
-          : activeTournamentDay
-            ? 'Turnier läuft'
-            : 'Nächstes Turnier';
+      now.getTime() < Date.parse(featuredTournament.starts_at)
+        ? 'Nächstes Turnier'
+        : liveDayMode === 'awaiting_next_round'
+          ? 'Vorrunde beendet — warte auf nächstes Spiel'
+          : liveDayMode === 'next_own_match'
+            ? 'Turnier läuft — nächstes Spiel'
+            : activeTournamentDay
+              ? 'Turnier läuft'
+              : 'Nächstes Turnier';
     return (
       <LivePremiumShell matchCenter>
         <LivePageHeader title="Match Center" subtitle={headerSubtitle} />

@@ -102,11 +102,13 @@ export function pickActiveTournamentDayEvent(events: EventRow[], now: Date): Eve
 export function computeMatchCenterCountdown(
   startsAtIso: string | null | undefined,
   now: Date,
+  options?: { roundUpMinutes?: boolean },
 ): MatchCenterCountdown | null {
   if (!safeText(startsAtIso)) return null;
   const target = new Date(String(startsAtIso)).getTime();
   if (Number.isNaN(target)) return null;
-  let diff = Math.max(0, target - now.getTime());
+  const remainingMs = Math.max(0, target - now.getTime());
+  let diff = options?.roundUpMinutes ? Math.ceil(remainingMs / 60_000) * 60_000 : remainingMs;
   const days = Math.floor(diff / 86_400_000);
   diff -= days * 86_400_000;
   const hours = Math.floor(diff / 3_600_000);

@@ -67,9 +67,12 @@ export function MatchCenterTournamentCard({
     liveDayMode === 'next_own_match' ||
     liveDayMode === 'awaiting_next_round';
 
-  const countdown = useMemo(
-    () => computeMatchCenterCountdown(nextOwnSlot?.kickoff_at ?? event.starts_at, now),
-    [nextOwnSlot?.kickoff_at, event.starts_at, now],
+  const elapsedSinceStart = now.getTime() - Date.parse(event.starts_at);
+  const showStartCountdown = liveDayMode === 'upcoming' || elapsedSinceStart < 60_000;
+  const countdown = computeMatchCenterCountdown(
+    showStartCountdown ? event.starts_at : nextOwnSlot?.kickoff_at,
+    now,
+    { roundUpMinutes: showStartCountdown },
   );
 
   const carouselTeams = useMemo((): MatchCenterParticipant[] => {
@@ -102,7 +105,7 @@ export function MatchCenterTournamentCard({
   const badgeLabel =
     liveDayMode === 'awaiting_next_round'
       ? 'Vorrunde beendet'
-      : isTournamentDay
+      : isTournamentDay && elapsedSinceStart >= 0
         ? 'Turnier läuft'
         : premium
           ? 'Turnier'
@@ -164,7 +167,7 @@ export function MatchCenterTournamentCard({
           </div>
         ) : null}
 
-        {liveDayMode === 'active' && !nextOwnSlot ? (
+        {liveDayMode === 'active' && !nextOwnSlot && elapsedSinceStart >= 0 ? (
           <div className="mt-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3">
             <p className="text-[11px] font-bold uppercase tracking-[0.08em] sz-club-accent-text">
               Turnier läuft
@@ -175,12 +178,12 @@ export function MatchCenterTournamentCard({
           </div>
         ) : null}
 
-        {(liveDayMode === 'upcoming' || liveDayMode === 'next_own_match') && countdown ? (
+        {(showStartCountdown || liveDayMode === 'next_own_match') && countdown ? (
           <MatchCenterCountdown
             parts={countdown}
             variant="heroCompact"
             showHeader
-            headerLabel={nextOwnSlot ? 'Countdown bis zu unserem nächsten Spiel' : 'Countdown bis zum Turnierstart'}
+            headerLabel={showStartCountdown ? 'Countdown bis zum Turnierstart' : 'Countdown bis zu unserem nächsten Spiel'}
           />
         ) : null}
 
