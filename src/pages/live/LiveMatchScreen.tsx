@@ -1,8 +1,9 @@
 import { prepareTournamentMatchFromTemplate } from '../../lib/tournamentLineupTemplates';
 import { fetchTournamentParticipants, tournamentOfficialOwnScore } from '../../lib/tournamentPlan';
+import { TournamentShootout } from '../../components/tournament/TournamentShootout';
 import { TournamentBlockControl } from '../../components/tournament/TournamentBlockControl';
 import { TournamentGoalBackfillDialog } from '../../components/tournament/TournamentGoalBackfillDialog';
-import { readTournamentMatchDecision, type TournamentMatchDecision } from '../../../server/lib/tournamentMatchDecision.js';
+import { readTournamentMatchDecision, recordShootoutAttempt, undoShootoutAttempt, type TournamentMatchDecision } from '../../../server/lib/tournamentMatchDecision.js';
 import { planBlockChange, type BlockChange } from '../../lib/tournamentBlocks';
 import { DemoFormationPreview } from '../../demo/components/DemoFormationPreview';
 import { ClubLogo } from '../../components/branding/ClubLogo';
@@ -3106,8 +3107,6 @@ export const LiveMatchScreen: React.FC = () => {
     persistSingle,
     tournamentDecision.extraTime?.startSecond,
     tournamentDecision.extraTime?.minutes,
-    tournamentDecision.shootout?.home,
-    tournamentDecision.shootout?.away,
   ]);
 
   useEffect(() => {
@@ -4783,31 +4782,19 @@ export const LiveMatchScreen: React.FC = () => {
   const renderTrainerClockActionRow = (gapClass: string) => {
     if (matchIsFinished) return null;
     if (isShootout && tournamentDecision.shootout) {
-      const score = tournamentDecision.shootout;
+      const shootout = tournamentDecision.shootout;
       return (
-        <div className="space-y-2 py-1">
-          <div className="grid grid-cols-2 gap-2">
-            {([['home', stadiumHomeDisplay], ['away', stadiumAwayDisplay]] as const).map(([side, team]) => (
-              <div key={side} className="min-w-0 rounded-xl border border-white/15 p-2 text-center">
-                <p className="mb-1 break-words text-xs font-semibold">{team}</p>
-                <div className="flex items-center justify-center gap-2">
-                  {[-1, 1].map(change => (
-                    <button key={change} type="button"
-                      className="min-h-11 min-w-11 rounded-lg bg-white/10 text-sm font-bold disabled:opacity-35"
-                      aria-label={change > 0 ? `Treffer für ${team} erfassen` : `Treffer für ${team} abziehen`}
-                      disabled={decisionSaving || (change < 0 && score[side] === 0)}
-                      onClick={() => void saveTournamentDecision({ ...tournamentDecision, shootout: { ...score, [side]: score[side] + change } })}
-                    >{change > 0 ? '+1' : '−1'}</button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          <button type="button" className={`${mbEnd} ${trainerClockRowBtn} disabled:opacity-40`}
-            disabled={decisionSaving || score.home === score.away} onClick={() => setEndeConfirmOpen(true)}>
-            Schießen beenden
-          </button>
-        </div>
+        <TournamentShootout
+          shootout={shootout}
+          home={stadiumHomeDisplay}
+          away={stadiumAwayDisplay}
+          controls={{
+            busy: decisionSaving,
+            record: attempt => void saveTournamentDecision({ ...tournamentDecision, shootout: recordShootoutAttempt(shootout, attempt) }),
+            undo: () => void saveTournamentDecision({ ...tournamentDecision, shootout: undoShootoutAttempt(shootout) }),
+            finish: () => setEndeConfirmOpen(true),
+          }}
+        />
       );
     }
     return (
@@ -5078,12 +5065,11 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 </div>
                 {tournamentDecision.shootout ? (
-                  <p className="mt-1 text-center text-sm font-bold tabular-nums text-amber-200">
-                    {tournamentDecision.shootout.home}:{tournamentDecision.shootout.away} im Schießen
-                    {matchIsFinished && tournamentDecision.shootout.home !== tournamentDecision.shootout.away
-                      ? ` · Sieger: ${tournamentDecision.shootout.home > tournamentDecision.shootout.away ? stadiumHomeDisplay : stadiumAwayDisplay}`
-                      : null}
-                  </p>
+                  matchIsFinished && tournamentDecision.shootout.home !== tournamentDecision.shootout.away ? (
+                    <p className="mt-1 text-center text-sm font-bold text-amber-200">
+                      Sieger: {tournamentDecision.shootout.home > tournamentDecision.shootout.away ? stadiumHomeDisplay : stadiumAwayDisplay}
+                    </p>
+                  ) : null
                 ) : tournamentDecision.extraTime && !matchIsFinished ? (
                   <p className="mt-1 text-center text-xs font-semibold tabular-nums text-white/70">
                     Restzeit laut Plan {formatClock(Math.max(0, tournamentDecision.extraTime.minutes * 60 - (currentMatchSeconds - tournamentDecision.extraTime.startSecond)))}
@@ -5100,7 +5086,7 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 ) : null}
 
-                {isPaused && !matchIsFinished ? (
+                {isPaused && !matchIsFinished && !isShootout ? (
                   <div className="mt-1 flex justify-center px-2">
                     <div
                       role="status"
@@ -5308,6 +5294,13 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
               ) : null}
 
+              {tournamentDecision.shootout && (!canControlLiveMatch || spectatorView || matchIsFinished) ? (
+                <div className="relative z-[1] px-3 pb-2">
+                  <TournamentShootout shootout={tournamentDecision.shootout} home={stadiumHomeDisplay}
+                    away={stadiumAwayDisplay} finished={matchIsFinished} />
+                </div>
+              ) : null}
+
               {!spectatorView && canControlLiveMatch ? (
                 <div
                   className={[
@@ -5355,7 +5348,7 @@ export const LiveMatchScreen: React.FC = () => {
                     </div>
                   ) : null}
 
-                  {!matchIsFinished ? (
+                  {!matchIsFinished && !isShootout ? (
                     <button
                       type="button"
                       onClick={openWechselSheet}
@@ -7909,7 +7902,7 @@ export const LiveMatchScreen: React.FC = () => {
                   ) : null}
                   <button type="button" className="min-h-11 w-full rounded-lg border border-white/15 px-3 text-sm font-bold"
                     disabled={decisionSaving}
-                    onClick={() => void saveTournamentDecision({ ...tournamentDecision, shootout: { home: 0, away: 0 } })}>
+                    onClick={() => void saveTournamentDecision({ ...tournamentDecision, shootout: { home: 0, away: 0, attempts: [] } })}>
                     Entscheidungsschießen starten
                   </button>
                   {saveError ? <p role="alert" className="text-sm text-amber-400">{saveError}</p> : null}

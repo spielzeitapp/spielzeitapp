@@ -5,6 +5,7 @@ import { computePlayerPlaytimeFromEvents, type MatchEngineEvent } from '../../li
 import { isU11FormationId } from '../../lib/matchFormations';
 import type { FieldSlotId } from '../../types/match';
 import { LineupFormationPitch } from '../match/LineupFormationPitch';
+import { TournamentShootout } from './TournamentShootout';
 import { TournamentFanFixture } from './TournamentFanFixture';
 import { TournamentFanPlayerCard } from './TournamentFanPlayerCard';
 
@@ -23,10 +24,10 @@ export function PublicTournamentMatchView({page,match,view,onView,timelineOnly=f
   const slotMap=Object.fromEntries(['GK','LB','RB','CM','LW','RW','ST','FP'].map(slot=>[slot,starters.find(player=>player.position===slot)?.name ?? null])) as Record<FieldSlotId,string|null>;
   const shootout = detail?.decision?.shootout;
   const shootoutSummary = shootout ? (
-    <p className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--t-border)] px-3 py-2">
-      <span className="font-bold">{match.status === 'finished' ? 'Nach Elfmeterschießen' : 'Elfmeterschießen läuft'}</span>
-      <strong className="text-lg tabular-nums">{shootout.home}:{shootout.away}</strong>
-    </p>
+    <div className="mb-3">
+      <TournamentShootout shootout={shootout} home={clubName} away={match.opponentName}
+        finished={match.status === 'finished'} />
+    </div>
   ) : null;
   if(timelineOnly) return <section className={box} aria-label={`Spielverlauf gegen ${match.opponentName}`}><h3 className="mb-3 text-base font-bold">Spielverlauf</h3>{shootoutSummary}{detail?.events.length?<ol className="space-y-3">{[...detail.events].sort((a,b)=>b.second-a.second).map(event=><li key={event.id} className="flex gap-3 border-b border-[var(--t-border)] pb-3 text-base"><time className="w-12 shrink-0 font-bold tabular-nums">{Math.floor(event.second/60)}:{String(event.second%60).padStart(2,'0')}</time><span><b>{labels[event.type]}</b>{event.playerName?<span className="block">{event.playerName}{event.otherPlayerName?` → ${event.otherPlayerName}`:''}</span>:null}</span></li>)}</ol>:shootout ? null : <p className="text-[var(--t-muted)]">Noch keine Spielereignisse erfasst.</p>}</section>;
   return <div className="space-y-4">
