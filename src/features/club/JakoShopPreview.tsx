@@ -10,6 +10,22 @@ const money = new Intl.NumberFormat('de-AT', { style: 'currency', currency: 'EUR
 const demoChildren = ['Beispielkind 1', 'Beispielkind 2'];
 const filters: Filter[] = ['Alle', 'Oberteile', 'Hosen', 'Zubehör'];
 
+export function ShopCartHeader({ target, count, active, onOpen }: {
+  target: HTMLElement;
+  count: number;
+  active?: boolean;
+  onOpen: () => void;
+}) {
+  return createPortal(
+    <button type="button" className="public-market-shop-cart" aria-label={`Warenkorb, ${count} Artikel`}
+      aria-current={active ? 'page' : undefined} title="Warenkorb" onClick={onOpen}>
+      <ShoppingBag size={21} aria-hidden="true" />
+      {count > 0 && <span className="public-market-shop-cart-count" aria-hidden="true">{count}</span>}
+    </button>,
+    target,
+  );
+}
+
 export function JakoShopPreview({ cartHeader }: { cartHeader?: HTMLElement | null }) {
   const [filter, setFilter] = useState<Filter>('Alle');
   const [selected, setSelected] = useState<JakoShopArticle | null>(null);
@@ -86,14 +102,7 @@ export function JakoShopPreview({ cartHeader }: { cartHeader?: HTMLElement | nul
   }
 
   return <section className="club-shop-trial" aria-label="JAKO-Kollektion">
-    {cartHeader && createPortal(
-      <button type="button" className="public-market-shop-cart" aria-label={`Warenkorb, ${itemCount} Artikel`}
-        aria-current={step === 'cart' ? 'page' : undefined} title="Warenkorb" onClick={() => goTo('cart')}>
-        <ShoppingBag size={21} aria-hidden="true" />
-        {itemCount > 0 && <span className="public-market-shop-cart-count" aria-hidden="true">{itemCount}</span>}
-      </button>,
-      cartHeader,
-    )}
+    {cartHeader && <ShopCartHeader target={cartHeader} count={itemCount} active={step === 'cart'} onOpen={() => goTo('cart')} />}
     <div ref={content} tabIndex={-1}>
       {step === 'shop' && <>
         {!cartHeader && <button type="button" className="club-shop-trial-back" onClick={() => goTo('cart')}>
