@@ -12,7 +12,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { FinishedMatchAttendance } from '../../components/match/FinishedMatchAttendance';
 import { MatchHeadToHead } from '../../components/match/MatchHeadToHead';
-import { ArrowLeft, BarChart3, Clapperboard, FileText, MapPin, Radio, Shirt } from 'lucide-react';
+import { ArrowLeft, BarChart3, CalendarDays, Clapperboard, FileText, MapPin, Radio, Shirt } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { usePlayers, type PlayerItem } from '../../hooks/usePlayers';
 import { PlayerProfileModal } from '../../components/team/PlayerProfileModal';
@@ -150,6 +150,7 @@ import {
   type TournamentMatchNavigationContext,
 } from '../../lib/tournamentMatchNavigation';
 import { TournamentNextMatchWorkflowCta } from '../../components/tournament/TournamentNextMatchWorkflowCta';
+import { publicTeamTournamentPath } from '../../lib/publicTeamTournament';
 import { syncOfficialPlanAfterTournamentMatchFinish } from '../../lib/tournamentPlanSync';
 import { broadcastLiveMatchStateChanged, subscribeLiveMatchStateChanged } from '../../lib/liveMatchBroadcast';
 import { useDemoMode } from '../../demo/DemoContext';
@@ -4528,7 +4529,8 @@ export const LiveMatchScreen: React.FC = () => {
   const layoutShell = 'mx-auto w-full max-w-none';
   const spectatorView = !canControlLiveMatch;
   const matchboardVisible = mainTab === 'hub';
-  const spectatorLiveHub = spectatorView && matchboardVisible && matchRow?.status === 'live';
+  const compactLiveHub = matchboardVisible && matchRow?.status === 'live';
+  const spectatorLiveHub = spectatorView && compactLiveHub;
   const spectatorTickerGroups = spectatorLiveHub ? allTickerGroups.slice(0, 2) : [];
   const finishedMatchDate = calendarStartsAt ? new Date(calendarStartsAt) : null;
   const finishedMatchDateValid = Boolean(finishedMatchDate && !Number.isNaN(finishedMatchDate.getTime()));
@@ -4769,10 +4771,20 @@ export const LiveMatchScreen: React.FC = () => {
     );
   };
 
-  /** Höhe unter globalem App-Header (main pt, safe-area-korrekt); Matchboard+Hub fix, Module scrollen (inkl. pb für Bottom-Nav). */
+  /** Der laufende Live-Hub scrollt im App-Layout; die Unteransichten haben eigene Scrollflächen. */
   const videoScreenActive = mainTab === 'videos';
-  const liveShellOuter = `relative flex flex-col overflow-hidden text-white ${spectatorLiveHub ? '' : 'live-shell-viewport'}`;
+  const liveShellOuter = `relative flex flex-col overflow-hidden text-white ${compactLiveHub ? '' : 'live-shell-viewport'}`;
   const wechselScreenActive = Boolean(canControlLiveMatch && wechselSheetOpen && !matchIsFinished);
+  const tournamentPlanLink = tournamentNavContext ? (
+    <Link
+      to={`${publicTeamTournamentPath(tournamentNavContext.tournamentEventId)}?bereich=spielplan`}
+      state={{ returnTo: `${basePath}/live?matchId=${encodeURIComponent(effectiveMatchId)}${mainTab === 'events' ? '&tab=events' : ''}` }}
+      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/15 bg-black/45 px-3 py-2 text-sm font-semibold text-white hover:bg-white/10 ${mainTab === 'events' ? 'ml-auto' : 'col-span-2'}`}
+    >
+      <CalendarDays className="h-4 w-4 shrink-0 text-red-400" aria-hidden />
+      Zum Turnierplan
+    </Link>
+  ) : null;
 
   const kickoffProfilePhotoUrl = kickoffProfilePlayer
     ? (kickoffProfilePlayer.avatar_url ?? '').trim() || null
@@ -4842,7 +4854,7 @@ export const LiveMatchScreen: React.FC = () => {
         className={`border-b bg-black/78 shadow-[0_4px_32px_rgba(0,0,0,0.5)] backdrop-blur-md ${
           mainTab === 'lineup' ? 'border-white/10' : 'border-red-500/35'
         } ${
-          mainTab === 'hub' && !spectatorLiveHub
+          mainTab === 'hub' && !compactLiveHub
             ? 'flex min-h-0 flex-1 touch-pan-y flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]'
             : 'shrink-0'
         }`}
@@ -5323,7 +5335,7 @@ export const LiveMatchScreen: React.FC = () => {
 
           {mainTab === 'hub' ? (
             <nav
-              className={`${spectatorView ? hubNavSpectator : hubNavTrainer} ${spectatorLiveHub ? 'mx-auto max-w-xl pb-2' : matchIsFinished ? 'mt-3 pb-[var(--app-bottomnav-pad)] lg:pb-4' : 'pb-[calc(170px+env(safe-area-inset-bottom,0px))]'}`}
+              className={`${spectatorView ? hubNavSpectator : hubNavTrainer} ${compactLiveHub ? `mx-auto pb-2 ${spectatorView ? 'max-w-xl' : 'max-w-2xl'}` : matchIsFinished ? 'mt-3 pb-[var(--app-bottomnav-pad)] lg:pb-4' : 'pb-[calc(170px+env(safe-area-inset-bottom,0px))]'}`}
               aria-label="Live Hub"
             >
               <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('overview')}>
@@ -5366,6 +5378,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </button>
               ) : null}
 
+              {tournamentPlanLink}
             </nav>
           ) : mainTab !== 'lineup' && mainTab !== 'videos' ? (
             <div className={liveModuleBackBar} aria-label="Zurück zum Live Hub">
@@ -5377,6 +5390,7 @@ export const LiveMatchScreen: React.FC = () => {
                 <span aria-hidden>←</span>
                 <span>Livespiel</span>
               </button>
+              {mainTab === 'events' ? tournamentPlanLink : null}
             </div>
           ) : null}
         </div>
@@ -5979,7 +5993,7 @@ export const LiveMatchScreen: React.FC = () => {
                 Keine Einträge für diesen Filter.
               </p>
             ) : (
-              <ul className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain rounded-xl border border-zinc-600/25 bg-black/45 px-1.5 py-1 [-webkit-overflow-scrolling:touch] [scrollbar-gutter:stable] sm:px-2">
+              <ul className="min-h-0 touch-pan-y overflow-y-auto overscroll-y-contain rounded-xl border border-zinc-600/25 bg-black/45 px-1.5 py-1 [-webkit-overflow-scrolling:touch] [scrollbar-gutter:stable] sm:px-2">
                 {trainerTickerGroups.map((g, i, arr) => renderTrainerTickerMinuteGroup(g, i, arr.length))}
               </ul>
             )}

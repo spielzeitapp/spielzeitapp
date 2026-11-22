@@ -24,6 +24,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const location = useLocation();
   const candidate = (location.state as {returnTo?: unknown} | null)?.returnTo;
   const returnTo = typeof candidate === 'string' && /^\/(app|demo|manager)\//.test(candidate) ? candidate : `/app/events/${encodeURIComponent(publicId)}`;
+  const returnsToLive = /^\/(app|demo)\/live(?:[/?]|$)/.test(returnTo);
   const [searchParams, setSearchParams] = useSearchParams();
   const matchId = searchParams.get('spiel');
   const viewRaw = searchParams.get('ansicht');
@@ -89,7 +90,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   };
 
   const card = 'rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] shadow-sm p-4';
-  const [tab, setTab] = useState('ours');
+  const [tab, setTab] = useState(() => searchParams.get('bereich') === 'spielplan' ? 'games' : 'ours');
   const [scheduleView,setScheduleView]=useState<'upcoming'|'results'>('upcoming');
   const heading = 'mb-3 text-[15px] font-extrabold uppercase tracking-[.14em] text-[var(--t-accent)]';
   const scorerTotals = Object.values((page?.scorers ?? []).reduce((all,s)=>{const row=all[s.name]??{name:s.name,goals:0};row.goals+=s.goals;all[s.name]=row;return all;},{} as Record<string,{name:string;goals:number}>)).sort((a,b)=>b.goals-a.goals);
@@ -142,7 +143,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
     } as React.CSSProperties}>
     <ContentTag className={embedded?"space-y-4":"mx-auto max-w-2xl space-y-4 px-4 pb-12 pt-[max(1.25rem,env(safe-area-inset-top))]"}>
       {!embedded ? <header className="flex items-center justify-between gap-2">
-        <Link to={selectedMatch ? location.pathname : returnTo} state={location.state} aria-label="Zurück zum Turnier" className="inline-flex min-h-11 min-w-0 items-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2 text-sm font-bold">← Zurück<span className="ml-1 hidden min-[380px]:inline">zum Turnier</span></Link>
+        <Link to={selectedMatch ? location.pathname : returnTo} state={location.state} aria-label={!selectedMatch && returnsToLive ? 'Zurück zum Livespiel' : 'Zurück zum Turnier'} className="inline-flex min-h-11 min-w-0 items-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2 text-sm font-bold">← Zurück<span className="ml-1 hidden min-[380px]:inline">{!selectedMatch && returnsToLive ? 'zum Livespiel' : 'zum Turnier'}</span></Link>
         <div className="flex shrink-0 items-center gap-2">
           <button type="button" onClick={()=>void onShare()} className="flex h-11 items-center gap-2 rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 text-sm font-bold"><Share2 size={18} aria-hidden/>Teilen</button>
           <button type="button" onClick={toggleTheme} aria-label={theme === 'night' ? 'Tagmodus einschalten' : 'Nachtmodus einschalten'} title={theme === 'night' ? 'Tagmodus einschalten' : 'Nachtmodus einschalten'} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)]">{theme === 'night' ? <Sun size={20} aria-hidden/> : <Moon size={20} aria-hidden/>}</button>
