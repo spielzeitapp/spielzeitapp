@@ -12,8 +12,8 @@ import {TournamentBlockControl} from './src/components/tournament/TournamentBloc
 import {groupPublicTournamentMatches} from './src/lib/publicTeamTournament';
 import {tournamentBlockReminder} from './src/lib/tournamentBlockReminder';
 export {React,TestRenderer,act,MemoryRouter,Routes,Route,PublicTeamTournamentPage,TournamentBlockControl,groupPublicTournamentMatches,tournamentBlockReminder};`},bundle:true,platform:'node',format:'cjs',outfile:out,logLevel:'silent',define:{'import.meta.env':'{}'},plugins:[{name:'stubs',setup(b){
- b.onResolve({filter:/tournamentLineupTemplates$|matchLineupVariants$|supabaseClient$/},a=>({path:a.path.split('/').pop(),namespace:'stub'}));
- b.onLoad({filter:/.*/,namespace:'stub'},a=>({contents:a.path==='supabaseClient'?'export const supabase={};':a.path==='tournamentLineupTemplates'?'export const fetchRemoteMatchBlocks=async()=>globalThis.blocks;':'export const readMatchLineupVariants=()=>globalThis.blocks;export const writeMatchLineupVariants=()=>{};'}));
+ b.onResolve({filter:/tournamentLineupTemplates$|matchLineupVariants$|supabaseClient$|^qrcode$/},a=>({path:a.path.split('/').pop(),namespace:'stub'}));
+ b.onLoad({filter:/.*/,namespace:'stub'},a=>({contents:a.path==='qrcode'?'export default {toDataURL:async()=>"data:image/png;base64,test"};':a.path==='supabaseClient'?'export const supabase={rpc:async(name,args)=>{if(name==="tournament_screen_access")return {data:globalThis.screenAccess??{canScreen:false,canManage:false},error:globalThis.screenError??null};if(name==="tournament_screen_members")return {data:globalThis.screenMembers??[],error:null};globalThis.screenAssignment=args;return {error:null};},auth:{onAuthStateChange:fn=>{globalThis.screenAuthChanged=fn;return {data:{subscription:{unsubscribe(){}}}}}}};':a.path==='tournamentLineupTemplates'?'export const fetchRemoteMatchBlocks=async()=>globalThis.blocks;':'export const readMatchLineupVariants=()=>globalThis.blocks;export const writeMatchLineupVariants=()=>{};'}));
 }}]});
  const {React,TestRenderer,act,MemoryRouter,Routes,Route,PublicTeamTournamentPage,TournamentBlockControl,groupPublicTournamentMatches:group,tournamentBlockReminder:reminder}=require(out);
  const matches=[{id:'old',status:'finished',kickoffAt:'2026-11-27T17:14Z'},{id:'next2',status:'upcoming',kickoffAt:'2026-11-27T19:48Z'},{id:'live',status:'live',kickoffAt:'2026-11-27T18:52Z'},{id:'recent',status:'finished',kickoffAt:'2026-11-27T18:10Z'},{id:'next1',status:'upcoming',kickoffAt:'2026-11-27T19:20Z'}];
@@ -43,7 +43,7 @@ export {React,TestRenderer,act,MemoryRouter,Routes,Route,PublicTeamTournamentPag
  await act(async()=>view.unmount());
  globalThis.blocks={...blocks,variants:{1:blocks.variants[1],2:blocks.variants[1]}};
  await act(async()=>{view=TestRenderer.create(render(props))});assert(JSON.stringify(view.toJSON()).includes('A / B identisch'),'identical plans are explained accurately');assert(view.root.findAllByType('button').find(b=>b.props.children==='Block B einsetzen').props.disabled,'identical blocks must not write substitutions');await act(async()=>view.unmount());
- globalThis.window={...window,addEventListener(){},removeEventListener(){},setInterval,clearInterval};document.addEventListener=()=>{};document.removeEventListener=()=>{};
+ globalThis.window={...window,location:{origin:'https://app.spielzeitapp.at',hostname:'app.spielzeitapp.at'},addEventListener(){},removeEventListener(){},setInterval,clearInterval,setTimeout,clearTimeout};document.addEventListener=()=>{};document.removeEventListener=()=>{};
  const page={publicId:'test',tournamentName:'Hallencup',dateLabel:'27. Nov.',teamName:'Rohrbach',ownParticipantName:'Rohrbach',ageGroupLabel:'U12',tournamentStatusLabel:'Läuft',allMatches:matches.map(m=>({...m,ourTeamName:'Rohrbach',opponentName:m.id,kickoffTimeLabel:m.kickoffAt.slice(11,16),scoreOur:m.status==='finished'?1:null,scoreOpp:m.status==='finished'?0:null})),scorers:[],schedule:[],fanRoster:[],upcomingMatches:[],results:[]};
  globalThis.fetch=async()=>({ok:true,json:async()=>({ok:true,page})});
  await act(async()=>{view=TestRenderer.create(React.createElement(MemoryRouter,{initialEntries:['/turnier/test']},React.createElement(Routes,null,React.createElement(Route,{path:'/turnier/:publicId',element:React.createElement(PublicTeamTournamentPage)}))))});
@@ -66,13 +66,43 @@ export {React,TestRenderer,act,MemoryRouter,Routes,Route,PublicTeamTournamentPag
  await act(async()=>{view=TestRenderer.create(React.createElement(MemoryRouter,{initialEntries:['/turnier/test']},React.createElement(Routes,null,React.createElement(Route,{path:'/turnier/:publicId',element:React.createElement(PublicTeamTournamentPage)}))))});
  assert.equal(view.root.findAllByProps({'aria-label':'Nächstes eigenes Spiel'}).length,1,'after finish next own game must become the hero');
  const after=view.root.findAllByType('article').map(text);assert(after[0].includes('next1'));assert.equal(after.filter(t=>t.includes('next1')).length,1,'featured next match is not duplicated');
- const archive=view.root.findAllByType('details').find(d=>d.findAllByType('summary').some(n=>text(n).includes('Weitere Ergebnisse')));assert(archive);assert(!archive.props.open,'older results start collapsed');
+ for (const id of ['live', 'recent', 'old']) assert(after.some(card => card.includes(id)), 'all own results are shown directly');
  await act(async()=>view.unmount());
  let fetched='';globalThis.fetch=async url=>{fetched=url;return {ok:true,json:async()=>({ok:true,page})}};
  await act(async()=>{view=TestRenderer.create(React.createElement(MemoryRouter,{initialEntries:['/app/events/test']},React.createElement(Routes,null,React.createElement(Route,{path:'/app/events/:id',element:React.createElement(PublicTeamTournamentPage,{embedded:true,publicIdOverride:'test'})}))))});
  assert(fetched.includes('publicTournamentId=test'),'embedded overview loads its own event without a public-route parameter');assert(view.root.findByProps({'data-embedded':true}));assert.equal(view.root.findAllByType('main').length,0,'embedded overview must not introduce its own scroll/main page');assert(!view.root.findAllByType('button').some(b=>text(b)==='QR-Code'),'public share and print toolbar is not duplicated');assert.equal(view.root.findAllByProps({'aria-label':'Turnierbereiche'}).length,1);assert.equal(view.root.findAllByProps({'aria-label':'Nächstes eigenes Spiel'}).length,1);
  const ownLink=view.root.findAllByType('a').find(a=>a.props.href?.endsWith('?spiel=next1'));assert(ownLink);await act(async()=>ownLink.props.onClick({button:0,defaultPrevented:false,preventDefault(){this.defaultPrevented=true;}}));assert(view.root.findAllByType('h1').some(h=>text(h).includes('next1')),'match details open within app overview');await act(async()=>view.root.findAllByType('button').find(b=>text(b).includes('Zurück zur Turnierübersicht')).props.onClick());assert.equal(view.root.findAllByProps({'aria-label':'Turnierbereiche'}).length,1,'return restores embedded overview');assert(!view.root.findAllByType('button').some(b=>/Löschen|Spiel starten|Aufstellung speichern/.test(text(b))),'audience overview has no management controls');
- await act(async()=>view.unmount());console.log('PASS shared embedded audience overview, app-route event lookup, in-app match navigation, read-only controls and no duplicate shell');console.log('PASS live-to-next large hero, no duplicate next fixture, full-size pairing cards and collapsed result archive');console.log('PASS live/upcoming/results order; match-time reminder and reset; optional sound only once, pauses respected; block requires confirmation');
+ await act(async()=>view.unmount());console.log('PASS shared embedded audience overview, app-route event lookup, in-app match navigation, read-only controls and no duplicate shell');console.log('PASS live-to-next large hero, no duplicate next fixture, full-size pairing cards and all own results shown directly');console.log('PASS live/upcoming/results order; match-time reminder and reset; optional sound only once, pauses respected; block requires confirmation');
+
+ const screenRender=(query='')=>React.createElement(MemoryRouter,{initialEntries:['/turnier/test'+query]},React.createElement(Routes,null,React.createElement(Route,{path:'/turnier/:publicId',element:React.createElement(PublicTeamTournamentPage)})));
+ globalThis.screenAccess={canScreen:false,canManage:false};
+ await act(async()=>{view=TestRenderer.create(screenRender())});
+ assert(!view.root.findAllByType('a').some(a=>text(a).trim()==='Bildschirm'),'audience cannot discover screen mode');
+ assert(view.root.findAllByType('a').some(a=>text(a).trim()==='Drucken / PDF'),'audience print remains available');
+ await act(async()=>view.unmount());
+ await act(async()=>{view=TestRenderer.create(screenRender('?modus=screen'))});
+ assert(JSON.stringify(view.toJSON()).includes('Nur für Vereinsadmins'),'direct URL denied for audience');
+ assert(!view.root.findAllByType('button').some(b=>text(b).includes('Vollbild')));
+ globalThis.screenAccess={canScreen:true,canManage:false};
+ await act(async()=>{screenAuthChanged();await new Promise(r=>setTimeout(r,5))});
+ assert(view.root.findAllByType('button').some(b=>text(b).includes('Vollbild')),'assigned director gets screen');
+ globalThis.screenAccess={canScreen:false,canManage:false};
+ await act(async()=>{screenAuthChanged();await new Promise(r=>setTimeout(r,5))});
+ assert(!view.root.findAllByType('button').some(b=>text(b).includes('Vollbild')),'revocation removes active screen');
+ await act(async()=>view.unmount());
+ globalThis.screenAccess={canScreen:true,canManage:true};globalThis.screenMembers=[{user_id:'trainer',label:'Trainer Beispiel',assigned:false}];
+ await act(async()=>{view=TestRenderer.create(screenRender())});
+ assert(view.root.findAllByType('a').some(a=>text(a).trim()==='Bildschirm'),'admin sees screen mode');
+ await act(async()=>view.root.findAllByType('button').find(b=>text(b).includes('Turnierleitung verwalten')).props.onClick());
+ await act(async()=>view.root.findByProps({'aria-label':'Trainer Beispiel als Turnierleitung'}).props.onChange());
+ assert.deepEqual(globalThis.screenAssignment,{p_event_id:'test',p_user_id:'trainer',p_assigned:true},'admin explicitly assigns selected trainer to this event');
+ await act(async()=>view.unmount());
+ globalThis.screenError={message:'offline'};
+ await act(async()=>{view=TestRenderer.create(screenRender('?modus=screen'))});
+ assert(JSON.stringify(view.toJSON()).includes('Berechtigung konnte nicht geprüft'),'permission failure closes screen');
+ assert(!view.root.findAllByType('button').some(b=>text(b).includes('Vollbild')));
+ await act(async()=>view.unmount());
+ console.log('PASS screen access: public and direct URL denied, print retained, admin assignment, assigned director allowed, revocation and network failure close screen');
 }finally{rmSync(dir,{recursive:true,force:true});}
 
 process.exit(0);
