@@ -15,6 +15,7 @@ import {
 import { tournamentPhaseDisplayLabel } from '../../lib/matchCenterTournamentVisuals';
 import {
   liveMatchPath,
+  liveMatchWithoutLineupPath,
   matchLineupPath,
   matchPreparationPath,
 } from '../../lib/matchPreparationAccess';
@@ -145,6 +146,16 @@ function renderCta(
         <WorkflowCtaLink
           key={`${cta.kind}-${cta.matchId}`}
           to={matchLineupPath(cta.matchId, base)}
+          variant={cta.variant}
+        >
+          {cta.label}
+        </WorkflowCtaLink>
+      );
+    case 'start_without_lineup':
+      return base === '/demo' ? null : (
+        <WorkflowCtaLink
+          key={`${cta.kind}-${cta.matchId}`}
+          to={liveMatchWithoutLineupPath(cta.matchId, base)}
           variant={cta.variant}
         >
           {cta.label}

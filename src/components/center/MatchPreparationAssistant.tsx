@@ -3,24 +3,26 @@ import { CenterPreparationAssistant } from './CenterPreparationAssistant';
 import { fetchLineupForLiveMatch, fetchMatchById } from '../../lib/liveMatchService';
 import { isStartelfCompleteFromStartingIds } from '../../pages/MatchDetail/lineupGuards';
 import { subscribeLiveMatchStateChanged } from '../../lib/liveMatchBroadcast';
+import { liveMatchWithoutLineupPath } from '../../lib/matchPreparationAccess';
+import type { InternalBasePath } from '../../demo/demoPaths';
 
 export function MatchPreparationAssistant({ matchId, basePath, playerCount, openCount, yesCount, attendanceLoading, onOpenAttendance, onOpenPlan }: {
-  matchId?: string | null; basePath: string; playerCount: number; openCount: number; yesCount: number; attendanceLoading: boolean; onOpenAttendance: () => void; onOpenPlan: () => void;
+  matchId?: string | null; basePath: InternalBasePath; playerCount: number; openCount: number; yesCount: number; attendanceLoading: boolean; onOpenAttendance: () => void; onOpenPlan: () => void;
 }) {
-  const [state, setState] = useState({ loading: true, squad: 0, lineup: false, error: null as string | null });
+  const [state, setState] = useState({ loading: true, squad: 0, hasStarters: false, lineup: false, error: null as string | null });
   useEffect(() => {
     let active = true;
     let revision = 0;
     const load = async () => {
       const request = ++revision;
-      if (!matchId) { setState({ loading: false, squad: 0, lineup: false, error: 'Die Spielvorbereitung wird eingerichtet. Bitte kurz warten.' }); return; }
+      if (!matchId) { setState({ loading: false, squad: 0, hasStarters: false, lineup: false, error: 'Die Spielvorbereitung wird eingerichtet. Bitte kurz warten.' }); return; }
       setState(previous => ({ ...previous, loading: true }));
       try {
         const [lineup, match] = await Promise.all([fetchLineupForLiveMatch(matchId), fetchMatchById(matchId)]);
         if (!active || request !== revision) return;
         const error = lineup.error || match.error;
-        setState({ loading: false, squad: error ? 0 : lineup.data.squadPlayerIds.length, lineup: !error && isStartelfCompleteFromStartingIds(lineup.data.startingPlayerIds, match.data?.u11_formation_id), error: error ? 'Kader und Aufstellung konnten nicht geladen werden.' : null });
-      } catch { if (active && request === revision) setState({ loading: false, squad: 0, lineup: false, error: 'Vorbereitung konnte nicht geladen werden.' }); }
+        setState({ loading: false, squad: error ? 0 : lineup.data.squadPlayerIds.length, hasStarters: !error && lineup.data.startingPlayerIds.some(Boolean), lineup: !error && isStartelfCompleteFromStartingIds(lineup.data.startingPlayerIds, match.data?.u11_formation_id), error: error ? 'Kader und Aufstellung konnten nicht geladen werden.' : null });
+      } catch { if (active && request === revision) setState({ loading: false, squad: 0, hasStarters: false, lineup: false, error: 'Vorbereitung konnte nicht geladen werden.' }); }
     };
     void load();
     const refresh = () => { void load(); };
@@ -33,5 +35,8 @@ export function MatchPreparationAssistant({ matchId, basePath, playerCount, open
     { id: 'squad', title: 'Kader wählen', detail: state.squad ? `${state.squad} Spieler ausgewählt` : 'Spieler für das Match auswählen', done: state.squad > 0, disabled: !matchId, to: matchId ? `${basePath}/match-preparation?matchId=${encodeURIComponent(matchId)}` : undefined },
     { id: 'lineup', title: 'Aufstellung vorbereiten', detail: 'Formation und Startelf festlegen', done: state.lineup, disabled: !matchId, to: matchId ? `${basePath}/match-lineup?matchId=${encodeURIComponent(matchId)}` : undefined },
     { id: 'notes', title: 'Matchplan ergänzen', detail: 'Taktik und Hinweise zum Spiel', done: false, optional: true, onClick: onOpenPlan },
+    ...(!state.loading && !state.error && !state.hasStarters && matchId && basePath !== '/demo'
+      ? [{ id: 'quick-live', title: 'Ohne Aufstellung starten', detail: 'Uhr, Tore und Ergebnis im Liveticker erfassen', done: false, optional: true, to: liveMatchWithoutLineupPath(matchId, basePath) }]
+      : []),
   ]} />;
 }

@@ -25,6 +25,7 @@ export type TournamentOrchestratorCta =
   | { kind: 'add_match'; label: string; variant: 'primary' }
   | { kind: 'prepare'; matchId: string; label: string; variant: 'primary' }
   | { kind: 'open_lineup'; matchId: string; label: string; variant: 'secondary' }
+  | { kind: 'start_without_lineup'; matchId: string; label: string; variant: 'secondary' }
   | { kind: 'start_live'; matchId: string; label: string; variant: 'primary' }
   | { kind: 'go_live'; matchId: string; label: string; variant: 'primary' }
   | { kind: 'refresh_plan'; label: string; variant: 'primary' }
@@ -319,6 +320,7 @@ export function resolveTournamentOrchestrator(params: {
           label: prepareLabel(slot, focus.priorFinishedCount),
           variant: 'primary',
         },
+        { kind: 'start_without_lineup', matchId, label: 'Ohne Aufstellung starten', variant: 'secondary' },
       ],
       showLineupReadyMark: false,
     };

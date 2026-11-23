@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { dsPrimaryCtaClass, dsSecondaryCtaClass } from '../../lib/premiumDesignSystem';
-import { matchLineupPath, matchPreparationPath } from '../../lib/matchPreparationAccess';
+import { liveMatchWithoutLineupPath, matchLineupPath, matchPreparationPath } from '../../lib/matchPreparationAccess';
 import {
   tournamentCenterPath,
   type TournamentMatchNavigationContext,
@@ -97,6 +97,15 @@ export function TournamentNextMatchWorkflowCta({
         >
           {ctaLabel}
         </Link>
+        {isTrainer && phase !== 'during_live' && basePath !== '/demo' && nextSlot.match_id &&
+        (nextSlot.match_status ?? 'upcoming') === 'upcoming' && !nextSlot.has_lineup ? (
+          <Link
+            to={liveMatchWithoutLineupPath(nextSlot.match_id, basePath)}
+            className={`${dsSecondaryCtaClass()} mt-2 flex min-h-[44px] w-full items-center justify-center px-4 py-2.5 text-[13px] font-bold`}
+          >
+            Ohne Aufstellung starten
+          </Link>
+        ) : null}
       </div>
     );
   }

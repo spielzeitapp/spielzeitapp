@@ -18,6 +18,13 @@ export function liveMatchPath(matchId: string, base: '/app' | '/demo' | '/manage
   return `${base}/live?matchId=${encodeURIComponent(matchId.trim())}`;
 }
 
+export function liveMatchWithoutLineupPath(
+  matchId: string,
+  base: '/app' | '/demo' | '/manager' = '/app',
+): string {
+  return `${liveMatchPath(matchId, base)}&withoutLineup=1`;
+}
+
 /** Trainer/Admin/Staff darf Match vorbereiten / Aufstellung schreiben. */
 export function canMutateMatchPreparation(role: RoleKey | string | null | undefined): boolean {
   return canManageMatches(normalizeRole(role));
