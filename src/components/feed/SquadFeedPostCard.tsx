@@ -1,5 +1,4 @@
-import { normalizeTeamPhotoLayout, type TeamPhotoLayout } from '../../lib/teamPhotoLayout';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import type { EventRow, EventStatus } from '../../hooks/useEvents';
 import type { SquadFeedPostRow } from '../../lib/matchdayFeedTypes';
 import { getClubLogo } from '../../lib/teamLogos';
@@ -9,7 +8,6 @@ import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import { SquadPosterArtwork } from './SquadPosterArtwork';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
-import { supabase } from '../../lib/supabaseClient';
 import { useDemoMode } from '../../demo/DemoContext';
 import {
   FEED_POST_BODY_CLASS,
@@ -48,20 +46,6 @@ export const SquadFeedPostCard: React.FC<Props> = ({
 }) => {
   const p = post.payload;
   const demo = useDemoMode();
-  const [teamPhoto, setTeamPhoto] = useState<{ seasonId: string; url: string; layout: TeamPhotoLayout } | null>(null);
-  const isDemo = Boolean(demo?.isDemo);
-  useEffect(() => {
-    if (isDemo || post.media_url?.trim() || !p.team_season_id) return;
-    let cancelled = false;
-    void supabase.from('team_photos').select('photo_url,photo_zoom,photo_position_x,photo_position_y,photo_brightness')
-      .eq('team_season_id', p.team_season_id).maybeSingle()
-      .then(({ data, error }) => {
-        if (!cancelled) setTeamPhoto({ seasonId: p.team_season_id, url: error ? '' : data?.photo_url?.trim() || '', layout:normalizeTeamPhotoLayout(data) });
-      });
-    return () => { cancelled = true; };
-  }, [p.team_season_id, isDemo, post.media_url]);
-  const teamPhotoUrl = isDemo ? '/feed/demo-squad-huddle.webp'
-    : teamPhoto?.seasonId === p.team_season_id ? teamPhoto.url : null;
   const ageGroup = (teamLabel + ' ' + p.our_team_name).match(/\bU\d{1,2}\b/i)?.[0]?.toUpperCase() || '';
   const [liked, setLiked] = useState(false);
   const [shareHint, setShareHint] = useState<string | null>(null);
@@ -112,8 +96,7 @@ export const SquadFeedPostCard: React.FC<Props> = ({
             players={p.players}
             startsAt={liveEvent?.starts_at || p.starts_at}
             location={liveEvent?.location}
-            teamPhotoUrl={teamPhotoUrl}
-            teamPhotoLayout={!isDemo && teamPhoto?.seasonId === p.team_season_id ? teamPhoto.layout : null}
+            teamPhotoUrl={demo?.isDemo ? '/feed/demo-squad-huddle.webp' : null}
           />
         )}
         <div className="mt-3"><FeedGameCtaLink to={p.deep_link}>Zum Spiel</FeedGameCtaLink></div>
