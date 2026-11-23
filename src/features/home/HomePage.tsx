@@ -526,7 +526,7 @@ export const HomePage: React.FC = () => {
       {showContent && (
         <div className="min-w-0 space-y-2">
 <div className="relative flex min-h-[40px] items-center justify-between gap-3">
-                <h1 className={cn(dsPageTitleClass(), 'min-w-0 flex-1')}>Home</h1>
+                <h1 className={cn(dsPageTitleClass(), 'min-w-0 flex-1')}>News</h1>
 
                 <button
                   type="button"
