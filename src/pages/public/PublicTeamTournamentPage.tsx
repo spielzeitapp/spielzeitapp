@@ -17,6 +17,7 @@ import {
   type PublicTournamentPlayer,
   type PublicTournamentScheduleFixture,
 } from '../../lib/publicTeamTournament';
+import { normalizeBrandColor, readableTextColor } from '../../lib/clubBranding';
 import { TournamentClubLogo } from '../../components/tournament/TournamentClubLogo';
 
 function compareFixtureKickoff(
@@ -124,7 +125,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const card = 'rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] shadow-sm p-4';
   const [tab, setTab] = useState(() => searchParams.get('bereich') === 'spielplan' ? 'games' : 'ours');
   const [scheduleView,setScheduleView]=useState<'upcoming'|'results'>('upcoming');
-  const heading = 'mb-3 text-[15px] font-extrabold uppercase tracking-[.14em] text-[var(--t-accent)]';
+  const heading = 'public-tournament-heading mb-3 text-[15px] font-extrabold uppercase tracking-[.14em] text-[var(--t-accent)]';
   const scorerTotals = Object.values((page?.scorers ?? []).reduce((all,s)=>{const row=all[s.name]??{name:s.name,goals:0};row.goals+=s.goals;all[s.name]=row;return all;},{} as Record<string,{name:string;goals:number}>)).sort((a,b)=>b.goals-a.goals);
   const profileFor = (name: string): PublicTournamentPlayer => page?.fanPlayers?.find(player => player.name === name) ?? {
     name, firstName: name.split(/\s+/)[0], lastName: name.split(/\s+/).slice(1).join(' '), number: null, imageUrl: null,
@@ -261,20 +262,22 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
     return <main className="mx-auto max-w-xl space-y-4 p-6 pt-[max(2rem,env(safe-area-inset-top))]"><Link to="?">← Turnierseite</Link><h1 className="text-2xl font-bold">Bildschirmmodus</h1><p role="status">{screenAccess.loading?'Berechtigung wird geprüft…':screenAccess.error?'Berechtigung konnte nicht geprüft werden.':'Nur für Vereinsadmins und die eingeteilte Turnierleitung. Bitte mit dem berechtigten Konto anmelden.'}</p><Link to="/login">Zur Anmeldung</Link><button onClick={()=>void refreshScreenAccess()}>Erneut prüfen</button></main>;
   }
   const ContentTag=embedded?'div':'main';
+  const accent = normalizeBrandColor(page?.accentColor) ?? '#c82333';
   return <div ref={scrollSurface} data-embedded={embedded || undefined} data-theme={theme} className={`${embedded?'tournament-audience-overview w-full min-w-0':'public-tournament-page bg-[var(--t-bg)]'} text-[var(--t-text)]`} style={{
-      '--t-accent': page?.accentColor ?? '#c82333',
-      '--t-bg': theme === 'day' ? '#f7f8fa' : '#000000',
-      '--t-surface': theme === 'day' ? '#ffffff' : '#0d0d10',
+      '--t-accent': accent,
+      '--t-on-accent': readableTextColor(accent),
+      '--t-bg': theme === 'day' ? '#f7f8fa' : '#0b0b0f',
+      '--t-surface': theme === 'day' ? '#ffffff' : '#15151b',
       '--t-text': theme === 'day' ? '#13151b' : '#ffffff',
       '--t-muted': theme === 'day' ? '#526071' : '#b5b5bc',
-      '--t-border': theme === 'day' ? 'color-mix(in srgb, var(--t-accent) 18%, transparent)' : 'color-mix(in srgb, var(--t-accent) 28%, transparent)',
-      '--t-fixture': theme === 'day' ? 'linear-gradient(135deg,#ffffff,#fff1f2)' : 'linear-gradient(135deg,#121114,#270e15)',
+      '--t-border': theme === 'day' ? 'color-mix(in srgb, var(--t-accent) 18%, transparent)' : '#2e2e38',
+      '--t-fixture': theme === 'day' ? 'linear-gradient(135deg,#ffffff,#fff1f2)' : 'linear-gradient(135deg, var(--t-surface), color-mix(in srgb, var(--t-accent) 10%, var(--t-surface)))',
       '--t-player-badge': theme === 'day' ? '#f1f5f9' : 'rgba(0,0,0,.25)',
       '--t-live': theme==='day'?'#15803d':'#6ee7b7',
       '--t-warning': theme === 'day' ? '#854d0e' : '#fcd34d',
       colorScheme: theme === 'day' ? 'light' : 'dark',
     } as React.CSSProperties}>
-    <ContentTag className={embedded?"space-y-4":"mx-auto max-w-2xl space-y-4 px-4 pb-12 pt-[max(1.25rem,env(safe-area-inset-top))]"}>
+    <ContentTag className={embedded?"space-y-4":"mx-auto max-w-2xl space-y-4 px-4 pb-8 pt-4"}>
       {!embedded ? <header className="flex items-center justify-between gap-2">
         <Link to={selectedMatch && !returnsToLive ? location.pathname : returnTo} state={location.state} aria-label={returnsToLive ? 'Zurück zum Livespiel' : 'Zurück zum Turnier'} className="inline-flex min-h-11 min-w-0 items-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2 text-sm font-bold">← Zurück<span className="ml-1 hidden min-[380px]:inline">{returnsToLive ? 'zum Livespiel' : 'zum Turnier'}</span></Link>
         <div className="flex shrink-0 items-center gap-2">
@@ -331,8 +334,8 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
           </section>
         ) : null}
         <nav aria-label="Turnierbereiche" className="space-y-1 rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-1">
-          <div className="grid grid-cols-2 gap-1 sm:grid-cols-4" role="group" aria-label="Spiele und Tabelle">{[['ours','Unsere Spiele'],['games','Alle Spiele'],['ticker','Liveticker'],['tables','Tabellen']].map(([id,label])=><button key={id} type="button" aria-pressed={tab===id} onClick={()=>setTab(id)} className={`min-h-11 min-w-0 rounded-xl px-2 text-sm font-bold ${tab===id?'bg-[var(--t-accent)] text-white':'text-[var(--t-muted)]'}`}>{label}</button>)}</div>
-          <div className="grid grid-cols-3 gap-1 border-t border-[var(--t-border)] pt-1" role="group" aria-label="Finalrunde, Torschützen und Mannschaft">{[['final','Finalrunde'],['scorers','Torschützen'],['roster','Unser Team']].map(([id,label])=><button key={id} type="button" aria-pressed={tab===id} onClick={()=>setTab(id)} className={`min-h-11 min-w-0 rounded-xl px-1 text-[13px] font-bold sm:text-sm ${tab===id?'bg-[var(--t-accent)] text-white':'text-[var(--t-muted)]'}`}>{label}</button>)}</div>
+          <div className="grid grid-cols-2 gap-1 sm:grid-cols-4" role="group" aria-label="Spiele und Tabelle">{[['ours','Unsere Spiele'],['games','Alle Spiele'],['ticker','Liveticker'],['tables','Tabellen']].map(([id,label])=><button key={id} type="button" aria-pressed={tab===id} onClick={()=>setTab(id)} className="public-tournament-tab min-h-11 min-w-0 rounded-xl px-2 text-sm font-bold">{label}</button>)}</div>
+          <div className="grid grid-cols-3 gap-1 border-t border-[var(--t-border)] pt-1" role="group" aria-label="Finalrunde, Torschützen und Mannschaft">{[['final','Finalrunde'],['scorers','Torschützen'],['roster','Unser Team']].map(([id,label])=><button key={id} type="button" aria-pressed={tab===id} onClick={()=>setTab(id)} className="public-tournament-tab min-h-11 min-w-0 rounded-xl px-1 text-[13px] font-bold sm:text-sm">{label}</button>)}</div>
         </nav>
         {tab==='ours'? <section className="space-y-4">
           {remainingOwnCards.length ? (
@@ -356,7 +359,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
 
         {tab==='tables'?<>{finalRanking}{!(page.groupTables?.length)?<p className={card}>Noch keine Gruppentabellen vorhanden.</p>:page.groupTables.map(g=><section className={card} key={g.groupLabel}><h2 className={heading}>Gruppe {g.groupLabel}</h2><table className="w-full table-fixed text-[15px]"><thead className="text-xs text-[var(--t-muted)]"><tr><th className="w-7 py-2 text-left">#</th><th className="text-left">Mannschaft</th><th className="w-8">Sp.</th><th className="w-12">Tore</th><th className="w-9">Pkt.</th></tr></thead><tbody>{g.rows.map(r=><tr key={r.teamName} className="border-t border-[var(--t-border)]"><td className="py-3 font-bold">{r.rank || '–'}</td><td className="py-3 pr-2 font-semibold break-words"><span className="flex items-center gap-2">{<FanTeamLogo name={r.teamName} logos={page.teamLogos} ownName={page.ownParticipantName} ownLogo={page.teamLogoUrl} small/>}{r.teamName}</span></td><td className="text-center tabular-nums">{r.played}</td><td className="text-center tabular-nums">{r.goalsFor}:{r.goalsAgainst}</td><td className="text-center font-extrabold tabular-nums">{r.points}</td></tr>)}</tbody></table></section>)}<p className="text-sm text-[var(--t-muted)]">{page.standingsProvisional ? 'Vorläufig · eigene abgeschlossene Spiele und Veranstalterergebnisse berücksichtigt. Sortierung: Punkte, Tordifferenz, erzielte Tore; die offizielle Platzierung kann bei Gleichstand abweichen.' : 'Veranstaltertabelle'}</p></>:null}
         {tab==='games'||tab==='final'? <section className="space-y-4"><h2 className={heading}>{tab==='final'?'Final- und Platzierungsspiele':'Spielplan & Ergebnisse'}</h2>
-          {tab==='games'?<><div className="grid grid-cols-2 gap-2 rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-1" role="group" aria-label="Spielplan oder Ergebnisse">{([['upcoming','Spielplan',scheduledUpcoming.length],['results','Ergebnisse',scheduledResults.length]] as const).map(([value,label,count])=><button key={value} type="button" aria-pressed={scheduleView===value} onClick={()=>setScheduleView(value)} className={`min-h-11 rounded-xl px-2 text-sm font-bold ${scheduleView===value?'bg-[var(--t-accent)] text-white':'text-[var(--t-muted)]'}`}>{label} · {count}</button>)}</div>{scheduleView==='upcoming'?(scheduledUpcoming.length?scheduledUpcoming.map(renderScheduledFixture):<p className={card}>Keine weiteren Spiele geplant.</p>):(scheduledResults.length?scheduledResults.map(renderScheduledFixture):<p className={card}>Noch keine Ergebnisse vorhanden.</p>)}</>:!fixtures.length?<p className={card}>Noch keine Spiele hinterlegt.</p>:<>{scheduledUpcoming.map(renderScheduledFixture)}{scheduledResults.map(renderScheduledFixture)}</>}
+          {tab==='games'?<><div className="grid grid-cols-2 gap-2 rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-1" role="group" aria-label="Spielplan oder Ergebnisse">{([['upcoming','Spielplan',scheduledUpcoming.length],['results','Ergebnisse',scheduledResults.length]] as const).map(([value,label,count])=><button key={value} type="button" aria-pressed={scheduleView===value} onClick={()=>setScheduleView(value)} className="public-tournament-tab min-h-11 rounded-xl px-2 text-sm font-bold">{label} · {count}</button>)}</div>{scheduleView==='upcoming'?(scheduledUpcoming.length?scheduledUpcoming.map(renderScheduledFixture):<p className={card}>Keine weiteren Spiele geplant.</p>):(scheduledResults.length?scheduledResults.map(renderScheduledFixture):<p className={card}>Noch keine Ergebnisse vorhanden.</p>)}</>:!fixtures.length?<p className={card}>Noch keine Spiele hinterlegt.</p>:<>{scheduledUpcoming.map(renderScheduledFixture)}{scheduledResults.map(renderScheduledFixture)}</>}
           {tab==='final'?finalRanking:null}</section>:null}
 
 
@@ -365,7 +368,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
         {tab==='scorers'?<section className={card}><h2 className={heading}>Unsere Torschützenliste</h2>{page.scorers?.some(s=>s.example)?<p className="mb-3 text-sm text-[var(--t-warning)]">TEST-Beispieldaten aus unserem Kader – keine bestätigten historischen Torschützen.</p>:null}{scorerTotals.length?<ol className="space-y-3">{scorerTotals.map((s,i)=><li key={s.name}><TournamentFanPlayerCard player={profileFor(s.name)} clubName={page.ownParticipantName || page.teamName} clubLogo={page.teamLogoUrl} goals={s.goals} rank={i+1}/></li>)}</ol>:<p>Noch keine Torschützen erfasst.</p>}</section>:null}
         {tab==='roster'?<section className={card}><h2 className={heading}>Unser Team</h2>{page.fanRosterExample?<p className="mb-3 text-sm text-[var(--t-muted)]">TEST-Beispiel mit Bildern und Nummern aus unserem aktuellen Kader.</p>:null}{rosterPlayers.length?<ul className="space-y-3">{rosterPlayers.map(player=><li key={player.name}><TournamentFanPlayerCard player={player} clubName={page.ownParticipantName || page.teamName} clubLogo={page.teamLogoUrl}/></li>)}</ul>:<p>Der Turnierkader ist noch nicht festgelegt.</p>}</section>:null}
         </>}
-        {!embedded ? <Link to={returnTo} className="block rounded-full bg-[var(--t-accent)] px-5 py-4 text-center text-lg font-bold text-white">Zum Turniercenter in der App</Link> : null}
+        {!embedded ? <Link to={returnTo} className="public-tournament-cta block rounded-full px-5 py-3 text-center text-sm font-bold">Zum Turniercenter in der App</Link> : null}
       </>}
     </ContentTag>
   </div>;
