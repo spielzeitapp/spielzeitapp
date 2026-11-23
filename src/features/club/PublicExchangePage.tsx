@@ -1,5 +1,6 @@
 import './teamFund.css';
 import {ClubShop} from './ClubShop';
+import {GOELSENTAL_TEST_SHOP_ID} from './jakoShopCatalog';
 import {marketDisplayName} from './marketIdentity';
 import {fundPrice} from './teamFund';
 import {MarketManagerShortcut} from '../marketManager/MarketManagerShortcut';
@@ -57,6 +58,7 @@ function PublicExchangeContent(){
  const account=marketAccountIdentity(profile?.id===user?.id?profile:null,user?.user_metadata);
  useEffect(()=>{if(!user)return;let active=true;void supabase.auth.getSession().then(({data})=>{if(active&&data.session)void fetch('/api/exchange/push',{method:'POST',headers:{Authorization:`Bearer ${data.session.access_token}`}}).catch(()=>{});}).catch(()=>{});return()=>{active=false;};},[user?.id]);
  const {clubId=''}=useParams();const [params,setParams]=useSearchParams();
+ const shopTitle=isStagingApp()&&clubId===GOELSENTAL_TEST_SHOP_ID?'Teamshop':'Vereinsshop';
  const unreadMessages=useUnreadCount(user?.id,'exchange',clubId);
  const [settledClub,setSettledClub]=useState('');
  const [readyClub,setReadyClub]=useState('');
@@ -109,11 +111,11 @@ function PublicExchangeContent(){
  {view==='start'&&<><p className="public-market-eyebrow">Alle Teams. Ein Verein.</p><h1>Vereinsmarkt</h1><p className="public-market-intro">Fußballsachen weitergeben. Im Verein verbunden.</p></>}
  <div className="public-market-search-row"><div className="exchange-search"><Search size={20}/><input aria-label="Öffentliche Angebote suchen" placeholder="Was suchst du?" type="search" value={search} onChange={e=>{setSearch(e.target.value);}}/></div><button type="button" className="public-market-filter-trigger" aria-label={`Filter öffnen${Object.values(filters).filter(Boolean).length?`: ${Object.values(filters).filter(Boolean).length} aktiv`:""}`} aria-haspopup="dialog" onClick={()=>setFilterOpen(true)}><SlidersHorizontal size={20}/><span>Filter</span>{Object.values(filters).some(Boolean)&&<b>{Object.values(filters).filter(Boolean).length}</b>}</button></div>
  <div className="public-market-categories">{[{label:'Alle Artikel',Icon:LayoutGrid,category:''},{label:'Bekleidung',Icon:Shirt,category:'Bekleidung'},{label:'Schuhe',Icon:MarketShoesIcon,category:'Schuhe'},{label:'Zubehör',Icon:Backpack,category:'Zubehör'}].map(({label,Icon,category})=><button key={label} type="button" aria-pressed={category?matchesExchangeCategory(filters.category,category):!filters.category} onClick={()=>{setFilters({...EMPTY_EXCHANGE_FILTERS,category});go('suchen');}}><Icon size={23}/>{label}</button>)}</div>
- <div className="public-market-shop-shortcut"><button type="button" onClick={()=>go('shop')}><ShoppingBag size={18}/>Zum Vereinsshop →</button></div>
+ <div className="public-market-shop-shortcut"><button type="button" onClick={()=>go('shop')}><ShoppingBag size={18}/>Zum {shopTitle} →</button></div>
 
  <div className="exchange-result-row"><h2>{view==='start'?'Frisch eingestellt':`${shown.length} ${shown.length===1?'Angebot':'Angebote'}`}</h2>{view==='start'&&<button className="exchange-back" onClick={()=>go('suchen')}>Alle ansehen</button>}</div>
  {shown.length?<div className={view==='start'?'public-market-rail':'exchange-grid'}>{(view==='start'?shown.slice(0,8):shown).map(card)}</div>:<div className="exchange-empty"><Shirt/><h3>{items.length?'Keine passenden Angebote':'Zu klein? Gib es weiter.'}</h3><p>{items.length?'Ändere deine Suche oder setze die Filter zurück.':'Hier finden Trainingssachen ein neues Team. Stelle das erste öffentliche Inserat ein.'}</p></div>}
- {view==='start'&&<><Link className="public-market-banner" to={login(memberPath+'&mode=create')}><Plus size={30}/><span><strong>Zu klein? Gib es weiter.</strong><small>Inserat mit Foto erstellen – im Verein.</small></span></Link><button className="public-market-banner" onClick={()=>go('shop')}><Shirt size={28}/><span><strong>Lieber neu?</strong><small>Vereinsshop · Neue Vereinsartikel</small></span></button></>}
+ {view==='start'&&<><Link className="public-market-banner" to={login(memberPath+'&mode=create')}><Plus size={30}/><span><strong>Zu klein? Gib es weiter.</strong><small>Inserat mit Foto erstellen – im Verein.</small></span></Link><button className="public-market-banner" onClick={()=>go('shop')}><Shirt size={28}/><span><strong>Lieber neu?</strong><small>{shopTitle} · Neue Vereinsartikel</small></span></button></>}
  </>}
  <p className="public-market-note">Stöbern ohne Anmeldung · Inserieren und private Anfragen mit Vereinskonto</p><footer className="public-market-footer"><button onClick={()=>go('app')}>powered by <span className="font-semibold">SpielzeitApp</span></button><nav className="public-market-legal-links" aria-label="Rechtliches und Hilfe">{[['nutzungsbedingungen','Nutzungsbedingungen'],['datenschutz','Datenschutz'],['impressum','Impressum'],['hilfe','Hilfe & Kontakt']].map(([path,label])=><a key={path} href={`/vereinsmarkt/${path}.html?club=${clubId}`}>{label}</a>)}</nav></footer>
  </main><MarketNavViewport><nav className="public-market-nav" aria-label="Marktplatz-Navigation">{[
