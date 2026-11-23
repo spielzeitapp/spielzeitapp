@@ -18,10 +18,10 @@ function navAssetBase(): string {
 
 /**
  * Bottom Navigation — nur UI.
- * Reihenfolge: Home | Termine | Team | Live | Mehr
+ * Reihenfolge: News | Termine | Team | Live | Mehr
  */
 const appTabs = [
-  { to: '/app/home', end: true as const, label: 'Home', iconFile: 'home-ball.png', live: false as const },
+  { to: '/app/home', end: true as const, label: 'News', iconFile: 'home-ball.png', live: false as const },
   { to: '/app/termine', end: false as const, label: 'Termine', iconFile: 'pitch.svg', live: false as const },
   { to: '/app/team', end: true as const, label: 'Team', iconFile: 'team.svg', live: false as const },
   { to: '/app/live', end: false as const, label: 'Live', iconFile: 'live.svg', live: true as const },
@@ -29,7 +29,7 @@ const appTabs = [
 ] as const;
 
 const demoTabs = [
-  { to: '/demo/home', end: true as const, label: 'Home', iconFile: 'home-ball.png', live: false as const },
+  { to: '/demo/home', end: true as const, label: 'News', iconFile: 'home-ball.png', live: false as const },
   { to: '/demo/termine', end: false as const, label: 'Termine', iconFile: 'pitch.svg', live: false as const },
   { to: '/demo/team', end: true as const, label: 'Team', iconFile: 'team.svg', live: false as const },
   { to: '/demo/live', end: false as const, label: 'Live', iconFile: 'live.svg', live: true as const },

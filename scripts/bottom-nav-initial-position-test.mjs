@@ -40,7 +40,7 @@ for (const route of ['/app/home', '/app/termine', '/demo/termine']) {
   const html = render(route);
   assert.match(html, /data-app-bottom-nav/);
   assert.doesNotMatch(html, /style="(?:[^";]*;)*bottom:/);
-  for (const label of ['Home', 'Termine', 'Team', 'Live', 'Mehr']) assert.ok(html.includes(label), label);
+  for (const label of ['News', 'Termine', 'Team', 'Live', 'Mehr']) assert.ok(html.includes(label), label);
 }
 console.log('Bottom navigation first-paint/component assertions passed for App and Demo.');
 

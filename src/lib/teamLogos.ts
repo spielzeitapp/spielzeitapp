@@ -104,6 +104,12 @@ const LOGO_MAP: Record<string, string> = {
   'ask peham wilhelmsburg': 'ask-wilhelmsburg',
   'wilhelmsburg ask': 'ask-wilhelmsburg',
   wilhelmsburg: 'ask-wilhelmsburg',
+  // Harlander SC and the names used by the youth tournament import.
+  'sps harland': 'sc-harland',
+  'spg harland': 'sc-harland',
+  'sc harland': 'sc-harland',
+  'harland sc': 'sc-harland',
+  harland: 'sc-harland',
   // SKU Amstetten (TURNIERlive: „SKU Amstetten“) — freigestelltes PNG
   'sku amstetten': 'sku-amstetten.png',
   'sku ertl glas amstetten': 'sku-amstetten.png',
