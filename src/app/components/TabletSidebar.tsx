@@ -7,7 +7,7 @@ import { useCompetition } from './CompetitionContext';
 import { useDemoMode } from '../../demo/DemoContext';
 
 const appItems = [
-  { to: '/app/home', label: 'Home', icon: Home, end: true },
+  { to: '/app/home', label: 'News', icon: Home, end: true },
   { to: '/app/termine', label: 'Termine', icon: CalendarDays },
   { to: '/app/team', label: 'Team', icon: Users, end: true },
   { to: '/app/live', label: 'Live', icon: Radio },
@@ -15,7 +15,7 @@ const appItems = [
 ] as const;
 
 const demoItems = [
-  { to: '/demo/home', label: 'Home', icon: Home, end: true },
+  { to: '/demo/home', label: 'News', icon: Home, end: true },
   { to: '/demo/termine', label: 'Termine', icon: CalendarDays },
   { to: '/demo/team', label: 'Team', icon: Users, end: true },
   { to: '/demo/live', label: 'Live', icon: Radio },

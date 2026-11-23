@@ -11,7 +11,7 @@ const publicLinks = [
 
 /** Desktop: schlanke Links zum internen MVP (5 Bereiche + Kalender-Unterseite über Termine). */
 const appLinks = [
-  { to: '/app/home', label: 'Home' },
+  { to: '/app/home', label: 'News' },
   { to: '/app/termine', label: 'Termine' },
   { to: '/app/live', label: 'Live' },
   { to: '/app/team', label: 'Team' },
@@ -19,7 +19,7 @@ const appLinks = [
 ];
 
 const demoLinks = [
-  { to: '/demo/home', label: 'Home' },
+  { to: '/demo/home', label: 'News' },
   { to: '/demo/termine', label: 'Termine' },
   { to: '/demo/live', label: 'Live' },
   { to: '/demo/team', label: 'Team' },
