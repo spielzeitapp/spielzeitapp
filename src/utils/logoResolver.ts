@@ -22,11 +22,12 @@ export function isValidLogoUrl(url?: string | null): url is string {
   const tournamentPrefix = '/api/tournament-plan-analyze?logo=';
   if (value.startsWith(tournamentPrefix)) {
     try {
-      const original = decodeURIComponent(value.slice(tournamentPrefix.length));
+      const original = new URLSearchParams(value.slice(value.indexOf('?') + 1)).get('logo');
+      if (!original) return false;
       const source = new URL(original);
       return source.protocol === 'https:' && source.host === 'tournej.com' &&
         !source.username && !source.password && source.pathname.startsWith('/data/images/') &&
-        displayLogoUrl(original) === value;
+        (displayLogoUrl(original) === value || tournamentPrefix + encodeURIComponent(source.href) === value);
     } catch { return false; }
   }
   const lower = value.toLowerCase();

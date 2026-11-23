@@ -270,7 +270,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
       '--t-surface': theme === 'day' ? '#ffffff' : '#15151b',
       '--t-text': theme === 'day' ? '#13151b' : '#ffffff',
       '--t-muted': theme === 'day' ? '#526071' : '#b5b5bc',
-      '--t-border': theme === 'day' ? 'color-mix(in srgb, var(--t-accent) 18%, transparent)' : '#2e2e38',
+      '--t-border': theme === 'day' ? 'color-mix(in srgb, var(--t-accent) 18%, transparent)' : 'color-mix(in srgb, var(--t-accent) 27%, #25252d)',
       '--t-fixture': theme === 'day' ? 'linear-gradient(135deg,#ffffff,#fff1f2)' : 'linear-gradient(135deg, var(--t-surface), color-mix(in srgb, var(--t-accent) 10%, var(--t-surface)))',
       '--t-player-badge': theme === 'day' ? '#f1f5f9' : 'rgba(0,0,0,.25)',
       '--t-live': theme==='day'?'#15803d':'#6ee7b7',

@@ -1440,11 +1440,11 @@ html[data-club-theme="black-white"] .sz-club-placeholder-player {
   color: var(--t-on-accent);
 }
 .public-tournament-page[data-theme="night"] {
-  --t-selection-border: color-mix(in srgb, var(--t-accent) 65%, white);
+  --t-selection-border: color-mix(in srgb, var(--t-accent) 85%, white);
 }
 .public-tournament-page[data-theme="night"] .public-tournament-tab[aria-pressed="true"],
 .public-tournament-page[data-theme="night"] .public-tournament-cta {
-  background: color-mix(in srgb, var(--t-accent) 15%, var(--t-surface));
+  background: color-mix(in srgb, var(--t-accent) 27%, var(--t-surface));
   box-shadow: inset 0 0 0 1px var(--t-selection-border);
   color: var(--t-text);
 }
