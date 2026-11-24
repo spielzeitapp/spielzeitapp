@@ -7,6 +7,7 @@ type Props = {
   communication?: React.ReactNode;
   carpool?: React.ReactNode;
   reminders?: React.ReactNode;
+  managementSettings?: React.ReactNode;
   onAddToCalendar: () => void;
   onNavigate?: () => void;
   showNavigation?: boolean;
@@ -20,7 +21,7 @@ type Props = {
 };
 
 export function CenterQuickActionBar({
-  communication, carpool, reminders,
+  communication, carpool, reminders, managementSettings,
   onAddToCalendar,
   onNavigate,
   showNavigation = false,
@@ -44,7 +45,7 @@ export function CenterQuickActionBar({
 
   if (layout === 'round') {
     const actions = [
-      ...(onEdit || onCancel || onDelete ? [{ label: 'Termin verwalten', icon: Settings2, onClick: () => setDialog('manage') }] : []),
+      ...(onEdit || onCancel || onDelete || managementSettings ? [{ label: 'Termin verwalten', icon: Settings2, onClick: () => setDialog('manage') }] : []),
       { label: 'Zum Kalender hinzufügen', icon: CalendarPlus, onClick: onAddToCalendar },
       ...(communication ? [{ label: 'Feed & Kommunikation', icon: Megaphone, onClick: () => setDialog('communication') }] : []),
       ...(carpool ? [{ label: 'Fahrgemeinschaft', icon: Car, onClick: () => setDialog('carpool') }] : []),
@@ -59,6 +60,7 @@ export function CenterQuickActionBar({
       <Modal open={dialog !== null} onClose={() => setDialog(null)} title={dialog === 'manage' ? 'Termin verwalten' : dialog === 'communication' ? 'Feed & Kommunikation' : dialog === 'carpool' ? 'Fahrgemeinschaft' : 'Team-Erinnerungen'}>
         {dialog === 'manage' ? <div className="space-y-3">
           {onEdit ? <ActionChip icon={Pencil} label="Bearbeiten / Verschieben" onClick={() => run(onEdit)} layout="grid" /> : null}
+          {managementSettings}
           {onCancel ? <ActionChip icon={XCircle} label={cancelLabel} onClick={() => run(onCancel)} dangerTone="cancel" layout="grid" /> : null}
           {onDelete ? <ActionChip icon={Trash2} label="Löschen" onClick={() => run(onDelete)} dangerTone="delete" layout="grid" /> : null}
         </div> : dialog === 'communication' ? communication : dialog === 'carpool' ? carpool : dialog === 'reminders' ? reminders : null}
