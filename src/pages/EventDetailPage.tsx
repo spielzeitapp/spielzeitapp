@@ -476,6 +476,8 @@ function sortPlayersByRsvpBuckets(players: PlayerItem[], getStatus: (playerId: s
 
 export const EventDetailPage: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const attendanceViewRequested = searchParams.get('ansicht') === 'verfuegbarkeit';
 
   // Die App scrollt im eigenen .appMain-Container; beim Routenwechsel bleibt
   // dessen alte Position sonst erhalten (besonders nach einem Spielerprofil).
@@ -493,7 +495,7 @@ export const EventDetailPage: React.FC = () => {
       window.clearTimeout(afterPaint);
       window.clearTimeout(afterRestore);
     };
-  }, [eventId]);
+  }, [eventId, attendanceViewRequested]);
   const navigate = useNavigate();
   const demo = useDemoMode();
   const isDemo = Boolean(demo);
@@ -553,7 +555,6 @@ export const EventDetailPage: React.FC = () => {
     created_at: string;
     payload?: unknown;
   };
-  const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const [finishedTab, setFinishedTab] = useState<'hub' | 'overview' | 'lineup' | 'timeline' | 'stats' | 'videos' | 'comparison'>('hub');
   useEffect(() => {
@@ -4087,7 +4088,7 @@ export const EventDetailPage: React.FC = () => {
                 : CalendarPlus;
 
   const hasMatchAttendancePage = event.kind === 'match' && canTrainerManageEvent && event.status === 'upcoming';
-  const showMatchAttendancePage = hasMatchAttendancePage && searchParams.get('ansicht') === 'verfuegbarkeit';
+  const showMatchAttendancePage = hasMatchAttendancePage && attendanceViewRequested;
   const openMatchAttendancePage = () => {
     const next = new URLSearchParams(searchParams);
     next.set('ansicht', 'verfuegbarkeit');
