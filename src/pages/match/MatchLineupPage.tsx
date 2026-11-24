@@ -793,7 +793,6 @@ export const MatchLineupPage: React.FC = () => {
       opponent={matchRow?.opponent}
       onBack={goBack}
       hasMatchCenter={Boolean(centerPath)}
-      showTrainer={canManage}
     />
   );
   const useMatchCenterLayout = Boolean(centerPath && !tournamentSize);
@@ -853,7 +852,7 @@ export const MatchLineupPage: React.FC = () => {
         className={dsPageContentClass(
           // Normaler Layout-Flow: Seite scrollt im Body, kein verschachtelter Scroll/overflow-hidden
           // (iOS/iPhone SE: Inhalte sonst abgeschnitten). Scroll-Ende über BottomNav + Safe-Area.
-          `mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col ${useMatchCenterLayout ? 'px-4 pb-6 pt-5' : tournamentSize ? 'px-1.5 pb-28 sm:px-4 sm:pt-1' : 'px-1.5 pb-12 sm:px-4 sm:pt-1'}`,
+          `mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col ${useMatchCenterLayout ? 'px-4 pb-6 pt-2' : tournamentSize ? 'px-1.5 pb-28 sm:px-4 sm:pt-1' : 'px-1.5 pb-12 sm:px-4 sm:pt-1'}`,
         )}
       >
         {tournamentSize ? <section className="mb-2 rounded-xl border border-emerald-500/25 bg-emerald-950/15 px-3 py-2 text-sm">
@@ -896,7 +895,7 @@ export const MatchLineupPage: React.FC = () => {
         ) : null}
 
         <div
-          className="mb-1 mt-1 flex h-9 w-full shrink-0 overflow-hidden rounded-[12px] border border-transparent bg-[rgba(18,18,22,0.88)] p-px shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_18px_rgba(255,40,40,0.05)] sm:mb-2 sm:mt-2 sm:h-10"
+          className="mb-1 mt-1 flex h-11 w-full shrink-0 overflow-hidden rounded-[12px] border border-transparent bg-[rgba(18,18,22,0.88)] p-px shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_18px_rgba(255,40,40,0.05)] sm:mb-2 sm:mt-2 sm:h-11"
           role="tablist"
           aria-label="Aufstellungsansicht"
         >
@@ -921,38 +920,39 @@ export const MatchLineupPage: React.FC = () => {
           </button>
         </div>
 
-        <div className="-mx-0.5 mb-1 shrink-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] sm:mx-0 sm:mb-2">
-          <div className="flex min-h-9 flex-nowrap items-center gap-1.5 px-0.5 pb-0.5">
-            {canManage
-              ? formationChoices.map((id) => {
-                  const active = formationId === id;
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      disabled={!lineupEditable}
-                      onClick={() => {
-                        if (!lineupEditable) return;
-                        setFormationId(id);
-                        const allowed = new Set(U11_FORMATIONS[id].map(row=>row.slot));
-                        setSlots(prev=>Object.fromEntries(Object.entries(prev).map(([key,value])=>[key,allowed.has(key as FieldSlotId)?value:null])) as Record<FieldSlotId,string|null>);
-                        if (matchId) {
-                          if (isDemo && demo) demo.setDemoMatchFormation(matchId, id);
-                          else writeStoredU11Formation(matchId, id);
-                        }
-                      }}
-                      className={dsFormationTabClass(active)}
-                    >
-                      {id}
-                    </button>
-                  );
-                })
-              : (
-                <span className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs font-bold tabular-nums text-white/80">
-                  Formation {formationId}
-                </span>
-              )}
-          </div>
+        <div className="mb-2 shrink-0">
+          {canManage ? (
+            <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap" role="group" aria-label="Formation wählen">
+              {formationChoices.map((id) => {
+                const active = formationId === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    disabled={!lineupEditable}
+                    aria-pressed={active}
+                    onClick={() => {
+                      if (!lineupEditable) return;
+                      setFormationId(id);
+                      const allowed = new Set(U11_FORMATIONS[id].map(row=>row.slot));
+                      setSlots(prev=>Object.fromEntries(Object.entries(prev).map(([key,value])=>[key,allowed.has(key as FieldSlotId)?value:null])) as Record<FieldSlotId,string|null>);
+                      if (matchId) {
+                        if (isDemo && demo) demo.setDemoMatchFormation(matchId, id);
+                        else writeStoredU11Formation(matchId, id);
+                      }
+                    }}
+                    className={`${dsFormationTabClass(active)} !h-11 !text-sm !font-bold disabled:cursor-default ${active ? '' : '!text-white/75'} sm:min-w-16`}
+                  >
+                    {id}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <span className="inline-flex rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-sm font-bold tabular-nums text-white/80">
+              Formation {formationId}
+            </span>
+          )}
         </div>
 
         {playersError ? <p className="shrink-0 text-sm text-red-400">{playersError}</p> : null}
@@ -1050,10 +1050,10 @@ export const MatchLineupPage: React.FC = () => {
         ) : (
           <div className="w-full pb-4">
             <section className="flex flex-col rounded-[22px] border border-transparent bg-gradient-to-br from-[#121214] via-[#0a0a0c] to-black p-1.5 shadow-[0_6px_28px_rgba(0,0,0,0.5),0_0_24px_rgba(224,33,41,0.05)] sm:p-2">
-              <div className="grid grid-cols-2 items-start gap-3">
+              <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
                 <div className="flex min-h-0 min-w-0 flex-col gap-1">
                   <h2 className={`shrink-0 ${dsSectionLabelClass()}`}>Startaufstellung</h2>
-                  <div className={`pr-1 flex flex-col ${DS_LIST_GAP}`}>
+                  <div className={`flex flex-col ${DS_LIST_GAP}`}>
                     {U11_FORMATIONS[formationId].map(({ slot }) => {
                       const pid = slots[slot];
                       const p = pid ? playersById.get(pid) : null;
@@ -1067,7 +1067,7 @@ export const MatchLineupPage: React.FC = () => {
                             key={`list-f-${slot}`}
                             type="button"
                             onClick={() => onTapSlot(slot)}
-                            className={`${matchdayLineupListRowClass({ role: 'starter' })} !min-h-[80px] !rounded-xl`}
+                            className={`${matchdayLineupListRowClass({ role: 'starter' })} !min-h-14 !gap-2.5 !rounded-xl !px-2.5 !py-1`}
                           >
                             <div className={matchdayJerseyWrapClass()}>
                               <LeibchenJersey
@@ -1077,12 +1077,12 @@ export const MatchLineupPage: React.FC = () => {
                                 variant={isGk ? 'goalkeeper' : 'field'}
                                 size="compact"
                                 pitchStyleBack
-                                className={`${DS_JERSEY_STARTER} opacity-90`}
+                                className="!h-10 !w-8 opacity-90"
                               />
                             </div>
-                            <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 py-0.5 pr-1">
-                              <p className={`${dsPlayerNameClass()} !text-[15px] !leading-snug`}>{fullName}</p>
-                              <span className="inline-flex w-fit rounded-md border border-transparent bg-[rgba(120,18,28,0.26)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#FF8D98]">
+                            <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                              <p className="min-w-0 break-words text-[15px] font-semibold leading-tight text-white">{fullName}</p>
+                              <span className="inline-flex shrink-0 rounded-md border border-transparent bg-[rgba(120,18,28,0.26)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#FF8D98]">
                                 {posLabel}
                               </span>
                             </div>
@@ -1103,9 +1103,9 @@ export const MatchLineupPage: React.FC = () => {
                     })}
                   </div>
                 </div>
-                <div className="flex min-h-0 min-w-0 flex-col gap-1 border-l border-white/[0.08] pl-2">
-                  <h2 className={`shrink-0 ${dsSectionLabelClass()}`}>Ersatzbank</h2>
-                  <div className={`pr-1 flex flex-col ${DS_LIST_GAP}`}>
+                <div className="flex min-h-0 min-w-0 flex-col gap-1 border-t border-white/[0.08] pt-2 sm:border-l sm:border-t-0 sm:pl-2 sm:pt-0">
+                  <h2 className={`shrink-0 ${dsSectionLabelClass()}`}>Ersatzbank ({bankIds.length})</h2>
+                  <div className={`flex flex-col ${DS_LIST_GAP}`}>
                     {bankIds.length === 0 ? (
                       <p className="text-xs text-zinc-500">Keine Bankspieler.</p>
                     ) : (
@@ -1121,7 +1121,7 @@ export const MatchLineupPage: React.FC = () => {
                             key={`list-b-${id}`}
                             type="button"
                             onClick={() => onTapBankPlayer(id)}
-                            className={`${matchdayLineupListRowClass({ role: 'bench', selected: isSelected })} !min-h-[80px] !rounded-xl`}
+                            className={`${matchdayLineupListRowClass({ role: 'bench', selected: isSelected })} !min-h-14 !gap-2.5 !rounded-xl !px-2.5 !py-1`}
                           >
                             <div className={matchdayJerseyWrapClass()}>
                               <LeibchenJersey
@@ -1131,12 +1131,12 @@ export const MatchLineupPage: React.FC = () => {
                                 variant={posLabel === 'TW' ? 'goalkeeper' : 'field'}
                                 size="compact"
                                 pitchStyleBack
-                                className={`${DS_JERSEY_STARTER} opacity-90`}
+                                className="!h-10 !w-8 opacity-90"
                               />
                             </div>
-                            <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 py-0.5 pr-1">
-                              <p className={`${dsPlayerNameClass()} !text-[15px] !leading-snug`}>{fullName}</p>
-                              <span className={matchdayLineupPositionBadgeClass('bench')}>
+                            <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                              <p className="min-w-0 break-words text-[15px] font-semibold leading-tight text-white">{fullName}</p>
+                              <span className={`${matchdayLineupPositionBadgeClass('bench')} shrink-0`}>
                                 Bank
                               </span>
                             </div>

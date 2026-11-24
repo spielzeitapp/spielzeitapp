@@ -6,7 +6,6 @@ import { normalizeOefbImportedTeamName } from '../../lib/oefbTeamNameNormalize';
 import {
   dsPageHeaderClass,
   dsPageHeroGlowClass,
-  dsStatusChipClass,
   dsStickyCtaBarClass,
 } from '../../lib/premiumDesignSystem';
 
@@ -18,36 +17,35 @@ export function MatchPreparationHeader({
   opponent,
   onBack,
   hasMatchCenter,
-  showTrainer = true,
   backDisabled = false,
 }: {
   title: string;
   opponent?: string | null;
   onBack: () => void;
   hasMatchCenter: boolean;
-  showTrainer?: boolean;
   backDisabled?: boolean;
 }) {
   return (
     <header className={`${dsPageHeaderClass()} !relative !top-auto !p-0`}>
       <div className={dsPageHeroGlowClass()} aria-hidden />
-      <div className="relative mx-auto flex w-full max-w-xl flex-col items-start gap-3 px-4 py-4">
+      <div className="relative mx-auto flex w-full max-w-xl flex-col items-start gap-1 px-4 pb-2 pt-1 sm:pb-3 sm:pt-2">
         <button
           type="button"
           onClick={onBack}
           disabled={backDisabled}
-          className="inline-flex min-h-12 items-center gap-2 rounded-2xl border border-red-400/20 bg-red-950/30 px-3 text-sm font-bold text-white hover:bg-red-950/55 disabled:opacity-50"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-1 text-sm font-semibold text-white/80 hover:text-white disabled:opacity-50"
         >
           <ArrowLeft className="h-5 w-5 shrink-0 text-red-300" aria-hidden />
           {hasMatchCenter ? 'Zurück zum Matchcenter' : 'Zurück'}
         </button>
-        <div className="flex w-full flex-wrap items-start justify-between gap-x-3 gap-y-1">
-          <h1 className="min-w-0 text-[28px] font-black leading-tight tracking-tight">{title}</h1>
-          {showTrainer ? <span className={dsStatusChipClass('selected')}>Trainer</span> : null}
+        <div className="flex w-full min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5">
+          <h1 className="min-w-0 break-words text-2xl font-black leading-tight tracking-tight">{title}</h1>
+          {opponent ? (
+            <p className="min-w-0 break-words text-sm font-semibold text-white/70">
+              vs. {normalizeOefbImportedTeamName(opponent) || opponent}
+            </p>
+          ) : null}
         </div>
-        <p className="text-base font-semibold text-white/70">
-          {opponent ? `vs. ${normalizeOefbImportedTeamName(opponent) || opponent}` : 'Spiel'}
-        </p>
       </div>
     </header>
   );
