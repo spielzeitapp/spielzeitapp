@@ -14,6 +14,7 @@ import '../../components/match/finishedClubTheme.css';
 import { OefbLiveReport, useOefbLiveReport } from '../../components/match/OefbLiveReport';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { matchCenterPath, matchLineupPath, withMatchCenterEvent } from '../../lib/matchPreparationAccess';
 import { FinishedMatchAttendance } from '../../components/match/FinishedMatchAttendance';
 import { MatchHeadToHead } from '../../components/match/MatchHeadToHead';
 import { ArrowLeft, BarChart3, CalendarDays, Clapperboard, FileText, MapPin, Radio, Shirt } from 'lucide-react';
@@ -958,6 +959,7 @@ export const LiveMatchScreen: React.FC = () => {
   const navigate = useNavigate();
   const matchIdParam = searchParams.get('matchId');
   const startWithoutLineup = searchParams.get('withoutLineup') === '1';
+  const centerEventId = searchParams.get('centerEventId')?.trim();
   /** DEMO.2F: gleicher Screen unter /demo, aber gegen die lokale Runtime statt Supabase. */
   const demo = useDemoMode();
   const isDemo = Boolean(demo);
@@ -1688,6 +1690,7 @@ export const LiveMatchScreen: React.FC = () => {
     }, ms);
   }, [clearSubstitutionToast]);
   const subSaveInFlightRef = useRef(false);
+  const goalSaveInProgress = useRef(false);
   const substitutionAnimTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const substitutionHighlightTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const realtimeReloadTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
@@ -3004,7 +3007,7 @@ export const LiveMatchScreen: React.FC = () => {
           const template = await prepareTournamentMatchFromTemplate(effectiveMatchId);
           const planned = template?.blocks.variants[template.blocks.startVariant];
           if (planned && U11_FORMATIONS[planned.formationId].length !== U11_FORMATIONS[safeFormationId].length) {
-            navigate(`${basePath}/match-lineup?matchId=${encodeURIComponent(effectiveMatchId)}`);
+            navigate(withMatchCenterEvent(matchLineupPath(effectiveMatchId, basePath), centerEventId));
             return;
           }
         } catch (e) { setSaveError(e instanceof Error ? e.message : String(e)); return; }
@@ -4656,7 +4659,6 @@ export const LiveMatchScreen: React.FC = () => {
   const mbSpielEndeWhileLive = `${mbRowBtn} w-full rounded-xl border border-amber-500/30 bg-black/80 text-amber-100/70 shadow-none opacity-55`;
   const mbSpielEndeReady = `${mbRowBtn} w-full rounded-xl border-2 border-amber-400/80 bg-gradient-to-b from-amber-950/50 to-black/92 text-amber-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_28px_rgba(234,179,8,0.35),0_0_48px_rgba(245,158,11,0.18)] hover:border-amber-300/90 enabled:hover:shadow-[0_0_36px_rgba(250,204,21,0.38)]`;
 
-  const goalSaveInProgress = useRef(false);
   const saveGoalFromPicker = async (side: 'home' | 'away', choice: string) => {
     if (!canControlLiveMatch || !choice || goalSaveInProgress.current) return;
     goalSaveInProgress.current = true;
@@ -5026,17 +5028,15 @@ export const LiveMatchScreen: React.FC = () => {
                 : 'px-2 pb-1 pt-0 md:px-4 md:pb-1 md:pt-0.5'
           }`}
         >
-          {matchboardVisible && matchIsFinished ? (
+          {matchboardVisible && (matchIsFinished || (centerEventId && canControlLiveMatch)) ? (
             <div className="mb-1 flex items-center px-1">
-              <button
-                type="button"
-                onClick={() => navigate(`${basePath}/termine`)}
+              <Link
+                to={centerEventId ? matchCenterPath(centerEventId, basePath) : `${basePath}/termine`}
                 className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/15 bg-black/72 px-3.5 text-sm font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:border-red-400/45 hover:bg-red-950/45 active:scale-[0.98]"
-                aria-label="Zurück zu Termine"
               >
                 <ArrowLeft className="h-5 w-5 text-red-400" aria-hidden />
-                Termine
-              </button>
+                {centerEventId ? 'Zurück zum Matchcenter' : 'Zu Termine'}
+              </Link>
             </div>
           ) : null}
           {matchboardVisible && (
@@ -5358,7 +5358,7 @@ export const LiveMatchScreen: React.FC = () => {
                 >
                   {!matchIsFinished && !hasClockStarted && effectiveMatchId ? (
                     <Link
-                      to={`${basePath}/match-preparation?matchId=${encodeURIComponent(effectiveMatchId)}`}
+                      to={withMatchCenterEvent(`${basePath}/match-preparation?matchId=${encodeURIComponent(effectiveMatchId)}`, centerEventId)}
                       className={`flex min-h-[44px] w-full items-center justify-center px-3 text-[11px] font-bold ${dsSecondaryCtaClass()}`}
                     >
                       Vorbereitung bearbeiten

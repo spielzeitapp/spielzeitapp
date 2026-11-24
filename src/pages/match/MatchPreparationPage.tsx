@@ -10,7 +10,9 @@ import {
   friendlyMatchLineupWriteError,
   isMatchSquadEditable,
   liveMatchWithoutLineupPath,
+  matchCenterPath,
   matchLineupPath,
+  withMatchCenterEvent,
 } from '../../lib/matchPreparationAccess';
 import {
   fetchTournamentEventIdForMatch,
@@ -103,6 +105,7 @@ export const MatchPreparationPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const matchId = searchParams.get('matchId')?.trim() || null;
+  const centerEventId = searchParams.get('centerEventId')?.trim();
   const demo = useDemoMode();
   const isDemo = Boolean(demo);
   const basePath = useInternalBasePath();
@@ -798,7 +801,7 @@ export const MatchPreparationPage: React.FC = () => {
     setPersisting(false);
     if (!ok) return;
     if (tournamentEventId || continueWithLineup) {
-      navigate(matchLineupPath(matchId, basePath), { state: { selectedPlayers: selectedPlayersForSquad } });
+      navigate(withMatchCenterEvent(matchLineupPath(matchId, basePath), centerEventId), { state: { selectedPlayers: selectedPlayersForSquad } });
       return;
     }
     setStartChoiceOpen(true);
@@ -860,10 +863,10 @@ export const MatchPreparationPage: React.FC = () => {
           <div>
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={() => centerEventId ? navigate(matchCenterPath(centerEventId, basePath)) : navigate(-1)}
               className="mb-2 inline-flex min-h-[36px] items-center rounded-[14px] border border-transparent bg-[rgba(18,18,22,0.88)] px-2.5 text-xs font-semibold text-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_14px_rgba(255,40,40,0.05)] hover:bg-[rgba(22,14,16,0.92)]"
             >
-              ← Zurück
+              {centerEventId ? '← Zurück zum Matchcenter' : '← Zurück'}
             </button>
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-red-400/90">SpielzeitApp</p>
             <h1 className="mt-0.5 text-xl font-bold tracking-tight">Spielkader</h1>
@@ -958,9 +961,9 @@ export const MatchPreparationPage: React.FC = () => {
           open={startChoiceOpen && squadEditable}
           matchLabel={matchRow?.opponent ? `vs. ${matchRow.opponent}` : 'Spiel'}
           onClose={() => setStartChoiceOpen(false)}
-          withLineupPath={matchLineupPath(matchId, basePath)}
+          withLineupPath={withMatchCenterEvent(matchLineupPath(matchId, basePath), centerEventId)}
           lineupState={{ selectedPlayers: selectedPlayersForSquad }}
-          withoutLineupPath={!isDemo && lineupPlayerIds.size === 0 ? liveMatchWithoutLineupPath(matchId, basePath) : undefined}
+          withoutLineupPath={!isDemo && lineupPlayerIds.size === 0 ? withMatchCenterEvent(liveMatchWithoutLineupPath(matchId, basePath), centerEventId) : undefined}
         />
       ) : null}
 
