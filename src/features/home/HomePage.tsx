@@ -161,11 +161,16 @@ export const HomePage: React.FC = () => {
     filteredTeamSeasonIds,
   } = useSession();
   /** Home: Lesesaison (Archiv-View) — nicht still auf Active zurückfallen. */
-  const { activeTeamSeason, readTeamSeason, readTeamSeasonId, isHistoryReadOnly } = useActiveTeamSeason();
+  const { activeTeamSeason, readTeamSeason, readTeamSeasonId, isHistoryReadOnly, isReadOnlyView } = useActiveTeamSeason();
   const teamSeasonId = isDemoMode
     ? demo!.data.teamSeasonId
     : (readTeamSeasonId ?? sessionTeamSeasonId);
-  const isMultiTeamView = !isDemoMode && teamViewFilter !== null;
+  const isMultiTeamView = !isDemoMode && teamViewFilter !== null &&
+    (teamViewFilter === 'all' || filteredTeamSeasonIds.length !== 1 || filteredTeamSeasonIds[0] !== teamSeasonId);
+  const feedReadOnly = isHistoryReadOnly || isReadOnlyView;
+  const feedCardWidth = isDemoMode
+    ? 'home-feed-edge min-w-0 -mx-3 sm:-mx-4 md:mx-0'
+    : 'home-feed-edge relative left-1/2 min-w-0 w-[100dvw] -translate-x-1/2 sm:-mx-4 sm:left-auto sm:w-auto sm:translate-x-0 md:mx-0';
   const { events: liveEvents, loading: evLoadingRaw } = useEvents(isDemoMode ? null : isMultiTeamView ? filteredTeamSeasonIds : teamSeasonId);
   const events = isDemoMode ? demo!.data.events : liveEvents;
   const evLoading = isDemoMode ? false : evLoadingRaw;
@@ -351,7 +356,7 @@ export const HomePage: React.FC = () => {
     refetch: refetchFeed,
     loadMoreHistoric,
   } = useTeamFeedPosts(isDemoMode ? null : teamSeasonId, isDemoMode || isMultiTeamView ? null : teamId || null, {
-    skipEnsures: isHistoryReadOnly || isMultiTeamView,
+    skipEnsures: feedReadOnly || isMultiTeamView,
     chronicleView: !isMultiTeamView && isHistoryReadOnly,
     teamSeasonIds: isMultiTeamView ? filteredTeamSeasonIds : undefined,
   });
@@ -376,7 +381,7 @@ export const HomePage: React.FC = () => {
     void refetchFeed();
   }, [refetchFeed]);
   const staffCanDeleteFeed =
-    !isDemoMode && !isMultiTeamView && !isHistoryReadOnly && canStaffManageTeamFeed(backendRole, membershipRole);
+    !isDemoMode && !isMultiTeamView && !feedReadOnly && canStaffManageTeamFeed(backendRole, membershipRole);
 
   const eventById = useMemo(() => {
     const source = FEED_DEMO ? buildDemoHomeMatchEvents(now) : (events ?? []);
@@ -578,7 +583,7 @@ export const HomePage: React.FC = () => {
 
 
           <div className="min-w-0 space-y-3">
-            {teamSeasonId && teamId && !isHistoryReadOnly && !isMultiTeamView ? (
+            {teamSeasonId && teamId && (isDemoMode || !feedReadOnly) && !isMultiTeamView ? (
               <HomeFeedComposer
                 backendRole={isDemoMode ? 'trainer' : backendRole}
                 membershipRole={isDemoMode ? 'trainer' : membershipRole}
@@ -645,7 +650,7 @@ export const HomePage: React.FC = () => {
                   {filteredActivePosts.map((item) => (
                     <div
                       key={item.post.id}
-                      className={'home-feed-edge min-w-0 -mx-3 w-[calc(100%+1.5rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-full'}
+                      className={feedCardWidth}
                     >
                       <HomeFeedPostRenderer
                         item={item}
@@ -732,7 +737,7 @@ export const HomePage: React.FC = () => {
                             <div className="h-px flex-1 bg-white/10" />
                           </div>
                         ) : null}
-                        <div className={'home-feed-edge min-w-0 -mx-3 w-[calc(100%+1.5rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-full'}>
+                        <div className={feedCardWidth}>
                           <HomeFeedPostRenderer
                             item={item}
                             eventById={eventById}
