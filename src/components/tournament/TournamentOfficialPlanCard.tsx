@@ -33,6 +33,7 @@ import {
 import { markOfficialTournamentSynced } from '../../lib/tournamentPlanSync';
 import { safeOptionalText, safeText } from '../../lib/safeText';
 import { TournamentPlanImportSheet } from './TournamentPlanImportSheet';
+import { TournamentPlanReplaceDialog } from './TournamentPlanReplaceDialog';
 import { TournamentPlanRefreshSheet } from './TournamentPlanRefreshSheet';
 import { TournamentPlanQrScannerSheet } from './TournamentPlanQrScannerSheet';
 
@@ -100,6 +101,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
   const [importAnalysis, setImportAnalysis] = useState<TournamentPlanAnalysis | null>(null);
   const [recognition, setRecognition] = useState<TournamentImportRecognition | null>(null);
 
+  const [replaceOpen, setReplaceOpen] = useState(false);
   const [refreshSheetOpen, setRefreshSheetOpen] = useState(false);
   const [refreshLoading, setRefreshLoading] = useState(false);
   const [refreshBusy, setRefreshBusy] = useState(false);
@@ -418,6 +420,8 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     tournamentEventId,
   ]);
 
+  const canReplacePlan = canManage && !tournamentArchived && tournamentEventId !== 'ev-tournament'
+    && (existingSlots.length > 0 || existingTeamNames.length > 0);
   const btnH = 'min-h-[48px]';
   const btnText = '!text-[16px]';
   const iconCls = 'h-5 w-5 sz-club-accent-text';
@@ -535,6 +539,11 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
           ) : null}
         </>
       )}
+      {canReplacePlan ? (
+        <AppButton variant="secondary" size="lg" fullWidth onClick={() => setReplaceOpen(true)}>
+          Turnierplan ersetzen
+        </AppButton>
+      ) : null}
     </div>
   );
 
@@ -554,6 +563,22 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
 
       {canManage ? (
         <>
+          {replaceOpen && canReplacePlan ? (
+            <TournamentPlanReplaceDialog
+              tournamentEventId={tournamentEventId}
+              teamSeasonId={teamSeasonId}
+              officialTournamentUrl={officialTournamentUrl}
+              existingSlots={existingSlots}
+              onClose={() => setReplaceOpen(false)}
+              onReplaced={(url) => {
+                setReplaceOpen(false);
+                onUrlUpdated(url);
+                markOfficialTournamentSynced(tournamentEventId);
+                onImportComplete();
+                setToastMessage('Turnierplan ersetzt');
+              }}
+            />
+          ) : null}
           <TournamentPlanQrScannerSheet
             isOpen={qrScannerOpen}
             onClose={() => {
