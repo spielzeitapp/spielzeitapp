@@ -17,7 +17,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { matchCenterPath, matchLineupPath, withMatchCenterEvent } from '../../lib/matchPreparationAccess';
 import { FinishedMatchAttendance } from '../../components/match/FinishedMatchAttendance';
 import { MatchHeadToHead } from '../../components/match/MatchHeadToHead';
-import { ArrowLeft, BarChart3, CalendarDays, Clapperboard, FileText, MapPin, Radio, Shirt } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, BarChart3, CalendarDays, Clapperboard, ClipboardList, FileText, MapPin, Pause, Play, Radio, Shirt, Square } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { usePlayers, type PlayerItem } from '../../hooks/usePlayers';
 import { PlayerProfileModal } from '../../components/team/PlayerProfileModal';
@@ -188,12 +188,10 @@ function LiveMatchLogoTile({
   src,
   liveGlow,
   size = 'md',
-  wide = false,
 }: {
   src: string;
   liveGlow: boolean;
   size?: 'md' | 'hero' | 'heroLg' | 'schedule' | 'board' | 'boardSm';
-  wide?: boolean;
 }) {
   const [imgSrc, setImgSrc] = useState(isValidLogoUrl(src) ? src : '/logos/placeholder-shield-a.png');
   useEffect(() => {
@@ -202,9 +200,9 @@ function LiveMatchLogoTile({
   const glow = liveGlow ? 'shadow-[0_0_12px_rgba(255,0,0,0.3)]' : '';
   const box =
     size === 'boardSm'
-      ? 'h-[4.25rem] w-[4.25rem] sm:h-[4.5rem] sm:w-[4.5rem]'
+      ? 'aspect-square w-full max-w-[5.4rem] sm:max-w-[6.5rem]'
       : size === 'board'
-        ? 'h-[5.25rem] w-[5.25rem] sm:h-28 sm:w-28'
+        ? 'aspect-square w-full max-w-[6rem] sm:max-w-[7rem]'
         : size === 'schedule'
           ? 'h-12 w-12'
           : size === 'heroLg'
@@ -214,9 +212,9 @@ function LiveMatchLogoTile({
               : 'h-14 w-14 sm:h-[3.75rem] sm:w-[3.75rem]';
   const imgClass =
     size === 'boardSm'
-      ? 'h-full w-full max-h-[3.85rem] max-w-[3.85rem] object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.16)] sm:max-h-[4.1rem] sm:max-w-[4.1rem]'
+      ? 'h-full w-full object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.16)]'
       : size === 'board'
-        ? 'h-full w-full max-h-[4.75rem] max-w-[4.75rem] object-contain drop-shadow-[0_0_16px_rgba(255,255,255,0.2)] sm:max-h-[6.5rem] sm:max-w-[6.5rem]'
+        ? 'h-full w-full object-contain drop-shadow-[0_0_16px_rgba(255,255,255,0.2)]'
         : size === 'schedule'
           ? 'h-12 w-12 object-contain drop-shadow'
           : size === 'heroLg'
@@ -225,11 +223,11 @@ function LiveMatchLogoTile({
               ? 'max-h-11 max-w-11 object-contain p-0.5'
               : 'max-h-11 max-w-11 object-contain p-0.5 sm:max-h-[3rem] sm:max-w-[3rem]';
   return (
-    <div className={`flex shrink-0 items-center justify-center ${box} ${wide ? "!w-[6.5rem] sm:!w-32 max-w-full" : ""} ${glow}`}>
+    <div className={`flex shrink-0 items-center justify-center ${box} ${glow}`}>
       <ClubLogo removeDarkBackground
         src={imgSrc}
         alt=""
-        className={`${imgClass} ${wide ? "!w-full !max-w-full" : ""}`}
+        className={imgClass}
         onError={() => {
           if (imgSrc !== '/logos/placeholder-shield-a.png') setImgSrc('/logos/placeholder-shield-a.png');
         }}
@@ -393,11 +391,11 @@ function MatchboardTeamNameLines({
 }) {
   const textAlign = align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center';
   const abbrevCls = tight
-    ? `min-h-[1em] text-[9px] font-semibold uppercase leading-tight tracking-[0.14em] text-white/52 sm:text-[10px] ${textAlign}`
+    ? `min-h-[1em] text-[11px] font-bold uppercase leading-tight tracking-[0.1em] text-white/72 sm:text-xs ${textAlign}`
     : `min-h-[1em] text-xs font-medium uppercase leading-tight tracking-widest text-white/75 ${textAlign}`;
   const clubCls = tight
-    ? `mt-0.5 text-[11px] font-medium leading-snug text-white/62 sm:text-xs ${textAlign}`
-    : `mt-1 whitespace-nowrap text-[clamp(12px,3.7vw,17px)] font-bold leading-snug tracking-[-0.025em] text-white/92 ${textAlign}`;
+    ? `mt-0.5 text-[clamp(13px,4.15vw,17px)] font-bold leading-tight text-white/95 sm:text-lg ${textAlign}`
+    : `mt-1 text-[clamp(14px,4.2vw,18px)] font-bold leading-tight text-white/95 sm:text-xl ${textAlign}`;
   return (
     <div className="w-full min-w-0 hyphens-none">
       <div className={abbrevCls}>
@@ -410,7 +408,7 @@ function MatchboardTeamNameLines({
         )}
       </div>
       <div className={clubCls}>
-        <span className={tight ? 'block break-words [word-break:normal] [text-wrap:balance]' : 'block whitespace-nowrap'}>
+        <span className="block [overflow-wrap:anywhere] [text-wrap:balance]">
           {parts.club || '\u00a0'}
         </span>
       </div>
@@ -456,7 +454,7 @@ const spectatorTabBtnCompactIdle = 'text-white/45 hover:bg-white/[0.05] hover:te
 /** Live Hub: große Touch-Ziele, kein Mini-Tab-Gefühl. */
 const hubNavSpectator = 'mt-1.5 grid w-full grid-cols-2 gap-1.5 sm:gap-2';
 const hubNavTrainer = 'mt-3 grid w-full grid-cols-2 gap-2.5 sm:gap-3';
-const hubNavBtn = dsLiveHubNavBtnClass();
+const hubNavBtn = `${dsLiveHubNavBtnClass()} !border-red-400/15 !bg-[rgba(27,17,21,0.9)] hover:!border-red-400/40 hover:!bg-red-950/45`;
 const liveModuleBackBar =
   'sticky top-0 z-40 mt-0 flex min-h-[48px] shrink-0 flex-wrap items-center gap-2 border-b border-white/10 bg-black/85 px-2 py-2 backdrop-blur-md sm:px-3';
 
@@ -4657,11 +4655,11 @@ export const LiveMatchScreen: React.FC = () => {
   /** Nur Ziffer: Tap = Tor, Long-press = Undo (kein Ball-Icon). */
   const scoreTapHome = `${mbRowBtn} ${SCOREBOARD_NO_SELECT} gap-0 min-h-[48px] min-w-[2.85rem] shrink-0 rounded-xl border border-emerald-400/40 bg-gradient-to-b from-emerald-950/92 to-black/75 px-3 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_0_26px_rgba(16,185,129,0.35)] hover:border-emerald-300/50 hover:shadow-[0_0_32px_rgba(16,185,129,0.42)] active:scale-[0.97] sm:min-w-[3.1rem] sm:px-3.5 disabled:pointer-events-none disabled:opacity-38`;
   const scoreTapAway = `${mbRowBtn} ${SCOREBOARD_NO_SELECT} gap-0 min-h-[48px] min-w-[2.85rem] shrink-0 rounded-xl border border-red-400/45 bg-gradient-to-b from-red-950/92 to-black/75 px-3 text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_26px_rgba(239,68,68,0.38),0_0_12px_rgba(255,255,255,0.06)] hover:border-red-300/50 hover:shadow-[0_0_32px_rgba(239,68,68,0.45)] active:scale-[0.97] sm:min-w-[3.1rem] sm:px-3.5 disabled:pointer-events-none disabled:opacity-38`;
-  const mbStart = `${mbRowBtn} rounded-xl border border-emerald-400/50 bg-gradient-to-b from-emerald-600/80 to-emerald-950/85 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_0_22px_rgba(16,185,129,0.35)] hover:from-emerald-500/85 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]`;
-  /** Pause als linke Hauptaktion — dunkelgrün wie Zielbild, klar von Beginn/Weiter (hellgrün) getrennt. */
-  const mbPausePrimary = `${mbRowBtn} rounded-xl border border-emerald-800/55 bg-gradient-to-b from-emerald-950/92 to-black/85 text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_16px_rgba(6,78,59,0.35)] hover:border-emerald-600/45 hover:from-emerald-900/88`;
-  const mbEnd = `${mbRowBtn} rounded-xl border border-red-500/50 bg-gradient-to-b from-red-600/75 to-red-950/88 text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_24px_rgba(220,38,38,0.38)] hover:from-red-500/78 hover:shadow-[0_0_32px_rgba(220,38,38,0.45)]`;
-  const mbWechsel = `${mbRowBtn} w-full rounded-xl border border-white/22 bg-zinc-950/85 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-white/30 hover:bg-zinc-900/90`;
+  const liveAction = 'inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border px-3 py-2 text-sm font-bold leading-tight focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white transition-colors active:scale-[0.98] sm:min-h-14 sm:text-base';
+  const liveSecondaryAction = `${liveAction} border-red-400/20 bg-[rgba(32,17,21,0.86)] text-white/90 hover:border-red-400/40 hover:bg-red-950/55`;
+  const mbStart = `${liveAction} border-emerald-400/40 bg-emerald-900/85 text-emerald-50 shadow-[0_0_22px_rgba(16,185,129,0.12)] hover:bg-emerald-800/90`;
+  const mbPausePrimary = `${liveAction} border-amber-400/30 bg-amber-950/35 text-amber-100 hover:bg-amber-950/65`;
+  const mbEnd = `${liveAction} border-red-400/35 bg-red-950/65 text-red-100 hover:bg-red-900/80`;
   const mbSpielEndeReady = `${mbRowBtn} w-full rounded-xl border-2 border-amber-400/80 bg-gradient-to-b from-amber-950/50 to-black/92 text-amber-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_28px_rgba(234,179,8,0.35),0_0_48px_rgba(245,158,11,0.18)] hover:border-amber-300/90 enabled:hover:shadow-[0_0_36px_rgba(250,204,21,0.38)]`;
 
   const saveGoalFromPicker = async (side: 'home' | 'away', choice: string) => {
@@ -4830,7 +4828,6 @@ export const LiveMatchScreen: React.FC = () => {
     );
   };
 
-  const trainerClockRowBtn = '!h-12 !min-h-12 w-full !text-sm sm:!h-14 sm:!min-h-14';
   const renderTrainerClockActionRow = () => {
     if (matchIsFinished) return null;
     if (isShootout && tournamentDecision.shootout) {
@@ -4865,9 +4862,9 @@ export const LiveMatchScreen: React.FC = () => {
             onClick={openPauseConfirm}
             disabled={matchClockStatus === 'finished'}
             aria-label="Spiel anhalten"
-            className={`${mbPausePrimary} ${trainerClockRowBtn}`}
+            className={mbPausePrimary}
           >
-            <span aria-hidden>⏸</span>
+            <Pause className="h-4 w-4" aria-hidden />
             Pause
           </button>
         ) : (
@@ -4876,9 +4873,9 @@ export const LiveMatchScreen: React.FC = () => {
             onClick={() => void onStartClick()}
             disabled={matchClockStatus === 'finished' || matchClockStatus === 'live'}
             aria-label={matchClockStatus === 'paused' ? 'Spiel fortsetzen' : 'Spiel beginnen'}
-            className={`${mbStart} ${trainerClockRowBtn} ${matchClockStatus === 'not_started' ? 'col-span-2' : ''}`}
+            className={`${mbStart} ${matchClockStatus === 'not_started' ? 'col-span-2' : ''}`}
           >
-            <span aria-hidden>▶</span>
+            <Play className="h-4 w-4" aria-hidden />
             {matchClockStatus === 'paused' ? 'Weiter' : 'Beginn'}
           </button>
         )}
@@ -4888,9 +4885,9 @@ export const LiveMatchScreen: React.FC = () => {
             type="button"
             onClick={() => setEndeConfirmOpen(true)}
             aria-label="Spiel beenden"
-            className={`${mbEnd} ${trainerClockRowBtn}`}
+            className={mbEnd}
           >
-            <span aria-hidden>⏹</span>
+            <Square className="h-4 w-4" aria-hidden />
             Ende
           </button>
         ) : null}
@@ -5038,7 +5035,7 @@ export const LiveMatchScreen: React.FC = () => {
             <div className="mb-2 flex items-center px-1">
               <Link
                 to={centerEventId ? matchCenterPath(centerEventId, basePath) : `${basePath}/termine`}
-                className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/15 bg-black/72 px-3.5 text-sm font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:border-red-400/45 hover:bg-red-950/45 active:scale-[0.98]"
+                className="inline-flex min-h-10 items-center gap-2 rounded-2xl border border-red-400/20 bg-[rgba(32,17,21,0.86)] px-3.5 text-sm font-bold text-white/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white hover:border-red-400/40 hover:bg-red-950/55 active:scale-[0.98]"
               >
                 <ArrowLeft className="h-5 w-5 text-red-400" aria-hidden />
                 {centerEventId ? backToCenterLabel : 'Zu Termine'}
@@ -5157,18 +5154,18 @@ export const LiveMatchScreen: React.FC = () => {
 
                 {/* Logo + Namen unter Logo | Score + Labels + Perioden | Logo + Namen */}
                 <div
-                  className={`flex items-start justify-between gap-1.5 sm:gap-2.5 ${
+                  className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-1.5 sm:gap-3 ${
                     isPaused && !matchIsFinished ? 'mt-1.5' : matchIsFinished ? 'mt-2' : matchTypeDisplay ? 'mt-2' : 'mt-1.5'
                   }`}
                 >
-                  <div className={`flex min-w-0 w-[31%] max-w-[9.5rem] flex-col items-center ${SCOREBOARD_NO_SELECT}`}>
-                    <LiveMatchLogoTile src={homeLogoSrc} wide={sides.isOwnTeamHome} liveGlow={false} size={matchIsFinished ? 'board' : 'boardSm'} />
+                  <div className={`flex w-full min-w-0 max-w-[10rem] flex-col items-center justify-self-center ${SCOREBOARD_NO_SELECT}`}>
+                    <LiveMatchLogoTile src={homeLogoSrc} liveGlow={false} size={matchIsFinished ? 'board' : 'boardSm'} />
                     <div className={`${matchIsFinished ? 'mt-2' : 'mt-1'} w-full px-0.5`}>
                       <MatchboardTeamNameLines parts={homeNameParts} align="center" tight={!matchIsFinished} />
                     </div>
                   </div>
 
-                  <div className={`flex min-w-0 shrink flex-col items-center gap-1 px-0.5 sm:px-1 ${SCOREBOARD_NO_SELECT}`}>
+                  <div className={`flex min-w-0 flex-col items-center gap-1 self-start pt-2 sm:pt-4 ${SCOREBOARD_NO_SELECT}`}>
                     {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
                       <div className="flex items-start justify-center gap-1 sm:gap-2 motion-safe:transition-transform motion-safe:duration-300">
                         <div className="flex min-w-0 flex-col items-center">
@@ -5195,7 +5192,7 @@ export const LiveMatchScreen: React.FC = () => {
                               setHomeGoalModalOpen(true);
                             }}
                           >
-                            <span className="text-5xl font-black tabular-nums leading-none sm:text-6xl">
+                            <span className="text-[clamp(1.9rem,9vw,3rem)] font-black tabular-nums leading-none sm:text-6xl">
                               {displayScoreHome}
                             </span>
                           </button>
@@ -5230,7 +5227,7 @@ export const LiveMatchScreen: React.FC = () => {
                               setAwayGoalModalOpen(true);
                             }}
                           >
-                            <span className="text-5xl font-black tabular-nums leading-none sm:text-6xl">
+                            <span className="text-[clamp(1.9rem,9vw,3rem)] font-black tabular-nums leading-none sm:text-6xl">
                               {displayScoreAway}
                             </span>
                           </button>
@@ -5239,7 +5236,7 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : (
                       <div className={`flex flex-col items-center gap-1 ${SCOREBOARD_NO_SELECT}`}>
                         <div className="flex items-center justify-center motion-safe:transition-transform motion-safe:duration-300">
-                          <span className={`text-center font-black leading-none text-white tabular-nums whitespace-nowrap drop-shadow-[0_4px_24px_rgba(0,0,0,0.55)] ${matchIsFinished ? (finishedScoreHasTwoDigits ? 'text-[3.65rem] sm:text-[4.25rem]' : 'text-[4.35rem] sm:text-[5rem]') : 'text-6xl sm:text-7xl'}`}>
+                          <span className={`text-center font-black leading-none text-white tabular-nums whitespace-nowrap drop-shadow-[0_4px_24px_rgba(0,0,0,0.55)] ${matchIsFinished ? (finishedScoreHasTwoDigits ? 'text-[clamp(2.3rem,10vw,3.65rem)] sm:text-[4.25rem]' : 'text-[clamp(2.8rem,13vw,4.35rem)] sm:text-[5rem]') : 'text-[clamp(2.3rem,11vw,3.75rem)] sm:text-7xl'}`}>
                             {displayScoreHome}
                             <span className="mx-1.5 text-white/75 sm:mx-2">:</span>
                             {displayScoreAway}
@@ -5262,8 +5259,8 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : null}
                   </div>
 
-                  <div className={`flex min-w-0 w-[31%] max-w-[9.5rem] flex-col items-center ${SCOREBOARD_NO_SELECT}`}>
-                    <LiveMatchLogoTile src={awayLogoSrc} wide={!sides.isOwnTeamHome} liveGlow={false} size={matchIsFinished ? 'board' : 'boardSm'} />
+                  <div className={`flex w-full min-w-0 max-w-[10rem] flex-col items-center justify-self-center ${SCOREBOARD_NO_SELECT}`}>
+                    <LiveMatchLogoTile src={awayLogoSrc} liveGlow={false} size={matchIsFinished ? 'board' : 'boardSm'} />
                     <div className={`${matchIsFinished ? 'mt-2' : 'mt-1'} w-full px-0.5`}>
                       <MatchboardTeamNameLines parts={awayNameParts} align="center" tight={!matchIsFinished} />
                     </div>
@@ -5395,9 +5392,9 @@ export const LiveMatchScreen: React.FC = () => {
                     <button
                       type="button"
                       onClick={openWechselSheet}
-                      className={`${mbWechsel} ${trainerClockRowBtn}`}
+                      className={liveSecondaryAction}
                     >
-                      <span aria-hidden>⇄</span>
+                      <ArrowLeftRight className="h-4 w-4 text-red-300" aria-hidden />
                       Wechsel
                     </button>
                   ) : null}
@@ -5405,8 +5402,9 @@ export const LiveMatchScreen: React.FC = () => {
                   {!matchIsFinished && !hasClockStarted && effectiveMatchId ? (
                     <Link
                       to={withMatchCenterEvent(`${basePath}/match-preparation?matchId=${encodeURIComponent(effectiveMatchId)}`, centerEventId)}
-                      className={`flex min-h-11 w-full items-center justify-center px-3 text-sm font-bold ${dsSecondaryCtaClass()}`}
+                      className={liveSecondaryAction}
                     >
+                      <ClipboardList className="h-4 w-4 text-red-300" aria-hidden />
                       Vorbereitung bearbeiten
                     </Link>
                   ) : null}
@@ -5415,7 +5413,7 @@ export const LiveMatchScreen: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setSpielAbschlussOpen(true)}
-                      className={`${mbSpielEndeReady} ${trainerClockRowBtn} gap-2`}
+                      className={`${mbSpielEndeReady} !min-h-12 !h-auto`}
                     >
                       <span aria-hidden>🏆</span>
                       Spiel abschließen
