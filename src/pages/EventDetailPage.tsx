@@ -4226,6 +4226,11 @@ export const EventDetailPage: React.FC = () => {
                                 trailing={<AttendanceThumbControls large name={premiumPlayerDisplayName(player)} status={dbStatusToTrainingAttendance(rsvpDisplay) ?? 'open'} isLaz={player.is_laz_player} disabled={matchAttendancePending.has(`${event.id}:${player.id.toLowerCase()}`)}
                                    onSelect={next => void (event.kind === 'match' ? saveMatchAttendance(player.id, next) : handleTrainerTrainingStatus(player.id, next))} />}
                               />
+                              {showMatchAttendancePage && matchAttendanceErrors.has(`${event.id}:${player.id.toLowerCase()}`) ? (
+                                <p role="alert" className="mt-1 px-2 text-sm text-red-300">
+                                  Auswahl konnte nicht gespeichert werden. Bitte tippe erneut.
+                                </p>
+                              ) : null}
                             </li>
                           );
                         })}
@@ -4362,7 +4367,6 @@ export const EventDetailPage: React.FC = () => {
 
   if (showMatchAttendancePage) {
     const writePending = [...matchAttendancePending].some(key => key.startsWith(`${event.id}:`));
-    const writeFailed = [...matchAttendanceErrors].some(key => key.startsWith(`${event.id}:`));
     return (
       <div className={dsPageShellClass()} style={matchClub.style}>
         <div className={dsPageAtmosphereClass()} aria-hidden />
@@ -4373,21 +4377,17 @@ export const EventDetailPage: React.FC = () => {
           hasMatchCenter
           backDisabled={writePending}
         />
-        <div className={dsPageContentClass('mx-auto w-full max-w-xl px-4 py-5 pb-48')}>
+        <div className={dsPageContentClass('mx-auto w-full max-w-xl px-4 pb-6 pt-5')}>
+          <p className="mb-3 text-sm font-semibold text-white/75">Zu- und Absagen werden direkt gespeichert.</p>
           {renderAttendanceCard()}
+          <MatchPreparationActions>
+            <div className={MATCH_PREPARATION_ACTIONS_CLASS}>
+              <button type="button" onClick={returnFromMatchAttendancePage} disabled={writePending} className={dsPrimaryCtaClass()}>
+                {writePending ? 'Speichert…' : 'Fertig'}
+              </button>
+            </div>
+          </MatchPreparationActions>
         </div>
-        <MatchPreparationActions>
-          {writeFailed ? (
-            <p role="alert" className="text-sm text-red-300">Eine Auswahl konnte nicht gespeichert werden. Bitte tippe erneut.</p>
-          ) : (
-            <p className="text-sm font-semibold text-white/75">Zu- und Absagen werden direkt gespeichert.</p>
-          )}
-          <div className={MATCH_PREPARATION_ACTIONS_CLASS}>
-            <button type="button" onClick={returnFromMatchAttendancePage} disabled={writePending} className={dsPrimaryCtaClass()}>
-              {writePending ? 'Speichert…' : 'Fertig'}
-            </button>
-          </div>
-        </MatchPreparationActions>
       </div>
     );
   }

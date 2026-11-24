@@ -859,7 +859,7 @@ export const MatchPreparationPage: React.FC = () => {
         />
       )}
 
-      <main className={dsPageContentClass(`mx-auto max-w-xl flex flex-col ${DS_SECTION_GAP} px-4 py-5 pb-48`)}>
+      <main className={dsPageContentClass(`mx-auto max-w-xl flex flex-col ${DS_SECTION_GAP} px-4 pt-5 ${tournamentEventId ? 'pb-48' : 'pb-6'}`)}>
         {(playersLoading || attendanceLoading) ? <p className="text-sm text-white/55">Lade Spieler und Status…</p> : null}
         {(playersError || attendanceError) ? <p className="text-sm text-red-400">{playersError ?? attendanceError}</p> : null}
         {!squadEditable ? (
@@ -931,7 +931,48 @@ export const MatchPreparationPage: React.FC = () => {
         {tournamentEventId && matchId && matchRow && !isDemo ? (
           <MatchFeedSwitches matchId={matchId} />
         ) : null}
-
+        <MatchPreparationActions fixedAt={tournamentEventId ? 'bottom' : undefined}>
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <span className="text-sm font-semibold text-white/80">
+              {selectedPlayersForSquad.length} ausgewählt
+            </span>
+            <span className={`min-w-0 text-sm font-bold ${publishedSelectionMatches ? 'text-emerald-300' : 'text-amber-200'}`}>
+              {publishedSelectionMatches ? 'Kader veröffentlicht' : squadPublication ? 'Änderungen nicht veröffentlicht' : 'Noch nicht veröffentlicht'}
+            </span>
+          </div>
+          {tournamentEventId ? (
+            <div className="flex flex-col gap-1">
+              <button type="button" disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable || publishedSelectionMatches} onClick={openSquadMessageDialog} className="min-h-11 text-sm font-semibold text-white/70 disabled:opacity-40">{squadPublishBusy?'Veröffentliche…':squadPublication?'Kader aktualisieren':'Kader veröffentlichen'}</button>
+              <button type="button" disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable} onClick={()=>void onContinueToLineup()} className={`${dsPrimaryCtaClass()} min-h-12 px-3 text-base font-bold`}>{persisting || squadSaveBusy?'Speichern…':'Weiter zur Aufstellung →'}</button>
+            </div>
+          ) : (
+            <div className={MATCH_PREPARATION_ACTIONS_CLASS}>
+              <button
+                type="button"
+                disabled={!tournamentContextReady || selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable}
+                onClick={() => void onContinueToLineup()}
+                className={dsPrimaryCtaClass()}
+                aria-haspopup={continueWithLineup ? undefined : 'dialog'}
+              >
+                {persisting || squadSaveBusy ? 'Speichern…' : continueWithLineup ? 'Zur Startaufstellung' : 'Speichern & weiter'}
+              </button>
+              <button
+                type="button"
+                disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable || publishedSelectionMatches}
+                onClick={openSquadMessageDialog}
+                className={dsSecondaryCtaClass()}
+              >
+                {squadPublishBusy ? 'Veröffentliche…' : squadPublication ? 'Kader aktualisieren' : 'Kader veröffentlichen'}
+              </button>
+            </div>
+          )}
+          {persistError ? <p className="mx-auto mt-1 max-w-xl text-xs text-red-400">{persistError}</p> : null}
+          {squadPublishMessage ? (
+            <p className={`mx-auto mt-1 max-w-xl text-xs ${squadPublishMessage.startsWith('Kader veröffentlicht') || squadPublishMessage.startsWith('Demo:') ? 'text-emerald-300' : 'text-red-400'}`}>
+              {squadPublishMessage}
+            </p>
+          ) : null}
+        </MatchPreparationActions>
       </main>
 
       {matchId && !tournamentEventId ? (
@@ -944,46 +985,6 @@ export const MatchPreparationPage: React.FC = () => {
           withoutLineupPath={!isDemo && lineupPlayerIds.size === 0 ? withMatchCenterEvent(liveMatchWithoutLineupPath(matchId, basePath), centerEventId) : undefined}
         />
       ) : null}
-
-      <MatchPreparationActions aboveNavigation={!tournamentEventId}>
-          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-            <span className="text-sm font-semibold text-white/80">
-              Ausgewählt: {selectedPlayersForSquad.length}
-            </span>
-            <span className={`min-w-0 text-sm font-bold ${publishedSelectionMatches ? 'text-emerald-300' : 'text-amber-200'}`}>
-              {publishedSelectionMatches ? 'Kader veröffentlicht' : squadPublication ? 'Änderungen nicht veröffentlicht' : 'Noch nicht veröffentlicht'}
-            </span>
-          </div>
-          {tournamentEventId ? <div className="flex flex-col gap-1">
-            <button type="button" disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable || publishedSelectionMatches} onClick={openSquadMessageDialog} className="min-h-11 text-sm font-semibold text-white/70 disabled:opacity-40">{squadPublishBusy?'Veröffentliche…':squadPublication?'Kader aktualisieren':'Kader veröffentlichen'}</button>
-            <button type="button" disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable} onClick={()=>void onContinueToLineup()} className={`${dsPrimaryCtaClass()} min-h-12 px-3 text-base font-bold`}>{persisting || squadSaveBusy?'Speichern…':'Weiter zur Aufstellung →'}</button>
-          </div> : <>
-          <div className={MATCH_PREPARATION_ACTIONS_CLASS}>
-            <button
-              type="button"
-              disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable || publishedSelectionMatches}
-              onClick={openSquadMessageDialog}
-              className={dsSecondaryCtaClass()}
-            >
-              {squadPublishBusy ? 'Veröffentliche…' : squadPublication ? 'Kader aktualisieren' : 'Kader veröffentlichen'}
-            </button>
-            <button
-              type="button"
-              disabled={!tournamentContextReady || selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable}
-              onClick={() => void onContinueToLineup()}
-              className={dsPrimaryCtaClass()}
-              aria-haspopup={continueWithLineup ? undefined : 'dialog'}
-            >
-              {persisting || squadSaveBusy ? 'Speichern…' : continueWithLineup ? 'Zur Startaufstellung' : 'Speichern & weiter'}
-            </button>
-          </div></>}
-        {persistError ? <p className="mx-auto mt-1 max-w-xl text-xs text-red-400">{persistError}</p> : null}
-        {squadPublishMessage ? (
-          <p className={`mx-auto mt-1 max-w-xl text-xs ${squadPublishMessage.startsWith('Kader veröffentlicht') || squadPublishMessage.startsWith('Demo:') ? 'text-emerald-300' : 'text-red-400'}`}>
-            {squadPublishMessage}
-          </p>
-        ) : null}
-      </MatchPreparationActions>
 
       {squadMessageDialogOpen ? (
         <div

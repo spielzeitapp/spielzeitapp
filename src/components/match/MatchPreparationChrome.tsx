@@ -11,7 +11,7 @@ import {
 } from '../../lib/premiumDesignSystem';
 
 export const MATCH_PREPARATION_ACTIONS_CLASS =
-  'grid auto-cols-fr grid-flow-col gap-2.5 [&>button]:min-w-0 [&>button]:!min-h-12 [&>button]:!whitespace-normal [&>button]:!px-2 [&>button]:!text-sm [&>button]:!leading-tight sm:[&>button]:!text-base';
+  'flex flex-col gap-2.5 [&>button]:w-full [&>button]:min-w-0 [&>button]:!min-h-12 [&>button]:!whitespace-normal [&>button]:!px-2 [&>button]:!text-sm [&>button]:!leading-tight sm:[&>button]:!text-base';
 
 export function MatchPreparationHeader({
   title,
@@ -55,18 +55,21 @@ export function MatchPreparationHeader({
 
 export function MatchPreparationActions({
   children,
-  aboveNavigation = true,
+  fixedAt,
 }: {
   children: ReactNode;
-  aboveNavigation?: boolean;
+  fixedAt?: 'bottom' | 'above-navigation';
 }) {
+  if (!fixedAt) {
+    return <footer className="mt-5 flex min-w-0 flex-col gap-3 border-t border-red-400/20 pt-4">{children}</footer>;
+  }
   if (typeof document === 'undefined') return null;
 
   return createPortal(
     <div
       className={`${dsStickyCtaBarClass()} box-border !border-red-400/20 max-sm:!px-3`}
       style={{
-        bottom: aboveNavigation ? 'calc(env(safe-area-inset-bottom, 0px) + 96px)' : 'calc(env(safe-area-inset-bottom, 0px) + 4px)',
+        bottom: fixedAt === 'above-navigation' ? 'calc(env(safe-area-inset-bottom, 0px) + 96px)' : 'calc(env(safe-area-inset-bottom, 0px) + 4px)',
         paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))',
       }}
     >

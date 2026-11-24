@@ -853,7 +853,7 @@ export const MatchLineupPage: React.FC = () => {
         className={dsPageContentClass(
           // Normaler Layout-Flow: Seite scrollt im Body, kein verschachtelter Scroll/overflow-hidden
           // (iOS/iPhone SE: Inhalte sonst abgeschnitten). Scroll-Ende über BottomNav + Safe-Area.
-          `mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col ${useMatchCenterLayout ? 'px-4 py-5 pb-48' : 'px-1.5 pb-28 sm:px-4 sm:pt-1'}`,
+          `mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col ${useMatchCenterLayout ? 'px-4 pb-6 pt-5' : tournamentSize ? 'px-1.5 pb-28 sm:px-4 sm:pt-1' : 'px-1.5 pb-12 sm:px-4 sm:pt-1'}`,
         )}
       >
         {tournamentSize ? <section className="mb-2 rounded-xl border border-emerald-500/25 bg-emerald-950/15 px-3 py-2 text-sm">
@@ -1150,49 +1150,48 @@ export const MatchLineupPage: React.FC = () => {
             </section>
           </div>
         )}
+        {canManage ? (
+          <MatchPreparationActions fixedAt={tournamentSize ? (isMobile ? 'bottom' : 'above-navigation') : undefined}>
+            <div className={tournamentSize ? 'flex gap-2 [&>button]:min-h-12 [&>button]:min-w-0 [&>button]:flex-1' : MATCH_PREPARATION_ACTIONS_CLASS}>
+              <button
+                type="button"
+                disabled={!lineupEditable || tournamentSizeMismatch || starterCount < requiredStarters || savingLineup || startingLive || blocksLoading}
+                onClick={() => void (visibleVariant === startVariant ? onStartLive() : onUseAsStartVariant())}
+                className={dsPrimaryCtaClass()}
+              >
+                {startingLive
+                  ? 'Speichern…'
+                  : visibleVariant !== startVariant
+                    ? 'Als Start wählen'
+                    : isDemo
+                      ? 'LIVE (Demo)'
+                      : 'Speichern und zum Liveticker'}
+              </button>
+              <button
+                type="button"
+                disabled={!lineupEditable || savingLineup || startingLive}
+                onClick={() => void onSaveLineupClick()}
+                className={dsSecondaryCtaClass()}
+              >
+                {savingLineup ? 'Speichern…' : 'Aufstellung speichern'}
+              </button>
+            </div>
+            {!lineupEditable ? (
+              <p className="mx-auto mt-1 max-w-xl text-center text-[11px] text-white/45">
+                Abgeschlossenes Spiel – Aufstellung nur lesbar.
+              </p>
+            ) : isDemo ? (
+              <p className="mx-auto mt-1 max-w-xl text-center text-[11px] text-white/45">
+                Lokal speichern · LIVE ohne Push oder Feed
+              </p>
+            ) : null}
+          </MatchPreparationActions>
+        ) : (
+          <p className="mx-auto mb-4 max-w-xl px-4 text-center text-[11px] text-white/45">
+            Nur Ansicht – Bearbeitung nur für Trainer.
+          </p>
+        )}
       </main>
-
-      {canManage ? (
-      <MatchPreparationActions aboveNavigation={useMatchCenterLayout || !isMobile}>
-        <div className={MATCH_PREPARATION_ACTIONS_CLASS}>
-          <button
-            type="button"
-            disabled={!lineupEditable || savingLineup || startingLive}
-            onClick={() => void onSaveLineupClick()}
-            className={dsSecondaryCtaClass()}
-          >
-            {savingLineup ? 'Speichern…' : 'Aufstellung speichern'}
-          </button>
-          <button
-            type="button"
-            disabled={!lineupEditable || tournamentSizeMismatch || starterCount < requiredStarters || savingLineup || startingLive || blocksLoading}
-            onClick={() => void (visibleVariant === startVariant ? onStartLive() : onUseAsStartVariant())}
-            className={dsPrimaryCtaClass()}
-          >
-            {startingLive
-              ? 'Speichern…'
-              : visibleVariant !== startVariant
-                ? 'Als Start wählen'
-                : isDemo
-                  ? 'LIVE (Demo)'
-                  : 'Speichern und zum Liveticker'}
-          </button>
-        </div>
-        {!lineupEditable ? (
-          <p className="mx-auto mt-1 max-w-xl text-center text-[11px] text-white/45">
-            Abgeschlossenes Spiel – Aufstellung nur lesbar.
-          </p>
-        ) : isDemo ? (
-          <p className="mx-auto mt-1 max-w-xl text-center text-[11px] text-white/45">
-            Lokal speichern · LIVE ohne Push oder Feed
-          </p>
-        ) : null}
-      </MatchPreparationActions>
-      ) : (
-        <p className="mx-auto mb-4 max-w-xl px-4 text-center text-[11px] text-white/45">
-          Nur Ansicht – Bearbeitung nur für Trainer.
-        </p>
-      )}
     </div>
   );
 };
