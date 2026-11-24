@@ -1,7 +1,7 @@
 import {managerPortalRoot} from '../../lib/managerPortal';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ScanLine } from 'lucide-react';
+import { CameraOff, ScanLine } from 'lucide-react';
 import { AppButton } from '../ui/AppButton';
 import { lockBodyScroll } from '../../lib/bodyScrollLock';
 import { isRecognizedTournamentPlanHost } from '../../lib/tournamentPlanImport';
@@ -12,7 +12,6 @@ import {
   INVALID_QR_TOURNAMENT_LINK_MESSAGE,
   QR_CAMERA_UNAVAILABLE_TITLE,
   QR_SCAN_HINT_PRIMARY,
-  QR_SCAN_HINT_SECONDARY,
   QR_SCAN_UNSUPPORTED_MESSAGE,
   requestQrCameraStream,
   resolveQrScanBackend,
@@ -36,6 +35,12 @@ type Props = {
 };
 
 const UNSUPPORTED_RESUME_MS = 2200;
+const SCAN_GUIDE_CORNERS = [
+  'left-0 top-0 rounded-tl-xl border-l-2 border-t-2',
+  'right-0 top-0 rounded-tr-xl border-r-2 border-t-2',
+  'bottom-0 left-0 rounded-bl-xl border-b-2 border-l-2',
+  'bottom-0 right-0 rounded-br-xl border-b-2 border-r-2',
+];
 
 export const TournamentPlanQrScannerSheet: React.FC<Props> = ({
   isOpen,
@@ -291,19 +296,18 @@ export const TournamentPlanQrScannerSheet: React.FC<Props> = ({
         </div>
 
         <div className="modalBody flex flex-col gap-3">
-          <div>
-            <p className="text-[14px] text-white/70" role="status" aria-live="polite">
-              {statusLine}
-            </p>
-            {phase === 'scanning' || phase === 'starting' ? (
-              <p className="mt-1 text-[11px] text-white/40">{QR_SCAN_HINT_SECONDARY}</p>
-            ) : null}
-            {showUnsupported && !validateLink ? (
-              <p className="mt-1 text-[12px] text-white/55">{INVALID_QR_TOURNAMENT_LINK_HINT}</p>
-            ) : null}
-          </div>
+          {!showCameraError && (
+            <div>
+              <p className="text-sm text-white/75" role="status" aria-live="polite">
+                {phase === 'starting' ? 'Kamera wird gestartet…' : statusLine}
+              </p>
+              {showUnsupported && !validateLink ? (
+                <p className="mt-1 text-xs text-white/60">{INVALID_QR_TOURNAMENT_LINK_HINT}</p>
+              ) : null}
+            </div>
+          )}
 
-          <div className="relative overflow-hidden rounded-2xl border border-white/12 bg-black/80">
+          <div className={showCameraError ? 'hidden' : 'relative isolate overflow-hidden rounded-2xl bg-black/90'}>
             <video
               ref={videoRef}
               className="aspect-[4/3] w-full object-cover"
@@ -311,28 +315,38 @@ export const TournamentPlanQrScannerSheet: React.FC<Props> = ({
               muted
               autoPlay
             />
-            <div
-              className="pointer-events-none absolute inset-6 rounded-xl border-2 border-dashed border-[rgb(var(--club-border-rgb)/0.7)] "
-              aria-hidden
-            />
+            <div className="pointer-events-none absolute inset-0 grid place-items-center" aria-hidden>
+              <div className="relative aspect-square h-[68%] max-w-[75%] shadow-[0_0_0_100vmax_rgba(0,0,0,.28)]">
+                {SCAN_GUIDE_CORNERS.map((corner) => (
+                  <span key={corner} className={`absolute size-7 border-[rgb(var(--club-accent-rgb))] drop-shadow-[0_1px_3px_rgba(0,0,0,.75)] ${corner}`} />
+                ))}
+              </div>
+            </div>
             {phase === 'starting' ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/45 text-sm text-white/80">
-                Kamera wird gestartet…
+              <div className="absolute inset-0 grid place-items-center bg-black/45" aria-hidden>
+                <span className="size-6 rounded-full border-2 border-white/25 border-t-white motion-safe:animate-spin" />
               </div>
             ) : null}
             {(phase === 'validating' || phase === 'success' || saving) && !showCameraError ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/35 text-sm font-semibold text-emerald-200">
-                QR-Code erkannt ✓
+              <div className="absolute inset-0 grid place-items-center bg-black/35 text-2xl font-bold text-emerald-200" aria-hidden>
+                ✓
               </div>
             ) : null}
           </div>
 
           {showCameraError ? (
             <div className="flex flex-col gap-2" role="alert">
-              <p className="text-[15px] font-semibold text-white">{QR_CAMERA_UNAVAILABLE_TITLE}</p>
-              <p className="text-[12px] text-white/55">
-                Bitte Kamerazugriff in den Einstellungen erlauben oder den Link manuell eingeben.
-              </p>
+              <div className="mb-1 flex items-start gap-3 rounded-2xl bg-[rgb(var(--club-accent-rgb)/0.08)] p-4">
+                <CameraOff className="mt-0.5 size-5 shrink-0 sz-club-accent-text" aria-hidden />
+                <div>
+                  <p className="font-semibold text-white">{statusLine}</p>
+                  {statusLine === QR_CAMERA_UNAVAILABLE_TITLE && (
+                    <p className="mt-1 text-sm text-white/70">
+                      Erlaube den Kamerazugriff in den Einstellungen oder gib den Link manuell ein.
+                    </p>
+                  )}
+                </div>
+              </div>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <AppButton
                   variant="primary"
