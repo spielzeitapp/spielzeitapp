@@ -1360,6 +1360,70 @@ html[data-club-theme="black-white"] .sz-club-placeholder-player {
   }
 }
 
+.modalOverlay.modalOverlay--centered {
+  inset: 0;
+  height: 100dvh;
+  align-items: center;
+  box-sizing: border-box;
+  padding-block: max(16px, env(safe-area-inset-top, 0px), env(safe-area-inset-bottom, 0px));
+  padding-inline: max(16px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+  background: rgb(0 0 0 / 0.72);
+}
+
+.modalOverlay--centered > .modalSheet {
+  width: 100%;
+  max-height: 100%;
+  margin: 0;
+  border-radius: 24px;
+}
+
+.modalSheet.matchStartChoiceModal {
+  max-width: 420px;
+  border-color: rgb(var(--club-border-rgb, 239 68 68) / 0.36);
+  background: linear-gradient(155deg, rgb(var(--club-primary-rgb, 185 28 28) / 0.15), transparent 60%), #101013;
+  box-shadow: 0 20px 64px rgb(0 0 0 / 0.65), inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+.matchStartChoiceModal > .modalHeader {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  gap: 8px;
+  padding: 12px 14px 0;
+  background: transparent;
+  border-bottom: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  position: relative;
+}
+
+.matchStartChoiceModal .modalTitle {
+  grid-column: 2;
+  text-align: center;
+  font-size: 1.375rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.matchStartChoiceModal .modalClose {
+  grid-column: 3;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  border: 1px solid rgb(var(--club-border-rgb, 239 68 68) / 0.25);
+  color: rgb(var(--club-accent-text-rgb, 252 165 165));
+  background: rgb(255 255 255 / 0.035);
+}
+
+.matchStartChoiceModal .modalClose:hover {
+  background: rgb(255 255 255 / 0.11);
+}
+
+.matchStartChoiceModal > .modalBody {
+  padding: 8px 16px 16px;
+}
+
 /* Live-Matchboard: dezente LIVE-Badge-Pulsierung (nur bei laufender Spielzeit per Klasse) */
 @keyframes live-badge-soft {
   0%,
