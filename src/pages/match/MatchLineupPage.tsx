@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft } from 'lucide-react';
+import { MATCH_PREPARATION_ACTIONS_CLASS, MatchPreparationActions, MatchPreparationHeader } from '../../components/match/MatchPreparationChrome';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
 import type { PlayerItem } from '../../hooks/usePlayers';
@@ -53,13 +53,11 @@ import {
   dsPageAtmosphereClass,
   dsPageContentClass,
   dsPageShellClass,
-  dsPageTitleClass,
   dsPlayerNameClass,
   dsSectionLabelClass,
   dsPrimaryCtaClass,
   dsSecondaryCtaClass,
   dsSegmentTabClass,
-  dsStickyCtaBarClass,
   DS_JERSEY_STARTER,
   DS_LIST_GAP,
 } from '../../lib/premiumDesignSystem';
@@ -789,19 +787,23 @@ export const MatchLineupPage: React.FC = () => {
     );
   }
 
+  const preparationHeader = (
+    <MatchPreparationHeader
+      title="Startaufstellung"
+      opponent={matchRow?.opponent}
+      onBack={goBack}
+      hasMatchCenter={Boolean(centerPath)}
+      showTrainer={canManage}
+    />
+  );
+  const useMatchCenterLayout = Boolean(centerPath && !tournamentSize);
+
   if (!hasSquad) {
     return (
-      <div className={dsPageShellClass('px-4 py-6')}>
+      <div className={dsPageShellClass()}>
         <div className={dsPageAtmosphereClass()} aria-hidden />
+        {preparationHeader}
         <div className={dsPageContentClass('mx-auto flex max-w-xl flex-col gap-4 rounded-[22px] border border-transparent bg-[rgba(18,18,22,0.92)] p-4 shadow-[0_0_36px_rgba(255,40,40,0.10),inset_0_1px_0_rgba(255,255,255,0.03)]')}>
-          <button
-            type="button"
-            onClick={goBack}
-            className="inline-flex min-h-[36px] w-fit items-center rounded-lg border border-white/15 bg-white/[0.05] px-2.5 text-xs font-semibold text-white/90 hover:bg-white/[0.09]"
-          >
-            {centerPath ? '← Zurück zum Matchcenter' : '← Zurück'}
-          </button>
-          <h1 className="text-lg font-bold">Startaufstellung</h1>
           <p className="text-sm text-white/70">
             {canManage
               ? 'Bitte zuerst Matchkader in der Match-Vorbereitung auswählen.'
@@ -829,10 +831,11 @@ export const MatchLineupPage: React.FC = () => {
   return (
     <div className={dsPageShellClass('relative flex flex-col')}>
       <div className={dsPageAtmosphereClass()} aria-hidden />
-      <style>{`@media (max-width: 639px){
+      {!useMatchCenterLayout ? <style>{`@media (max-width: 639px){
         nav[aria-label="Hauptnavigation"], .app-header { display:none !important; }
         main.appMain { padding-top: env(safe-area-inset-top, 0px) !important; }
-      }`}</style>
+      }`}</style> : null}
+      {preparationHeader}
 
       {saveMsg ? (
         <div
@@ -850,24 +853,9 @@ export const MatchLineupPage: React.FC = () => {
         className={dsPageContentClass(
           // Normaler Layout-Flow: Seite scrollt im Body, kein verschachtelter Scroll/overflow-hidden
           // (iOS/iPhone SE: Inhalte sonst abgeschnitten). Scroll-Ende über BottomNav + Safe-Area.
-          'mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col gap-0 px-1.5 pt-0 pb-28 sm:px-4 sm:pt-1',
+          `mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col ${useMatchCenterLayout ? 'px-4 py-5 pb-48' : 'px-1.5 pb-28 sm:px-4 sm:pt-1'}`,
         )}
       >
-        <header className="flex min-h-[2.75rem] shrink-0 flex-wrap items-center gap-x-4 gap-y-1 px-1 py-1.5">
-          <button
-            type="button"
-            onClick={goBack}
-            className="inline-flex min-h-10 items-center gap-0.5 text-sm font-medium text-zinc-300 transition-colors hover:text-zinc-100 active:opacity-80"
-            aria-label={centerPath ? 'Zurück zum Matchcenter' : 'Zurück'}
-          >
-            <ChevronLeft className="h-4 w-4 shrink-0 -ml-0.5" strokeWidth={2} />
-            <span>{centerPath ? 'Zum Matchcenter' : 'Zurück'}</span>
-          </button>
-          <h1 className="min-w-0 flex-1 text-center text-sm font-black uppercase tracking-[0.08em] text-white sm:text-base">
-            Startaufstellung
-          </h1>
-        </header>
-
         {tournamentSize ? <section className="mb-2 rounded-xl border border-emerald-500/25 bg-emerald-950/15 px-3 py-2 text-sm">
           <div className="flex items-center justify-between"><strong className="text-emerald-300">Turnier · {tournamentSize - 1}+1</strong><span className="text-white/65">{formationId}</span></div>
           {tournamentSizeMismatch ? <p role="alert" className="mt-1 text-amber-200">Spielerzahl abweichend – Turnieraufstellung übernehmen.</p> : null}
@@ -1165,19 +1153,13 @@ export const MatchLineupPage: React.FC = () => {
       </main>
 
       {canManage ? (
-      <div
-        className={dsStickyCtaBarClass()}
-        style={{
-          bottom: isMobile ? 'calc(env(safe-area-inset-bottom, 0px) + 4px)' : 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
-          paddingBottom: 'max(0.4rem, env(safe-area-inset-bottom, 0px))',
-        }}
-      >
-        <div className="mx-auto flex w-full max-w-xl items-stretch gap-2">
+      <MatchPreparationActions aboveNavigation={useMatchCenterLayout || !isMobile}>
+        <div className={MATCH_PREPARATION_ACTIONS_CLASS}>
           <button
             type="button"
             disabled={!lineupEditable || savingLineup || startingLive}
             onClick={() => void onSaveLineupClick()}
-            className={`flex h-14 min-h-14 flex-1 items-center justify-center px-2 text-sm font-semibold leading-tight ${dsSecondaryCtaClass()}`}
+            className={dsSecondaryCtaClass()}
           >
             {savingLineup ? 'Speichern…' : 'Aufstellung speichern'}
           </button>
@@ -1185,7 +1167,7 @@ export const MatchLineupPage: React.FC = () => {
             type="button"
             disabled={!lineupEditable || tournamentSizeMismatch || starterCount < requiredStarters || savingLineup || startingLive || blocksLoading}
             onClick={() => void (visibleVariant === startVariant ? onStartLive() : onUseAsStartVariant())}
-            className={`flex h-14 min-h-14 flex-1 items-center justify-center px-2 text-sm font-bold leading-tight ${dsPrimaryCtaClass()}`}
+            className={dsPrimaryCtaClass()}
           >
             {startingLive
               ? 'Speichern…'
@@ -1205,7 +1187,7 @@ export const MatchLineupPage: React.FC = () => {
             Lokal speichern · LIVE ohne Push oder Feed
           </p>
         ) : null}
-      </div>
+      </MatchPreparationActions>
       ) : (
         <p className="mx-auto mb-4 max-w-xl px-4 text-center text-[11px] text-white/45">
           Nur Ansicht – Bearbeitung nur für Trainer.
