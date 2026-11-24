@@ -30,6 +30,10 @@ import {
   canMutateMatchPreparation,
   friendlyMatchLineupWriteError,
   isMatchSquadEditable,
+  liveMatchPath,
+  matchCenterPath,
+  matchPreparationPath,
+  withMatchCenterEvent,
 } from '../../lib/matchPreparationAccess';
 import { supabase } from '../../lib/supabaseClient';
 import { prepareTournamentMatchFromTemplate, fetchRemoteMatchBlocks, saveRemoteMatchBlocks, type TournamentTemplateRecord } from '../../lib/tournamentLineupTemplates';
@@ -126,9 +130,12 @@ export const MatchLineupPage: React.FC = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const matchId = searchParams.get('matchId')?.trim() || null;
+  const centerEventId = searchParams.get('centerEventId')?.trim();
   const demo = useDemoMode();
   const isDemo = Boolean(demo);
   const basePath = useInternalBasePath();
+  const centerPath = centerEventId ? matchCenterPath(centerEventId, basePath, true) : null;
+  const goBack = () => centerPath ? navigate(centerPath) : navigate(-1);
   const { role: roleFromHook } = useActiveTeamSeason();
   const canManage = isDemo || canMutateMatchPreparation(normalizeRole(roleFromHook));
   const routeState = (location.state ?? null) as LocationState;
@@ -748,11 +755,11 @@ export const MatchLineupPage: React.FC = () => {
     if (isDemo) {
       // Lokale Live-Session aus der gespeicherten Aufstellung aufbauen (Status bleibt „scheduled“ bis Anpfiff).
       demo?.startDemoLiveMatch(matchId, { slots, squadPlayerIds: squadIds, formationId });
-      navigate(`${basePath}/live?matchId=${encodeURIComponent(matchId)}`);
+      navigate(withMatchCenterEvent(liveMatchPath(matchId, basePath), centerEventId));
       return;
     }
     void triggerLineupFeedPostAfterSave(matchId);
-    navigate(`${basePath}/live?matchId=${encodeURIComponent(matchId)}`);
+    navigate(withMatchCenterEvent(liveMatchPath(matchId, basePath), centerEventId));
   };
 
   if (matchLoading || lineupLoading || playersLoading || blocksLoading) {
@@ -777,10 +784,10 @@ export const MatchLineupPage: React.FC = () => {
         <div className={dsPageContentClass('mx-auto flex max-w-xl flex-col gap-4 rounded-[22px] border border-transparent bg-[rgba(18,18,22,0.92)] p-4 shadow-[0_0_36px_rgba(255,40,40,0.10),inset_0_1px_0_rgba(255,255,255,0.03)]')}>
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="inline-flex min-h-[36px] w-fit items-center rounded-lg border border-white/15 bg-white/[0.05] px-2.5 text-xs font-semibold text-white/90 hover:bg-white/[0.09]"
           >
-            ← Zurück
+            {centerPath ? '← Zurück zum Matchcenter' : '← Zurück'}
           </button>
           <h1 className="text-lg font-bold">Startaufstellung</h1>
           <p className="text-sm text-white/70">
@@ -791,7 +798,7 @@ export const MatchLineupPage: React.FC = () => {
           {canManage ? (
             <button
               type="button"
-              onClick={() => navigate(`${basePath}/match-preparation?matchId=${encodeURIComponent(matchId)}`)}
+              onClick={() => navigate(withMatchCenterEvent(matchPreparationPath(matchId, basePath), centerEventId), { state: { continueWithLineup: true } })}
               className="min-h-[48px] rounded-xl bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-500"
             >
               Zur Match-Vorbereitung
@@ -834,17 +841,17 @@ export const MatchLineupPage: React.FC = () => {
           'mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col gap-0 px-1.5 pt-0 pb-28 sm:px-4 sm:pt-1',
         )}
       >
-        <header className="relative flex min-h-[2.5rem] shrink-0 items-center justify-center px-1 py-1.5 sm:min-h-[2.75rem] sm:py-2">
+        <header className="flex min-h-[2.75rem] shrink-0 flex-wrap items-center gap-x-4 gap-y-1 px-1 py-1.5">
           <button
             type="button"
-            onClick={() => navigate(-1)}
-            className="absolute left-0 top-1/2 z-[1] inline-flex -translate-y-1/2 items-center gap-0.5 text-sm font-medium text-zinc-300 transition-colors hover:text-zinc-100 active:opacity-80"
-            aria-label="Zurück"
+            onClick={goBack}
+            className="inline-flex min-h-10 items-center gap-0.5 text-sm font-medium text-zinc-300 transition-colors hover:text-zinc-100 active:opacity-80"
+            aria-label={centerPath ? 'Zurück zum Matchcenter' : 'Zurück'}
           >
             <ChevronLeft className="h-4 w-4 shrink-0 -ml-0.5" strokeWidth={2} />
-            <span>Zurück</span>
+            <span>{centerPath ? 'Matchcenter' : 'Zurück'}</span>
           </button>
-          <h1 className="w-full whitespace-nowrap px-[4.5rem] text-center text-sm font-black uppercase tracking-[0.08em] text-white sm:px-24 sm:text-base">
+          <h1 className="min-w-0 flex-1 text-center text-sm font-black uppercase tracking-[0.08em] text-white sm:text-base">
             Startaufstellung
           </h1>
         </header>

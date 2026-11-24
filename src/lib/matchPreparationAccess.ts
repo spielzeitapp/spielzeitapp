@@ -25,6 +25,15 @@ export function liveMatchWithoutLineupPath(
   return `${liveMatchPath(matchId, base)}&withoutLineup=1`;
 }
 
+export function withMatchCenterEvent(path: string, eventId?: string | null): string {
+  if (!eventId) return path;
+  return `${path}${path.includes('?') ? '&' : '?'}centerEventId=${encodeURIComponent(eventId)}`;
+}
+
+export function matchCenterPath(eventId: string, base: '/app' | '/demo' | '/manager', showLineup = false): string {
+  return `${base}/events/${encodeURIComponent(eventId)}${showLineup ? '?aufstellung=1' : ''}`;
+}
+
 /** Trainer/Admin/Staff darf Match vorbereiten / Aufstellung schreiben. */
 export function canMutateMatchPreparation(role: RoleKey | string | null | undefined): boolean {
   return canManageMatches(normalizeRole(role));
