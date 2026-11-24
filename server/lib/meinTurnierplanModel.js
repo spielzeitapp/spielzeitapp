@@ -144,15 +144,23 @@ export function parseMeinTurnierplanModel(json) {
     return null;
   };
   const label = (i) => text(json.groups[i]?.displayId) || String(Number(i) + 1);
-  const teams = json.groups.flatMap((g, i) =>
-    (json.groupParticipants?.[i] ?? [])
-      .map((id) => ({ teamName: name(id), groupLabel: label(i), ...(logo(id) ? { logoUrl: logo(id) } : {}) }))
-      .filter((t) => t.teamName),
+  // The public stadium page can omit groupParticipants even for multi-group plans.
+  const participantIdsByGroup = json.groups.map((_, index) => {
+    const supplied = json.groupParticipants?.[index]?.length
+      ? json.groupParticipants[index]
+      : (json.groupRankTables?.[index] ?? []).map(row => row.participant);
+    const fixtures = (json.groupMatches ?? [])
+      .filter(match => String(match.groupId ?? (json.groups.length === 1 ? 0 : '')) === String(index));
+    return [...new Set([...supplied, ...fixtures.flatMap(match => [match.homeParticipant, match.awayParticipant])]
+      .filter(id => name(id)).map(String))];
+  });
+  const teams = participantIdsByGroup.flatMap((ids, index) =>
+    ids.map((id) => ({ teamName: name(id), groupLabel: label(index), ...(logo(id) ? { logoUrl: logo(id) } : {}) })),
   );
   if (!teams.length) return null;
   const groupStandings = json.groups.map((g, i) => ({
     groupLabel: label(i),
-    rows: (json.groupRankTables?.[i]?.length ? json.groupRankTables[i] : (json.groupParticipants?.[i] ?? []).map(participant => ({participant,rank:0})))
+    rows: (json.groupRankTables?.[i]?.length ? json.groupRankTables[i] : participantIdsByGroup[i].map(participant => ({participant,rank:0})))
       .map((r) => ({
         teamName: name(r.participant),
         rank: num(r.rank),

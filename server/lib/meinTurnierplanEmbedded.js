@@ -31,14 +31,19 @@ export function extractMeinTurnierplanEmbeddedJson(html, tournamentId) {
   const compact = assignedObject(html, '_cpStadiumData');
   if (compact?.participants) {
     const name = plainText(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? '');
-    const duration = Number(plainText(html).match(/Spieldauer\s*:?\s*(\d+)\s*Minuten/i)?.[1]);
-    return {
-      ...compact,
-      name: compact.name || name,
-      ...(duration > 0 && duration <= 120 ? {
-        groupMatchDuration: duration, finalMatchDuration: duration,
-      } : {}),
+    const pageText = plainText(html);
+    const readDuration = (label) => {
+      const duration = Number(pageText.match(label)?.[1]);
+      return duration > 0 && duration <= 120 ? duration : undefined;
     };
+    const duration = readDuration(/Spieldauer\s*:?\s*(\d+)\s*Minuten/i);
+    const groupMatchDuration = compact.groupMatchDuration
+      ?? readDuration(/Spieldauer (?:in )?(?:der )?(?:Gruppenphase|Vorrunde)\s*:?\s*(\d+)\s*Minuten/i)
+      ?? duration;
+    const finalMatchDuration = compact.finalMatchDuration
+      ?? readDuration(/Spieldauer (?:in )?(?:der )?Finalrunde\s*:?\s*(\d+)\s*Minuten/i)
+      ?? duration;
+    return { ...compact, name: compact.name || name, groupMatchDuration, finalMatchDuration };
   }
   const state = assignedObject(html, 'preloadedState');
   for (const entry of Object.values(state?.tournaments ?? {})) {
