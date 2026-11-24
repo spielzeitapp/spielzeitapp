@@ -36,6 +36,8 @@ export type PlayerLastMatchRow = {
   dateLabel: string;
   result: string;
   minutes: number;
+  /** False when the appearance has no calculable playing time. */
+  minutesKnown?: boolean;
   goals: number;
   wasStarter: boolean;
   /** UI: 'full' | 'sub_in' | 'bank' | 'partial' (z. B. ausgewechselt) */
@@ -474,7 +476,8 @@ function aggregateForPlayer(
 
     games += 1;
     const evs = eventsByMatch.get(mid) ?? [];
-    goals += goalsInMatchForPlayer(evs, pid);
+    const matchGoals = goalsInMatchForPlayer(evs, pid);
+    goals += matchGoals;
     assists += assistsInMatchForPlayer(evs, pid);
     const cards = cardCountsInMatchForPlayer(evs, pid);
     yellowCards += cards.yellow;
@@ -505,9 +508,13 @@ function aggregateForPlayer(
     const calculated=(sourceAppearance?.payload as {calculatedMinutes?:number|null}|undefined)?.calculatedMinutes;
     const hasCalculated=sourceOnly&&typeof calculated==='number'&&Number.isFinite(calculated)&&calculated>=0;
     if(hasCalculated){mMin=calculated;calculatedMinutesGames+=1;}
-    if(sourceOnly&&!hasCalculated)unknownMinutesGames+=1;
+    const scorerWithoutLineup = !kickoffIds.some(Boolean) && mMin === 0 && matchGoals > 0;
+    const minutesKnown = sourceOnly ? hasCalculated : !scorerWithoutLineup;
+    if (!minutesKnown) unknownMinutesGames += 1;
     minutes+=mMin;
-    const badge = sourceOnly ? { badgeKind: 'unknown' as const, badgeLabel: hasCalculated ? `${mMin} Min · berechnet` : 'ÖFB · Spielzeit offen', subInDisplayMinute: null } : badgeForRow({
+    const badge = scorerWithoutLineup && !sourceOnly
+      ? { badgeKind: 'unknown' as const, badgeLabel: 'Spielzeit offen', subInDisplayMinute: null }
+      : sourceOnly ? { badgeKind: 'unknown' as const, badgeLabel: hasCalculated ? `${mMin} Min · berechnet` : 'ÖFB · Spielzeit offen', subInDisplayMinute: null } : badgeForRow({
       wasStarter,
       minutes: mMin,
       totalMin: matchDurationMin,
@@ -523,7 +530,8 @@ function aggregateForPlayer(
       dateLabel: formatDateLabel(m.match_date),
       result: `${sh}:${sa}`,
       minutes: mMin,
-      goals: goalsInMatchForPlayer(evs, pid),
+      minutesKnown,
+      goals: matchGoals,
       wasStarter,
       badgeKind: badge.badgeKind,
       badgeLabel: badge.badgeLabel,

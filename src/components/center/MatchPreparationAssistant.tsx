@@ -1,26 +1,61 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { isStartelfCompleteFromStartingIds } from '../../pages/MatchDetail/lineupGuards';
+import { MatchStartChoiceDialog } from '../match/MatchStartChoiceDialog';
 import { CenterPreparationAssistant } from './CenterPreparationAssistant';
 import { fetchLineupForLiveMatch, fetchMatchById } from '../../lib/liveMatchService';
-import { isStartelfCompleteFromStartingIds } from '../../pages/MatchDetail/lineupGuards';
 import { subscribeLiveMatchStateChanged } from '../../lib/liveMatchBroadcast';
+import { isMatchSquadEditable, liveMatchWithoutLineupPath, matchLineupPath, matchPreparationPath, withMatchCenterEvent } from '../../lib/matchPreparationAccess';
+import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
+import type { InternalBasePath } from '../../demo/demoPaths';
 
-export function MatchPreparationAssistant({ matchId, basePath, playerCount, openCount, yesCount, attendanceLoading, onOpenAttendance, onOpenPlan }: {
-  matchId?: string | null; basePath: string; playerCount: number; openCount: number; yesCount: number; attendanceLoading: boolean; onOpenAttendance: () => void; onOpenPlan: () => void;
-}) {
-  const [state, setState] = useState({ loading: true, squad: 0, lineup: false, error: null as string | null });
+type Props = {
+  matchId?: string | null;
+  centerEventId: string;
+  matchLabel: string;
+  basePath: InternalBasePath;
+  playerCount: number;
+  openCount: number;
+  yesCount: number;
+  attendanceLoading: boolean;
+  onOpenAttendance: () => void;
+};
+
+const initialState = { matchId: null as string | null, loading: true, squad: 0, hasStarters: false, lineupComplete: false, openForKickoff: false, error: null as string | null };
+
+export function MatchPreparationAssistant({ matchId, centerEventId, matchLabel, basePath, playerCount, openCount, yesCount, attendanceLoading, onOpenAttendance }: Props) {
+  const [searchParams] = useSearchParams();
+  const [state, setState] = useState(initialState);
+  const [choiceOpen, setChoiceOpen] = useState(false);
+
   useEffect(() => {
     let active = true;
     let revision = 0;
     const load = async () => {
       const request = ++revision;
-      if (!matchId) { setState({ loading: false, squad: 0, lineup: false, error: 'Die Spielvorbereitung wird eingerichtet. Bitte kurz warten.' }); return; }
+      if (!matchId) {
+        setState({ ...initialState, loading: false, error: 'Die Spielvorbereitung wird eingerichtet. Bitte kurz warten.' });
+        return;
+      }
       setState(previous => ({ ...previous, loading: true }));
       try {
         const [lineup, match] = await Promise.all([fetchLineupForLiveMatch(matchId), fetchMatchById(matchId)]);
         if (!active || request !== revision) return;
-        const error = lineup.error || match.error;
-        setState({ loading: false, squad: error ? 0 : lineup.data.squadPlayerIds.length, lineup: !error && isStartelfCompleteFromStartingIds(lineup.data.startingPlayerIds, match.data?.u11_formation_id), error: error ? 'Kader und Aufstellung konnten nicht geladen werden.' : null });
-      } catch { if (active && request === revision) setState({ loading: false, squad: 0, lineup: false, error: 'Vorbereitung konnte nicht geladen werden.' }); }
+        const error = lineup.error || match.error || !match.data;
+        setState({
+          matchId,
+          loading: false,
+          squad: error ? 0 : lineup.data.squadPlayerIds.length,
+          hasStarters: !error && lineup.data.startingPlayerIds.some(Boolean),
+          lineupComplete: !error && isStartelfCompleteFromStartingIds(lineup.data.startingPlayerIds, match.data?.u11_formation_id),
+          openForKickoff: !error && isMatchSquadEditable({ status: match.data?.status, live_started_at: match.data?.live_started_at }),
+          error: error ? 'Kader und Aufstellung konnten nicht geladen werden.' : null,
+        });
+      } catch {
+        if (active && request === revision) {
+          setState({ ...initialState, matchId, loading: false, error: 'Vorbereitung konnte nicht geladen werden.' });
+        }
+      }
     };
     void load();
     const refresh = () => { void load(); };
@@ -28,10 +63,56 @@ export function MatchPreparationAssistant({ matchId, basePath, playerCount, open
     window.addEventListener('focus', refresh);
     return () => { active = false; unsubscribe(); window.removeEventListener('focus', refresh); };
   }, [matchId]);
-  return <CenterPreparationAssistant title="Match-Assistent" readyLabel="Match vorbereitet" loading={state.loading || attendanceLoading} error={state.error} steps={[
-    { id: 'availability', title: 'Verfügbarkeit klären', detail: `${yesCount} zugesagt · ${openCount} offen`, done: !attendanceLoading && playerCount > 0 && openCount === 0, onClick: onOpenAttendance },
-    { id: 'squad', title: 'Kader wählen', detail: state.squad ? `${state.squad} Spieler ausgewählt` : 'Spieler für das Match auswählen', done: state.squad > 0, disabled: !matchId, to: matchId ? `${basePath}/match-preparation?matchId=${encodeURIComponent(matchId)}` : undefined },
-    { id: 'lineup', title: 'Aufstellung vorbereiten', detail: 'Formation und Startelf festlegen', done: state.lineup, disabled: !matchId, to: matchId ? `${basePath}/match-lineup?matchId=${encodeURIComponent(matchId)}` : undefined },
-    { id: 'notes', title: 'Matchplan ergänzen', detail: 'Taktik und Hinweise zum Spiel', done: false, optional: true, onClick: onOpenPlan },
-  ]} />;
+
+  const canChoose = Boolean(matchId && state.matchId === matchId && state.openForKickoff && !state.error);
+  const canOpen = canChoose && !state.loading;
+  const closeChoice = () => setChoiceOpen(false);
+  const squadPath = matchId ? withMatchCenterEvent(matchPreparationPath(matchId, basePath), centerEventId) : undefined;
+  const lineupPath = matchId ? withMatchCenterEvent(matchLineupPath(matchId, basePath), centerEventId) : undefined;
+  const showLineup = Boolean(lineupPath && (state.hasStarters || searchParams.get('aufstellung') === '1'));
+  const withLineupPath = state.squad > 0 ? lineupPath : squadPath;
+
+  return (
+    <>
+      <CenterPreparationAssistant
+        title="Match-Assistent"
+        readyLabel={showLineup ? 'Match vorbereitet' : 'Kader vorbereitet'}
+        loading={state.loading || attendanceLoading}
+        error={state.error}
+        steps={[
+          { id: 'availability', title: 'Verfügbarkeit klären', detail: `${yesCount} zugesagt · ${openCount} offen`, done: !attendanceLoading && playerCount > 0 && openCount === 0, onClick: onOpenAttendance },
+          { id: 'squad', title: 'Kader wählen', detail: state.squad ? `${state.squad} Spieler ausgewählt` : 'Spieler für das Match auswählen', done: state.squad > 0, disabled: !matchId, to: squadPath },
+          ...(showLineup ? [{
+            id: 'lineup',
+            title: 'Startaufstellung',
+            detail: state.lineupComplete ? 'Gespeichert · Antippen zum Bearbeiten' : 'Formation und Positionen festlegen',
+            done: state.lineupComplete,
+            to: lineupPath,
+          }] : []),
+        ]}
+      >
+        <button
+          type="button"
+          aria-haspopup="dialog"
+          disabled={!canOpen}
+          onClick={() => setChoiceOpen(true)}
+          className={`${dsPrimaryCtaClass()} mt-3 flex min-h-12 w-full items-center justify-center px-4 text-base font-bold disabled:opacity-45`}
+        >
+          Spiel starten
+        </button>
+      </CenterPreparationAssistant>
+
+      {withLineupPath ? (
+        <MatchStartChoiceDialog
+          open={choiceOpen && canChoose}
+          matchLabel={matchLabel}
+          onClose={closeChoice}
+          withLineupPath={withLineupPath}
+          withoutLineupPath={matchId && !state.hasStarters && basePath !== '/demo' ? withMatchCenterEvent(liveMatchWithoutLineupPath(matchId, basePath), centerEventId) : undefined}
+          needsSquad={state.squad === 0}
+          lineupState={state.squad === 0 ? { continueWithLineup: true } : undefined}
+        />
+      ) : null}
+    </>
+  );
 }
