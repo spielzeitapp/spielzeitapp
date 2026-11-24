@@ -8,6 +8,7 @@ import { LineupFormationPitch } from '../../components/match/LineupFormationPitc
 import { PitchPlayerMarker } from '../../components/match/PitchPlayerMarker';
 import { triggerLineupFeedPostAfterSave } from '../../lib/ensureLineupFeedPost';
 import {
+  fetchEventIsHomeByMatchId,
   fetchLineupForLiveMatch,
   LIVE_FIELD_SLOT_ORDER,
   replaceMatchLineupAndBench,
@@ -130,7 +131,9 @@ export const MatchLineupPage: React.FC = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const matchId = searchParams.get('matchId')?.trim() || null;
-  const centerEventId = searchParams.get('centerEventId')?.trim();
+  const requestedCenterEventId = searchParams.get('centerEventId')?.trim();
+  const [calendarEvent, setCalendarEvent] = useState<{ matchId: string; eventId: string } | null>(null);
+  const centerEventId = requestedCenterEventId || (calendarEvent?.matchId === matchId ? calendarEvent.eventId : undefined);
   const demo = useDemoMode();
   const isDemo = Boolean(demo);
   const basePath = useInternalBasePath();
@@ -138,6 +141,15 @@ export const MatchLineupPage: React.FC = () => {
   const goBack = () => centerPath ? navigate(centerPath) : navigate(-1);
   const { role: roleFromHook } = useActiveTeamSeason();
   const canManage = isDemo || canMutateMatchPreparation(normalizeRole(roleFromHook));
+
+  useEffect(() => {
+    if (!canManage || isDemo || !matchId || requestedCenterEventId) return;
+    let canceled = false;
+    void fetchEventIsHomeByMatchId(matchId).then(({ eventId }) => {
+      if (!canceled && eventId) setCalendarEvent({ matchId, eventId });
+    });
+    return () => { canceled = true; };
+  }, [canManage, isDemo, matchId, requestedCenterEventId]);
   const routeState = (location.state ?? null) as LocationState;
   const selectedFromState = useMemo(
     () => [...new Set((routeState?.selectedPlayers ?? []).map((id) => normalizeId(id)).filter((id): id is string => Boolean(id)))],
@@ -849,7 +861,7 @@ export const MatchLineupPage: React.FC = () => {
             aria-label={centerPath ? 'Zurück zum Matchcenter' : 'Zurück'}
           >
             <ChevronLeft className="h-4 w-4 shrink-0 -ml-0.5" strokeWidth={2} />
-            <span>{centerPath ? 'Matchcenter' : 'Zurück'}</span>
+            <span>{centerPath ? 'Zum Matchcenter' : 'Zurück'}</span>
           </button>
           <h1 className="min-w-0 flex-1 text-center text-sm font-black uppercase tracking-[0.08em] text-white sm:text-base">
             Startaufstellung
