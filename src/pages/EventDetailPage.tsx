@@ -15,7 +15,7 @@ import { ClubLogo } from '../components/branding/ClubLogo';
 import { useClubOpponentLogos, preferredClubLogo } from '../hooks/useClubOpponentLogos';
 import { useMatchClubBranding } from '../hooks/useMatchClubBranding';
 import '../components/match/finishedClubTheme.css';
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Ban,
@@ -621,6 +621,11 @@ export const EventDetailPage: React.FC = () => {
   } | null>(null);
 
   const [centerAttendanceOpen, setCenterAttendanceOpen] = useState(false);
+  const matchAttendanceInFlight = useRef(new Set<string>());
+  const currentAttendanceEvent = useRef(eventId);
+  currentAttendanceEvent.current = eventId;
+  const [matchAttendancePending, setMatchAttendancePending] = useState<Set<string>>(() => new Set());
+  const [matchAttendanceErrors, setMatchAttendanceErrors] = useState<Set<string>>(() => new Set());
   const [matchAttendanceExpanded, setMatchAttendanceExpanded] = useState(true);
 
   const { teamSeasons } = useActiveTeamSeason();
@@ -1429,6 +1434,50 @@ export const EventDetailPage: React.FC = () => {
     },
     [getMatchRsvpDisplay],
   );
+
+  const saveMatchAttendance = async (targetPlayerId: string, next: TrainingAttendanceStatus) => {
+    if (!eventId || !canTrainerManageEvent) return;
+    const pid = targetPlayerId.toLowerCase();
+    const key = `${eventId}:${pid}`;
+    if (matchAttendanceInFlight.current.has(key)) return;
+    matchAttendanceInFlight.current.add(key);
+    setMatchAttendancePending(previous => new Set(previous).add(key));
+
+    try {
+      const status = trainingAttendanceToDb(next);
+      if (isDemo && demo) {
+        demo.setDemoAttendance(eventId, targetPlayerId, status);
+      } else {
+        const result = status === null
+          ? await supabase.from('event_attendance').delete().eq('event_id', eventId).eq('player_id', targetPlayerId)
+          : await upsertEventAttendanceMinimal(supabase, { event_id: eventId, player_id: targetPlayerId, status, note: null });
+        if (result.error) throw result.error;
+      }
+      if (currentAttendanceEvent.current !== eventId) return;
+      setEventAttendanceByPlayerId(previous => {
+        const updated = { ...previous };
+        if (status === null) delete updated[pid];
+        else updated[pid] = status;
+        return updated;
+      });
+      setMatchAttendanceErrors(previous => {
+        const updated = new Set(previous);
+        updated.delete(key);
+        return updated;
+      });
+    } catch {
+      if (currentAttendanceEvent.current === eventId) {
+        setMatchAttendanceErrors(previous => new Set(previous).add(key));
+      }
+    } finally {
+      matchAttendanceInFlight.current.delete(key);
+      setMatchAttendancePending(previous => {
+        const updated = new Set(previous);
+        updated.delete(key);
+        return updated;
+      });
+    }
+  };
 
   const getTrainingAttendanceStatus = useCallback(
     (pid: string): TrainingAttendanceStatus => {
@@ -4303,6 +4352,10 @@ export const EventDetailPage: React.FC = () => {
               communication={canTrainerManageEvent && event.status !== 'canceled' ? <div className="space-y-4"><MatchFeedSwitches eventId={event.id} /><EventFeedCommunicationSection event={event} userId={sessionUser?.id ?? null} embedded /></div> : null}
               carpool={carpoolingCard}
               reminders={canTrainerManageEvent && !isDemo ? <><p className="mb-4 text-[16px] text-white/70">Diese Erinnerungen gelten für die gesamte Mannschaft.</p><TeamReminderSettingsPanel teamSeasonId={event.team_season_id} embedded /></> : null}
+            managementSettings={canTrainerManageEvent && event.status !== 'canceled' && event.match_id && matchMinPlaytime && !isDemo ? (
+              <MinimumPlaytimeMatchSettings matchId={event.match_id} plannedMinutes={matchMinPlaytime.plannedMinutes}
+                enabled={matchMinPlaytime.enabled} minutes={matchMinPlaytime.minutes} onSaved={setMatchMinPlaytime} />
+            ) : null}
             cancelLabel="Spiel absagen"
             onAddToCalendar={() => void handleAddSingleEventToCalendar()}
             onNavigate={canStartNavigation ? handleStartNavigation : undefined}
@@ -4470,7 +4523,19 @@ export const EventDetailPage: React.FC = () => {
         !(isAudienceMatchDetail && canShowSelfRsvp) &&
         !(isTournament && (canTrainerViewEvent || event.status === 'canceled')) &&
         !(isTraining && canTrainerViewEvent) ? (
-          <CenterAttendanceSurface title={isTournament?'Zu-/Absage':undefined} className={isTournament?'tournamentWorkflowModal':undefined} dialog={(event.kind === 'match' && canTrainerManageEvent && event.status === 'upcoming') || (isTournament && !canTrainerViewEvent && canShowSelfRsvp)} open={centerAttendanceOpen} onClose={() => setCenterAttendanceOpen(false)}>
+          <CenterAttendanceSurface title={isTournament?'Zu-/Absage':undefined} className={isTournament?'tournamentWorkflowModal':undefined} dialog={(event.kind === 'match' && canTrainerManageEvent && event.status === 'upcoming') || (isTournament && !canTrainerViewEvent && canShowSelfRsvp)} open={centerAttendanceOpen} onClose={() => setCenterAttendanceOpen(false)}
+            footer={event.kind === 'match' && canTrainerManageEvent && event.status === 'upcoming' ? (
+              <div className="flex flex-col gap-2">
+                {[...matchAttendanceErrors].some(key => key.startsWith(`${event.id}:`)) ? (
+                  <p role="alert" className="text-sm text-red-300">Eine Auswahl konnte nicht gespeichert werden. Bitte tippe erneut.</p>
+                ) : (
+                  <p className="text-sm text-white/65">Zu- und Absagen werden direkt gespeichert.</p>
+                )}
+                <button type="button" onClick={() => setCenterAttendanceOpen(false)}
+                  disabled={[...matchAttendancePending].some(key => key.startsWith(`${event.id}:`))}
+                  className={`${dsPrimaryCtaClass()} min-h-11 w-full disabled:opacity-45`}>Fertig</button>
+              </div>
+            ) : undefined}>
           <Card
             className={
               isTraining
@@ -4511,19 +4576,6 @@ export const EventDetailPage: React.FC = () => {
 
             {event.kind !== 'match' || matchAttendanceExpanded ? canTrainerManageEvent ? (
               <div className={`flex flex-col gap-3 ${isTraining ? 'relative z-[1]' : ''}`}>
-                {event.kind === 'match' && event.match_id ? (
-                  <>
-                    {matchMinPlaytime && !isDemo ? (
-                      <MinimumPlaytimeMatchSettings
-                        matchId={event.match_id}
-                        plannedMinutes={matchMinPlaytime.plannedMinutes}
-                        enabled={matchMinPlaytime.enabled}
-                        minutes={matchMinPlaytime.minutes}
-                        onSaved={(patch) => setMatchMinPlaytime(patch)}
-                      />
-                    ) : null}
-                  </>
-                ) : null}
                 {isTraining ? (
                   <TrainingAttendancePanel
                     players={players}
@@ -4601,7 +4653,8 @@ export const EventDetailPage: React.FC = () => {
                                       layout="team-roster"
                                       hideSubline
                                       nameStatus={<PremiumStatusBadge label={badge} tone={chipTone} />}
-                                      trailing={<AttendanceThumbControls name={premiumPlayerDisplayName(player)} status={dbStatusToTrainingAttendance(rsvpDisplay) ?? 'open'} isLaz={player.is_laz_player} onSelect={next => void handleTrainerTrainingStatus(player.id, next)} />}
+                                      trailing={<AttendanceThumbControls name={premiumPlayerDisplayName(player)} status={dbStatusToTrainingAttendance(rsvpDisplay) ?? 'open'} isLaz={player.is_laz_player} disabled={matchAttendancePending.has(`${event.id}:${player.id.toLowerCase()}`)}
+                                         onSelect={next => void (event.kind === 'match' ? saveMatchAttendance(player.id, next) : handleTrainerTrainingStatus(player.id, next))} />}
                                     />
                                   </li>
                                 );

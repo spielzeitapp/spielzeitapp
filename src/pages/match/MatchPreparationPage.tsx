@@ -1,7 +1,7 @@
 import { U11_FORMATIONS } from '../../lib/matchFormations';
 import { prepareTournamentMatchFromTemplate, type TournamentTemplateRecord } from '../../lib/tournamentLineupTemplates';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
 import { comparePlayerItems } from '../../lib/rosterPlayer';
 import { saveMatchSquadOnly } from '../../lib/liveMatchService';
@@ -9,6 +9,7 @@ import {
   canMutateMatchPreparation,
   friendlyMatchLineupWriteError,
   isMatchSquadEditable,
+  liveMatchWithoutLineupPath,
   matchLineupPath,
 } from '../../lib/matchPreparationAccess';
 import {
@@ -23,6 +24,7 @@ import {
   type TournamentLineupCopyContext,
   type TournamentLineupCopyMode,
 } from '../../lib/tournamentLineupCopy';
+import { MatchStartChoiceDialog } from '../../components/match/MatchStartChoiceDialog';
 import { MinimumPlaytimeMatchSettings } from '../../components/live/MinimumPlaytimeMatchSettings';
 import { MatchFeedSwitches } from '../../components/match/MatchFeedSwitches';
 import {
@@ -113,6 +115,8 @@ export const MatchPreparationPage: React.FC = () => {
   const [restoredSelectedPlayers, setRestoredSelectedPlayers] = useState<string[]>([]);
   const [selectionInitialized, setSelectionInitialized] = useState(false);
   const [persisting, setPersisting] = useState(false);
+  const [startChoiceOpen, setStartChoiceOpen] = useState(false);
+  const continueWithLineup = (useLocation().state as { continueWithLineup?: boolean } | null)?.continueWithLineup === true;
   const [persistError, setPersistError] = useState<string | null>(null);
   const [attendanceByPlayerId, setAttendanceByPlayerId] = useState<Record<string, 'yes' | 'no'>>({});
   const [attendanceEventId, setAttendanceEventId] = useState<string | null>(null);
@@ -787,15 +791,17 @@ export const MatchPreparationPage: React.FC = () => {
   }
 
   const onContinueToLineup = async () => {
-    if (!matchId || selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy) return;
+    if (!matchId || !squadEditable || !tournamentContextReady || selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy) return;
     setPersistError(null);
     setPersisting(true);
     const ok = await persistSquadSelection(selectedPlayersForSquad);
     setPersisting(false);
     if (!ok) return;
-    navigate(`${basePath}/match-lineup?matchId=${encodeURIComponent(matchId)}`, {
-      state: { selectedPlayers: selectedPlayersForSquad },
-    });
+    if (tournamentEventId || continueWithLineup) {
+      navigate(matchLineupPath(matchId, basePath), { state: { selectedPlayers: selectedPlayersForSquad } });
+      return;
+    }
+    setStartChoiceOpen(true);
   };
 
   const openSquadMessageDialog = () => {
@@ -860,7 +866,7 @@ export const MatchPreparationPage: React.FC = () => {
               ← Zurück
             </button>
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-red-400/90">SpielzeitApp</p>
-            <h1 className="mt-0.5 text-xl font-bold tracking-tight">Match-Vorbereitung</h1>
+            <h1 className="mt-0.5 text-xl font-bold tracking-tight">Spielkader</h1>
             <p className="mt-1 text-sm text-white/55">
               {matchRow?.opponent
                 ? `vs. ${normalizeOefbImportedTeamName(matchRow.opponent) || matchRow.opponent}`
@@ -920,7 +926,7 @@ export const MatchPreparationPage: React.FC = () => {
         {renderSection('Offen', grouped.open, 'open')}
         {renderSection('Abgesagt', grouped.absent, 'absent')}
 
-        {matchId && matchRow && !isDemo ? (
+        {tournamentEventId && matchId && matchRow && !isDemo ? (
           <MinimumPlaytimeMatchSettings
             matchId={matchId}
             plannedMinutes={matchRow.planned_match_minutes ?? DEFAULT_PLANNED_MATCH_MINUTES}
@@ -941,25 +947,36 @@ export const MatchPreparationPage: React.FC = () => {
           />
         ) : null}
 
-        {matchId && matchRow && !isDemo ? (
+        {tournamentEventId && matchId && matchRow && !isDemo ? (
           <MatchFeedSwitches matchId={matchId} />
         ) : null}
 
       </main>
 
+      {matchId && !tournamentEventId ? (
+        <MatchStartChoiceDialog
+          open={startChoiceOpen && squadEditable}
+          matchLabel={matchRow?.opponent ? `vs. ${matchRow.opponent}` : 'Spiel'}
+          onClose={() => setStartChoiceOpen(false)}
+          withLineupPath={matchLineupPath(matchId, basePath)}
+          lineupState={{ selectedPlayers: selectedPlayersForSquad }}
+          withoutLineupPath={!isDemo && lineupPlayerIds.size === 0 ? liveMatchWithoutLineupPath(matchId, basePath) : undefined}
+        />
+      ) : null}
+
       <div
-        className={dsStickyCtaBarClass()}
+        className={`${dsStickyCtaBarClass()} box-border max-sm:!px-3`}
         style={{
           bottom: tournamentEventId ? 'calc(env(safe-area-inset-bottom, 0px) + 4px)' : 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
           paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))',
         }}
       >
-        <div className="mx-auto flex max-w-xl flex-col gap-2">
+        <div className="mx-auto flex w-full min-w-0 max-w-xl flex-col gap-2">
           <div className="flex items-center justify-between gap-3">
-            <span className="text-[11px] font-medium text-white/45">
+            <span className="shrink-0 text-[11px] font-medium text-white/45">
               Ausgewählt: {selectedPlayersForSquad.length}
             </span>
-            <span className={`text-[11px] font-bold ${publishedSelectionMatches ? 'text-emerald-300' : 'text-amber-200'}`}>
+            <span className={`min-w-0 text-right text-[11px] font-bold ${publishedSelectionMatches ? 'text-emerald-300' : 'text-amber-200'}`}>
               {publishedSelectionMatches ? 'Kader veröffentlicht' : squadPublication ? 'Änderungen nicht veröffentlicht' : 'Noch nicht veröffentlicht'}
             </span>
           </div>
@@ -967,22 +984,23 @@ export const MatchPreparationPage: React.FC = () => {
             <button type="button" disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable || publishedSelectionMatches} onClick={openSquadMessageDialog} className="min-h-11 text-sm font-semibold text-white/70 disabled:opacity-40">{squadPublishBusy?'Veröffentliche…':squadPublication?'Kader aktualisieren':'Kader veröffentlichen'}</button>
             <button type="button" disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable} onClick={()=>void onContinueToLineup()} className={`${dsPrimaryCtaClass()} min-h-12 px-3 text-base font-bold`}>{persisting || squadSaveBusy?'Speichern…':'Weiter zur Aufstellung →'}</button>
           </div> : <>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 [&>button]:min-w-0 [&>button]:!whitespace-normal [&>button]:max-sm:!px-2">
             <button
               type="button"
               disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable || publishedSelectionMatches}
               onClick={openSquadMessageDialog}
-              className={dsPrimaryCtaClass()}
+              className={dsSecondaryCtaClass()}
             >
               {squadPublishBusy ? 'Veröffentliche…' : squadPublication ? 'Kader aktualisieren' : 'Kader veröffentlichen'}
             </button>
             <button
               type="button"
-              disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable}
+              disabled={!tournamentContextReady || selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable}
               onClick={() => void onContinueToLineup()}
-              className={dsSecondaryCtaClass()}
+              className={dsPrimaryCtaClass()}
+              aria-haspopup={continueWithLineup ? undefined : 'dialog'}
             >
-              {persisting || squadSaveBusy ? 'Speichern…' : 'Zur Aufstellung'}
+              {persisting || squadSaveBusy ? 'Speichern…' : continueWithLineup ? 'Zur Startaufstellung' : 'Speichern & weiter'}
             </button>
           </div></>}
         </div>
