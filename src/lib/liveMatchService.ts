@@ -372,7 +372,7 @@ export function engineEventToInsertPayload(
 /** `events.is_home` zum Match (Kalender); für Stadion Heim/Auswärts im Liveticker. */
 export async function fetchEventIsHomeByMatchId(
   matchId: string,
-): Promise<{ isHome: boolean | null; opponentLogoUrl: string | null; error: string | null }> {
+): Promise<{ isHome: boolean | null; opponentLogoUrl: string | null; eventId?: string; error: string | null }> {
   if (isDemoTournamentMatchId(matchId)) {
     const fromSession = getDemoLiveEventIsHome(matchId);
     if (fromSession != null) return { isHome: fromSession, opponentLogoUrl: null, error: null };
@@ -385,15 +385,18 @@ export async function fetchEventIsHomeByMatchId(
 
   const { data, error } = await supabase
     .from('events')
-    .select('is_home, opponent_logo_url')
+    .select('id, is_home, opponent_logo_url')
     .eq('match_id', matchId)
     .maybeSingle();
 
   if (error) return { isHome: null, opponentLogoUrl: null, error: error.message };
-  const row = data as { is_home?: boolean | null; opponent_logo_url?: string | null } | null;
-  const opponentLogoUrl = row?.opponent_logo_url?.trim() || null;
-  if (!row || row.is_home == null) return { isHome: null, opponentLogoUrl, error: null };
-  return { isHome: Boolean(row.is_home), opponentLogoUrl, error: null };
+  const row = data as { id?: string; is_home?: boolean | null; opponent_logo_url?: string | null } | null;
+  return {
+    isHome: row?.is_home == null ? null : Boolean(row.is_home),
+    opponentLogoUrl: row?.opponent_logo_url?.trim() || null,
+    eventId: row?.id,
+    error: null,
+  };
 }
 
 export async function fetchMatchById(matchId: string): Promise<{ data: LiveMatchRow | null; error: string | null }> {

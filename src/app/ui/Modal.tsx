@@ -10,6 +10,7 @@ interface ModalProps {
   /** Zusätzliche Klassen für den Titel (z. B. größere Typo im Match-Editor). */
   titleClassName?: string;
   className?: string;
+  placement?: 'center';
   onClose: () => void;
   children: React.ReactNode;
   /** Sticky footer (e.g. Abbrechen / Speichern). Buttons bleiben sichtbar. */
@@ -22,6 +23,7 @@ export const Modal: React.FC<ModalProps> = ({
   title,
   titleClassName,
   className,
+  placement,
   onClose,
   children,
   footer,
@@ -61,7 +63,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   const modal = (
     <div
-      className="modalOverlay"
+      className={placement === 'center' ? 'modalOverlay modalOverlay--centered' : 'modalOverlay'}
       onClick={handleOverlayClick}
       role="presentation"
     >

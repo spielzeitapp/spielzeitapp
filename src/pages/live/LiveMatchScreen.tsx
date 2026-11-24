@@ -1,3 +1,4 @@
+import { fetchTournamentSquadPlayerIds } from '../../lib/tournamentSquad';
 import { prepareTournamentMatchFromTemplate } from '../../lib/tournamentLineupTemplates';
 import { fetchTournamentParticipants, tournamentOfficialOwnScore } from '../../lib/tournamentPlan';
 import { TournamentShootout } from '../../components/tournament/TournamentShootout';
@@ -13,9 +14,10 @@ import '../../components/match/finishedClubTheme.css';
 import { OefbLiveReport, useOefbLiveReport } from '../../components/match/OefbLiveReport';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { matchCenterPath, matchLineupPath, withMatchCenterEvent } from '../../lib/matchPreparationAccess';
 import { FinishedMatchAttendance } from '../../components/match/FinishedMatchAttendance';
 import { MatchHeadToHead } from '../../components/match/MatchHeadToHead';
-import { ArrowLeft, BarChart3, CalendarDays, Clapperboard, FileText, MapPin, Radio, Shirt } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, BarChart3, CalendarDays, Clapperboard, ClipboardList, FileText, MapPin, Pause, Play, Radio, Shirt, Square } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { usePlayers, type PlayerItem } from '../../hooks/usePlayers';
 import { PlayerProfileModal } from '../../components/team/PlayerProfileModal';
@@ -198,9 +200,9 @@ function LiveMatchLogoTile({
   const glow = liveGlow ? 'shadow-[0_0_12px_rgba(255,0,0,0.3)]' : '';
   const box =
     size === 'boardSm'
-      ? 'h-[4.25rem] w-[4.25rem] sm:h-[4.5rem] sm:w-[4.5rem]'
+      ? 'aspect-square w-full max-w-[5.4rem] sm:max-w-[6.5rem]'
       : size === 'board'
-        ? 'h-[5.25rem] w-[5.25rem] sm:h-28 sm:w-28'
+        ? 'aspect-square w-full max-w-[6rem] sm:max-w-[7rem]'
         : size === 'schedule'
           ? 'h-12 w-12'
           : size === 'heroLg'
@@ -210,9 +212,9 @@ function LiveMatchLogoTile({
               : 'h-14 w-14 sm:h-[3.75rem] sm:w-[3.75rem]';
   const imgClass =
     size === 'boardSm'
-      ? 'h-full w-full max-h-[3.85rem] max-w-[3.85rem] object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.16)] sm:max-h-[4.1rem] sm:max-w-[4.1rem]'
+      ? 'h-full w-full object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.16)]'
       : size === 'board'
-        ? 'h-full w-full max-h-[4.75rem] max-w-[4.75rem] object-contain drop-shadow-[0_0_16px_rgba(255,255,255,0.2)] sm:max-h-[6.5rem] sm:max-w-[6.5rem]'
+        ? 'h-full w-full object-contain drop-shadow-[0_0_16px_rgba(255,255,255,0.2)]'
         : size === 'schedule'
           ? 'h-12 w-12 object-contain drop-shadow'
           : size === 'heroLg'
@@ -389,11 +391,11 @@ function MatchboardTeamNameLines({
 }) {
   const textAlign = align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center';
   const abbrevCls = tight
-    ? `min-h-[1em] text-[9px] font-semibold uppercase leading-tight tracking-[0.14em] text-white/52 sm:text-[10px] ${textAlign}`
+    ? `min-h-[1em] text-[11px] font-bold uppercase leading-tight tracking-[0.1em] text-white/72 sm:text-xs ${textAlign}`
     : `min-h-[1em] text-xs font-medium uppercase leading-tight tracking-widest text-white/75 ${textAlign}`;
   const clubCls = tight
-    ? `mt-0.5 text-[11px] font-medium leading-snug text-white/62 sm:text-xs ${textAlign}`
-    : `mt-1 whitespace-nowrap text-[clamp(12px,3.7vw,17px)] font-bold leading-snug tracking-[-0.025em] text-white/92 ${textAlign}`;
+    ? `mt-0.5 text-[clamp(13px,4.15vw,17px)] font-bold leading-tight text-white/95 sm:text-lg ${textAlign}`
+    : `mt-1 text-[clamp(14px,4.2vw,18px)] font-bold leading-tight text-white/95 sm:text-xl ${textAlign}`;
   return (
     <div className="w-full min-w-0 hyphens-none">
       <div className={abbrevCls}>
@@ -406,7 +408,7 @@ function MatchboardTeamNameLines({
         )}
       </div>
       <div className={clubCls}>
-        <span className={tight ? 'block break-words [word-break:normal] [text-wrap:balance]' : 'block whitespace-nowrap'}>
+        <span className="block [overflow-wrap:anywhere] [text-wrap:balance]">
           {parts.club || '\u00a0'}
         </span>
       </div>
@@ -451,8 +453,8 @@ const spectatorTabBtnCompactIdle = 'text-white/45 hover:bg-white/[0.05] hover:te
 
 /** Live Hub: große Touch-Ziele, kein Mini-Tab-Gefühl. */
 const hubNavSpectator = 'mt-1.5 grid w-full grid-cols-2 gap-1.5 sm:gap-2';
-const hubNavTrainer = 'mt-1.5 grid w-full grid-cols-2 gap-1.5 sm:gap-2';
-const hubNavBtn = dsLiveHubNavBtnClass();
+const hubNavTrainer = 'mt-3 grid w-full grid-cols-2 gap-2.5 sm:gap-3';
+const hubNavBtn = `${dsLiveHubNavBtnClass()} !border-red-400/15 !bg-[rgba(27,17,21,0.9)] hover:!border-red-400/40 hover:!bg-red-950/45`;
 const liveModuleBackBar =
   'sticky top-0 z-40 mt-0 flex min-h-[48px] shrink-0 flex-wrap items-center gap-2 border-b border-white/10 bg-black/85 px-2 py-2 backdrop-blur-md sm:px-3';
 
@@ -954,6 +956,8 @@ export const LiveMatchScreen: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const matchIdParam = searchParams.get('matchId');
+  const startWithoutLineup = searchParams.get('withoutLineup') === '1';
+  const requestedCenterEventId = searchParams.get('centerEventId')?.trim();
   /** DEMO.2F: gleicher Screen unter /demo, aber gegen die lokale Runtime statt Supabase. */
   const demo = useDemoMode();
   const isDemo = Boolean(demo);
@@ -982,6 +986,7 @@ export const LiveMatchScreen: React.FC = () => {
   const [tournamentLogoUrl, setTournamentLogoUrl] = useState<string | null>(null);
   const [opponentLogoUrl, setOpponentLogoUrl] = useState<string | null>(null);
   const [eventIsHome, setEventIsHome] = useState<boolean | null>(null);
+  const [calendarEventId, setCalendarEventId] = useState<string>();
   const [calendarMatchType, setCalendarMatchType] = useState<string | null>(null);
   const [calendarStartsAt, setCalendarStartsAt] = useState<string | null>(null);
   const [calendarLocation, setCalendarLocation] = useState<string | null>(null);
@@ -1007,6 +1012,7 @@ export const LiveMatchScreen: React.FC = () => {
     (async () => {
       setPageLoading(true);
       setPageError(null);
+      setCalendarEventId(undefined);
       let resolvedId = matchIdParam?.trim() || null;
       if (resolvedId === 'local-setup') resolvedId = null;
       if (!resolvedId) {
@@ -1057,6 +1063,7 @@ export const LiveMatchScreen: React.FC = () => {
       setEffectiveMatchId(resolvedId);
       setMatchRow(mRes.data);
       setEventIsHome(isHomeRes.isHome);
+      setCalendarEventId(isHomeRes.eventId);
       setOpponentLogoUrl(isHomeRes.opponentLogoUrl);
       const lineData = lineRes.error
         ? { startingPlayerIds: [], squadPlayerIds: [], savedBenchPlayerIds: [] }
@@ -1164,6 +1171,22 @@ export const LiveMatchScreen: React.FC = () => {
   const [tournamentNavContext, setTournamentNavContext] =
     useState<TournamentMatchNavigationContext | null>(null);
   const currentTournamentSlot = tournamentNavContext?.currentSlot;
+  const tournamentCenterEventId = currentTournamentSlot?.match_id === effectiveMatchId
+    ? tournamentNavContext?.tournamentEventId : undefined;
+  const centerEventId = requestedCenterEventId || calendarEventId || tournamentCenterEventId;
+  const backToCenterLabel = centerEventId === tournamentCenterEventId ? 'Zurück zum Turniercenter' : 'Zurück zum Matchcenter';
+  const scorerTournamentId = currentTournamentSlot?.match_id === effectiveMatchId
+    ? tournamentNavContext?.tournamentEventId : undefined;
+  const [tournamentScorerSquad, setTournamentScorerSquad] = useState<{ eventId: string; ids: string[] } | null>(null);
+
+  useEffect(() => {
+    if (!canControlLiveMatch || !scorerTournamentId || squadPlayerIds.length > 0) return;
+    let cancelled = false;
+    void fetchTournamentSquadPlayerIds(scorerTournamentId).then(({ data, error }) => {
+      if (!cancelled && !error) setTournamentScorerSquad({ eventId: scorerTournamentId, ids: data });
+    });
+    return () => { cancelled = true; };
+  }, [canControlLiveMatch, scorerTournamentId, squadPlayerIds.length]);
   const importedTournamentEnd = matchRow?.status === 'upcoming' &&
     currentTournamentSlot?.match_id === effectiveMatchId &&
     currentTournamentSlot?.result_source === 'official' &&
@@ -1672,6 +1695,7 @@ export const LiveMatchScreen: React.FC = () => {
     }, ms);
   }, [clearSubstitutionToast]);
   const subSaveInFlightRef = useRef(false);
+  const goalSaveInProgress = useRef(false);
   const substitutionAnimTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const substitutionHighlightTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const realtimeReloadTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
@@ -2102,7 +2126,13 @@ export const LiveMatchScreen: React.FC = () => {
     const list = ids.map((id) => rosterById.get(id)).filter((p): p is RosterPlayer => Boolean(p));
     return sortRosterByNumber(list);
   }, [activePlayerIds, rosterById]);
-  const homeScorerCandidates = useMemo(() => sortRosterByNumber(fieldPlayers), [fieldPlayers]);
+  const pickScorerFromSquad = fieldPlayers.length === 0;
+  const ownScorerCandidates = useMemo(() => {
+    if (!pickScorerFromSquad) return fieldPlayers;
+    const tournamentIds = tournamentScorerSquad?.eventId === scorerTournamentId ? tournamentScorerSquad?.ids ?? [] : [];
+    const ids = new Set(squadPlayerIds.length > 0 ? squadPlayerIds : tournamentIds);
+    return sortRosterByNumber(roster.filter((player) => ids.has(player.id)));
+  }, [fieldPlayers, pickScorerFromSquad, roster, scorerTournamentId, squadPlayerIds, tournamentScorerSquad]);
 
   /** Single Source of Truth: `matches.u11_formation_id` (Realtime), kein localStorage. */
   const safeFormationId = useMemo((): U11FormationId => {
@@ -2977,12 +3007,12 @@ export const LiveMatchScreen: React.FC = () => {
   const onStartClick = async () => {
     if (!canControlLiveMatch || matchIsFinished || isRunning || isShootout || !effectiveMatchId) return;
     if (!hasClockStarted) {
-      if (!isDemo) {
+      if (!isDemo && (!startWithoutLineup || lineupData?.startingPlayerIds.some(Boolean))) {
         try {
           const template = await prepareTournamentMatchFromTemplate(effectiveMatchId);
           const planned = template?.blocks.variants[template.blocks.startVariant];
           if (planned && U11_FORMATIONS[planned.formationId].length !== U11_FORMATIONS[safeFormationId].length) {
-            navigate(`${basePath}/match-lineup?matchId=${encodeURIComponent(effectiveMatchId)}`);
+            navigate(withMatchCenterEvent(matchLineupPath(effectiveMatchId, basePath), centerEventId));
             return;
           }
         } catch (e) { setSaveError(e instanceof Error ? e.message : String(e)); return; }
@@ -4625,14 +4655,37 @@ export const LiveMatchScreen: React.FC = () => {
   /** Nur Ziffer: Tap = Tor, Long-press = Undo (kein Ball-Icon). */
   const scoreTapHome = `${mbRowBtn} ${SCOREBOARD_NO_SELECT} gap-0 min-h-[48px] min-w-[2.85rem] shrink-0 rounded-xl border border-emerald-400/40 bg-gradient-to-b from-emerald-950/92 to-black/75 px-3 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_0_26px_rgba(16,185,129,0.35)] hover:border-emerald-300/50 hover:shadow-[0_0_32px_rgba(16,185,129,0.42)] active:scale-[0.97] sm:min-w-[3.1rem] sm:px-3.5 disabled:pointer-events-none disabled:opacity-38`;
   const scoreTapAway = `${mbRowBtn} ${SCOREBOARD_NO_SELECT} gap-0 min-h-[48px] min-w-[2.85rem] shrink-0 rounded-xl border border-red-400/45 bg-gradient-to-b from-red-950/92 to-black/75 px-3 text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_26px_rgba(239,68,68,0.38),0_0_12px_rgba(255,255,255,0.06)] hover:border-red-300/50 hover:shadow-[0_0_32px_rgba(239,68,68,0.45)] active:scale-[0.97] sm:min-w-[3.1rem] sm:px-3.5 disabled:pointer-events-none disabled:opacity-38`;
-  const mbStart = `${mbRowBtn} rounded-xl border border-emerald-400/50 bg-gradient-to-b from-emerald-600/80 to-emerald-950/85 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_0_22px_rgba(16,185,129,0.35)] hover:from-emerald-500/85 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]`;
-  /** Pause als linke Hauptaktion — dunkelgrün wie Zielbild, klar von Beginn/Weiter (hellgrün) getrennt. */
-  const mbPausePrimary = `${mbRowBtn} rounded-xl border border-emerald-800/55 bg-gradient-to-b from-emerald-950/92 to-black/85 text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_16px_rgba(6,78,59,0.35)] hover:border-emerald-600/45 hover:from-emerald-900/88`;
-  const mbEnd = `${mbRowBtn} rounded-xl border border-red-500/50 bg-gradient-to-b from-red-600/75 to-red-950/88 text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_24px_rgba(220,38,38,0.38)] hover:from-red-500/78 hover:shadow-[0_0_32px_rgba(220,38,38,0.45)]`;
-  const mbWechsel = `${mbRowBtn} w-full rounded-xl border border-white/22 bg-zinc-950/85 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-white/30 hover:bg-zinc-900/90`;
-  /** Während Live: zurückhaltend (disabled). Nach Ende: klarer Gold-Abschluss. */
-  const mbSpielEndeWhileLive = `${mbRowBtn} w-full rounded-xl border border-amber-500/30 bg-black/80 text-amber-100/70 shadow-none opacity-55`;
+  const liveAction = 'inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border px-3 py-2 text-sm font-bold leading-tight focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white transition-colors active:scale-[0.98] sm:min-h-14 sm:text-base';
+  const liveSecondaryAction = `${liveAction} border-red-400/20 bg-[rgba(32,17,21,0.86)] text-white/90 hover:border-red-400/40 hover:bg-red-950/55`;
+  const mbStart = `${liveAction} border-emerald-400/40 bg-emerald-900/85 text-emerald-50 shadow-[0_0_22px_rgba(16,185,129,0.12)] hover:bg-emerald-800/90`;
+  const mbPausePrimary = `${liveAction} border-amber-400/30 bg-amber-950/35 text-amber-100 hover:bg-amber-950/65`;
+  const mbEnd = `${liveAction} border-red-400/35 bg-red-950/65 text-red-100 hover:bg-red-900/80`;
   const mbSpielEndeReady = `${mbRowBtn} w-full rounded-xl border-2 border-amber-400/80 bg-gradient-to-b from-amber-950/50 to-black/92 text-amber-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_28px_rgba(234,179,8,0.35),0_0_48px_rgba(245,158,11,0.18)] hover:border-amber-300/90 enabled:hover:shadow-[0_0_36px_rgba(250,204,21,0.38)]`;
+
+  const saveGoalFromPicker = async (side: 'home' | 'away', choice: string) => {
+    if (!canControlLiveMatch || !choice || goalSaveInProgress.current) return;
+    goalSaveInProgress.current = true;
+    try {
+      const before = recomputeScoresFromEvents(events);
+      const result = await persistSingle({
+        type: side === 'home' ? 'goal' : 'goal_away',
+        timestamp: currentMatchSeconds,
+        playerId: choice.startsWith('__') ? undefined : choice,
+        ownGoal: choice === '__own_goal__',
+      });
+      if (!result.ok || !result.savedId) return;
+      offerGoalUndo({ eventId: result.savedId, side, prevHome: before.home, prevAway: before.away });
+      if (side === 'home') {
+        setHomeGoalModalOpen(false);
+        setHomeGoalPickId('');
+      } else {
+        setAwayGoalModalOpen(false);
+        setAwayGoalPickId('');
+      }
+    } finally {
+      goalSaveInProgress.current = false;
+    }
+  };
 
   const clearHomeGoalLongPress = () => {
     if (homeGoalLpTimerRef.current != null) {
@@ -4775,9 +4828,7 @@ export const LiveMatchScreen: React.FC = () => {
     );
   };
 
-  /** Steuerzeile: [Status] [Timer] [Ende] — gleiche Höhe, Logik unverändert. */
-  const trainerClockRowBtn = 'h-10 min-h-10 w-full sm:h-11 sm:min-h-11';
-  const renderTrainerClockActionRow = (gapClass: string) => {
+  const renderTrainerClockActionRow = () => {
     if (matchIsFinished) return null;
     if (isShootout && tournamentDecision.shootout) {
       const shootout = tournamentDecision.shootout;
@@ -4796,16 +4847,24 @@ export const LiveMatchScreen: React.FC = () => {
       );
     }
     return (
-      <div className={`grid grid-cols-3 items-stretch ${gapClass}`}>
+      <div className="grid grid-cols-2 gap-2.5">
+        <div className="col-span-2 flex justify-center pb-0.5">
+          <span
+            className="liveTimer inline-flex min-h-12 min-w-32 items-center justify-center rounded-full border border-red-400/35 bg-red-950/60 px-6 font-mono text-2xl font-bold tabular-nums leading-none text-white"
+            aria-label="Spielzeit"
+          >
+            {formatClock(currentMatchSeconds)}
+          </span>
+        </div>
         {matchClockStatus === 'live' ? (
           <button
             type="button"
             onClick={openPauseConfirm}
             disabled={matchClockStatus === 'finished'}
             aria-label="Spiel anhalten"
-            className={`${mbPausePrimary} ${trainerClockRowBtn} px-2 text-[11px] sm:text-xs`}
+            className={mbPausePrimary}
           >
-            <span aria-hidden>⏸</span>
+            <Pause className="h-4 w-4" aria-hidden />
             Pause
           </button>
         ) : (
@@ -4814,30 +4873,24 @@ export const LiveMatchScreen: React.FC = () => {
             onClick={() => void onStartClick()}
             disabled={matchClockStatus === 'finished' || matchClockStatus === 'live'}
             aria-label={matchClockStatus === 'paused' ? 'Spiel fortsetzen' : 'Spiel beginnen'}
-            className={`${mbStart} ${trainerClockRowBtn} px-2 text-[11px] sm:text-xs`}
+            className={`${mbStart} ${matchClockStatus === 'not_started' ? 'col-span-2' : ''}`}
           >
-            <span aria-hidden>▶</span>
+            <Play className="h-4 w-4" aria-hidden />
             {matchClockStatus === 'paused' ? 'Weiter' : 'Beginn'}
           </button>
         )}
-        <div className="flex min-w-0 items-stretch justify-center px-0.5">
-          <span
-            className="liveTimer inline-flex h-full w-full min-w-0 items-center justify-center rounded-full bg-red-600 px-2 font-mono text-sm font-bold tabular-nums leading-none text-white shadow-[0_0_26px_rgba(220,38,38,0.55),inset_0_1px_0_rgba(255,255,255,0.12)] sm:text-base"
-            aria-live="polite"
+
+        {matchClockStatus !== 'not_started' ? (
+          <button
+            type="button"
+            onClick={() => setEndeConfirmOpen(true)}
+            aria-label="Spiel beenden"
+            className={mbEnd}
           >
-            {formatClock(currentMatchSeconds)}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={() => setEndeConfirmOpen(true)}
-          disabled={matchClockStatus === 'finished' || matchClockStatus === 'not_started'}
-          aria-label="Spiel beenden"
-          className={`${mbEnd} ${trainerClockRowBtn} px-2 text-[11px] sm:text-xs`}
-        >
-          <span aria-hidden>⏹</span>
-          Ende
-        </button>
+            <Square className="h-4 w-4" aria-hidden />
+            Ende
+          </button>
+        ) : null}
       </div>
     );
   };
@@ -4978,17 +5031,15 @@ export const LiveMatchScreen: React.FC = () => {
                 : 'px-2 pb-1 pt-0 md:px-4 md:pb-1 md:pt-0.5'
           }`}
         >
-          {matchboardVisible && matchIsFinished ? (
-            <div className="mb-1 flex items-center px-1">
-              <button
-                type="button"
-                onClick={() => navigate(`${basePath}/termine`)}
-                className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/15 bg-black/72 px-3.5 text-sm font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:border-red-400/45 hover:bg-red-950/45 active:scale-[0.98]"
-                aria-label="Zurück zu Termine"
+          {matchboardVisible && (matchIsFinished || (centerEventId && canControlLiveMatch)) ? (
+            <div className="mb-2 flex items-center px-1">
+              <Link
+                to={centerEventId ? matchCenterPath(centerEventId, basePath) : `${basePath}/termine`}
+                className="inline-flex min-h-10 items-center gap-2 rounded-2xl border border-red-400/20 bg-[rgba(32,17,21,0.86)] px-3.5 text-sm font-bold text-white/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white hover:border-red-400/40 hover:bg-red-950/55 active:scale-[0.98]"
               >
                 <ArrowLeft className="h-5 w-5 text-red-400" aria-hidden />
-                Termine
-              </button>
+                {centerEventId ? backToCenterLabel : 'Zu Termine'}
+              </Link>
             </div>
           ) : null}
           {matchboardVisible && (
@@ -5103,18 +5154,18 @@ export const LiveMatchScreen: React.FC = () => {
 
                 {/* Logo + Namen unter Logo | Score + Labels + Perioden | Logo + Namen */}
                 <div
-                  className={`flex items-start justify-between gap-1.5 sm:gap-2.5 ${
+                  className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-1.5 sm:gap-3 ${
                     isPaused && !matchIsFinished ? 'mt-1.5' : matchIsFinished ? 'mt-2' : matchTypeDisplay ? 'mt-2' : 'mt-1.5'
                   }`}
                 >
-                  <div className={`flex min-w-0 w-[31%] max-w-[9.5rem] flex-col items-center ${SCOREBOARD_NO_SELECT}`}>
+                  <div className={`flex w-full min-w-0 max-w-[10rem] flex-col items-center justify-self-center ${SCOREBOARD_NO_SELECT}`}>
                     <LiveMatchLogoTile src={homeLogoSrc} liveGlow={false} size={matchIsFinished ? 'board' : 'boardSm'} />
                     <div className={`${matchIsFinished ? 'mt-2' : 'mt-1'} w-full px-0.5`}>
                       <MatchboardTeamNameLines parts={homeNameParts} align="center" tight={!matchIsFinished} />
                     </div>
                   </div>
 
-                  <div className={`flex min-w-0 shrink flex-col items-center gap-1 px-0.5 sm:px-1 ${SCOREBOARD_NO_SELECT}`}>
+                  <div className={`flex min-w-0 flex-col items-center gap-1 self-start pt-2 sm:pt-4 ${SCOREBOARD_NO_SELECT}`}>
                     {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
                       <div className="flex items-start justify-center gap-1 sm:gap-2 motion-safe:transition-transform motion-safe:duration-300">
                         <div className="flex min-w-0 flex-col items-center">
@@ -5141,7 +5192,7 @@ export const LiveMatchScreen: React.FC = () => {
                               setHomeGoalModalOpen(true);
                             }}
                           >
-                            <span className="text-5xl font-black tabular-nums leading-none sm:text-6xl">
+                            <span className="text-[clamp(1.9rem,9vw,3rem)] font-black tabular-nums leading-none sm:text-6xl">
                               {displayScoreHome}
                             </span>
                           </button>
@@ -5176,7 +5227,7 @@ export const LiveMatchScreen: React.FC = () => {
                               setAwayGoalModalOpen(true);
                             }}
                           >
-                            <span className="text-5xl font-black tabular-nums leading-none sm:text-6xl">
+                            <span className="text-[clamp(1.9rem,9vw,3rem)] font-black tabular-nums leading-none sm:text-6xl">
                               {displayScoreAway}
                             </span>
                           </button>
@@ -5185,7 +5236,7 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : (
                       <div className={`flex flex-col items-center gap-1 ${SCOREBOARD_NO_SELECT}`}>
                         <div className="flex items-center justify-center motion-safe:transition-transform motion-safe:duration-300">
-                          <span className={`text-center font-black leading-none text-white tabular-nums whitespace-nowrap drop-shadow-[0_4px_24px_rgba(0,0,0,0.55)] ${matchIsFinished ? (finishedScoreHasTwoDigits ? 'text-[3.65rem] sm:text-[4.25rem]' : 'text-[4.35rem] sm:text-[5rem]') : 'text-6xl sm:text-7xl'}`}>
+                          <span className={`text-center font-black leading-none text-white tabular-nums whitespace-nowrap drop-shadow-[0_4px_24px_rgba(0,0,0,0.55)] ${matchIsFinished ? (finishedScoreHasTwoDigits ? 'text-[clamp(2.3rem,10vw,3.65rem)] sm:text-[4.25rem]' : 'text-[clamp(2.8rem,13vw,4.35rem)] sm:text-[5rem]') : 'text-[clamp(2.3rem,11vw,3.75rem)] sm:text-7xl'}`}>
                             {displayScoreHome}
                             <span className="mx-1.5 text-white/75 sm:mx-2">:</span>
                             {displayScoreAway}
@@ -5208,7 +5259,7 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : null}
                   </div>
 
-                  <div className={`flex min-w-0 w-[31%] max-w-[9.5rem] flex-col items-center ${SCOREBOARD_NO_SELECT}`}>
+                  <div className={`flex w-full min-w-0 max-w-[10rem] flex-col items-center justify-self-center ${SCOREBOARD_NO_SELECT}`}>
                     <LiveMatchLogoTile src={awayLogoSrc} liveGlow={false} size={matchIsFinished ? 'board' : 'boardSm'} />
                     <div className={`${matchIsFinished ? 'mt-2' : 'mt-1'} w-full px-0.5`}>
                       <MatchboardTeamNameLines parts={awayNameParts} align="center" tight={!matchIsFinished} />
@@ -5302,22 +5353,13 @@ export const LiveMatchScreen: React.FC = () => {
               {!spectatorView && canControlLiveMatch ? (
                 <div
                   className={[
-                    'relative z-[1] mt-0 space-y-1 border-t bg-black/55 px-3 py-1.5 backdrop-blur-md',
+                    'relative z-[1] mt-0 space-y-2.5 border-t bg-black/55 px-3 py-3 backdrop-blur-md sm:space-y-3 sm:px-4',
                     mainTab === 'lineup'
                       ? 'border-white/10 shadow-none'
                       : 'border-red-500/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_-12px_32px_rgba(220,38,38,0.12)]',
                   ].join(' ')}
                 >
-                  {!matchIsFinished && !hasClockStarted && effectiveMatchId ? (
-                    <Link
-                      to={`${basePath}/match-preparation?matchId=${encodeURIComponent(effectiveMatchId)}`}
-                      className={`flex min-h-[44px] w-full items-center justify-center px-3 text-[11px] font-bold ${dsSecondaryCtaClass()}`}
-                    >
-                      Vorbereitung bearbeiten
-                    </Link>
-                  ) : null}
-
-                  {renderTrainerClockActionRow('gap-1.5')}
+                  {renderTrainerClockActionRow()}
 
                   {goalUndoOffer ? (
                     <div
@@ -5350,23 +5392,28 @@ export const LiveMatchScreen: React.FC = () => {
                     <button
                       type="button"
                       onClick={openWechselSheet}
-                      className={mbWechsel}
+                      className={liveSecondaryAction}
                     >
-                      <span aria-hidden>⇄</span>
+                      <ArrowLeftRight className="h-4 w-4 text-red-300" aria-hidden />
                       Wechsel
                     </button>
                   ) : null}
 
-                  {!calendarFinalized && !importedTournamentEnd && (!tournamentNavContext || matchIsFinished) ? (
+                  {!matchIsFinished && !hasClockStarted && effectiveMatchId ? (
+                    <Link
+                      to={withMatchCenterEvent(`${basePath}/match-preparation?matchId=${encodeURIComponent(effectiveMatchId)}`, centerEventId)}
+                      className={liveSecondaryAction}
+                    >
+                      <ClipboardList className="h-4 w-4 text-red-300" aria-hidden />
+                      Vorbereitung bearbeiten
+                    </Link>
+                  ) : null}
+
+                  {matchIsFinished && !calendarFinalized && !importedTournamentEnd ? (
                     <button
                       type="button"
-                      disabled={!matchIsFinished}
-                      onClick={() => {
-                        if (matchIsFinished) setSpielAbschlussOpen(true);
-                      }}
-                      className={`${
-                        matchIsFinished ? mbSpielEndeReady : mbSpielEndeWhileLive
-                      } gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] sm:text-[11px] disabled:opacity-35`}
+                      onClick={() => setSpielAbschlussOpen(true)}
+                      className={`${mbSpielEndeReady} !min-h-12 !h-auto`}
                     >
                       <span aria-hidden>🏆</span>
                       Spiel abschließen
@@ -5468,21 +5515,21 @@ export const LiveMatchScreen: React.FC = () => {
               className={`${spectatorView ? hubNavSpectator : hubNavTrainer} ${compactLiveHub ? `mx-auto pb-2 ${spectatorView ? 'max-w-xl' : 'max-w-2xl'}` : matchIsFinished ? 'mt-3 pb-[var(--app-bottomnav-pad)] lg:pb-4' : 'pb-[calc(170px+env(safe-area-inset-bottom,0px))]'}`}
               aria-label="Live Hub"
             >
-              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('overview')}>
+              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : spectatorView ? '' : '!min-h-[68px] sm:!min-h-[76px]'}`} onClick={() => setMainTab('overview')}>
                 <FileText className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
                 <span className="min-w-0 flex-1">
                   <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Übersicht</span>
                   <span className={`block font-medium text-white/48 ${matchIsFinished ? 'mt-1 text-xs' : 'text-[10px]'}`}>Spielbericht</span>
                 </span>
               </button>
-              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('lineup')}>
+              <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : spectatorView ? '' : '!min-h-[68px] sm:!min-h-[76px]'}`} onClick={() => setMainTab('lineup')}>
                 <Shirt className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
                 <span className="min-w-0 flex-1">
                   <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Aufstellung</span>
                   <span className={`block font-medium text-white/48 ${matchIsFinished ? 'mt-1 text-xs' : 'text-[10px]'}`}>Formation</span>
                 </span>
               </button>
-              {!spectatorLiveHub ? <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('events')}>
+              {!spectatorLiveHub ? <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : spectatorView ? '' : '!min-h-[68px] sm:!min-h-[76px]'}`} onClick={() => setMainTab('events')}>
                 <Radio className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
                 <span className="min-w-0 flex-1">
                   <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Liveticker</span>
@@ -5490,7 +5537,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </span>
               </button> : null}
               {!spectatorView ? (
-                <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : ''}`} onClick={() => setMainTab('time')}>
+                <button type="button" className={`${hubNavBtn} !justify-start gap-3 !rounded-[18px] !px-4 text-left ${matchIsFinished ? '!min-h-[98px]' : spectatorView ? '' : '!min-h-[68px] sm:!min-h-[76px]'}`} onClick={() => setMainTab('time')}>
                   <BarChart3 className={`${matchIsFinished ? 'h-8 w-8' : 'h-6 w-6'} shrink-0 text-red-400`} aria-hidden />
                   <span className="min-w-0 flex-1">
                     <span className={`block font-bold text-white ${matchIsFinished ? 'text-base' : 'text-sm'}`}>Statistik</span>
@@ -7340,16 +7387,16 @@ export const LiveMatchScreen: React.FC = () => {
           >
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
             <h3 className="text-center text-lg font-bold">Tor {stadiumHomeDisplay}</h3>
-            <p className="mt-1 text-center text-sm text-white/50">Torschütze wählen, dann bestätigen</p>
+            <p className="mt-1 text-center text-sm text-white/50">{pickScorerFromSquad && sides.isOwnTeamHome ? 'Wer hat das Tor geschossen?' : 'Tor auswählen und bestätigen'}</p>
 
             <div className="mt-5">
-              <p className="mb-2 text-xs font-bold uppercase text-emerald-400/90">Am Feld</p>
+              <p className="mb-2 text-xs font-bold uppercase text-emerald-400/90">{pickScorerFromSquad ? 'Kader' : 'Am Feld'}</p>
               <div className="flex flex-wrap gap-2">
-                {(sides.isOwnTeamHome ? homeScorerCandidates : []).map((p) => (
+                {(sides.isOwnTeamHome ? ownScorerCandidates : []).map((p) => (
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => setHomeGoalPickId(p.id)}
+                    onClick={() => pickScorerFromSquad ? void saveGoalFromPicker('home', p.id) : setHomeGoalPickId(p.id)}
                     className={`min-h-[48px] min-w-[100px] flex-1 rounded-xl px-3 py-2 text-sm font-bold ${
                       homeGoalPickId === p.id
                         ? 'bg-emerald-600 text-white'
@@ -7364,36 +7411,14 @@ export const LiveMatchScreen: React.FC = () => {
 
             <div className="mt-4 flex flex-col gap-2">
               <button type="button" aria-pressed={homeGoalPickId === '__own_goal__'} onClick={() => setHomeGoalPickId('__own_goal__')} className="min-h-12 rounded-xl border border-amber-400/30 px-3 py-2 font-bold text-amber-200">Eigentor</button>
-              {!sides.isOwnTeamHome ? <button type="button" aria-pressed={homeGoalPickId === '__unknown__'} onClick={() => setHomeGoalPickId('__unknown__')} className="min-h-12 rounded-xl border border-white/20 px-3 py-2 font-bold">Tor ohne Torschützen</button> : null}
+              {(!sides.isOwnTeamHome || pickScorerFromSquad) ? <button type="button" aria-pressed={homeGoalPickId === '__unknown__'} onClick={() => pickScorerFromSquad ? void saveGoalFromPicker('home', '__unknown__') : setHomeGoalPickId('__unknown__')} className="min-h-12 rounded-xl border border-white/20 px-3 py-2 font-bold">Tor ohne Torschützen</button> : null}
               {homeGoalPickId === '__own_goal__' ? <p className="text-sm text-white/65">Zählt für {stadiumHomeDisplay} · kein persönlicher Torerfolg.</p> : null}
             </div>
 
             <button
               type="button"
               disabled={!homeGoalPickId || !isClockRunning}
-              onClick={async () => {
-                if (!homeGoalPickId || !effectiveMatchId) return;
-                if (!isClockRunning) {
-                  setSaveError(goalBlockedMessage);
-                  return;
-                }
-                const before = recomputeScoresFromEvents(events);
-                const res = await persistSingle({
-                  type: 'goal',
-                  timestamp: currentMatchSeconds,
-                  playerId: homeGoalPickId.startsWith('__') ? undefined : homeGoalPickId,
-                  ownGoal: homeGoalPickId === '__own_goal__',
-                });
-                if (!res.ok || !res.savedId) return;
-                offerGoalUndo({
-                  eventId: res.savedId,
-                  side: 'home',
-                  prevHome: before.home,
-                  prevAway: before.away,
-                });
-                setHomeGoalModalOpen(false);
-                setHomeGoalPickId('');
-              }}
+              onClick={() => void saveGoalFromPicker('home', homeGoalPickId)}
               className="mt-6 flex min-h-[54px] w-full items-center justify-center rounded-2xl bg-emerald-600 text-lg font-bold text-white disabled:opacity-35 active:scale-[0.99]"
             >
               Tor bestätigen
@@ -7421,16 +7446,16 @@ export const LiveMatchScreen: React.FC = () => {
           >
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
             <h3 className="text-center text-lg font-bold">Tor {stadiumAwayDisplay}</h3>
-            <p className="mt-1 text-center text-sm text-white/50">Torschütze wählen, dann bestätigen</p>
+            <p className="mt-1 text-center text-sm text-white/50">{pickScorerFromSquad && !sides.isOwnTeamHome ? 'Wer hat das Tor geschossen?' : 'Tor auswählen und bestätigen'}</p>
 
             <div className="mt-5">
-              <p className="mb-2 text-xs font-bold uppercase text-red-400/90">Am Feld</p>
+              <p className="mb-2 text-xs font-bold uppercase text-red-400/90">{pickScorerFromSquad ? 'Kader' : 'Am Feld'}</p>
               <div className="flex flex-wrap gap-2">
-                {(!sides.isOwnTeamHome ? homeScorerCandidates : []).map((p) => (
+                {(!sides.isOwnTeamHome ? ownScorerCandidates : []).map((p) => (
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => setAwayGoalPickId(p.id)}
+                    onClick={() => pickScorerFromSquad ? void saveGoalFromPicker('away', p.id) : setAwayGoalPickId(p.id)}
                     className={`min-h-[48px] min-w-[100px] flex-1 rounded-xl px-3 py-2 text-sm font-bold ${
                       awayGoalPickId === p.id
                         ? 'bg-red-600 text-white'
@@ -7445,36 +7470,14 @@ export const LiveMatchScreen: React.FC = () => {
 
             <div className="mt-4 flex flex-col gap-2">
               <button type="button" aria-pressed={awayGoalPickId === '__own_goal__'} onClick={() => setAwayGoalPickId('__own_goal__')} className="min-h-12 rounded-xl border border-amber-400/30 px-3 py-2 font-bold text-amber-200">Eigentor</button>
-              {!!sides.isOwnTeamHome ? <button type="button" aria-pressed={awayGoalPickId === '__unknown__'} onClick={() => setAwayGoalPickId('__unknown__')} className="min-h-12 rounded-xl border border-white/20 px-3 py-2 font-bold">Tor ohne Torschützen</button> : null}
+              {(!!sides.isOwnTeamHome || pickScorerFromSquad) ? <button type="button" aria-pressed={awayGoalPickId === '__unknown__'} onClick={() => pickScorerFromSquad ? void saveGoalFromPicker('away', '__unknown__') : setAwayGoalPickId('__unknown__')} className="min-h-12 rounded-xl border border-white/20 px-3 py-2 font-bold">Tor ohne Torschützen</button> : null}
               {awayGoalPickId === '__own_goal__' ? <p className="text-sm text-white/65">Zählt für {stadiumAwayDisplay} · kein persönlicher Torerfolg.</p> : null}
             </div>
 
             <button
               type="button"
               disabled={!awayGoalPickId || !isClockRunning}
-              onClick={async () => {
-                if (!awayGoalPickId || !effectiveMatchId) return;
-                if (!isClockRunning) {
-                  setSaveError(goalBlockedMessage);
-                  return;
-                }
-                const before = recomputeScoresFromEvents(events);
-                const res = await persistSingle({
-                  type: 'goal_away',
-                  timestamp: currentMatchSeconds,
-                  playerId: awayGoalPickId.startsWith('__') ? undefined : awayGoalPickId,
-                  ownGoal: awayGoalPickId === '__own_goal__',
-                });
-                if (!res.ok || !res.savedId) return;
-                offerGoalUndo({
-                  eventId: res.savedId,
-                  side: 'away',
-                  prevHome: before.home,
-                  prevAway: before.away,
-                });
-                setAwayGoalModalOpen(false);
-                setAwayGoalPickId('');
-              }}
+              onClick={() => void saveGoalFromPicker('away', awayGoalPickId)}
               className="mt-6 flex min-h-[54px] w-full items-center justify-center rounded-2xl bg-red-600 text-lg font-bold text-white disabled:opacity-35 active:scale-[0.99]"
             >
               Tor bestätigen
