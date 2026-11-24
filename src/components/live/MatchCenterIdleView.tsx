@@ -145,7 +145,7 @@ export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Pr
 
     void (async () => {
       const [participantsRes, slotsRes, completionRes] = await Promise.all([
-        fetchTournamentParticipants(featuredTournament.id),
+        fetchTournamentParticipants(featuredTournament.id, { preferOfficialTeamVariants: true }),
         fetchTournamentMatchSlots(featuredTournament.id),
         fetchTournamentCompletion(featuredTournament.id),
       ]);

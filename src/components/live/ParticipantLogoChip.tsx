@@ -7,6 +7,7 @@ type Props = {
   teamName: unknown;
   logoUrl?: unknown;
   carousel?: boolean;
+  showHomeBadge?: boolean;
 };
 
 const CAROUSEL_SHORT_NAMES: Record<string, string> = {
@@ -39,11 +40,11 @@ function splitParticipantDisplayName(name: string): { club: string; ageGroup: st
   return { club: trimmed, ageGroup: null };
 }
 
-export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Props) {
+export function ParticipantLogoChip({ teamName, logoUrl, carousel = false, showHomeBadge = true }: Props) {
   const name = safeText(teamName) || 'Team';
   const { club } = splitParticipantDisplayName(name);
   const displayClub = carousel ? shortenClubDisplayName(club || name) : club || name;
-  const heim = isHeimteamParticipant(name);
+  const heim = showHomeBadge && isHeimteamParticipant(name);
 
   const widthClass = carousel ? 'w-full min-w-0' : 'w-[4.75rem]';
 

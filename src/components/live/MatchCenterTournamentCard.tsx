@@ -308,6 +308,7 @@ export function MatchCenterTournamentCard({
                   key={p.name}
                   teamName={p.name}
                   logoUrl={p.logoUrl}
+                  showHomeBadge={false}
                   carousel
                 />
               ))}
