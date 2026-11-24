@@ -1,3 +1,4 @@
+import { tournamentLivestreamUrl, TOURNAMENT_LIVESTREAM_POST } from './tournamentLivestream.js';
 import { publicTournamentStandings } from './publicTournamentStandings.js';
 import { resolveTournamentOwnTeam } from './tournamentOwnTeam.js';
 import { tournamentTeamLogos } from './tournamentTeamLogos.js';
@@ -218,6 +219,11 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
     slots: enriched,
   });
 
+  const { data: streamPost } = await admin.from('team_feed_posts')
+    .select('cta_url').eq('event_id', publicId).eq('team_season_id', teamSeasonId)
+    .eq('team_id', teamRow?.id ?? null).eq('post_kind', TOURNAMENT_LIVESTREAM_POST)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle();
+  dto.livestreamUrl = dto.tournamentStatus === 'canceled' ? null : tournamentLivestreamUrl(streamPost?.cta_url);
   dto.finalRanking = resolveMeinTurnierplanFinalStandings(analysis);
   const slotsByExternalId = new Map(slots.map(slot => [slot.external_match_id, slot]));
   dto.schedule = (analysis.rawMatches ?? []).map(m => {

@@ -31,6 +31,8 @@ type Props = {
   saving?: boolean;
   /** Speichern/Import fehlgeschlagen — Scanner bleibt offen. */
   saveError?: string | null;
+  validateLink?: (rawValue: string) => string | null;
+  invalidLinkMessage?: string;
 };
 
 const UNSUPPORTED_RESUME_MS = 2200;
@@ -42,6 +44,8 @@ export const TournamentPlanQrScannerSheet: React.FC<Props> = ({
   onEnterLink,
   saving = false,
   saveError = null,
+  validateLink,
+  invalidLinkMessage = INVALID_QR_TOURNAMENT_LINK_MESSAGE,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -106,9 +110,11 @@ export const TournamentPlanQrScannerSheet: React.FC<Props> = ({
       setStatusLine('QR-Code erkannt ✓');
 
       const validated = validateOfficialTournamentUrl(rawValue);
-      if (!validated.ok || !isRecognizedTournamentPlanHost(validated.url)) {
+      const url = validateLink ? validateLink(rawValue)
+        : validated.ok && isRecognizedTournamentPlanHost(validated.url) ? validated.url : null;
+      if (!url) {
         setPhaseSafe('unsupported');
-        setStatusLine(INVALID_QR_TOURNAMENT_LINK_MESSAGE);
+        setStatusLine(invalidLinkMessage);
         clearResumeTimer();
         resumeTimerRef.current = window.setTimeout(() => {
           if (stoppedRef.current || savingRef.current) return;
@@ -122,9 +128,9 @@ export const TournamentPlanQrScannerSheet: React.FC<Props> = ({
       // Kamera bleibt aktiv bis Parent schließt (Erfolg) oder Speichern fehlschlägt.
       setPhaseSafe('success');
       setStatusLine('QR-Code erkannt ✓');
-      onScanSuccessRef.current(validated.url);
+      onScanSuccessRef.current(url);
     },
-    [clearResumeTimer, setPhaseSafe],
+    [clearResumeTimer, setPhaseSafe, validateLink, invalidLinkMessage],
   );
 
   // Speichern beendet mit Fehler → wieder scannen (Kamera bleibt an).
@@ -292,7 +298,7 @@ export const TournamentPlanQrScannerSheet: React.FC<Props> = ({
             {phase === 'scanning' || phase === 'starting' ? (
               <p className="mt-1 text-[11px] text-white/40">{QR_SCAN_HINT_SECONDARY}</p>
             ) : null}
-            {showUnsupported ? (
+            {showUnsupported && !validateLink ? (
               <p className="mt-1 text-[12px] text-white/55">{INVALID_QR_TOURNAMENT_LINK_HINT}</p>
             ) : null}
           </div>

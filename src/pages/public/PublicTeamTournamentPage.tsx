@@ -327,6 +327,12 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
             ) : null}
           </section>
         ) : null}
+        {page.livestreamUrl && <section id="livestream" className={card}>
+          <a href={page.livestreamUrl} target="_blank" rel="noopener noreferrer"
+            className="inline-flex min-h-11 items-center rounded-xl border border-[var(--t-border)] px-4 text-sm font-bold text-[var(--t-accent)]">
+            Livestream ansehen ↗
+          </a>
+        </section>}
         {featuredMatch ? <section aria-label={featuredMatch.status==='live'?'Aktuelles Livespiel':'Nächstes eigenes Spiel'}>{renderOwnCard(featuredMatch,true)}</section> : null}
         {featuredOwnFixture ? (
           <section aria-label={featuredOwnFixture.status === 'live' || isWithinScheduledMatch(featuredOwnFixture) ? 'Aktuelles Spiel' : 'Nächstes eigenes Spiel'}>
