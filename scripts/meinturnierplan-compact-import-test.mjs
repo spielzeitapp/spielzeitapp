@@ -81,3 +81,30 @@ const qrFallback = await analyzeTournamentPlanJson(qrUrl, async (endpoint) => {
 assert.equal(qrFallback.ok, true);
 assert.equal(qrFallback.diagnostics.source, 'server_api');
 console.log('PASS: compact schedule (6 teams, 15 matches, 5 Rohrbach matches), API fallback, legacy JSON, and failure diagnostics');
+
+// Multi-group stadium pages can have fixtures and team IDs but no groupParticipants.
+const groupedFixtures = [
+  { gameId: '1', groupId: 0, dateAndTime: '2026-11-27 17:00:00', homeParticipant: 1, awayParticipant: 2 },
+  { gameId: '2', groupId: 1, dateAndTime: '2026-11-27 17:14:00', homeParticipant: 3, awayParticipant: 4 },
+];
+const groupedPublicPage = `<title>Gruppenturnier</title>
+<div>Spieldauer in Gruppenphase</div><div>10 Minuten</div>
+<div>Spieldauer in Finalrunde</div><div>12 Minuten</div>
+<script>window._cpStadiumData=${JSON.stringify({
+  participants: { 1: { name: 'Nord' }, 2: { name: 'Süd' }, 3: { name: 'Ost' }, 4: { name: 'West' } },
+  groups: [{ displayId: 'A' }, { displayId: 'B' }],
+  groupMatches: groupedFixtures,
+  finalMatches: [{
+    gameId: '3', modeMapping: { type: 'knockout', round: 1, match: 1 }, dateAndTime: '2026-11-27 17:30:00',
+    sourceTeam1: { type: 'group', group: 0, rank: 1 }, sourceTeam2: { type: 'group', group: 1, rank: 1 },
+  }],
+})};</script>`;
+const grouped = await analyzeTournamentPlanJson('https://www.meinturnierplan.de/c/other123/', async () => new Response(groupedPublicPage));
+assert.equal(grouped.ok, true);
+assert.deepEqual(grouped.analysis.teams.map(({ teamName, groupLabel }) => [teamName, groupLabel]), [
+  ['Nord', 'A'], ['Süd', 'A'], ['Ost', 'B'], ['West', 'B'],
+]);
+assert.deepEqual(grouped.analysis.rawMatches.map(m => m.plannedMinutes), [10, 10, 12]);
+assert.equal(grouped.analysis.rawMatches[2].homeTeam, '1. Gruppe A');
+assert.equal(grouped.analysis.rawMatches[2].awayConfirmed, false);
+console.log('PASS: grouped public HTML without groupParticipants');
