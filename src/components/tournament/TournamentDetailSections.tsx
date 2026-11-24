@@ -83,6 +83,7 @@ import { formatCompletionPlacementLine } from '../../lib/tournamentCompletionDis
 import { TournamentCompleteModal, type TournamentCompleteFormValues } from './TournamentCompleteModal';
 import { TournamentPremiumFinalCard } from './TournamentPremiumFinalCard';
 import { TournamentReportModal } from './TournamentReportModal';
+import { TournamentLivestreamShare } from './TournamentLivestreamShare';
 import { TournamentOfficialPlanCard } from './TournamentOfficialPlanCard';
 import { TournamentTeamAliasesCard } from './TournamentTeamAliasesCard';
 import { TournamentCenterTabBar } from './TournamentCenterTabBar';
@@ -939,6 +940,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
     return ['info'];
   }, [tournamentPhase, completion.completedAt]);
 
+  const canShareLivestream = canManage && !isDemo && !tournamentCanceled && !completion.completedAt;
   const showAssistant = canManage && !tournamentCanceled && !completion.completedAt;
   const showFeatured =
     !completion.completedAt &&
@@ -1046,7 +1048,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
       case 'lineup': return <TournamentLineupTemplatePanel eventId={tournamentEventId} players={players} slots={ownSlots}
         refreshToken={assistantRefreshToken} onReady={setTemplateReady} onDirtyChange={setLineupDraftDirty} canEdit={!completion.completedAt}
         onSaved={() => { setAssistantRefreshToken(token => token + 1); void reload(); }} />;
-      case 'communication': return <div className="space-y-4"><p className="text-[16px] leading-relaxed text-white/65">Optional: Spieltag ankündigen und die Veröffentlichung von Kader und Aufstellung vorbereiten.</p>{trainerFeedSection}</div>;
+      case 'communication': return <div className="space-y-4">
+        {canShareLivestream && <TournamentLivestreamShare eventId={tournamentEventId} teamSeasonId={teamSeasonId} />}
+        {trainerFeedSection}
+      </div>;
       default: return null;
     }
   };
@@ -1220,7 +1225,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
               </button>
             ) : null}
             {headerActions}
-            {canManage && trainerFeedSection ? <button type="button" onClick={() => openPreparationDialog('communication')}
+            {(canShareLivestream || (canManage && trainerFeedSection)) ? <button type="button" onClick={() => openPreparationDialog('communication')}
               className="sz-club-event-action inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               aria-label="Feed & Kommunikation öffnen" aria-haspopup="dialog" title="Feed & Kommunikation">
               <Megaphone className="h-5 w-5 sz-club-accent-text" aria-hidden />

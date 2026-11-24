@@ -80,6 +80,7 @@ export type ClassifiedFeedPost =
   | { kind: 'live'; post: LiveFeedPostRow }
   | { kind: 'lineup'; post: LineupFeedPostRow }
   | { kind: 'squad'; post: SquadFeedPostRow }
+  | { kind: 'tournament_livestream'; post: TeamFeedPostDbRow }
   | { kind: 'image'; post: TeamFeedPostDbRow }
   | { kind: 'video'; post: TeamFeedPostDbRow }
   | { kind: 'result'; post: ResultFeedPostRow }
@@ -90,6 +91,7 @@ export type ClassifiedFeedPost =
 export function classifyTeamFeedPost(row: TeamFeedPostDbRow): ClassifiedFeedPost | null {
   const mt = (row.media_type ?? '').toLowerCase().trim();
   const pk = (row.post_kind ?? '').toLowerCase().trim();
+  if (pk === 'tournament_livestream') return { kind: 'tournament_livestream', post: row };
   if (mt === 'video' && row.media_url) {
     return { kind: 'video', post: row };
   }

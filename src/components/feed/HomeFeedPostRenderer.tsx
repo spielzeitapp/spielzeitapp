@@ -1,4 +1,9 @@
 import React from 'react';
+import { FeedPostCtaButton } from './FeedPostCtaButton';
+import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
+import { FeedPostHeader } from './feedTypography';
+import { FeedPostDeleteButton } from './FeedPostDeleteButton';
+import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import { useMatchClubBranding } from '../../hooks/useMatchClubBranding';
 import type { ClassifiedFeedPost } from '../../lib/matchdayFeedTypes';
 import type { EventRow } from '../../hooks/useEvents';
@@ -47,6 +52,16 @@ const FeedPostContent: React.FC<Props> = ({
     ? () => notifyFeedPostDeleted(item.post.id)
     : undefined;
 
+  if (item.kind === 'tournament_livestream') {
+    return <article className="rounded-2xl border border-white/15 p-4">
+      <FeedPostHeader teamLabel={teamLabel} seasonLabel={seasonLabel} whenLabel={formatDateTimeMediumDeVienna(item.post.created_at)}
+        actions={staffCanDelete && onFeedPostDeleted
+          ? <FeedPostDeleteButton input={toFeedPostDeleteInput(item.post)} onDeleted={onFeedPostDeleted} />
+          : null} />
+      <p className="py-3 font-bold">{item.post.caption}</p>
+      <FeedPostCtaButton ctaUrl={item.post.cta_url} ctaLabel={item.post.cta_label} />
+    </article>;
+  }
   if (item.kind === 'live') {
     return (
       <LiveFeedPostCard
