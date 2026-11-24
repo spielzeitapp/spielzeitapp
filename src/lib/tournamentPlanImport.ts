@@ -2693,6 +2693,26 @@ export async function fetchOwnTeamNameHint(teamSeasonId: string): Promise<string
   return recognition.knownNames[0] ?? null;
 }
 
+export async function replaceTournamentPlanFromAnalysis(params: {
+  tournamentEventId: string;
+  previousUrl: string | null;
+  previousSlotIds: string[];
+  url: string;
+  analysis: TournamentPlanAnalysis;
+  knownNames: string[];
+}): Promise<{ error: string | null }> {
+  const { supabase } = await import('./supabaseClient');
+  const { error } = await supabase.rpc('replace_tournament_plan', {
+    p_event: params.tournamentEventId,
+    p_previous_url: params.previousUrl,
+    p_previous_slots: params.previousSlotIds,
+    p_url: params.url,
+    p_analysis: params.analysis,
+    p_own_team: resolveTournamentOwnTeam(params.analysis.teams, params.knownNames),
+  });
+  return { error: error?.message ?? null };
+}
+
 export async function importTournamentPlanFromAnalysis(params: {
   tournamentEventId: string;
   teamSeasonId: string;
