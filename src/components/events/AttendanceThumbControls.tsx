@@ -3,9 +3,9 @@ import { ThumbsUp, ThumbsDown, UserX, Thermometer, Bandage, CircleDot, Users } f
 import { Modal } from '../../app/ui/Modal';
 import type { TrainingAttendanceStatus } from '../../lib/trainingAttendance';
 
-export function AttendanceThumbControls({ name, status, isLaz, allowOtherTeam = false, onSelect, disabled = false }: {
+export function AttendanceThumbControls({ name, status, isLaz, allowOtherTeam = false, onSelect, disabled = false, large = false }: {
   name: string; status: TrainingAttendanceStatus; isLaz?: boolean; allowOtherTeam?: boolean;
-  onSelect: (status: TrainingAttendanceStatus, note?: string) => void; disabled?: boolean;
+  onSelect: (status: TrainingAttendanceStatus, note?: string) => void; disabled?: boolean; large?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [otherTeam, setOtherTeam] = useState(false);
@@ -18,7 +18,7 @@ export function AttendanceThumbControls({ name, status, isLaz, allowOtherTeam = 
     ...(allowOtherTeam ? [{ status: 'other_team' as const, label: 'Andere Mannschaft', icon: Users, color: 'text-violet-300' }] : []),
     ...(isLaz || status === 'external' ? [{ status: 'external' as const, label: 'LAZ', icon: CircleDot, color: 'text-teal-300' }] : []),
   ];
-  const base = 'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-white disabled:opacity-40';
+  const base = `inline-flex ${large ? 'h-12 w-12 max-[359px]:h-11 max-[359px]:w-11 border border-red-400/20' : 'h-11 w-11'} shrink-0 items-center justify-center rounded-xl touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-white disabled:opacity-40`;
   return <>
     <div className="flex shrink-0 gap-1">
       <button type="button" disabled={disabled} aria-label={`${name}: Dabei`} aria-pressed={status === 'present'} className={`${base} ${status === 'present' ? 'bg-emerald-900/70 text-emerald-300' : 'bg-white/[0.045] text-white/45'}`} onClick={() => onSelect('present')}><ThumbsUp className="h-5 w-5" aria-hidden /></button>

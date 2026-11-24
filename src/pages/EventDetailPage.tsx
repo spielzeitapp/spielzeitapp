@@ -4523,7 +4523,7 @@ export const EventDetailPage: React.FC = () => {
         !(isAudienceMatchDetail && canShowSelfRsvp) &&
         !(isTournament && (canTrainerViewEvent || event.status === 'canceled')) &&
         !(isTraining && canTrainerViewEvent) ? (
-          <CenterAttendanceSurface title={isTournament?'Zu-/Absage':undefined} className={isTournament?'tournamentWorkflowModal':undefined} dialog={(event.kind === 'match' && canTrainerManageEvent && event.status === 'upcoming') || (isTournament && !canTrainerViewEvent && canShowSelfRsvp)} open={centerAttendanceOpen} onClose={() => setCenterAttendanceOpen(false)}
+          <CenterAttendanceSurface title={isTournament?'Zu-/Absage':undefined} className={isTournament ? 'tournamentWorkflowModal' : event.kind === 'match' ? 'matchAttendanceModal' : undefined} dialog={(event.kind === 'match' && canTrainerManageEvent && event.status === 'upcoming') || (isTournament && !canTrainerViewEvent && canShowSelfRsvp)} open={centerAttendanceOpen} onClose={() => setCenterAttendanceOpen(false)}
             footer={event.kind === 'match' && canTrainerManageEvent && event.status === 'upcoming' ? (
               <div className="flex flex-col gap-2">
                 {[...matchAttendanceErrors].some(key => key.startsWith(`${event.id}:`)) ? (
@@ -4533,7 +4533,7 @@ export const EventDetailPage: React.FC = () => {
                 )}
                 <button type="button" onClick={() => setCenterAttendanceOpen(false)}
                   disabled={[...matchAttendancePending].some(key => key.startsWith(`${event.id}:`))}
-                  className={`${dsPrimaryCtaClass()} min-h-11 w-full disabled:opacity-45`}>Fertig</button>
+                  className={`${dsPrimaryCtaClass()} !min-h-12 w-full !text-base disabled:opacity-45`}>Fertig</button>
               </div>
             ) : undefined}>
           <Card
@@ -4542,7 +4542,7 @@ export const EventDetailPage: React.FC = () => {
                 ? 'relative flex flex-col gap-4 overflow-hidden border border-[rgba(122,29,42,0.12)] bg-[rgba(18,18,20,0.94)] shadow-[0_0_32px_rgba(122,29,42,0.08),inset_0_1px_0_rgba(255,255,255,0.03)]'
                 : isEventOrOther
                   ? 'flex flex-col gap-3 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]'
-                  : 'sz-club-event-section relative flex flex-col gap-3 overflow-hidden border'
+                  : `sz-club-event-section relative flex flex-col gap-3 overflow-hidden border ${event.kind === 'match' && canTrainerManageEvent ? '!p-2 sm:!p-4' : ''}`
             }
           >
             {isTraining ? (
@@ -4586,7 +4586,7 @@ export const EventDetailPage: React.FC = () => {
                   />
                 ) : (
                   <>
-                <div className="-mx-4 mt-1 grid grid-cols-2 gap-2 sm:-mx-5 sm:grid-cols-4">
+                <div className="mt-1 grid grid-cols-2 gap-2.5 sm:grid-cols-4 [&>div]:min-h-[70px] [&_span]:!text-xs [&_span]:!text-white/80">
                     <div className="sz-club-rsvp-stat sz-club-rsvp-stat--yes">
                       <span>Zugesagt</span>
                       <strong>{eventRsvpCounts.yes}</strong>
@@ -4604,7 +4604,7 @@ export const EventDetailPage: React.FC = () => {
                       <strong className="!text-amber-300">{eventRsvpCounts.injured}</strong>
                     </div>
                   </div>
-                <div className={`-mx-4 flex flex-col ${DS_LIST_GAP} border-t border-[#2a2a2e]/60 pt-3 sm:-mx-5`}>
+                <div className={`flex min-w-0 flex-col ${DS_LIST_GAP} border-t border-[#2a2a2e]/60 pt-3`}>
                   {(playersLoading || loadingEventAttendance) && (
                     <p className="text-[14px] text-white/70">Lade…</p>
                   )}
@@ -4622,7 +4622,7 @@ export const EventDetailPage: React.FC = () => {
                         if (group.length === 0) return null;
                         return (
                           <div className={`flex flex-col ${DS_LIST_GAP}`}>
-                            <p className={`mb-0.5 mt-3 ${dsSectionLabelClass()}`}>{title}</p>
+                            <p className="mb-0.5 mt-3 text-sm font-extrabold tracking-wide text-white/90">{title}</p>
                             <ul className={`flex flex-col ${DS_LIST_GAP}`}>
                               {group.map((player) => {
                                 const bucket = statusBucket(getAttendanceStatus, player.id);
@@ -4652,8 +4652,9 @@ export const EventDetailPage: React.FC = () => {
                                       status={bucket}
                                       layout="team-roster"
                                       hideSubline
-                                      nameStatus={<PremiumStatusBadge label={badge} tone={chipTone} />}
-                                      trailing={<AttendanceThumbControls name={premiumPlayerDisplayName(player)} status={dbStatusToTrainingAttendance(rsvpDisplay) ?? 'open'} isLaz={player.is_laz_player} disabled={matchAttendancePending.has(`${event.id}:${player.id.toLowerCase()}`)}
+                                      roomy
+                                       nameStatus={<PremiumStatusBadge label={badge} tone={chipTone} />}
+                                      trailing={<AttendanceThumbControls large name={premiumPlayerDisplayName(player)} status={dbStatusToTrainingAttendance(rsvpDisplay) ?? 'open'} isLaz={player.is_laz_player} disabled={matchAttendancePending.has(`${event.id}:${player.id.toLowerCase()}`)}
                                          onSelect={next => void (event.kind === 'match' ? saveMatchAttendance(player.id, next) : handleTrainerTrainingStatus(player.id, next))} />}
                                     />
                                   </li>

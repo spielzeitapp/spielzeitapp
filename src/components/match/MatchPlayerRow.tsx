@@ -59,12 +59,13 @@ export const MatchPlayerRow: React.FC<{
   tone?: PremiumPlayerCardTone;
   /** Kaderwahl in der Match-Vorbereitung: gleiche Zeilenoptik wie Team → Kader. */
   layout?: "default" | "team-roster";
+  roomy?: boolean;
   /** Eigene rechte Aktionen, z. B. Zu-/Absage im Matchcenter. */
   trailing?: React.ReactNode;
   /** Blendet die Positionszeile aus, wenn nur Name und Status relevant sind. */
   hideSubline?: boolean;
   nameStatus?: React.ReactNode;
-}> = ({ player, status, selected = false, rightLabel, metricHint, onClick, tone = "utility", layout = "default", trailing, hideSubline = false, nameStatus }) => {
+}> = ({ player, status, selected = false, rightLabel, metricHint, onClick, tone = "utility", layout = "default", roomy = false, trailing, hideSubline = false, nameStatus }) => {
   const number = player.jersey_number ?? player.number ?? null;
   const isMatchday = tone === "matchday";
   const baseSub = positionSubline(player.position);
@@ -95,15 +96,13 @@ export const MatchPlayerRow: React.FC<{
         </span>
         ) : null}
         <span className="min-w-0 flex-1 pl-2 max-[359px]:pl-1.5">
-          <span className="block truncate text-[13px] font-semibold leading-tight text-white/55 max-[359px]:text-[11px] sm:text-[14px]">
+          <span className={`block truncate font-semibold leading-tight ${roomy ? 'text-sm text-white/75' : 'text-[13px] text-white/55 max-[359px]:text-[11px] sm:text-[14px]'}`}>
             {nameParts.first}
           </span>
           <span
-            className={`block truncate font-black leading-tight tracking-tight text-white ${
-              compactFamilyName
-                ? 'text-[14px] sm:text-[16px]'
-                : 'text-[17px] max-[359px]:text-[14px] sm:text-[18px]'
-            }`}
+            className={`block font-black leading-tight tracking-tight text-white ${roomy
+              ? 'text-base [overflow-wrap:anywhere] sm:text-lg'
+              : compactFamilyName ? 'truncate text-[14px] sm:text-[16px]' : 'truncate text-[17px] max-[359px]:text-[14px] sm:text-[18px]'}`}
           >
             {familyName}
           </span>
@@ -111,7 +110,7 @@ export const MatchPlayerRow: React.FC<{
           {!hideSubline ? <span className="mt-1 block text-[11px] font-semibold text-white/48">{subline}</span> : null}
         </span>
         {trailing ? (
-          <span className="ml-1 flex shrink-0 items-center max-[359px]:ml-0.5 max-[359px]:origin-right max-[359px]:scale-[0.9]">{trailing}</span>
+          <span className={`ml-1 flex shrink-0 items-center ${roomy ? '' : 'max-[359px]:ml-0.5 max-[359px]:origin-right max-[359px]:scale-[0.9]'}`}>{trailing}</span>
         ) : (
           <span className="ml-1 flex max-w-[7.25rem] shrink-0 flex-col items-end gap-1">
             <PlayerSpecialStatusBadges
@@ -127,6 +126,7 @@ export const MatchPlayerRow: React.FC<{
     const className = [
       "flex min-h-[68px] w-full min-w-0 max-w-full items-center overflow-hidden rounded-[15px] border px-2.5 text-left transition active:scale-[0.99] max-[359px]:px-1.5",
       "sz-club-list-card sz-club-surface sz-club-surface--quiet",
+      roomy ? "!min-h-[74px]" : "",
       selected
         ? "border-emerald-500/55 shadow-[0_8px_26px_rgba(5,150,105,0.16),0_0_18px_rgba(16,185,129,0.10)]"
         : "",

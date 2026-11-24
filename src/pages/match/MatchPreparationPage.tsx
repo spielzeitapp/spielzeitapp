@@ -1,5 +1,8 @@
 import { U11_FORMATIONS } from '../../lib/matchFormations';
 import { prepareTournamentMatchFromTemplate, type TournamentTemplateRecord } from '../../lib/tournamentLineupTemplates';
+import { createPortal } from 'react-dom';
+import { ArrowLeft, Check, Plus } from 'lucide-react';
+import { managerPortalRoot } from '../../lib/managerPortal';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
@@ -48,12 +51,10 @@ import {
   dsPageTitleClass,
   dsPrimaryCtaClass,
   dsSecondaryCtaClass,
-  dsSectionLabelClass,
   dsStatusChipClass,
   dsStickyCtaBarClass,
   DS_LIST_GAP,
   DS_SECTION_GAP,
-  type DsChipTone,
 } from '../../lib/premiumDesignSystem';
 import { useDemoMode } from '../../demo/DemoContext';
 import { useInternalBasePath } from '../../demo/demoPaths';
@@ -729,8 +730,8 @@ export const MatchPreparationPage: React.FC = () => {
 
   const renderSection = (title: string, list: typeof players, status: PrepStatus) => (
     <section className={`flex flex-col ${DS_SECTION_GAP}`}>
-      <h2 className={dsSectionLabelClass()}>{title}</h2>
-      {list.length === 0 ? <p className="text-xs text-white/42">Keine Spieler</p> : null}
+      <h2 className="text-lg font-extrabold text-white">{title}</h2>
+      {list.length === 0 ? <p className="text-sm text-white/60">Keine Spieler</p> : null}
       <div className={`flex flex-col ${DS_LIST_GAP}`}>
         {list.map((p) => {
           const selected = selectedSet.has(p.id);
@@ -741,17 +742,18 @@ export const MatchPreparationPage: React.FC = () => {
               <MatchPlayerRow
                 player={p}
                 layout="team-roster"
+                roomy
                 selected={selected}
                 status={status === 'absent' ? 'no' : selected ? 'yes' : 'open'}
                 hideSubline
                 trailing={
                   trainerExcluded ? (
-                    <span className="inline-flex min-h-[34px] items-center rounded-xl border border-amber-300/20 bg-amber-950/45 px-2 text-[10px] font-bold text-amber-200">
+                    <span className="inline-flex min-h-11 items-center rounded-xl border border-amber-300/20 bg-amber-950/45 px-2 text-xs font-bold text-amber-200">
                       Trainer
                     </span>
                   ) : (
-                    <span className={`inline-flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-xl border ${selected ? 'border-emerald-400/25 bg-emerald-900/70 text-emerald-300 shadow-[0_0_14px_rgba(52,211,153,0.16)]' : 'border-red-400/15 bg-red-950/45 text-red-300'}`} title={selected ? 'Im Kader' : 'Nicht im Kader'}>
-                      <span className={`text-sm font-black ${selected ? '' : 'text-white/55'}`} aria-hidden>{selected ? 'K' : '–'}</span>
+                    <span className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${selected ? 'border-emerald-400/25 bg-emerald-900/70 text-emerald-300 shadow-[0_0_14px_rgba(52,211,153,0.16)]' : 'border-red-400/15 bg-red-950/45 text-red-300'}`} title={selected ? 'Im Kader' : 'Nicht im Kader'}>
+                      {selected ? <Check className="h-5 w-5" aria-hidden /> : <Plus className="h-5 w-5" aria-hidden />}
                       <span className="sr-only">{selected ? 'Im Kader' : 'Nicht im Kader'}</span>
                     </span>
                   )
@@ -762,7 +764,7 @@ export const MatchPreparationPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setExcludeConfirm({ playerId: p.id, name: premiumPlayerDisplayName(p) })}
-                  className="mt-1.5 w-full rounded-xl border border-red-400/15 bg-red-950/25 px-3 py-2 text-xs font-semibold text-red-200/90"
+                  className="mt-1.5 min-h-11 w-full rounded-xl border border-red-400/20 bg-red-950/25 px-3 py-2 text-sm font-semibold text-red-200/90"
                 >
                   Für dieses Match nicht berücksichtigen
                 </button>
@@ -864,13 +866,13 @@ export const MatchPreparationPage: React.FC = () => {
             <button
               type="button"
               onClick={() => centerEventId ? navigate(matchCenterPath(centerEventId, basePath)) : navigate(-1)}
-              className="mb-2 inline-flex min-h-[36px] items-center rounded-[14px] border border-transparent bg-[rgba(18,18,22,0.88)] px-2.5 text-xs font-semibold text-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_14px_rgba(255,40,40,0.05)] hover:bg-[rgba(22,14,16,0.92)]"
+              className="mb-3 inline-flex min-h-12 items-center gap-2 rounded-2xl border border-red-400/20 bg-red-950/30 px-3 text-sm font-bold text-white hover:bg-red-950/55"
             >
-              {centerEventId ? '← Zurück zum Matchcenter' : '← Zurück'}
+              <ArrowLeft className="h-5 w-5 shrink-0 text-red-300" aria-hidden />
+              {centerEventId ? 'Zurück zum Matchcenter' : 'Zurück'}
             </button>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-red-400/90">SpielzeitApp</p>
-            <h1 className="mt-0.5 text-xl font-bold tracking-tight">Spielkader</h1>
-            <p className="mt-1 text-sm text-white/55">
+            <h1 className="text-[28px] font-black leading-tight tracking-tight">Spielkader</h1>
+            <p className="mt-1 text-base font-semibold text-white/70">
               {matchRow?.opponent
                 ? `vs. ${normalizeOefbImportedTeamName(matchRow.opponent) || matchRow.opponent}`
                 : 'Spiel'}
@@ -910,18 +912,17 @@ export const MatchPreparationPage: React.FC = () => {
             </div></details>
           </section>
         ) : null}
-        <div className="flex flex-wrap gap-1.5">
-          {(
-            [
-              ['present', `Zugesagt ${summary.yes}`],
-              ['open', `Offen ${summary.open}`],
-              ['absent', `Abgesagt ${summary.no}`],
-              ['neutral', `Ausgewählt ${summary.selected}`],
-            ] as const
-          ).map(([tone, label]) => (
-            <span key={tone} className={dsStatusChipClass(tone as DsChipTone)}>
-              {label}
-            </span>
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4" aria-label="Übersicht Spielkader">
+          {[
+            ['Zugesagt', summary.yes, 'sz-club-rsvp-stat--yes'],
+            ['Offen', summary.open, 'sz-club-rsvp-stat--open'],
+            ['Abgesagt', summary.no, 'sz-club-rsvp-stat--no'],
+            ['Ausgewählt', summary.selected, 'border-red-400/35 bg-red-950/30 text-red-200'],
+          ].map(([label, count, style]) => (
+            <div key={label} className={`sz-club-rsvp-stat min-h-[70px] ${style}`}>
+              <span className="!text-xs !text-white/80">{label}</span>
+              <strong>{count}</strong>
+            </div>
           ))}
         </div>
 
@@ -967,19 +968,20 @@ export const MatchPreparationPage: React.FC = () => {
         />
       ) : null}
 
+      {typeof document !== 'undefined' ? createPortal(
       <div
-        className={`${dsStickyCtaBarClass()} box-border max-sm:!px-3`}
+        className={`${dsStickyCtaBarClass()} box-border border-red-400/20 max-sm:!px-3`}
         style={{
           bottom: tournamentEventId ? 'calc(env(safe-area-inset-bottom, 0px) + 4px)' : 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
           paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))',
         }}
       >
         <div className="mx-auto flex w-full min-w-0 max-w-xl flex-col gap-2">
-          <div className="flex items-center justify-between gap-3">
-            <span className="shrink-0 text-[11px] font-medium text-white/45">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <span className="text-sm font-semibold text-white/80">
               Ausgewählt: {selectedPlayersForSquad.length}
             </span>
-            <span className={`min-w-0 text-right text-[11px] font-bold ${publishedSelectionMatches ? 'text-emerald-300' : 'text-amber-200'}`}>
+            <span className={`min-w-0 text-sm font-bold ${publishedSelectionMatches ? 'text-emerald-300' : 'text-amber-200'}`}>
               {publishedSelectionMatches ? 'Kader veröffentlicht' : squadPublication ? 'Änderungen nicht veröffentlicht' : 'Noch nicht veröffentlicht'}
             </span>
           </div>
@@ -987,7 +989,7 @@ export const MatchPreparationPage: React.FC = () => {
             <button type="button" disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable || publishedSelectionMatches} onClick={openSquadMessageDialog} className="min-h-11 text-sm font-semibold text-white/70 disabled:opacity-40">{squadPublishBusy?'Veröffentliche…':squadPublication?'Kader aktualisieren':'Kader veröffentlichen'}</button>
             <button type="button" disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable} onClick={()=>void onContinueToLineup()} className={`${dsPrimaryCtaClass()} min-h-12 px-3 text-base font-bold`}>{persisting || squadSaveBusy?'Speichern…':'Weiter zur Aufstellung →'}</button>
           </div> : <>
-          <div className="grid grid-cols-2 gap-2 [&>button]:min-w-0 [&>button]:!whitespace-normal [&>button]:max-sm:!px-2">
+          <div className="grid grid-cols-2 gap-2 [&>button]:min-w-0 [&>button]:!min-h-12 [&>button]:!whitespace-normal [&>button]:max-sm:!px-2">
             <button
               type="button"
               disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable || publishedSelectionMatches}
@@ -1013,7 +1015,8 @@ export const MatchPreparationPage: React.FC = () => {
             {squadPublishMessage}
           </p>
         ) : null}
-      </div>
+      </div>,
+      managerPortalRoot()) : null}
 
       {squadMessageDialogOpen ? (
         <div
