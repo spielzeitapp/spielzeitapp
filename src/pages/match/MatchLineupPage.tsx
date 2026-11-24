@@ -782,7 +782,7 @@ export const MatchLineupPage: React.FC = () => {
           >
             ← Zurück
           </button>
-          <h1 className="text-lg font-bold">AUFSTELLUNG</h1>
+          <h1 className="text-lg font-bold">Startaufstellung</h1>
           <p className="text-sm text-white/70">
             {canManage
               ? 'Bitte zuerst Matchkader in der Match-Vorbereitung auswählen.'
@@ -844,8 +844,8 @@ export const MatchLineupPage: React.FC = () => {
             <ChevronLeft className="h-4 w-4 shrink-0 -ml-0.5" strokeWidth={2} />
             <span>Zurück</span>
           </button>
-          <h1 className="w-full whitespace-nowrap px-20 text-center text-base font-black uppercase tracking-[0.18em] text-white sm:px-24">
-            Aufstellung
+          <h1 className="w-full whitespace-nowrap px-[4.5rem] text-center text-sm font-black uppercase tracking-[0.08em] text-white sm:px-24 sm:text-base">
+            Startaufstellung
           </h1>
         </header>
 
@@ -1169,12 +1169,12 @@ export const MatchLineupPage: React.FC = () => {
             className={`flex h-14 min-h-14 flex-1 items-center justify-center px-2 text-sm font-bold leading-tight ${dsPrimaryCtaClass()}`}
           >
             {startingLive
-              ? 'Start…'
+              ? 'Speichern…'
               : visibleVariant !== startVariant
                 ? 'Als Start wählen'
                 : isDemo
                   ? 'LIVE (Demo)'
-                  : 'Spiel starten'}
+                  : 'Speichern und zum Liveticker'}
           </button>
         </div>
         {!lineupEditable ? (
