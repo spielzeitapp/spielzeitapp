@@ -4320,8 +4320,8 @@ export const EventDetailPage: React.FC = () => {
         )}
 
         {event.kind === 'match' && canTrainerManageEvent && event.status === 'upcoming' ? <MatchPreparationAssistant
-          matchId={event.match_id} basePath={basePath} playerCount={players.length} yesCount={eventRsvpCounts.yes} openCount={eventRsvpCounts.open}
-          attendanceLoading={playersLoading || loadingEventAttendance} onOpenAttendance={() => { setMatchAttendanceExpanded(true); setCenterAttendanceOpen(true); }} onOpenPlan={() => openEditModal(event)}
+          matchId={event.match_id} matchLabel={event.is_home === false ? `${event.opponent || 'Gegner'} · ${ourTeamName}` : `${ourTeamName} · ${event.opponent || 'Gegner'}`} basePath={basePath} playerCount={players.length} yesCount={eventRsvpCounts.yes} openCount={eventRsvpCounts.open}
+          attendanceLoading={playersLoading || loadingEventAttendance} onOpenAttendance={() => { setMatchAttendanceExpanded(true); setCenterAttendanceOpen(true); }}
         /> : null}
 
         {!isDemo && event.kind === 'match' && event.status !== 'canceled' && event.team_season_id && (

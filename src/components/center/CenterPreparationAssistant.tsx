@@ -8,8 +8,8 @@ export type PreparationStep = {
   onClick?: () => void; to?: string; disabled?: boolean;
 };
 
-export function CenterPreparationAssistant({ title, readyLabel, steps, loading = false, error }: {
-  title: string; readyLabel: string; steps: PreparationStep[]; loading?: boolean; error?: string | null;
+export function CenterPreparationAssistant({ title, readyLabel, steps, loading = false, error, children }: {
+  title: string; readyLabel: string; steps: PreparationStep[]; loading?: boolean; error?: string | null; children?: React.ReactNode;
 }) {
   const required = steps.filter(step => !step.optional);
   const completed = required.filter(step => step.done && !step.disabled).length;
@@ -29,6 +29,7 @@ export function CenterPreparationAssistant({ title, readyLabel, steps, loading =
           return step.to && !step.disabled ? <Link key={step.id} to={step.to} className={className}>{content}</Link> : <button key={step.id} type="button" className={className} disabled={step.disabled} onClick={step.onClick} aria-haspopup="dialog">{content}</button>;
         })}
       </div>
+      {children}
     </div>
   </section>;
 }
