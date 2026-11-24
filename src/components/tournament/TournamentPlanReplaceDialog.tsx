@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Modal } from '../../app/ui/Modal';
 import {
   analyzeTournamentUrl,
+  countOwnTeamMatchesInAnalysis,
   fetchTournamentImportRecognition,
   isRecognizedTournamentPlanHost,
   replaceTournamentPlanFromAnalysis,
@@ -138,6 +139,14 @@ export function TournamentPlanReplaceDialog({
             {preview.analysis.tournamentName ? <p className="font-semibold">{preview.analysis.tournamentName}</p> : null}
             <p>{preview.previousSlotIds.length} bisherige Spiele werden entfernt.</p>
             <p>Der neue Plan enthält {preview.analysis.teams.length} Mannschaften und {preview.analysis.rawMatches.length} Spiele.</p>
+            <p>Davon sind {countOwnTeamMatchesInAnalysis(preview.analysis, preview.knownNames)} Spiele unserer Mannschaft zugeordnet.</p>
+            <ul className="list-disc pl-5">
+              {preview.analysis.teams.map((team) => (
+                <li key={team.teamName}>
+                  {team.teamName}{team.groupLabel ? ` · Gruppe ${team.groupLabel}` : ''}
+                </li>
+              ))}
+            </ul>
           </div>
         ) : null}
       </div>
