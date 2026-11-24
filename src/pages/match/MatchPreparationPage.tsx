@@ -1,8 +1,7 @@
 import { U11_FORMATIONS } from '../../lib/matchFormations';
 import { prepareTournamentMatchFromTemplate, type TournamentTemplateRecord } from '../../lib/tournamentLineupTemplates';
-import { createPortal } from 'react-dom';
-import { ArrowLeft, Check, Plus } from 'lucide-react';
-import { managerPortalRoot } from '../../lib/managerPortal';
+import { Check, Plus } from 'lucide-react';
+import { MATCH_PREPARATION_ACTIONS_CLASS, MatchPreparationActions, MatchPreparationHeader } from '../../components/match/MatchPreparationChrome';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
@@ -37,22 +36,15 @@ import {
   DEFAULT_PLANNED_MATCH_MINUTES,
 } from '../../lib/minimumPlaytime';
 import { supabase } from '../../lib/supabaseClient';
-import { normalizeOefbImportedTeamName } from '../../lib/oefbTeamNameNormalize';
 import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
 import { premiumPlayerDisplayName } from '../../lib/premiumPlayerCard';
 import {
   dsBrandKickerClass,
   dsPageAtmosphereClass,
   dsPageContentClass,
-  dsPageHeaderClass,
-  dsPageHeroGlowClass,
   dsPageShellClass,
-  dsPageSubtitleClass,
-  dsPageTitleClass,
   dsPrimaryCtaClass,
   dsSecondaryCtaClass,
-  dsStatusChipClass,
-  dsStickyCtaBarClass,
   DS_LIST_GAP,
   DS_SECTION_GAP,
 } from '../../lib/premiumDesignSystem';
@@ -858,29 +850,14 @@ export const MatchPreparationPage: React.FC = () => {
     <div className={dsPageShellClass()}>
       <div className={dsPageAtmosphereClass()} aria-hidden />
       {tournamentEventId ? <style>{`@media (max-width:639px){nav[aria-label="Hauptnavigation"],.app-header{display:none!important}main.appMain{padding-top:env(safe-area-inset-top,0px)!important}}`}</style> : null}
-      {tournamentEventId ? <header className="mx-auto flex w-full max-w-xl items-center justify-between gap-3 px-4 py-4"><div className="min-w-0"><button type="button" onClick={()=>navigate(-1)} className="min-h-11 text-base text-white/70">← Zurück</button><h1 className="text-2xl font-bold">{matchRow?.opponent || 'Turnierspiel'}</h1><p className="mt-1 text-base text-white/60">Spiel vorbereiten</p></div>{template ? <span className="shrink-0 rounded-lg border border-white/15 px-3 py-2 text-lg font-bold">{U11_FORMATIONS[template.blocks.variants[template.blocks.startVariant].formationId].length-1}+1</span> : null}</header> : <>
-      <header className={`${dsPageHeaderClass()} relative overflow-hidden`}>
-        <div className={dsPageHeroGlowClass()} aria-hidden />
-        <div className="relative mx-auto flex max-w-xl items-center justify-between gap-3">
-          <div>
-            <button
-              type="button"
-              onClick={() => centerEventId ? navigate(matchCenterPath(centerEventId, basePath)) : navigate(-1)}
-              className="mb-3 inline-flex min-h-12 items-center gap-2 rounded-2xl border border-red-400/20 bg-red-950/30 px-3 text-sm font-bold text-white hover:bg-red-950/55"
-            >
-              <ArrowLeft className="h-5 w-5 shrink-0 text-red-300" aria-hidden />
-              {centerEventId ? 'Zurück zum Matchcenter' : 'Zurück'}
-            </button>
-            <h1 className="text-[28px] font-black leading-tight tracking-tight">Spielkader</h1>
-            <p className="mt-1 text-base font-semibold text-white/70">
-              {matchRow?.opponent
-                ? `vs. ${normalizeOefbImportedTeamName(matchRow.opponent) || matchRow.opponent}`
-                : 'Spiel'}
-            </p>
-          </div>
-          <span className={dsStatusChipClass('selected')}>Trainer</span>
-        </div>
-      </header></>}
+      {tournamentEventId ? <header className="mx-auto flex w-full max-w-xl items-center justify-between gap-3 px-4 py-4"><div className="min-w-0"><button type="button" onClick={()=>navigate(-1)} className="min-h-11 text-base text-white/70">← Zurück</button><h1 className="text-2xl font-bold">{matchRow?.opponent || 'Turnierspiel'}</h1><p className="mt-1 text-base text-white/60">Spiel vorbereiten</p></div>{template ? <span className="shrink-0 rounded-lg border border-white/15 px-3 py-2 text-lg font-bold">{U11_FORMATIONS[template.blocks.variants[template.blocks.startVariant].formationId].length-1}+1</span> : null}</header> : (
+        <MatchPreparationHeader
+          title="Spielkader"
+          opponent={matchRow?.opponent}
+          hasMatchCenter={Boolean(centerEventId)}
+          onBack={() => centerEventId ? navigate(matchCenterPath(centerEventId, basePath)) : navigate(-1)}
+        />
+      )}
 
       <main className={dsPageContentClass(`mx-auto max-w-xl flex flex-col ${DS_SECTION_GAP} px-4 py-5 pb-48`)}>
         {(playersLoading || attendanceLoading) ? <p className="text-sm text-white/55">Lade Spieler und Status…</p> : null}
@@ -968,15 +945,7 @@ export const MatchPreparationPage: React.FC = () => {
         />
       ) : null}
 
-      {typeof document !== 'undefined' ? createPortal(
-      <div
-        className={`${dsStickyCtaBarClass()} box-border border-red-400/20 max-sm:!px-3`}
-        style={{
-          bottom: tournamentEventId ? 'calc(env(safe-area-inset-bottom, 0px) + 4px)' : 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
-          paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))',
-        }}
-      >
-        <div className="mx-auto flex w-full min-w-0 max-w-xl flex-col gap-2">
+      <MatchPreparationActions aboveNavigation={!tournamentEventId}>
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <span className="text-sm font-semibold text-white/80">
               Ausgewählt: {selectedPlayersForSquad.length}
@@ -989,7 +958,7 @@ export const MatchPreparationPage: React.FC = () => {
             <button type="button" disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable || publishedSelectionMatches} onClick={openSquadMessageDialog} className="min-h-11 text-sm font-semibold text-white/70 disabled:opacity-40">{squadPublishBusy?'Veröffentliche…':squadPublication?'Kader aktualisieren':'Kader veröffentlichen'}</button>
             <button type="button" disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable} onClick={()=>void onContinueToLineup()} className={`${dsPrimaryCtaClass()} min-h-12 px-3 text-base font-bold`}>{persisting || squadSaveBusy?'Speichern…':'Weiter zur Aufstellung →'}</button>
           </div> : <>
-          <div className="grid grid-cols-2 gap-2 [&>button]:min-w-0 [&>button]:!min-h-12 [&>button]:!whitespace-normal [&>button]:max-sm:!px-2">
+          <div className={MATCH_PREPARATION_ACTIONS_CLASS}>
             <button
               type="button"
               disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || squadPublishBusy || !squadEditable || publishedSelectionMatches}
@@ -1008,15 +977,13 @@ export const MatchPreparationPage: React.FC = () => {
               {persisting || squadSaveBusy ? 'Speichern…' : continueWithLineup ? 'Zur Startaufstellung' : 'Speichern & weiter'}
             </button>
           </div></>}
-        </div>
         {persistError ? <p className="mx-auto mt-1 max-w-xl text-xs text-red-400">{persistError}</p> : null}
         {squadPublishMessage ? (
           <p className={`mx-auto mt-1 max-w-xl text-xs ${squadPublishMessage.startsWith('Kader veröffentlicht') || squadPublishMessage.startsWith('Demo:') ? 'text-emerald-300' : 'text-red-400'}`}>
             {squadPublishMessage}
           </p>
         ) : null}
-      </div>,
-      managerPortalRoot()) : null}
+      </MatchPreparationActions>
 
       {squadMessageDialogOpen ? (
         <div

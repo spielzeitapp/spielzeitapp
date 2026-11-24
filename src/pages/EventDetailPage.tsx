@@ -16,7 +16,7 @@ import { useClubOpponentLogos, preferredClubLogo } from '../hooks/useClubOpponen
 import { useMatchClubBranding } from '../hooks/useMatchClubBranding';
 import '../components/match/finishedClubTheme.css';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Ban,
   Bus,
@@ -68,6 +68,7 @@ import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
+import { MATCH_PREPARATION_ACTIONS_CLASS, MatchPreparationActions, MatchPreparationHeader } from '../components/match/MatchPreparationChrome';
 import { MatchPlayerRow } from '../components/match/MatchPlayerRow';
 import { FinishedMatchScorers } from '../components/match/FinishedMatchScorers';
 import { OefbMatchReportPanel } from '../components/match/OefbMatchReportPanel';
@@ -115,6 +116,9 @@ import { useInternalBasePath } from '../demo/demoPaths';
 import { getDemoMatchLite, getDemoMatchStatus } from '../demo/demoMatchState';
 import { getDemoLiveEventRows } from '../demo/demoLiveRuntime';
 import {
+  dsPageAtmosphereClass,
+  dsPageContentClass,
+  dsPageShellClass,
   dsPrimaryCtaClass,
   dsActionButtonClass,
   dsRsvpChoiceClass,
@@ -549,11 +553,12 @@ export const EventDetailPage: React.FC = () => {
     created_at: string;
     payload?: unknown;
   };
-  const [videoSearchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const [finishedTab, setFinishedTab] = useState<'hub' | 'overview' | 'lineup' | 'timeline' | 'stats' | 'videos' | 'comparison'>('hub');
   useEffect(() => {
-    setFinishedTab(videoSearchParams.get('tab') === 'videos' ? 'videos' : 'hub');
-  }, [videoSearchParams]);
+    setFinishedTab(searchParams.get('tab') === 'videos' ? 'videos' : 'hub');
+  }, [searchParams]);
   const [matchRowLite, setMatchRowLite] = useState<{
     id: string;
     status: string | null;
@@ -4081,6 +4086,311 @@ export const EventDetailPage: React.FC = () => {
                 ? ClipboardList
                 : CalendarPlus;
 
+  const hasMatchAttendancePage = event.kind === 'match' && canTrainerManageEvent && event.status === 'upcoming';
+  const showMatchAttendancePage = hasMatchAttendancePage && searchParams.get('ansicht') === 'verfuegbarkeit';
+  const openMatchAttendancePage = () => {
+    const next = new URLSearchParams(searchParams);
+    next.set('ansicht', 'verfuegbarkeit');
+    setSearchParams(next, { state: { matchAttendanceFrom: event.id } });
+  };
+  const returnFromMatchAttendancePage = () => {
+    if (location.state?.matchAttendanceFrom === event.id) {
+      navigate(-1);
+      return;
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete('ansicht');
+    setSearchParams(next, { replace: true });
+  };
+
+  const renderAttendanceCard = () => (
+    <Card
+      className={
+        isTraining
+          ? 'relative flex flex-col gap-4 overflow-hidden border border-[rgba(122,29,42,0.12)] bg-[rgba(18,18,20,0.94)] shadow-[0_0_32px_rgba(122,29,42,0.08),inset_0_1px_0_rgba(255,255,255,0.03)]'
+          : isEventOrOther
+            ? 'flex flex-col gap-3 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]'
+            : `sz-club-event-section relative flex flex-col gap-3 overflow-hidden border ${event.kind === 'match' && canTrainerManageEvent ? '!p-2 sm:!p-4' : ''}`
+      }
+    >
+      {isTraining ? (
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_55%_at_50%_0%,rgba(122,29,42,0.08)_0%,transparent_58%)]"
+          aria-hidden
+        />
+      ) : null}
+      {event.kind === 'match' && !(canTrainerManageEvent && event.status === 'upcoming') ? (
+        <button
+          type="button"
+          className="flex w-full items-center gap-2.5 text-left"
+          onClick={() => setMatchAttendanceExpanded((expanded) => !expanded)}
+          aria-expanded={matchAttendanceExpanded}
+        >
+          <span className="sz-club-event-section-icon inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+            <Users className="h-[18px] w-[18px]" strokeWidth={2.1} aria-hidden />
+          </span>
+          <span className="flex-1 text-[19px] font-bold text-white">Zu-/Absagen</span>
+          {matchAttendanceExpanded ? (
+            <ChevronUp className="h-5 w-5 text-white/55" aria-hidden />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-white/55" aria-hidden />
+          )}
+        </button>
+      ) : !showMatchAttendancePage ? (
+        <CardTitle className={isTraining ? 'relative z-[1]' : undefined}>
+          {isTraining ? 'Training-Teilnahme' : 'Zu-/Absagen'}
+        </CardTitle>
+      ) : null}
+
+      {event.kind !== 'match' || showMatchAttendancePage || matchAttendanceExpanded ? canTrainerManageEvent ? (
+        <div className={`flex flex-col gap-3 ${isTraining ? 'relative z-[1]' : ''}`}>
+          {isTraining ? (
+            <TrainingAttendancePanel
+              players={players}
+              getStatus={getTrainingAttendanceStatus}
+              getNote={playerId => eventAttendanceReasonByPlayerId[playerId.toLowerCase()] ?? undefined} onSetStatus={(playerId, status, note) => void handleTrainerTrainingStatus(playerId, status, note)}
+              loading={playersLoading || loadingEventAttendance}
+              className="-mx-1 min-w-0 pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))] sm:-mx-1.5"
+            />
+          ) : (
+            <>
+          <div className="mt-1 grid grid-cols-2 gap-2.5 sm:grid-cols-4 [&>div]:min-h-[70px] [&_span]:!text-xs [&_span]:!text-white/80">
+              <div className="sz-club-rsvp-stat sz-club-rsvp-stat--yes">
+                <span>Zugesagt</span>
+                <strong>{eventRsvpCounts.yes}</strong>
+              </div>
+              <div className="sz-club-rsvp-stat sz-club-rsvp-stat--open">
+                <span>Offen</span>
+                <strong>{eventRsvpCounts.open}</strong>
+              </div>
+              <div className="sz-club-rsvp-stat sz-club-rsvp-stat--no">
+                <span>Abgesagt</span>
+                <strong>{eventRsvpCounts.no}</strong>
+              </div>
+              <div className="sz-club-rsvp-stat border border-amber-500/30 bg-amber-950/20">
+                <span>Verletzt</span>
+                <strong className="!text-amber-300">{eventRsvpCounts.injured}</strong>
+              </div>
+            </div>
+          <div className={`flex min-w-0 flex-col ${DS_LIST_GAP} border-t border-[#2a2a2e]/60 pt-3`}>
+            {(playersLoading || loadingEventAttendance) && (
+              <p className="text-[14px] text-white/70">Lade…</p>
+            )}
+            {!playersLoading && !loadingEventAttendance && players.length === 0 && (
+              <p className="text-[14px] text-white/70">Keine Spieler im Kader.</p>
+            )}
+            {!playersLoading && !loadingEventAttendance && players.length > 0 && (
+              (() => {
+                const sorted = sortPlayersByRsvpBuckets(players, getAttendanceStatus);
+                const openPlayers = sorted.filter((p) => statusBucket(getAttendanceStatus, p.id) === 'open');
+                const yesPlayers = sorted.filter((p) => statusBucket(getAttendanceStatus, p.id) === 'yes');
+                const noPlayers = sorted.filter((p) => statusBucket(getAttendanceStatus, p.id) === 'no');
+
+                const renderGroup = (title: 'OFFEN' | 'DABEI' | 'ABWESEND', group: PlayerItem[]) => {
+                  if (group.length === 0) return null;
+                  return (
+                    <div className={`flex flex-col ${DS_LIST_GAP}`}>
+                      <p className="mb-0.5 mt-3 text-sm font-extrabold tracking-wide text-white/90">{title}</p>
+                      <ul className={`flex flex-col ${DS_LIST_GAP}`}>
+                        {group.map((player) => {
+                          const bucket = statusBucket(getAttendanceStatus, player.id);
+                          const rsvpDisplay = getMatchRsvpDisplay(player.id);
+                          const badge =
+                            rsvpDisplay === 'yes'
+                              ? 'DABEI'
+                              : rsvpDisplay === 'injured'
+                                ? 'VERLETZT'
+                                : rsvpDisplay === 'sick'
+                                  ? 'KRANK'
+                                  : bucket === 'no'
+                                    ? 'ABWESEND'
+                                    : 'OFFEN';
+                          const chipTone: DsChipTone =
+                            rsvpDisplay === 'yes'
+                              ? 'present'
+                              : rsvpDisplay === 'injured'
+                                ? 'injured'
+                                : bucket === 'no'
+                                  ? 'absent'
+                                  : 'open';
+                          return (
+                            <li key={player.id} className="w-full">
+                              <MatchPlayerRow
+                                player={player}
+                                status={bucket}
+                                layout="team-roster"
+                                hideSubline
+                                roomy
+                                 nameStatus={<PremiumStatusBadge label={badge} tone={chipTone} />}
+                                trailing={<AttendanceThumbControls large name={premiumPlayerDisplayName(player)} status={dbStatusToTrainingAttendance(rsvpDisplay) ?? 'open'} isLaz={player.is_laz_player} disabled={matchAttendancePending.has(`${event.id}:${player.id.toLowerCase()}`)}
+                                   onSelect={next => void (event.kind === 'match' ? saveMatchAttendance(player.id, next) : handleTrainerTrainingStatus(player.id, next))} />}
+                              />
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  );
+                };
+
+                return (
+                  <div className="flex flex-col gap-1">
+                    {renderGroup('DABEI', yesPlayers)}
+                    {renderGroup('OFFEN', openPlayers)}
+                    {renderGroup('ABWESEND', noPlayers)}
+                  </div>
+                );
+              })()
+            )}
+          </div>
+            </>
+          )}
+        </div>
+      ) : canShowSelfRsvp && !isAudienceMatchDetail ? (
+        <div className="flex flex-col gap-2">
+          {!playerId ? (
+            <p className="text-[14px] text-white/90">Kein Spieler zugeordnet. Bitte beim Trainer melden.</p>
+          ) : loadingRsvp ? (
+            <p className="text-[14px] text-white/70">Lade Status…</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {isTraining ? (
+                <>
+                  <p className="text-[12px] text-white/70">
+                    {event.training_absence_deadline_disabled
+                      ? 'Absage jederzeit möglich.'
+                      : 'Absage bis 12:00 Uhr am Trainingstag möglich (Europe/Vienna).'}
+                  </p>
+                  {rsvpStatus === 'other_team_training' ? <p className="text-[14px] text-violet-200">Training bei anderer Mannschaft · Einheit angerechnet</p> : null}
+                  <details className="rounded-xl border border-white/15 p-3">
+                    <summary className="min-h-11 cursor-pointer text-[15px] font-bold">Training bei anderer Mannschaft</summary>
+                    <label className="block text-[14px]">Mannschaft / Hinweis<input maxLength={80} placeholder="z. B. U13 · Fahrgemeinschaft" value={cancelReason} onChange={e => setCancelReason(e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/20 bg-black/40 px-3 text-white" /></label>
+                    <p className="my-2 text-[13px] text-white/65">Beim eigenen Team abwesend, Trainingseinheit wird wie LAZ angerechnet.</p>
+                    <button type="button" disabled={!trainingCancellationAllowed || !cancelReason.trim()} className="sz-club-event-action min-h-12 w-full rounded-full border disabled:opacity-40" onClick={() => void handleRsvp('other_team_training', cancelReason)}>Andere Mannschaft speichern</button>
+                  </details>
+                  {!trainingCancellationAllowed &&
+                  rsvpStatus !== 'no' &&
+                  rsvpStatus !== 'sick' &&
+                  rsvpStatus !== 'injured' &&
+                  rsvpStatus !== 'other_team_training' &&
+                  rsvpStatus !== 'external_training' ? (
+                    <p className="mt-1 text-[12px] text-amber-200/90">Absagefrist ist vorbei – Teilnahme gilt als „Dabei“.</p>
+                  ) : null}
+                  <div
+                    className={`mt-3 grid grid-cols-2 ${DS_STAT_GRID_GAP}`}
+                  >
+                    {rsvpStatus === 'no' ||
+                    rsvpStatus === 'sick' ||
+                    rsvpStatus === 'injured' ||
+                    rsvpStatus === 'other_team_training' ||
+                    rsvpStatus === 'external_training' ? (
+                      <button
+                        type="button"
+                        className={`${dsRsvpChoiceClass('yes', true)} col-span-2`}
+                        onClick={() => void handleRsvp('yes')}
+                      >
+                        <ThumbsUp className="h-4 w-4" aria-hidden />
+                        Wieder dabei
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      disabled={!trainingCancellationAllowed && rsvpStatus !== 'no'}
+                      className={`${dsRsvpChoiceClass('no', rsvpStatus === 'no')} col-span-2`}
+                      onClick={() => {
+                        if (!trainingCancellationAllowed && rsvpStatus !== 'no') return;
+                        void handleRsvp('no');
+                      }}
+                    >
+                      <ThumbsDown className="h-4 w-4" aria-hidden />
+                      Abwesend
+                    </button>
+                    <button
+                      type="button"
+                      className={`${dsActionButtonClass('sick', rsvpStatus === 'sick')} !h-11 !rounded-[16px] !text-sm`}
+                      onClick={() => void handleRsvp('sick')}
+                    >
+                      Krank
+                    </button>
+                    <button
+                      type="button"
+                      className={`${dsActionButtonClass('injured', rsvpStatus === 'injured')} !h-11 !rounded-[16px] !text-sm`}
+                      onClick={() => void handleRsvp('injured')}
+                    >
+                      Verletzt
+                    </button>
+                    {linkedPlayerIsLaz ? (
+                      <button
+                        type="button"
+                        className={`${dsRsvpLazChoiceClass(rsvpStatus === 'external_training')} col-span-2`}
+                        onClick={() => void handleRsvp('external_training')}
+                      >
+                        LAZ
+                      </button>
+                    ) : null}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className={`mt-1 grid grid-cols-2 ${DS_STAT_GRID_GAP}`}>
+                    <button
+                      type="button"
+                      className={dsRsvpChoiceClass('yes', rsvpStatus === 'yes')}
+                      onClick={() => void handleRsvp('yes')}
+                    >
+                      <ThumbsUp className="h-4 w-4" aria-hidden />
+                      Zusage
+                    </button>
+                    <button
+                      type="button"
+                      className={dsRsvpChoiceClass('no', rsvpStatus === 'no')}
+                      onClick={() => void handleRsvp('no')}
+                    >
+                      <ThumbsDown className="h-4 w-4" aria-hidden />
+                      Absage
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      ) : null : null}
+    </Card>
+  );
+
+  if (showMatchAttendancePage) {
+    const writePending = [...matchAttendancePending].some(key => key.startsWith(`${event.id}:`));
+    const writeFailed = [...matchAttendanceErrors].some(key => key.startsWith(`${event.id}:`));
+    return (
+      <div className={dsPageShellClass()} style={matchClub.style}>
+        <div className={dsPageAtmosphereClass()} aria-hidden />
+        <MatchPreparationHeader
+          title="Verfügbarkeit klären"
+          opponent={event.opponent}
+          onBack={returnFromMatchAttendancePage}
+          hasMatchCenter
+          backDisabled={writePending}
+        />
+        <div className={dsPageContentClass('mx-auto w-full max-w-xl px-4 py-5 pb-48')}>
+          {renderAttendanceCard()}
+        </div>
+        <MatchPreparationActions>
+          {writeFailed ? (
+            <p role="alert" className="text-sm text-red-300">Eine Auswahl konnte nicht gespeichert werden. Bitte tippe erneut.</p>
+          ) : (
+            <p className="text-sm font-semibold text-white/75">Zu- und Absagen werden direkt gespeichert.</p>
+          )}
+          <div className={MATCH_PREPARATION_ACTIONS_CLASS}>
+            <button type="button" onClick={returnFromMatchAttendancePage} disabled={writePending} className={dsPrimaryCtaClass()}>
+              {writePending ? 'Speichert…' : 'Fertig'}
+            </button>
+          </div>
+        </MatchPreparationActions>
+      </div>
+    );
+  }
+
   return (
     <div style={matchClub.style} className={`min-h-screen text-white ${event.kind === 'match' || isTraining || isTournament ? 'sz-club-event-detail' : 'bg-black'}`}>
       <div
@@ -4374,7 +4684,7 @@ export const EventDetailPage: React.FC = () => {
 
         {event.kind === 'match' && canTrainerManageEvent && event.status === 'upcoming' ? <MatchPreparationAssistant
           matchId={event.match_id} centerEventId={event.id} matchLabel={event.is_home === false ? `${event.opponent || 'Gegner'} · ${ourTeamName}` : `${ourTeamName} · ${event.opponent || 'Gegner'}`} basePath={basePath} playerCount={players.length} yesCount={eventRsvpCounts.yes} openCount={eventRsvpCounts.open}
-          attendanceLoading={playersLoading || loadingEventAttendance} onOpenAttendance={() => { setMatchAttendanceExpanded(true); setCenterAttendanceOpen(true); }}
+          attendanceLoading={playersLoading || loadingEventAttendance} onOpenAttendance={openMatchAttendancePage}
         /> : null}
 
         {!isDemo && event.kind === 'match' && event.status !== 'canceled' && event.team_season_id && (
@@ -4517,278 +4827,20 @@ export const EventDetailPage: React.FC = () => {
           />
         ) : null}
 
-        {!isFan &&
+        {!hasMatchAttendancePage && !isFan &&
         !(isTraining && event.status === 'canceled') &&
         !(event.kind === 'match' && event.status === 'canceled') &&
         !(isAudienceMatchDetail && canShowSelfRsvp) &&
         !(isTournament && (canTrainerViewEvent || event.status === 'canceled')) &&
         !(isTraining && canTrainerViewEvent) ? (
-          <CenterAttendanceSurface title={isTournament?'Zu-/Absage':undefined} className={isTournament ? 'tournamentWorkflowModal' : event.kind === 'match' ? 'matchAttendanceModal' : undefined} dialog={(event.kind === 'match' && canTrainerManageEvent && event.status === 'upcoming') || (isTournament && !canTrainerViewEvent && canShowSelfRsvp)} open={centerAttendanceOpen} onClose={() => setCenterAttendanceOpen(false)}
-            footer={event.kind === 'match' && canTrainerManageEvent && event.status === 'upcoming' ? (
-              <div className="flex flex-col gap-2">
-                {[...matchAttendanceErrors].some(key => key.startsWith(`${event.id}:`)) ? (
-                  <p role="alert" className="text-sm text-red-300">Eine Auswahl konnte nicht gespeichert werden. Bitte tippe erneut.</p>
-                ) : (
-                  <p className="text-sm text-white/65">Zu- und Absagen werden direkt gespeichert.</p>
-                )}
-                <button type="button" onClick={() => setCenterAttendanceOpen(false)}
-                  disabled={[...matchAttendancePending].some(key => key.startsWith(`${event.id}:`))}
-                  className={`${dsPrimaryCtaClass()} !min-h-12 w-full !text-base disabled:opacity-45`}>Fertig</button>
-              </div>
-            ) : undefined}>
-          <Card
-            className={
-              isTraining
-                ? 'relative flex flex-col gap-4 overflow-hidden border border-[rgba(122,29,42,0.12)] bg-[rgba(18,18,20,0.94)] shadow-[0_0_32px_rgba(122,29,42,0.08),inset_0_1px_0_rgba(255,255,255,0.03)]'
-                : isEventOrOther
-                  ? 'flex flex-col gap-3 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]'
-                  : `sz-club-event-section relative flex flex-col gap-3 overflow-hidden border ${event.kind === 'match' && canTrainerManageEvent ? '!p-2 sm:!p-4' : ''}`
-            }
+          <CenterAttendanceSurface
+            title={isTournament ? 'Zu-/Absage' : undefined}
+            className={isTournament ? 'tournamentWorkflowModal' : event.kind === 'match' ? 'matchAttendanceModal' : undefined}
+            dialog={isTournament && !canTrainerViewEvent && canShowSelfRsvp}
+            open={centerAttendanceOpen}
+            onClose={() => setCenterAttendanceOpen(false)}
           >
-            {isTraining ? (
-              <div
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_55%_at_50%_0%,rgba(122,29,42,0.08)_0%,transparent_58%)]"
-                aria-hidden
-              />
-            ) : null}
-            {event.kind === 'match' && !(canTrainerManageEvent && event.status === 'upcoming') ? (
-              <button
-                type="button"
-                className="flex w-full items-center gap-2.5 text-left"
-                onClick={() => setMatchAttendanceExpanded((expanded) => !expanded)}
-                aria-expanded={matchAttendanceExpanded}
-              >
-                <span className="sz-club-event-section-icon inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
-                  <Users className="h-[18px] w-[18px]" strokeWidth={2.1} aria-hidden />
-                </span>
-                <span className="flex-1 text-[19px] font-bold text-white">Zu-/Absagen</span>
-                {matchAttendanceExpanded ? (
-                  <ChevronUp className="h-5 w-5 text-white/55" aria-hidden />
-                ) : (
-                  <ChevronDown className="h-5 w-5 text-white/55" aria-hidden />
-                )}
-              </button>
-            ) : (
-              <CardTitle className={isTraining ? 'relative z-[1]' : undefined}>
-                {isTraining ? 'Training-Teilnahme' : 'Zu-/Absagen'}
-              </CardTitle>
-            )}
-
-            {event.kind !== 'match' || matchAttendanceExpanded ? canTrainerManageEvent ? (
-              <div className={`flex flex-col gap-3 ${isTraining ? 'relative z-[1]' : ''}`}>
-                {isTraining ? (
-                  <TrainingAttendancePanel
-                    players={players}
-                    getStatus={getTrainingAttendanceStatus}
-                    getNote={playerId => eventAttendanceReasonByPlayerId[playerId.toLowerCase()] ?? undefined} onSetStatus={(playerId, status, note) => void handleTrainerTrainingStatus(playerId, status, note)}
-                    loading={playersLoading || loadingEventAttendance}
-                    className="-mx-1 min-w-0 pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))] sm:-mx-1.5"
-                  />
-                ) : (
-                  <>
-                <div className="mt-1 grid grid-cols-2 gap-2.5 sm:grid-cols-4 [&>div]:min-h-[70px] [&_span]:!text-xs [&_span]:!text-white/80">
-                    <div className="sz-club-rsvp-stat sz-club-rsvp-stat--yes">
-                      <span>Zugesagt</span>
-                      <strong>{eventRsvpCounts.yes}</strong>
-                    </div>
-                    <div className="sz-club-rsvp-stat sz-club-rsvp-stat--open">
-                      <span>Offen</span>
-                      <strong>{eventRsvpCounts.open}</strong>
-                    </div>
-                    <div className="sz-club-rsvp-stat sz-club-rsvp-stat--no">
-                      <span>Abgesagt</span>
-                      <strong>{eventRsvpCounts.no}</strong>
-                    </div>
-                    <div className="sz-club-rsvp-stat border border-amber-500/30 bg-amber-950/20">
-                      <span>Verletzt</span>
-                      <strong className="!text-amber-300">{eventRsvpCounts.injured}</strong>
-                    </div>
-                  </div>
-                <div className={`flex min-w-0 flex-col ${DS_LIST_GAP} border-t border-[#2a2a2e]/60 pt-3`}>
-                  {(playersLoading || loadingEventAttendance) && (
-                    <p className="text-[14px] text-white/70">Lade…</p>
-                  )}
-                  {!playersLoading && !loadingEventAttendance && players.length === 0 && (
-                    <p className="text-[14px] text-white/70">Keine Spieler im Kader.</p>
-                  )}
-                  {!playersLoading && !loadingEventAttendance && players.length > 0 && (
-                    (() => {
-                      const sorted = sortPlayersByRsvpBuckets(players, getAttendanceStatus);
-                      const openPlayers = sorted.filter((p) => statusBucket(getAttendanceStatus, p.id) === 'open');
-                      const yesPlayers = sorted.filter((p) => statusBucket(getAttendanceStatus, p.id) === 'yes');
-                      const noPlayers = sorted.filter((p) => statusBucket(getAttendanceStatus, p.id) === 'no');
-
-                      const renderGroup = (title: 'OFFEN' | 'DABEI' | 'ABWESEND', group: PlayerItem[]) => {
-                        if (group.length === 0) return null;
-                        return (
-                          <div className={`flex flex-col ${DS_LIST_GAP}`}>
-                            <p className="mb-0.5 mt-3 text-sm font-extrabold tracking-wide text-white/90">{title}</p>
-                            <ul className={`flex flex-col ${DS_LIST_GAP}`}>
-                              {group.map((player) => {
-                                const bucket = statusBucket(getAttendanceStatus, player.id);
-                                const rsvpDisplay = getMatchRsvpDisplay(player.id);
-                                const badge =
-                                  rsvpDisplay === 'yes'
-                                    ? 'DABEI'
-                                    : rsvpDisplay === 'injured'
-                                      ? 'VERLETZT'
-                                      : rsvpDisplay === 'sick'
-                                        ? 'KRANK'
-                                        : bucket === 'no'
-                                          ? 'ABWESEND'
-                                          : 'OFFEN';
-                                const chipTone: DsChipTone =
-                                  rsvpDisplay === 'yes'
-                                    ? 'present'
-                                    : rsvpDisplay === 'injured'
-                                      ? 'injured'
-                                      : bucket === 'no'
-                                        ? 'absent'
-                                        : 'open';
-                                return (
-                                  <li key={player.id} className="w-full">
-                                    <MatchPlayerRow
-                                      player={player}
-                                      status={bucket}
-                                      layout="team-roster"
-                                      hideSubline
-                                      roomy
-                                       nameStatus={<PremiumStatusBadge label={badge} tone={chipTone} />}
-                                      trailing={<AttendanceThumbControls large name={premiumPlayerDisplayName(player)} status={dbStatusToTrainingAttendance(rsvpDisplay) ?? 'open'} isLaz={player.is_laz_player} disabled={matchAttendancePending.has(`${event.id}:${player.id.toLowerCase()}`)}
-                                         onSelect={next => void (event.kind === 'match' ? saveMatchAttendance(player.id, next) : handleTrainerTrainingStatus(player.id, next))} />}
-                                    />
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          </div>
-                        );
-                      };
-
-                      return (
-                        <div className="flex flex-col gap-1">
-                          {renderGroup('DABEI', yesPlayers)}
-                          {renderGroup('OFFEN', openPlayers)}
-                          {renderGroup('ABWESEND', noPlayers)}
-                        </div>
-                      );
-                    })()
-                  )}
-                </div>
-                  </>
-                )}
-              </div>
-            ) : canShowSelfRsvp && !isAudienceMatchDetail ? (
-              <div className="flex flex-col gap-2">
-                {!playerId ? (
-                  <p className="text-[14px] text-white/90">Kein Spieler zugeordnet. Bitte beim Trainer melden.</p>
-                ) : loadingRsvp ? (
-                  <p className="text-[14px] text-white/70">Lade Status…</p>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {isTraining ? (
-                      <>
-                        <p className="text-[12px] text-white/70">
-                          {event.training_absence_deadline_disabled
-                            ? 'Absage jederzeit möglich.'
-                            : 'Absage bis 12:00 Uhr am Trainingstag möglich (Europe/Vienna).'}
-                        </p>
-                        {rsvpStatus === 'other_team_training' ? <p className="text-[14px] text-violet-200">Training bei anderer Mannschaft · Einheit angerechnet</p> : null}
-                        <details className="rounded-xl border border-white/15 p-3">
-                          <summary className="min-h-11 cursor-pointer text-[15px] font-bold">Training bei anderer Mannschaft</summary>
-                          <label className="block text-[14px]">Mannschaft / Hinweis<input maxLength={80} placeholder="z. B. U13 · Fahrgemeinschaft" value={cancelReason} onChange={e => setCancelReason(e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/20 bg-black/40 px-3 text-white" /></label>
-                          <p className="my-2 text-[13px] text-white/65">Beim eigenen Team abwesend, Trainingseinheit wird wie LAZ angerechnet.</p>
-                          <button type="button" disabled={!trainingCancellationAllowed || !cancelReason.trim()} className="sz-club-event-action min-h-12 w-full rounded-full border disabled:opacity-40" onClick={() => void handleRsvp('other_team_training', cancelReason)}>Andere Mannschaft speichern</button>
-                        </details>
-                        {!trainingCancellationAllowed &&
-                        rsvpStatus !== 'no' &&
-                        rsvpStatus !== 'sick' &&
-                        rsvpStatus !== 'injured' &&
-                        rsvpStatus !== 'other_team_training' &&
-                        rsvpStatus !== 'external_training' ? (
-                          <p className="mt-1 text-[12px] text-amber-200/90">Absagefrist ist vorbei – Teilnahme gilt als „Dabei“.</p>
-                        ) : null}
-                        <div
-                          className={`mt-3 grid grid-cols-2 ${DS_STAT_GRID_GAP}`}
-                        >
-                          {rsvpStatus === 'no' ||
-                          rsvpStatus === 'sick' ||
-                          rsvpStatus === 'injured' ||
-                          rsvpStatus === 'other_team_training' ||
-                          rsvpStatus === 'external_training' ? (
-                            <button
-                              type="button"
-                              className={`${dsRsvpChoiceClass('yes', true)} col-span-2`}
-                              onClick={() => void handleRsvp('yes')}
-                            >
-                              <ThumbsUp className="h-4 w-4" aria-hidden />
-                              Wieder dabei
-                            </button>
-                          ) : null}
-                          <button
-                            type="button"
-                            disabled={!trainingCancellationAllowed && rsvpStatus !== 'no'}
-                            className={`${dsRsvpChoiceClass('no', rsvpStatus === 'no')} col-span-2`}
-                            onClick={() => {
-                              if (!trainingCancellationAllowed && rsvpStatus !== 'no') return;
-                              void handleRsvp('no');
-                            }}
-                          >
-                            <ThumbsDown className="h-4 w-4" aria-hidden />
-                            Abwesend
-                          </button>
-                          <button
-                            type="button"
-                            className={`${dsActionButtonClass('sick', rsvpStatus === 'sick')} !h-11 !rounded-[16px] !text-sm`}
-                            onClick={() => void handleRsvp('sick')}
-                          >
-                            Krank
-                          </button>
-                          <button
-                            type="button"
-                            className={`${dsActionButtonClass('injured', rsvpStatus === 'injured')} !h-11 !rounded-[16px] !text-sm`}
-                            onClick={() => void handleRsvp('injured')}
-                          >
-                            Verletzt
-                          </button>
-                          {linkedPlayerIsLaz ? (
-                            <button
-                              type="button"
-                              className={`${dsRsvpLazChoiceClass(rsvpStatus === 'external_training')} col-span-2`}
-                              onClick={() => void handleRsvp('external_training')}
-                            >
-                              LAZ
-                            </button>
-                          ) : null}
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className={`mt-1 grid grid-cols-2 ${DS_STAT_GRID_GAP}`}>
-                          <button
-                            type="button"
-                            className={dsRsvpChoiceClass('yes', rsvpStatus === 'yes')}
-                            onClick={() => void handleRsvp('yes')}
-                          >
-                            <ThumbsUp className="h-4 w-4" aria-hidden />
-                            Zusage
-                          </button>
-                          <button
-                            type="button"
-                            className={dsRsvpChoiceClass('no', rsvpStatus === 'no')}
-                            onClick={() => void handleRsvp('no')}
-                          >
-                            <ThumbsDown className="h-4 w-4" aria-hidden />
-                            Absage
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : null : null}
-          </Card>
+            {renderAttendanceCard()}
           </CenterAttendanceSurface>
         ) : null}
 
