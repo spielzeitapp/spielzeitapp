@@ -156,17 +156,31 @@ try {
   });
   const replay = view.root.findByProps({ id: 'livestream' });
   assert.equal(replay.findByType('h2').props.children, 'Turnieraufzeichnung');
-  assert(replay.findByType('button').props.children.includes('Aufzeichnung ansehen'));
-  await act(async () => replay.findByType('button').props.onClick());
   assert.equal(replay.findByType('iframe').props.title, 'Turnieraufzeichnung');
+  assert.equal(replay.findByType('iframe').props.src, tournamentLivestreamEmbedUrl(page.livestreamUrl, { autoplay: false }));
+  const initialTicker = replay.parent.children[replay.parent.children.indexOf(replay) + 1];
+  assert.equal(initialTicker.findByType('h2').props.children, 'Unser Turnier-Liveticker');
   page.recordingParts = ['https://www.youtube.com/watch?v=bYeY33rVWjM', page.livestreamUrl];
   await act(async () => refresh());
   const parts = replay.findByProps({ 'aria-label': 'Teile der Turnieraufzeichnung' }).findAllByType('button');
   assert.equal(parts.length, 2);
+  assert.equal(parts[0].props['aria-pressed'], true);
+  assert.equal(replay.findByType('iframe').props.src, tournamentLivestreamEmbedUrl(page.recordingParts[0], { autoplay: false }));
   await act(async () => parts[0].props.onClick());
   assert.equal(replay.findByType('iframe').props.src, tournamentLivestreamEmbedUrl(page.recordingParts[0]));
   await act(async () => parts[1].props.onClick());
   assert.equal(replay.findByType('iframe').props.src, tournamentLivestreamEmbedUrl(page.recordingParts[1]));
+  await act(async () => replay.findAllByType('button').find(b => b.props.children === 'Player schließen').props.onClick());
+  await act(async () => refresh());
+  assert.equal(replay.findAllByType('iframe').length, 0, 'polling respects a closed recording');
+  await act(async () => view.unmount());
+
+  await act(async () => {
+    view = TestRenderer.create(h(MemoryRouter, null, h(PublicTeamTournamentPage, {
+      embedded: true, publicIdOverride: 'fixture',
+    })));
+  });
+  assert.equal(view.root.findByType('iframe').props.src, tournamentLivestreamEmbedUrl(page.recordingParts[0], { autoplay: false }));
   await act(async () => view.unmount());
 
   globalThis.savedTournamentVideos = [];

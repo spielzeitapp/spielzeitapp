@@ -81,18 +81,23 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const [page, setPage] = useState<PublicTeamTournamentPageDto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [openedStream, setOpenedStream] = useState<{ publicId: string; url: string } | null>(null);
+  const [openedStream, setOpenedStream] = useState<{ publicId: string; url: string | null } | null>(null);
   const livestreamSection = useRef<HTMLElement>(null);
   const tickerSection = useRef<HTMLElement>(null);
   const livestreamUrl = tournamentLivestreamUrl(page?.livestreamUrl);
   const recording = page?.livestreamIsRecording ?? page?.tournamentStatus === 'finished';
   const recordingParts = recording && page?.recordingParts?.length ? page.recordingParts : [];
   const streamLabel = recording ? 'Aufzeichnung ansehen' : 'Livestream ansehen';
-  const selectedVideo = openedStream?.publicId === publicId && (
-    recordingParts.length ? recordingParts.includes(openedStream.url) : openedStream.url === livestreamUrl
-  ) ? openedStream.url : null;
-  const embedUrl = tournamentLivestreamEmbedUrl(selectedVideo || livestreamUrl);
-  const playerOpen = Boolean(selectedVideo && embedUrl);
+  const playerChoice = openedStream?.publicId === publicId ? openedStream : null;
+  const chosenVideo = playerChoice?.url ?? null;
+  const explicitlyOpened = Boolean(chosenVideo && (
+    recordingParts.length ? recordingParts.includes(chosenVideo) : chosenVideo === livestreamUrl
+  ));
+  const defaultPreview = recording && !playerChoice ? (recordingParts[0] ?? livestreamUrl) : null;
+  const selectedVideo = explicitlyOpened ? chosenVideo : defaultPreview;
+  const embedUrl = tournamentLivestreamEmbedUrl(selectedVideo, { autoplay: explicitlyOpened });
+  const playerOpen = Boolean(embedUrl);
+  const canOpenPlayer = Boolean(tournamentLivestreamEmbedUrl(livestreamUrl));
   useEffect(() => {
     setOpenedStream(null);
   }, [publicId, livestreamUrl]);
@@ -378,13 +383,13 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
                     className="inline-flex min-h-11 items-center text-sm font-bold text-[var(--t-accent)]">
                     Beim Anbieter öffnen ↗
                   </a>
-                  <button type="button" onClick={() => setOpenedStream(null)}
+                  <button type="button" onClick={() => setOpenedStream({ publicId, url: null })}
                     className="min-h-11 px-2 text-sm font-bold text-[var(--t-muted)]">
                     Player schließen
                   </button>
                 </div>
               </>
-            ) : recordingParts.length ? null : embedUrl ? (
+            ) : recordingParts.length ? null : canOpenPlayer ? (
               <button type="button" onClick={() => setOpenedStream({ publicId, url: livestreamUrl })}
                 className="public-tournament-cta flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-5 font-bold">
                 <Play size={18} aria-hidden /> {streamLabel}

@@ -11,7 +11,7 @@ export function tournamentLivestreamUrl(value) {
   }
 }
 
-export function tournamentLivestreamEmbedUrl(value) {
+export function tournamentLivestreamEmbedUrl(value, { autoplay = true } = {}) {
   const safeUrl = tournamentLivestreamUrl(value);
   if (!safeUrl) return null;
   const url = new URL(safeUrl);
@@ -21,7 +21,7 @@ export function tournamentLivestreamEmbedUrl(value) {
     || url.hostname === 'iframe.videodelivery.net';
   const cloudflareVideo = /^\/([a-f0-9]{32}|[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)\/iframe\/?$/.exec(url.pathname);
   if (cloudflareHost && cloudflareVideo) {
-    return new URL(`/${cloudflareVideo[1]}/iframe?autoplay=true`, url.origin).href;
+    return new URL(`/${cloudflareVideo[1]}/iframe?autoplay=${autoplay}`, url.origin).href;
   }
 
   const shortLink = url.hostname === 'youtu.be';
@@ -33,7 +33,7 @@ export function tournamentLivestreamEmbedUrl(value) {
     : youtubeHost || privacyHost ? /^\/(?:embed|live)\/([^/]+)\/?$/.exec(url.pathname)?.[1]
     : null;
   if (videoId && /^[A-Za-z0-9_-]{11}$/.test(videoId)) {
-    return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&playsinline=1`;
+    return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${autoplay ? 1 : 0}&playsinline=1`;
   }
   return null;
 }
