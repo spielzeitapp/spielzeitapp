@@ -21,6 +21,19 @@ function resolveLogo(name: unknown, map?: ReadonlyMap<string, string | null>): s
   return getClubLogo(name, { logoUrl: url ?? undefined });
 }
 
+function tournamentOwnDisplayName(slot: TournamentMatchSlotView, seasonName: string): string {
+  const home = safeText(slot.home_team);
+  const away = safeText(slot.away_team);
+  const opponent = safeText(slot.opponent_name).toLowerCase();
+
+  if (home && away && opponent && home.toLowerCase() !== away.toLowerCase()) {
+    if (away.toLowerCase() === opponent) return home;
+    if (home.toLowerCase() === opponent) return away;
+  }
+
+  return safeText(seasonName) || 'Unser Team';
+}
+
 function TournamentTeamLogo({
   name,
   map,
@@ -57,7 +70,7 @@ export function TournamentMatchCenterPoster({
   tournamentTitle,
   participantLogoByName,
 }: Props) {
-  const homeTeam = safeText(ourTeamName) || 'Unser Team';
+  const homeTeam = tournamentOwnDisplayName(slot, ourTeamName);
   const awayTeam = safeText(slot.opponent_name) || 'Gegner';
   const kickoff = formatTimeHHmmDe(slot.kickoff_at);
   const phaseLabel = tournamentPhaseDisplayLabel(slot.phase, slot.group_label);
@@ -127,7 +140,7 @@ export function TournamentFirstMatchPreview({
     );
   }
 
-  const homeTeam = safeText(ourTeamName) || 'Unser Team';
+  const homeTeam = tournamentOwnDisplayName(slot, ourTeamName);
   const awayTeam = safeText(slot.opponent_name) || 'Gegner';
   const dateParts = formatHeroDateParts(slot.kickoff_at);
   const kickoff = formatTimeHHmmDe(slot.kickoff_at);
