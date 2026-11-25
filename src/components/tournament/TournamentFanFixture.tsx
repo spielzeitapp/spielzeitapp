@@ -1,4 +1,6 @@
 import { TournamentTeamName } from './TournamentTeamName';
+import { formatHeroDateParts } from '../schedule/scheduleEventViewUtils';
+import { VIENNA_TZ } from '../../lib/viennaTime';
 import { displayLogoUrl } from '../../lib/logoPreparation';
 import React, {useState,useEffect} from 'react';
 import type {PublicTournamentMatchDetails} from '../../lib/publicTeamTournament';
@@ -16,7 +18,38 @@ export function FanTeamLogo({name,logos={},ownName,ownLogo,small=false}:{name:st
  const src=displayLogoUrl(name===ownName&&ownLogo?ownLogo:hasKnownClubLogo(name)?getClubLogo(name):catalog||PLACEHOLDER_LOGO);
  return <img src={src} alt="" className={`${small?'h-7 w-7':'h-16 w-16 sm:h-20 sm:w-20'} shrink-0 object-contain`} onError={e=>{const img=e.currentTarget;const url=new URL(img.src,window.location.href);if(url.pathname==='/api/tournament-plan-analyze'&&url.searchParams.get('logo')){img.src=url.searchParams.get('logo')!;}else if(!img.src.endsWith(PLACEHOLDER_LOGO))img.src=PLACEHOLDER_LOGO;}}/>;
 }
-export function TournamentFanFixture({home,away,homeGoals,awayGoals,time,phase,logos,ownName,ownLogo,scorers=[],status,clock,officialDecision,prominent=false}:{home:string;away:string;homeGoals:number|null;awayGoals:number|null;time:string;phase:string;logos?:Record<string,string>;ownName?:string|null;ownLogo?:string|null;scorers?:Array<{name:string;goals:number;example?:boolean}>;status?:string;clock?:PublicTournamentMatchDetails;officialDecision?:PublicTournamentMatchDetails['officialDecision'];prominent?:boolean}) {
+export type TournamentMatchCardHeader = {
+  kickoffAt?: string | null;
+  ageGroup?: string | null;
+};
+
+function MatchCardHeader({ kickoffAt, ageGroup, phase, time, showKickoff }: TournamentMatchCardHeader & {
+  phase: string; time: string; showKickoff: boolean;
+}) {
+  const date = kickoffAt && Number.isFinite(Date.parse(kickoffAt)) ? new Date(kickoffAt) : null;
+  const dateParts = date ? formatHeroDateParts(kickoffAt) : null;
+  const year = date ? new Intl.DateTimeFormat('de-AT', { year: 'numeric', timeZone: VIENNA_TZ }).format(date) : null;
+  const subtitle = [phase !== 'Turnierspiel' ? phase : '', showKickoff && time ? `${time} Uhr` : ''].filter(Boolean).join(' · ');
+  return (
+    <header className="relative mb-3 grid min-h-12 grid-cols-[3rem_minmax(0,1fr)_3rem] items-center gap-2 border-b border-white/10 pb-2">
+      {dateParts ? (
+        <time dateTime={kickoffAt ?? undefined} className="flex flex-col items-center text-xs font-semibold leading-tight">
+          <span className="text-[10px] font-bold tracking-widest text-[var(--t-accent)]">{dateParts.wd}</span>
+          <span className="text-2xl font-black tabular-nums leading-none">{dateParts.day}</span>
+          <span>{dateParts.mon}</span>
+          <span className="text-[10px] text-[var(--t-muted)]">{year}</span>
+        </time>
+      ) : null}
+      <div className="col-start-2 col-end-3 row-start-1 text-center">
+        {ageGroup ? <p className="text-xs font-extrabold uppercase tracking-widest text-[var(--t-accent)]">{ageGroup}</p> : null}
+        <p className="text-sm font-extrabold uppercase tracking-wide">Turnier</p>
+        {subtitle ? <p className="text-xs font-semibold text-[var(--t-muted)]">{subtitle}</p> : null}
+      </div>
+    </header>
+  );
+}
+
+export function TournamentFanFixture({home,away,homeGoals,awayGoals,time,phase,logos,ownName,ownLogo,scorers=[],status,clock,officialDecision,matchHeader,prominent=false}:{home:string;away:string;homeGoals:number|null;awayGoals:number|null;time:string;phase:string;logos?:Record<string,string>;ownName?:string|null;ownLogo?:string|null;scorers?:Array<{name:string;goals:number;example?:boolean}>;status?:string;clock?:PublicTournamentMatchDetails;officialDecision?:PublicTournamentMatchDetails['officialDecision'];prominent?:boolean;matchHeader?:TournamentMatchCardHeader}) {
  const shootout = clock?.decision?.shootout;
  const organizerDecision = officialDecision ?? clock?.officialDecision;
  const resultSuffix = status !== 'finished' ? null
@@ -26,7 +59,7 @@ export function TournamentFanFixture({home,away,homeGoals,awayGoals,time,phase,l
    : homeGoals == null || awayGoals == null ? (status === 'live' || status === 'scheduled-live' ? '–:–' : time)
    : `${homeGoals}:${awayGoals}`;
  const liveLabel = shootout ? 'Entscheidungsschießen' : clock?.decision?.extraTime ? 'Verlängerung' : 'JETZT LIVE';
- return <article data-fan-fixture={prominent || status === 'live' ? 'featured' : 'standard'} className="overflow-hidden rounded-2xl border border-[var(--t-border,rgba(200,35,51,.28))] bg-[image:var(--t-fixture,linear-gradient(135deg,#121114,#270e15))] p-4 text-[var(--t-text,#fff)] shadow-sm"><p className="fan-fixture-meta mb-4 text-sm font-semibold text-[var(--t-muted,#b5b5bc)]"><span data-repeat-time={score === time || undefined}>{time} Uhr · </span>{phase}</p><div className="fan-fixture-pairing grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2"><div className="flex min-w-0 flex-col items-center gap-2 text-center"><FanTeamLogo name={home} logos={logos} ownName={ownName} ownLogo={ownLogo}/><p className="fan-fixture-team text-base font-bold leading-snug break-words"><TournamentTeamName name={home} /></p></div><div className="fan-fixture-center pt-2 text-center"><p className="fan-fixture-status text-xs font-extrabold uppercase tracking-[.08em] text-[var(--t-accent,#fda4af)]">{status==='live'?liveLabel:status==='scheduled-live'?'Spielstand offen':homeGoals==null?(prominent?'Nächstes Spiel':'Anpfiff'):'Endstand'}</p><p className={`fan-fixture-score mt-1 whitespace-nowrap ${prominent ? 'text-[48px] sm:text-[56px]' : 'text-[34px]'} font-extrabold leading-tight tabular-nums`}>{score}</p>
+ return <article data-fan-fixture={prominent || status === 'live' ? 'featured' : 'standard'} className="overflow-hidden rounded-2xl border border-[var(--t-border,rgba(200,35,51,.28))] bg-[image:var(--t-fixture,linear-gradient(135deg,#121114,#270e15))] p-4 text-[var(--t-text,#fff)] shadow-sm">{matchHeader ? <MatchCardHeader {...matchHeader} phase={phase} time={time} showKickoff={score !== time} /> : <p className="fan-fixture-meta mb-4 text-sm font-semibold text-[var(--t-muted,#b5b5bc)]"><span data-repeat-time={score === time || undefined}>{time} Uhr · </span>{phase}</p>}<div className="fan-fixture-pairing grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2"><div className="flex min-w-0 flex-col items-center gap-2 text-center"><FanTeamLogo name={home} logos={logos} ownName={ownName} ownLogo={ownLogo}/><p className="fan-fixture-team text-base font-bold leading-snug break-words"><TournamentTeamName name={home} /></p></div><div className="fan-fixture-center pt-2 text-center"><p className="fan-fixture-status text-xs font-extrabold uppercase tracking-[.08em] text-[var(--t-accent,#fda4af)]">{status==='live'?liveLabel:status==='scheduled-live'?'Spielstand offen':homeGoals==null?(prominent?'Nächstes Spiel':'Anpfiff'):'Endstand'}</p><p className={`fan-fixture-score mt-1 whitespace-nowrap ${prominent ? 'text-[48px] sm:text-[56px]' : 'text-[34px]'} font-extrabold leading-tight tabular-nums`}>{score}</p>
       {shootout || resultSuffix ? (
         <p className="mt-1 text-sm font-bold tabular-nums text-[var(--t-muted,#b5b5bc)]">
           {shootout ? `${shootout.home}:${shootout.away}` : null}
