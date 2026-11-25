@@ -1,3 +1,4 @@
+import { TournamentTeamName } from '../tournament/TournamentTeamName';
 import React from 'react';
 import { TournamentClubLogo } from '../tournament/TournamentClubLogo';
 import { safeText } from '../../lib/safeText';
@@ -26,8 +27,6 @@ const CAROUSEL_SHORT_NAMES: Record<string, string> = {
 function shortenClubDisplayName(club: string): string {
   const key = club.trim().toLowerCase();
   if (CAROUSEL_SHORT_NAMES[key]) return CAROUSEL_SHORT_NAMES[key]!;
-  // TURNIERlive: „NSG Rohrbach/St. Veit“ — Name bleibt lesbar in 2 Zeilen
-  if (/nsg\s+rohrbach/i.test(club)) return club;
   return club;
 }
 
@@ -64,7 +63,7 @@ export function ParticipantLogoChip({ teamName, logoUrl, carousel = false, showH
         }`}
         title={club || name}
       >
-        {displayClub}
+        {carousel ? <TournamentTeamName name={displayClub} /> : displayClub}
       </p>
       {heim ? (
         <span className="mt-0.5 whitespace-nowrap rounded-full border border-[rgba(255,71,71,0.28)] bg-[rgba(255,71,71,0.08)] px-1 py-px text-[10px] font-semibold uppercase tracking-[0.04em] text-[rgba(255,140,140,0.9)]">

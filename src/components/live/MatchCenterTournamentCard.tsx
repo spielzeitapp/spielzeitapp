@@ -1,3 +1,4 @@
+import { TournamentTeamName } from '../tournament/TournamentTeamName';
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { BarChart3, FileText, Radio, Shirt } from 'lucide-react';
@@ -84,7 +85,7 @@ function TournamentMatchupCard({
         {[home, away].map((name, index) => (
           <div key={index} className={`flex min-w-0 flex-col items-center gap-2 text-center ${index === 0 ? 'col-start-1' : 'col-start-3'} row-start-1`}>
             <TournamentClubLogo name={name} logoUrl={logoByName.get(name.toLowerCase())} size="lg" />
-            <p className="text-[13px] font-semibold leading-tight [overflow-wrap:anywhere]">{name}</p>
+            <p className="text-[13px] font-semibold leading-tight [overflow-wrap:anywhere]"><TournamentTeamName name={name} /></p>
           </div>
         ))}
         <div className={`col-start-2 row-start-1 flex flex-col items-center text-center ${isLive ? 'gap-1' : 'pt-3'}`}>

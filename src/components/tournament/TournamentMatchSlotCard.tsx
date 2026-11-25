@@ -1,3 +1,4 @@
+import { splitTournamentTeamName } from './TournamentTeamName';
 import React from 'react';
 import { ChevronRight, Trash2 } from 'lucide-react';
 import {
@@ -46,14 +47,13 @@ function resultBadge(slot: TournamentMatchSlotView): { label: string; className:
 
 function TournamentTeamBlock({ name }: { name: string }) {
   const visible = formatVisibleClubName(name) || 'Team';
-  const parts = visible.split(/\s+/);
-  const prefix = parts.length > 1 && /^[A-ZÄÖÜ0-9.]{2,8}$/.test(parts[0]) ? parts.shift() : null;
+  const { prefix, club } = splitTournamentTeamName(visible);
   return (
     <div className="flex min-w-0 max-w-full flex-col items-center justify-start text-center">
       <TournamentClubLogo name={name} size="md" tone="dark" className="!h-12 !w-12 sm:!h-14 sm:!w-14 [&_img]:!max-h-12 [&_img]:!max-w-12 sm:[&_img]:!max-h-14 sm:[&_img]:!max-w-14" />
       {prefix ? <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">{prefix}</div> : null}
       <p className="mt-0.5 w-full min-w-0 text-center text-[13px] font-semibold leading-tight text-white [overflow-wrap:anywhere] [text-wrap:balance] sm:text-[14px]">
-        {parts.join(' ')}
+        {club}
       </p>
     </div>
   );
