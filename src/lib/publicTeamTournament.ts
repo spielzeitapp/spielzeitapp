@@ -77,6 +77,7 @@ export type PublicTournamentScheduleFixture = {
 export type PublicTeamTournamentPageDto = {
   livestreamUrl?: string | null;
   livestreamIsRecording?: boolean;
+  recordingParts?: string[];
   matchDetails?: PublicTournamentMatchDetails[];
   fanPlayers?: PublicTournamentPlayer[];
   fanRosterExample?: boolean;

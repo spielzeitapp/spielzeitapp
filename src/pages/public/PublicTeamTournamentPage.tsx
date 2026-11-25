@@ -85,10 +85,14 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const livestreamSection = useRef<HTMLElement>(null);
   const tickerSection = useRef<HTMLElement>(null);
   const livestreamUrl = tournamentLivestreamUrl(page?.livestreamUrl);
-  const embedUrl = tournamentLivestreamEmbedUrl(livestreamUrl);
   const recording = page?.livestreamIsRecording ?? page?.tournamentStatus === 'finished';
+  const recordingParts = recording && page?.recordingParts?.length ? page.recordingParts : [];
   const streamLabel = recording ? 'Aufzeichnung ansehen' : 'Livestream ansehen';
-  const playerOpen = Boolean(embedUrl && openedStream?.publicId === publicId && openedStream.url === livestreamUrl);
+  const selectedVideo = openedStream?.publicId === publicId && (
+    recordingParts.length ? recordingParts.includes(openedStream.url) : openedStream.url === livestreamUrl
+  ) ? openedStream.url : null;
+  const embedUrl = tournamentLivestreamEmbedUrl(selectedVideo || livestreamUrl);
+  const playerOpen = Boolean(selectedVideo && embedUrl);
   useEffect(() => {
     setOpenedStream(null);
   }, [publicId, livestreamUrl]);
@@ -342,6 +346,24 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
         {livestreamUrl ? (
           <section id="livestream" ref={livestreamSection} className={`${card} scroll-mt-4 space-y-3`}>
             <h2 className={heading}>{recording ? 'Turnieraufzeichnung' : 'Livestream'}</h2>
+            {recordingParts.length ? (
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Teile der Turnieraufzeichnung">
+                {recordingParts.map((url, index) => {
+                  const label = `Teil ${index + 1} ansehen`;
+                  const buttonClass = 'public-tournament-tab inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--t-border)] px-4 text-sm font-bold';
+                  return tournamentLivestreamEmbedUrl(url) ? (
+                    <button key={url} type="button" className={buttonClass} aria-pressed={selectedVideo === url}
+                      onClick={() => setOpenedStream({ publicId, url })}>
+                      <Play size={16} aria-hidden /> {label}
+                    </button>
+                  ) : (
+                    <a key={url} className={buttonClass} href={url} target="_blank" rel="noopener noreferrer">
+                      {label} ↗
+                    </a>
+                  );
+                })}
+              </div>
+            ) : null}
             {playerOpen && embedUrl ? (
               <>
                 <iframe
@@ -352,7 +374,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
                   allowFullScreen
                 />
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <a href={livestreamUrl} target="_blank" rel="noopener noreferrer"
+                  <a href={selectedVideo ?? livestreamUrl} target="_blank" rel="noopener noreferrer"
                     className="inline-flex min-h-11 items-center text-sm font-bold text-[var(--t-accent)]">
                     Beim Anbieter öffnen ↗
                   </a>
@@ -362,7 +384,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
                   </button>
                 </div>
               </>
-            ) : embedUrl ? (
+            ) : recordingParts.length ? null : embedUrl ? (
               <button type="button" onClick={() => setOpenedStream({ publicId, url: livestreamUrl })}
                 className="public-tournament-cta flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-5 font-bold">
                 <Play size={18} aria-hidden /> {streamLabel}

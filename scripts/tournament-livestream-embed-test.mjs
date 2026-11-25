@@ -159,6 +159,14 @@ try {
   assert(replay.findByType('button').props.children.includes('Aufzeichnung ansehen'));
   await act(async () => replay.findByType('button').props.onClick());
   assert.equal(replay.findByType('iframe').props.title, 'Turnieraufzeichnung');
+  page.recordingParts = ['https://www.youtube.com/watch?v=bYeY33rVWjM', page.livestreamUrl];
+  await act(async () => refresh());
+  const parts = replay.findByProps({ 'aria-label': 'Teile der Turnieraufzeichnung' }).findAllByType('button');
+  assert.equal(parts.length, 2);
+  await act(async () => parts[0].props.onClick());
+  assert.equal(replay.findByType('iframe').props.src, tournamentLivestreamEmbedUrl(page.recordingParts[0]));
+  await act(async () => parts[1].props.onClick());
+  assert.equal(replay.findByType('iframe').props.src, tournamentLivestreamEmbedUrl(page.recordingParts[1]));
   await act(async () => view.unmount());
 
   globalThis.savedTournamentVideos = [];
