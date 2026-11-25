@@ -2,14 +2,19 @@ import { useRef, useState } from 'react';
 import { tournamentLivestreamUrl, TOURNAMENT_LIVESTREAM_POST, TOURNAMENT_RECORDING_POST } from '../../../server/lib/tournamentLivestream.js';
 import { publicTeamTournamentPath } from '../../lib/publicTeamTournamentPath';
 import { supabase } from '../../lib/supabaseClient';
+import { uploadTeamFeedImage } from '../../lib/updateEventPosterFeedPost';
+import type { TournamentParticipant } from '../../lib/tournamentPlan';
 import { AppButton } from '../ui/AppButton';
 import { TournamentPlanQrScannerSheet } from './TournamentPlanQrScannerSheet';
 
-export function TournamentLivestreamShare({ eventId, teamSeasonId, recording }: {
+export function TournamentLivestreamShare({ eventId, teamSeasonId, recording, participants = [], coverUrl }: {
   eventId: string;
   teamSeasonId: string;
   recording: boolean;
+  participants?: TournamentParticipant[];
+  coverUrl?: string | null;
 }) {
+  const [image, setImage] = useState<File | null>(null);
   const [draft, setDraft] = useState('');
   const [scanner, setScanner] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -18,7 +23,7 @@ export function TournamentLivestreamShare({ eventId, teamSeasonId, recording }: 
   const title = 'Jetzt Livestream ansehen';
   const postKind = recording ? TOURNAMENT_RECORDING_POST : TOURNAMENT_LIVESTREAM_POST;
   const action = recording ? 'Aufzeichnung speichern' : 'Livestream teilen';
-  const ctaLabel = recording ? 'Aufzeichnung ansehen' : 'Livestream ansehen';
+  const ctaLabel = recording ? 'Aufzeichnung ansehen' : 'Zur Turnierseite';
   const failureMessage = recording ? 'Die Aufzeichnung konnte nicht gespeichert werden.' : 'Der Livestream konnte nicht veröffentlicht werden.';
   const message = recording
     ? 'Aufzeichnung des Turniers ansehen.'
@@ -36,6 +41,7 @@ export function TournamentLivestreamShare({ eventId, teamSeasonId, recording }: 
     setBusy(true);
     setFeedback('');
     let published = false;
+    let uploadedImagePath: string | null = null;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Bitte erneut anmelden.');
@@ -49,13 +55,23 @@ export function TournamentLivestreamShare({ eventId, teamSeasonId, recording }: 
         const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(url));
         version = Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, '0')).join('');
       }
+      if (!recording && image) {
+        const uploaded = await uploadTeamFeedImage(teamSeasonId, image);
+        if (!uploaded.path) throw new Error(uploaded.error ?? 'Das Bild konnte nicht hochgeladen werden.');
+        uploadedImagePath = uploaded.path;
+      }
+      const cover = recording ? null : uploadedImagePath ?? coverUrl ?? null;
       const { error } = await supabase.from('team_feed_posts').insert({
         event_id: eventId,
         team_id: season.team_id,
         team_season_id: teamSeasonId,
         post_kind: postKind,
         caption: message,
-        payload: {},
+        payload: recording ? {} : {
+          participants: participants.map(({ team_name, logo_url }) => ({ name: team_name, logoUrl: logo_url ?? null })),
+        },
+        media_type: cover ? 'image' : null,
+        media_url: cover,
         dedupe_key: `${postKind}:${eventId}:${version}`,
         created_by: session.user.id,
         cta_url: url,
@@ -93,6 +109,9 @@ export function TournamentLivestreamShare({ eventId, teamSeasonId, recording }: 
         ? 'Livestream veröffentlicht. Der Eltern-Push konnte nicht bestätigt werden.'
         : error instanceof Error ? error.message : failureMessage);
     } finally {
+      if (uploadedImagePath && !published) {
+        await supabase.storage.from('team-feed').remove([uploadedImagePath]).catch(() => {});
+      }
       publishing.current = false;
       setBusy(false);
     }
@@ -109,6 +128,15 @@ export function TournamentLivestreamShare({ eventId, teamSeasonId, recording }: 
       <p className="text-sm text-white/70">{recording
         ? 'Die Aufzeichnung erscheint auf der öffentlichen Turnierseite. Ein weiterer Link ersetzt die bisherige Aufzeichnung.'
         : 'Scanne den QR-Code des Anbieters oder füge den Stream-Link ein. Beim Teilen erscheint der Livestream auf der öffentlichen Turnierseite und in News. Eltern mit aktiviertem Push erhalten eine Benachrichtigung.'}</p>
+      {!recording ? (
+        <label className="block space-y-1 text-sm">
+          <span>{coverUrl ? 'Anderes Titelbild wählen' : 'Titelbild hinzufügen'} (optional)</span>
+          <input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy}
+            onChange={event => setImage(event.target.files?.[0] ?? null)}
+            className="block w-full rounded-xl border border-white/20 p-2" />
+          {participants.length > 0 ? <span className="block text-white/65">Die Wappen der {participants.length} Teilnehmer erscheinen im News-Beitrag.</span> : null}
+        </label>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         <AppButton type="button" variant="secondary" disabled={busy} onClick={() => setScanner(true)}>QR scannen</AppButton>
         <AppButton type="submit" variant="primary" disabled={busy || !draft.trim()}>{busy ? (recording ? 'Wird gespeichert…' : 'Wird geteilt…') : action}</AppButton>

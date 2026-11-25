@@ -1049,7 +1049,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
         refreshToken={assistantRefreshToken} onReady={setTemplateReady} onDirtyChange={setLineupDraftDirty} canEdit={!completion.completedAt}
         onSaved={() => { setAssistantRefreshToken(token => token + 1); void reload(); }} />;
       case 'communication': return <div className="space-y-4">
-        {canShareLivestream && <TournamentLivestreamShare eventId={tournamentEventId} teamSeasonId={teamSeasonId} recording={tournamentPhase === 'after'} />}
+        {canShareLivestream && <TournamentLivestreamShare eventId={tournamentEventId} teamSeasonId={teamSeasonId} recording={tournamentPhase === 'after'}
+          participants={participants} coverUrl={tournamentCoverUrl} />}
         {trainerFeedSection}
       </div>;
       default: return null;

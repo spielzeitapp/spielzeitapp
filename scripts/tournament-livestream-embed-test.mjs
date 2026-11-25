@@ -199,6 +199,33 @@ try {
   assert.equal(view.root.findByProps({ role: 'status' }).props.children, 'Aufzeichnung auf der Turnierseite gespeichert.');
   await act(async () => view.unmount());
   console.log('PASS finished tournament replay and saving a recording without a push');
+
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({ ok: true, skipped: true }) });
+  const coverUrl = 'https://images.example.org/hallencup.jpg';
+  const participantLogo = 'https://images.example.org/wilhelmsburg.png';
+  await act(async () => {
+    view = TestRenderer.create(h(TournamentLivestreamShare, {
+      eventId: 'upcoming-event', teamSeasonId: 'season', recording: false, coverUrl,
+      participants: [
+        { team_name: 'ASK Peham Wilhelmsburg schwarz', logo_url: participantLogo },
+        { team_name: 'ASK Peham Wilhelmsburg weiß', logo_url: participantLogo },
+      ],
+    }));
+  });
+  await act(async () => view.root.findByProps({ inputMode: 'url' }).props.onChange({
+    target: { value: page.livestreamUrl },
+  }));
+  await act(async () => view.root.findByType('form').props.onSubmit({ preventDefault() {} }));
+  const announcement = globalThis.savedTournamentVideos[1];
+  assert.equal(announcement.media_url, coverUrl);
+  assert.equal(announcement.media_type, 'image');
+  assert.equal(announcement.cta_label, 'Zur Turnierseite');
+  assert.deepEqual(announcement.payload.participants, [
+    { name: 'ASK Peham Wilhelmsburg schwarz', logoUrl: participantLogo },
+    { name: 'ASK Peham Wilhelmsburg weiß', logoUrl: participantLogo },
+  ]);
+  await act(async () => view.unmount());
+  console.log('PASS pre-event announcement stores title image, CTA and both Wilhelmsburg teams');
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
