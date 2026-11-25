@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { tournamentLivestreamLinksInText } from '../src/lib/tournamentLivestreamLinkText.mjs';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -6,6 +7,15 @@ import { join } from 'node:path';
 import { tournamentLivestreamEmbedUrl } from '../server/lib/tournamentLivestream.js';
 
 const videoId = 'AbCd1234_-Z';
+const printedUrl = `www.youtube.com/watch?v=${videoId}`;
+assert.deepEqual(tournamentLivestreamLinksInText(`Hier ansehen: ${printedUrl}`), [`https://${printedUrl}`]);
+assert.deepEqual(tournamentLivestreamLinksInText(`(${printedUrl}).\n${printedUrl}`), [`https://${printedUrl}`]);
+assert.deepEqual(tournamentLivestreamLinksInText(`Livestream youtu.be/${videoId}`), [`https://youtu.be/${videoId}`]);
+assert.deepEqual(tournamentLivestreamLinksInText('www.youtube.com/… www.youtube.com/watch?v=ab...'), []);
+assert.deepEqual(tournamentLivestreamLinksInText('www.youtube.com http://www.provider.example/live https://user@www.provider.example/live'), []);
+assert.deepEqual(tournamentLivestreamLinksInText('https://provider.example/stream https://other.example/video'), [
+  'https://provider.example/stream', 'https://other.example/video',
+]);
 for (const url of [
   `https://www.youtube.com/watch?v=${videoId}&feature=share`,
   `https://youtu.be/${videoId}?si=share`,
@@ -65,9 +75,14 @@ try {
         build.onResolve({ filter: /TournamentPlanQrScannerSheet$/ }, () => ({
           path: 'scanner', namespace: 'fixture',
         }));
+        build.onResolve({ filter: /tournamentLivestreamPhotoOcr$/ }, () => ({
+          path: 'ocr', namespace: 'fixture',
+        }));
         build.onResolve({ filter: /supabaseClient$/ }, () => ({ path: 'supabase', namespace: 'fixture' }));
         build.onLoad({ filter: /.*/, namespace: 'fixture' }, args => ({
-          contents: args.path === 'scanner' ? 'export const TournamentPlanQrScannerSheet = () => null;' : `export const supabase = {
+          contents: args.path === 'scanner' ? 'export const TournamentPlanQrScannerSheet = () => null;'
+            : args.path === 'ocr' ? 'export const scanTournamentLivestreamPhoto = async () => globalThis.scannedLinks;'
+            : `export const supabase = {
             rpc: async () => ({ data: { canScreen: false, canManage: false } }),
             auth: {
               onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
@@ -97,6 +112,8 @@ try {
     removeEventListener() {},
     setInterval(callback) { refresh = callback; },
     clearInterval() {},
+    setTimeout,
+    clearTimeout,
   };
   globalThis.document = { visibilityState: 'visible', addEventListener() {}, removeEventListener() {} };
 
@@ -190,7 +207,7 @@ try {
       eventId: 'finished-event', teamSeasonId: 'season', recording: true,
     }));
   });
-  await act(async () => view.root.findByType('input').props.onChange({ target: { value: page.livestreamUrl } }));
+  await act(async () => view.root.findByProps({ inputMode: 'url' }).props.onChange({ target: { value: page.livestreamUrl } }));
   await act(async () => view.root.findByType('form').props.onSubmit({ preventDefault() {} }));
   assert.equal(globalThis.savedTournamentVideos.length, 1);
   assert.equal(globalThis.savedTournamentVideos[0].post_kind, 'tournament_recording');
@@ -212,9 +229,16 @@ try {
       ],
     }));
   });
-  await act(async () => view.root.findByProps({ inputMode: 'url' }).props.onChange({
-    target: { value: page.livestreamUrl },
-  }));
+  const urlField = view.root.findByProps({ inputMode: 'url' });
+  const imageField = view.root.findByProps({ capture: 'environment' });
+  const photo = { currentTarget: { files: [{ type: 'image/jpeg' }], value: 'photo.jpg' } };
+  globalThis.scannedLinks = [page.livestreamUrl, 'https://other.example/video'];
+  await act(async () => imageField.props.onChange(photo));
+  assert.equal(urlField.props.value, '', 'multiple links require a new photo');
+  globalThis.scannedLinks = [page.livestreamUrl];
+  await act(async () => imageField.props.onChange(photo));
+  assert.equal(urlField.props.value, page.livestreamUrl);
+  assert.equal(globalThis.savedTournamentVideos.length, 1, 'a photo only fills the field');
   await act(async () => view.root.findByType('form').props.onSubmit({ preventDefault() {} }));
   const announcement = globalThis.savedTournamentVideos[1];
   assert.equal(announcement.media_url, coverUrl);

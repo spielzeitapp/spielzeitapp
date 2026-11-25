@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { tournamentLivestreamUrl, TOURNAMENT_LIVESTREAM_POST, TOURNAMENT_RECORDING_POST } from '../../../server/lib/tournamentLivestream.js';
 import { publicTeamTournamentPath } from '../../lib/publicTeamTournamentPath';
 import { supabase } from '../../lib/supabaseClient';
@@ -18,6 +18,11 @@ export function TournamentLivestreamShare({ eventId, teamSeasonId, recording, pa
   const [draft, setDraft] = useState('');
   const [scanner, setScanner] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [scanningPhoto, setScanningPhoto] = useState(false);
+  const photoInput = useRef<HTMLInputElement>(null);
+  const photoScan = useRef<AbortController | null>(null);
+  const pending = busy || scanningPhoto;
+  useEffect(() => () => photoScan.current?.abort(), []);
   const [feedback, setFeedback] = useState('');
   const publishing = useRef(false);
   const title = 'Jetzt Livestream ansehen';
@@ -29,9 +34,45 @@ export function TournamentLivestreamShare({ eventId, teamSeasonId, recording, pa
     ? 'Aufzeichnung des Turniers ansehen.'
     : 'Unsere Spiele beim Turnier im Livestream verfolgen.';
 
+  async function scanPhoto(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
+    if (!file || photoScan.current || publishing.current) return;
+    const scan = new AbortController();
+    photoScan.current = scan;
+    setScanningPhoto(true);
+    setFeedback('Linktext wird erkannt …');
+    let timeout: number | undefined;
+    try {
+      const { scanTournamentLivestreamPhoto } = await import('../../lib/tournamentLivestreamPhotoOcr');
+      const links = await Promise.race([
+        scanTournamentLivestreamPhoto(file, scan.signal),
+        new Promise<never>((_, reject) => {
+          timeout = window.setTimeout(() => reject(new Error('Texterkennung dauert zu lange.')), 25_000);
+        }),
+      ]);
+      if (scan.signal.aborted) return;
+      if (links.length === 1) {
+        setDraft(links[0]);
+        setFeedback('Link übernommen. Bitte prüfe ihn vor dem Teilen.');
+      } else {
+        setFeedback(links.length > 1
+          ? 'Mehrere Links erkannt. Fotografiere nur die gewünschte Adresse.'
+          : 'Kein vollständiger Link erkannt. Fotografiere die Adresse möglichst nah und scharf.');
+      }
+    } catch {
+      if (!scan.signal.aborted) setFeedback('Linktext konnte nicht gelesen werden. Versuche es erneut oder füge den Link ein.');
+    } finally {
+      window.clearTimeout(timeout);
+      if (!scan.signal.aborted) setScanningPhoto(false);
+      scan.abort();
+      photoScan.current = null;
+    }
+  }
+
   async function share(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (publishing.current) return;
+    if (publishing.current || photoScan.current) return;
     const url = tournamentLivestreamUrl(draft);
     if (!url) {
       setFeedback('Bitte einen gültigen HTTPS-Link eingeben.');
@@ -123,23 +164,30 @@ export function TournamentLivestreamShare({ eventId, teamSeasonId, recording, pa
       <label className="block space-y-1">
         <span>{recording ? 'Öffentlicher Link zur Aufzeichnung' : 'Öffentlicher Livestream-Link'}</span>
         <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="https://…"
-          inputMode="url" disabled={busy} className="w-full rounded-xl border border-white/20 bg-black/20 p-3" />
+          inputMode="url" disabled={pending} className="w-full rounded-xl border border-white/20 bg-black/20 p-3" />
       </label>
+      <div className="flex flex-wrap gap-2">
+        <AppButton type="button" variant="secondary" disabled={pending}
+          onClick={() => { setFeedback(''); setScanner(true); }}>QR-Code scannen</AppButton>
+        <AppButton type="button" variant="secondary" disabled={pending}
+          onClick={() => photoInput.current?.click()}>Linktext scannen</AppButton>
+        <input ref={photoInput} type="file" accept="image/*" capture="environment" hidden
+          aria-label="Linktext fotografieren" onChange={scanPhoto} />
+      </div>
       <p className="text-sm text-white/70">{recording
         ? 'Die Aufzeichnung erscheint auf der öffentlichen Turnierseite. Ein weiterer Link ersetzt die bisherige Aufzeichnung.'
-        : 'Scanne den QR-Code des Anbieters oder füge den Stream-Link ein. Beim Teilen erscheint der Livestream auf der öffentlichen Turnierseite und in News. Eltern mit aktiviertem Push erhalten eine Benachrichtigung.'}</p>
+        : 'Scanne den QR-Code, fotografiere die ausgeschriebene Adresse oder füge den Link ein. Beim Teilen erscheint der Livestream auf der öffentlichen Turnierseite und in News. Eltern mit aktiviertem Push erhalten eine Benachrichtigung.'}</p>
       {!recording ? (
         <label className="block space-y-1 text-sm">
           <span>{coverUrl ? 'Anderes Titelbild wählen' : 'Titelbild hinzufügen'} (optional)</span>
-          <input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy}
+          <input type="file" accept="image/jpeg,image/png,image/webp" disabled={pending}
             onChange={event => setImage(event.target.files?.[0] ?? null)}
             className="block w-full rounded-xl border border-white/20 p-2" />
           {participants.length > 0 ? <span className="block text-white/65">Die Wappen der {participants.length} Teilnehmer erscheinen im News-Beitrag.</span> : null}
         </label>
       ) : null}
       <div className="flex flex-wrap gap-2">
-        <AppButton type="button" variant="secondary" disabled={busy} onClick={() => setScanner(true)}>QR scannen</AppButton>
-        <AppButton type="submit" variant="primary" disabled={busy || !draft.trim()}>{busy ? (recording ? 'Wird gespeichert…' : 'Wird geteilt…') : action}</AppButton>
+        <AppButton type="submit" variant="primary" disabled={pending || !draft.trim()}>{busy ? (recording ? 'Wird gespeichert…' : 'Wird geteilt…') : action}</AppButton>
       </div>
       {feedback && <p role="status" className="text-sm">{feedback}</p>}
       <TournamentPlanQrScannerSheet isOpen={scanner} onClose={() => setScanner(false)}

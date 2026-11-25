@@ -16,6 +16,12 @@ export default defineConfig(({ mode }) => {
       /** Vite-Standard-Warnung bei großen Bundles (harmlos für Deploy) */
       chunkSizeWarningLimit: 2000,
       rollupOptions: {
+        output: {
+          // Tesseract appends eng.traineddata.gz to the language directory URL.
+          assetFileNames: (asset) => asset.names.includes('eng.traineddata.gz')
+            ? 'assets/tournament-link-ocr-v1/eng.traineddata.gz'
+            : 'assets/[name]-[hash][extname]',
+        },
         input: {
           main: resolve(__dirname, "index.html"),
           marketManager: resolve(__dirname, "vereinsmarkt-manager.html"),
