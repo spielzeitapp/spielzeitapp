@@ -70,6 +70,7 @@ function resolveTeamIdFromSlug(allTeams, slugWanted) {
     const stable = teamCalendarStableSlugFromTeamName(t.name);
     let score = 0;
     if (cal && cal === slug) score = 10;
+    else if (cal && cal === stableWanted) score = 9;
     else if (full === slug) score = 3;
     else if (stable === slug) score = 2;
     else if (stable === stableWanted) score = 1;
