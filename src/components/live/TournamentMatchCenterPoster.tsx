@@ -1,3 +1,4 @@
+import { TournamentTeamName } from '../tournament/TournamentTeamName';
 import React, { useMemo } from 'react';
 import { CalendarDays } from 'lucide-react';
 import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
@@ -150,20 +151,20 @@ export function TournamentFirstMatchPreview({
       <p className="text-xs font-bold uppercase tracking-[0.1em] text-white/38">
         Nächstes Spiel
       </p>
-      <div className="mt-1.5 flex items-center justify-between gap-2">
+      <div className="mt-1.5 flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
           <TournamentTeamLogo name={homeTeam} map={participantLogoByName} />
           <p className="w-full text-center text-sm font-semibold text-white/88" title={homeTeam}>
-            {homeTeam}
+            <TournamentTeamName name={homeTeam} />
           </p>
         </div>
-        <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.2em] text-white/30">
+        <span className="shrink-0 self-center text-[11px] font-bold uppercase tracking-[0.2em] text-white/30">
           vs
         </span>
         <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
           <TournamentTeamLogo name={awayTeam} map={participantLogoByName} />
           <p className="w-full text-center text-sm font-semibold text-white/88" title={awayTeam}>
-            {awayTeam}
+            <TournamentTeamName name={awayTeam} />
           </p>
         </div>
       </div>

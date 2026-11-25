@@ -1,3 +1,4 @@
+import { TournamentTeamName } from './TournamentTeamName';
 import React, {useEffect, useState} from 'react';
 import {Link} from 'react-router-dom';
 import QRCode from 'qrcode';
@@ -35,7 +36,7 @@ export function TournamentPrintDocument({page,paper,printedAt,onQrSettled}:{page
    <footer><span>Stand: {printedAt} · Aktuelle Ergebnisse über den QR-Code</span><strong>Seite {index+1} / {total}</strong></footer>
  </section>;
  return <div className="tournament-print-document" data-paper={paper}>
- {fixturePages.map((fixtures,i)=>sheet(<div className="tournament-print-fixtures">{fixtures.length?fixtures.map(r=><article key={r.id} className="tournament-print-fixture"><p className="tournament-print-fixture-meta">{r.time} Uhr{r.groupLabel?` · Gruppe ${r.groupLabel}`:''}</p><div className="tournament-print-pairing"><div>{logo(r.homeTeam)}<strong>{r.homeTeam}</strong></div><div className="tournament-print-score"><span>{r.homeGoals==null?'Anpfiff':'Stand'}</span><strong>{r.homeGoals==null?r.time:`${r.homeGoals}:${r.awayGoals??'–'}`}</strong></div><div>{logo(r.awayTeam)}<strong>{r.awayTeam}</strong></div></div></article>):<p>Spielplan folgt.</p>}</div>,i,`Spielplan und Ergebnisse${i?' · Fortsetzung':''}`))}
+ {fixturePages.map((fixtures,i)=>sheet(<div className="tournament-print-fixtures">{fixtures.length?fixtures.map(r=><article key={r.id} className="tournament-print-fixture"><p className="tournament-print-fixture-meta">{r.time} Uhr{r.groupLabel?` · Gruppe ${r.groupLabel}`:''}</p><div className="tournament-print-pairing"><div>{logo(r.homeTeam)}<strong><TournamentTeamName name={r.homeTeam} /></strong></div><div className="tournament-print-score"><span>{r.homeGoals==null?'Anpfiff':'Stand'}</span><strong>{r.homeGoals==null?r.time:`${r.homeGoals}:${r.awayGoals??'–'}`}</strong></div><div>{logo(r.awayTeam)}<strong><TournamentTeamName name={r.awayTeam} /></strong></div></div></article>):<p>Spielplan folgt.</p>}</div>,i,`Spielplan und Ergebnisse${i?' · Fortsetzung':''}`))}
  {tablePages.map((g,i)=>sheet(<div className="tournament-print-standings"><h3>Gruppe {g.groupLabel}{g.continuation?' · Fortsetzung':''}{page.standingsProvisional?' · vorläufig':''}</h3><table><thead><tr><th>#</th><th>Mannschaft</th><th>Sp.</th><th>Tore</th><th>Pkt.</th></tr></thead><tbody>{g.rows.map(r=><tr key={r.teamName}><td>{r.rank}</td><th><span>{logo(r.teamName)}{r.teamName}</span></th><td>{r.played}</td><td>{r.goalsFor}:{r.goalsAgainst}</td><td><strong>{r.points}</strong></td></tr>)}</tbody></table></div>,fixturePages.length+i,'Gruppentabellen'))}
  </div>;
 }
