@@ -1523,11 +1523,23 @@ html[data-club-theme="black-white"] .sz-club-placeholder-player {
   background: transparent;
 }
 
+.tournament-audience-overview .fan-fixture-meta {
+  margin-bottom: .75rem;
+}
+
+.tournament-audience-overview .fan-fixture-kickoff {
+  display: none;
+}
+
+.tournament-audience-overview .fan-fixture-center {
+  min-width: 0;
+  max-width: clamp(5.25rem, 22vw, 7.25rem);
+}
+
 .tournament-audience-overview .fan-fixture-team {
   width: 100%;
-  font-size: .875rem;
+  font-size: clamp(.75rem, 3.5vw, .875rem);
   overflow-wrap: anywhere;
-  text-wrap: balance;
 }
 
 .tournament-audience-overview .fan-fixture-team > span {
@@ -1552,7 +1564,7 @@ html[data-club-theme="black-white"] .sz-club-placeholder-player {
 }
 
 .tournament-audience-overview .fan-fixture-score {
-  font-size: clamp(1.625rem, 8.5vw, 2.75rem);
+  font-size: clamp(1.625rem, 8vw, 2.75rem);
 }
 
 .public-tournament-page[data-theme="night"] {
