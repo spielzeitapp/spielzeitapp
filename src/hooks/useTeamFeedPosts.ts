@@ -1,3 +1,4 @@
+import { TOURNAMENT_RECORDING_POST } from '../../server/lib/tournamentLivestream.js';
 import { fetchImportedResultFeedRows } from '../lib/importedResultFeed';
 import { useCallback, useEffect, useState } from 'react';
 import { ensureEventFeedPostsForSeason } from '../lib/ensureEventFeedPosts';
@@ -62,6 +63,7 @@ async function fetchActiveSeasonPosts(opts: {
   const { data, error } = await supabase
     .from('team_feed_posts')
     .select(FEED_SELECT)
+    .neq('post_kind', TOURNAMENT_RECORDING_POST)
     .eq('team_season_id', opts.teamSeasonId)
     .order('created_at', { ascending: false })
     .limit(ACTIVE_FEED_LIMIT);
@@ -77,6 +79,7 @@ async function fetchActiveSeasonPosts(opts: {
     const { data: byTeam, error: byTeamErr } = await supabase
       .from('team_feed_posts')
       .select(FEED_SELECT)
+      .neq('post_kind', TOURNAMENT_RECORDING_POST)
       .eq('team_id', opts.teamId)
       .eq('team_season_id', opts.teamSeasonId)
       .order('created_at', { ascending: false })
@@ -110,6 +113,7 @@ async function fetchHistoricPostsPage(opts: {
   const { data, error } = await supabase
     .from('team_feed_posts')
     .select(FEED_SELECT)
+    .neq('post_kind', TOURNAMENT_RECORDING_POST)
     .eq('team_id', opts.teamId)
     .neq('team_season_id', opts.activeTeamSeasonId)
     .order('created_at', { ascending: false })

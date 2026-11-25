@@ -50,6 +50,7 @@ try {
         export { default as TestRenderer, act } from 'react-test-renderer';
         export { MemoryRouter, Routes, Route } from 'react-router-dom';
         export { PublicTeamTournamentPage } from './src/pages/public/PublicTeamTournamentPage';
+        export { TournamentLivestreamShare } from './src/components/tournament/TournamentLivestreamShare';
       `,
     },
     bundle: true,
@@ -61,18 +62,33 @@ try {
     plugins: [{
       name: 'supabase-fixture',
       setup(build) {
+        build.onResolve({ filter: /TournamentPlanQrScannerSheet$/ }, () => ({
+          path: 'scanner', namespace: 'fixture',
+        }));
         build.onResolve({ filter: /supabaseClient$/ }, () => ({ path: 'supabase', namespace: 'fixture' }));
-        build.onLoad({ filter: /.*/, namespace: 'fixture' }, () => ({
-          contents: `export const supabase = {
+        build.onLoad({ filter: /.*/, namespace: 'fixture' }, args => ({
+          contents: args.path === 'scanner' ? 'export const TournamentPlanQrScannerSheet = () => null;' : `export const supabase = {
             rpc: async () => ({ data: { canScreen: false, canManage: false } }),
-            auth: { onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) }
+            auth: {
+              onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+              getSession: async () => ({ data: { session: { user: { id: 'trainer' }, access_token: 'token' } } })
+            },
+            from: table => {
+              if (table === 'team_seasons') {
+                return { select: () => ({ eq: () => ({ single: async () => ({ data: { team_id: 'team' } }) }) }) };
+              }
+              if (table === 'team_feed_posts') {
+                return { insert: async row => { globalThis.savedTournamentVideos.push(row); return { error: null }; } };
+              }
+              throw new Error('Unerwartete Tabelle: ' + table);
+            }
           };`,
         }));
       },
     }],
   });
 
-  const { React, TestRenderer, act, MemoryRouter, Routes, Route, PublicTeamTournamentPage } = require(bundle);
+  const { React, TestRenderer, act, MemoryRouter, Routes, Route, PublicTeamTournamentPage, TournamentLivestreamShare } = require(bundle);
   globalThis.localStorage = { getItem: () => null, setItem() {} };
   let refresh;
   globalThis.window = {
@@ -131,6 +147,36 @@ try {
   assert.equal(stream.findByType('a').props.href, page.livestreamUrl, 'unknown providers open externally');
   await act(async () => view.unmount());
   console.log('PASS no-link state, deep link, click-to-load, ticker, polling and provider fallback');
+
+  page.tournamentStatus = 'finished';
+  page.livestreamUrl = `https://youtu.be/${videoId}`;
+  await act(async () => {
+    view = TestRenderer.create(h(MemoryRouter, { initialEntries: ['/turnier/fixture'] },
+      h(Routes, null, h(Route, { path: '/turnier/:publicId', element: h(PublicTeamTournamentPage) }))));
+  });
+  const replay = view.root.findByProps({ id: 'livestream' });
+  assert.equal(replay.findByType('h2').props.children, 'Turnieraufzeichnung');
+  assert(replay.findByType('button').props.children.includes('Aufzeichnung ansehen'));
+  await act(async () => replay.findByType('button').props.onClick());
+  assert.equal(replay.findByType('iframe').props.title, 'Turnieraufzeichnung');
+  await act(async () => view.unmount());
+
+  globalThis.savedTournamentVideos = [];
+  globalThis.fetch = async () => assert.fail('saving a recording must not send a push');
+  await act(async () => {
+    view = TestRenderer.create(h(TournamentLivestreamShare, {
+      eventId: 'finished-event', teamSeasonId: 'season', recording: true,
+    }));
+  });
+  await act(async () => view.root.findByType('input').props.onChange({ target: { value: page.livestreamUrl } }));
+  await act(async () => view.root.findByType('form').props.onSubmit({ preventDefault() {} }));
+  assert.equal(globalThis.savedTournamentVideos.length, 1);
+  assert.equal(globalThis.savedTournamentVideos[0].post_kind, 'tournament_recording');
+  assert.equal(globalThis.savedTournamentVideos[0].event_id, 'finished-event');
+  assert.equal(globalThis.savedTournamentVideos[0].cta_url, page.livestreamUrl);
+  assert.equal(view.root.findByProps({ role: 'status' }).props.children, 'Aufzeichnung auf der Turnierseite gespeichert.');
+  await act(async () => view.unmount());
+  console.log('PASS finished tournament replay and saving a recording without a push');
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }

@@ -86,6 +86,8 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const tickerSection = useRef<HTMLElement>(null);
   const livestreamUrl = tournamentLivestreamUrl(page?.livestreamUrl);
   const embedUrl = tournamentLivestreamEmbedUrl(livestreamUrl);
+  const recording = page?.livestreamIsRecording ?? page?.tournamentStatus === 'finished';
+  const streamLabel = recording ? 'Aufzeichnung ansehen' : 'Livestream ansehen';
   const playerOpen = Boolean(embedUrl && openedStream?.publicId === publicId && openedStream.url === livestreamUrl);
   useEffect(() => {
     setOpenedStream(null);
@@ -339,11 +341,11 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
         </section> : null}
         {livestreamUrl ? (
           <section id="livestream" ref={livestreamSection} className={`${card} scroll-mt-4 space-y-3`}>
-            <h2 className={heading}>Livestream</h2>
+            <h2 className={heading}>{recording ? 'Turnieraufzeichnung' : 'Livestream'}</h2>
             {playerOpen && embedUrl ? (
               <>
                 <iframe
-                  title="Turnier-Livestream"
+                  title={recording ? 'Turnieraufzeichnung' : 'Turnier-Livestream'}
                   src={embedUrl}
                   className="aspect-video w-full rounded-xl bg-black"
                   allow="autoplay; encrypted-media; picture-in-picture"
@@ -363,12 +365,12 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
             ) : embedUrl ? (
               <button type="button" onClick={() => setOpenedStream({ publicId, url: livestreamUrl })}
                 className="public-tournament-cta flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-5 font-bold">
-                <Play size={18} aria-hidden /> Livestream ansehen
+                <Play size={18} aria-hidden /> {streamLabel}
               </button>
             ) : (
               <a href={livestreamUrl} target="_blank" rel="noopener noreferrer"
                 className="public-tournament-cta flex min-h-12 items-center justify-center gap-2 rounded-full px-5 font-bold">
-                <Play size={18} aria-hidden /> Livestream beim Anbieter ansehen ↗
+                <Play size={18} aria-hidden /> {streamLabel} ↗
               </a>
             )}
           </section>

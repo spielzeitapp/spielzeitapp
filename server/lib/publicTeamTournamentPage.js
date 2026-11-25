@@ -1,4 +1,4 @@
-import { tournamentLivestreamUrl, TOURNAMENT_LIVESTREAM_POST } from './tournamentLivestream.js';
+import { tournamentLivestreamUrl, TOURNAMENT_LIVESTREAM_POST, TOURNAMENT_RECORDING_POST } from './tournamentLivestream.js';
 import { publicTournamentStandings } from './publicTournamentStandings.js';
 import { resolveTournamentOwnTeam } from './tournamentOwnTeam.js';
 import { tournamentTeamLogos } from './tournamentTeamLogos.js';
@@ -71,7 +71,7 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
 
   const { data: event, error: eventErr } = await admin
     .from('events')
-    .select('id, kind, status, starts_at, location, notes, team_season_id')
+    .select('id, kind, status, starts_at, location, notes, team_season_id, tournament_completed_at')
     .eq('id', publicId)
     .maybeSingle();
 
@@ -220,10 +220,13 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
   });
 
   const { data: streamPost } = await admin.from('team_feed_posts')
-    .select('cta_url').eq('event_id', publicId).eq('team_season_id', teamSeasonId)
-    .eq('team_id', teamRow?.id ?? null).eq('post_kind', TOURNAMENT_LIVESTREAM_POST)
+    .select('cta_url, post_kind').eq('event_id', publicId).eq('team_season_id', teamSeasonId)
+    .eq('team_id', teamRow?.id ?? null).in('post_kind', [TOURNAMENT_LIVESTREAM_POST, TOURNAMENT_RECORDING_POST])
     .order('created_at', { ascending: false }).limit(1).maybeSingle();
   dto.livestreamUrl = dto.tournamentStatus === 'canceled' ? null : tournamentLivestreamUrl(streamPost?.cta_url);
+  dto.livestreamIsRecording = Boolean(dto.livestreamUrl && (
+    streamPost?.post_kind === TOURNAMENT_RECORDING_POST || event.tournament_completed_at || dto.tournamentStatus === 'finished'
+  ));
   dto.finalRanking = resolveMeinTurnierplanFinalStandings(analysis);
   const slotsByExternalId = new Map(slots.map(slot => [slot.external_match_id, slot]));
   dto.schedule = (analysis.rawMatches ?? []).map(m => {

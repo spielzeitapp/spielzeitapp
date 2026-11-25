@@ -1,4 +1,5 @@
 export const TOURNAMENT_LIVESTREAM_POST = 'tournament_livestream';
+export const TOURNAMENT_RECORDING_POST = 'tournament_recording';
 
 export function tournamentLivestreamUrl(value) {
   if (typeof value !== 'string' || value.length > 2048) return null;
