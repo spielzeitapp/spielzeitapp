@@ -38,13 +38,18 @@ function PublicKickoffCountdown({ kickoffAt }: { kickoffAt: string }) {
   }, [remaining]);
 
   if (!Number.isFinite(remaining) || remaining <= 0) return null;
-  const hours = Math.floor(remaining / 3600);
+  const totalHours = Math.floor(remaining / 3600);
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
   const minutes = String(Math.floor((remaining % 3600) / 60)).padStart(2, '0');
   const seconds = String(remaining % 60).padStart(2, '0');
+  const countdown = days > 0
+    ? `${days} ${days === 1 ? 'Tag' : 'Tage'}${hours ? ` ${hours} Std.` : ''}`
+    : `${hours ? `${hours}:` : ''}${minutes}:${seconds}`;
   return (
     <div role="timer" className="flex items-center justify-center gap-2 border-t border-[var(--t-border)] bg-[var(--t-surface)] px-4 py-2.5">
       <span className="text-sm font-semibold text-[var(--t-muted)]">Anpfiff in</span>
-      <span className="text-xl font-extrabold tabular-nums text-[var(--t-accent)]">{hours ? `${hours}:` : ''}{minutes}:{seconds}</span>
+      <span className="text-xl font-extrabold tabular-nums text-[var(--t-accent)]">{countdown}</span>
     </div>
   );
 }
