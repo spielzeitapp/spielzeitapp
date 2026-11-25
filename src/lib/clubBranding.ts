@@ -19,21 +19,33 @@ export function hexToRgbChannels(value: string): string {
 
 export function readableTextColor(hex: string): string {
   const normalized = normalizeBrandColor(hex) ?? '#000000';
-  const rgb = [1, 3, 5].map(i => parseInt(normalized.slice(i, i + 2), 16) / 255).map(c => c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-  return rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722 > 0.179 ? '#111114' : '#FFFFFF';
+  return luminance(hexToRgbChannels(normalized).split(' ').map(Number)) > 0.179 ? '#111114' : '#FFFFFF';
+}
+
+function luminance(channels: number[]): number {
+  const linear = channels.map(channel => {
+    const c = channel / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+}
+
+/** Muted club accent for text on a light surface and buttons with white labels. */
+export function mutedAccentOnLight(hex: string): string {
+  const original = hexToRgbChannels(hex).split(' ').map(Number);
+  const dark = [23, 18, 25];
+  const lightSurfaceLuminance = luminance([247, 248, 250]);
+  for (let accentShare = 60; accentShare > 0; accentShare--) {
+    const channels = dark.map((channel, index) => Math.round(channel + (original[index] - channel) * accentShare / 100));
+    if ((lightSurfaceLuminance + 0.05) / (luminance(channels) + 0.05) >= 4.5) return `rgb(${channels.join(' ')})`;
+  }
+  return '#171219';
 }
 
 /** RGB channels for accent text on the dark app surface (minimum 4.5:1). */
 export function readableAccentOnDark(hex: string): string {
   const normalized = normalizeBrandColor(hex) ?? '#FF4050';
   const original = [1, 3, 5].map(i => parseInt(normalized.slice(i, i + 2), 16));
-  const luminance = (channels: number[]) => {
-    const linear = channels.map(channel => {
-      const c = channel / 255;
-      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-    });
-    return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
-  };
   const darkLuminance = luminance([11, 11, 15]);
   for (let mix = 0; mix <= 100; mix++) {
     const channels = original.map(c => Math.round(c + (255 - c) * mix / 100));

@@ -16,7 +16,7 @@ import {
   type PublicTournamentPlayer,
   type PublicTournamentScheduleFixture,
 } from '../../lib/publicTeamTournament';
-import { normalizeBrandColor, readableTextColor } from '../../lib/clubBranding';
+import { mutedAccentOnLight, normalizeBrandColor, readableTextColor } from '../../lib/clubBranding';
 import { TournamentClubLogo } from '../../components/tournament/TournamentClubLogo';
 
 function compareFixtureKickoff(
@@ -268,14 +268,14 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const ContentTag=embedded?'div':'main';
   const accent = normalizeBrandColor(page?.accentColor) ?? '#c82333';
   return <div ref={scrollSurface} data-embedded={embedded || undefined} data-theme={theme} className={`${embedded?'tournament-audience-overview w-full min-w-0':'public-tournament-page bg-[var(--t-bg)]'} text-[var(--t-text)]`} style={{
-      '--t-accent': accent,
-      '--t-on-accent': readableTextColor(accent),
+      '--t-accent': theme === 'day' ? mutedAccentOnLight(accent) : accent,
+      '--t-on-accent': theme === 'day' ? '#ffffff' : readableTextColor(accent),
       '--t-bg': theme === 'day' ? '#f7f8fa' : '#0b0b0f',
       '--t-surface': theme === 'day' ? '#ffffff' : '#15151b',
       '--t-text': theme === 'day' ? '#13151b' : '#ffffff',
       '--t-muted': theme === 'day' ? '#526071' : '#b5b5bc',
-      '--t-border': theme === 'day' ? 'color-mix(in srgb, var(--t-accent) 18%, transparent)' : 'color-mix(in srgb, var(--t-accent) 27%, #25252d)',
-      '--t-fixture': theme === 'day' ? 'linear-gradient(135deg,#ffffff,#fff1f2)' : 'linear-gradient(135deg, var(--t-surface), color-mix(in srgb, var(--t-accent) 10%, var(--t-surface)))',
+      '--t-border': theme === 'day' ? 'color-mix(in srgb, var(--t-accent) 10%, #e9e7ec)' : 'color-mix(in srgb, var(--t-accent) 27%, #25252d)',
+      '--t-fixture': theme === 'day' ? 'linear-gradient(135deg, var(--t-surface), color-mix(in srgb, var(--t-accent) 3%, var(--t-surface)))' : 'linear-gradient(135deg, var(--t-surface), color-mix(in srgb, var(--t-accent) 10%, var(--t-surface)))',
       '--t-player-badge': theme === 'day' ? '#f1f5f9' : 'rgba(0,0,0,.25)',
       '--t-live': theme==='day'?'#15803d':'#6ee7b7',
       '--t-warning': theme === 'day' ? '#854d0e' : '#fcd34d',
