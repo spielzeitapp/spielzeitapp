@@ -87,7 +87,7 @@ export function TournamentLivestreamShare({ eventId, teamSeasonId }: { eventId: 
         <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="https://…"
           inputMode="url" disabled={busy} className="w-full rounded-xl border border-white/20 bg-black/20 p-3" />
       </label>
-      <p className="text-sm text-white/70">Beim Teilen erscheint der Link auf der öffentlichen Turnierseite und in News. Eltern mit aktiviertem Push erhalten eine Benachrichtigung.</p>
+      <p className="text-sm text-white/70">Scanne den QR-Code des Anbieters oder füge den Stream-Link ein. Beim Teilen erscheint der Livestream auf der öffentlichen Turnierseite und in News. Eltern mit aktiviertem Push erhalten eine Benachrichtigung.</p>
       <div className="flex flex-wrap gap-2">
         <AppButton type="button" variant="secondary" disabled={busy} onClick={() => setScanner(true)}>QR scannen</AppButton>
         <AppButton type="submit" variant="primary" disabled={busy || !draft.trim()}>{busy ? 'Wird geteilt…' : 'Livestream teilen'}</AppButton>

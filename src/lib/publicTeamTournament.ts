@@ -6,6 +6,9 @@
 import { normalizeOefbImportedTeamName } from './oefbTeamNameNormalize';
 import { getOurTeamDisplayName, getOurTeamLogoUrl } from './teamLogos';
 import { VIENNA_TZ } from './viennaTime';
+import { publicTeamTournamentPath } from './publicTeamTournamentPath';
+
+export { publicTeamTournamentPath } from './publicTeamTournamentPath';
 
 export type PublicTeamTournamentMatchStatus = 'upcoming' | 'live' | 'finished' | 'canceled';
 
@@ -101,10 +104,6 @@ export type PublicTeamTournamentPageDto = {
   results: PublicTeamTournamentMatchDto[];
   allMatches: PublicTeamTournamentMatchDto[];
 };
-
-export function publicTeamTournamentPath(publicId: string): string {
-  return `/turnier/${encodeURIComponent(String(publicId).trim())}`;
-}
 
 export function pickPublicTournamentGroupMatch(page: PublicTeamTournamentPageDto, nowMs: number) {
   if (page.tournamentStatus === 'finished' || page.tournamentStatus === 'canceled') return null;

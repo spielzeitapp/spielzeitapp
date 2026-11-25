@@ -1,4 +1,8 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { Play } from 'lucide-react';
+import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
+import { publicTeamTournamentPath } from '../../lib/publicTeamTournamentPath';
 import { FeedPostCtaButton } from './FeedPostCtaButton';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { FeedPostHeader } from './feedTypography';
@@ -59,7 +63,13 @@ const FeedPostContent: React.FC<Props> = ({
           ? <FeedPostDeleteButton input={toFeedPostDeleteInput(item.post)} onDeleted={onFeedPostDeleted} />
           : null} />
       <p className="py-3 font-bold">{item.post.caption}</p>
-      <FeedPostCtaButton ctaUrl={item.post.cta_url} ctaLabel={item.post.cta_label} />
+      {eventId && item.post.cta_url ? (
+        <Link to={`${publicTeamTournamentPath(eventId)}#livestream`}
+          className={`${dsPrimaryCtaClass()} mt-3 flex min-h-12 w-full items-center justify-center gap-2 px-4 py-3 text-[13px] font-bold uppercase tracking-[0.04em]`}>
+          <Play className="h-4 w-4 shrink-0 fill-current" aria-hidden />
+          Livestream ansehen
+        </Link>
+      ) : <FeedPostCtaButton ctaUrl={item.post.cta_url} ctaLabel={item.post.cta_label} />}
     </article>;
   }
   if (item.kind === 'live') {

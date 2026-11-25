@@ -7,7 +7,8 @@ import { TournamentFanPlayerCard } from '../../components/tournament/TournamentF
 import { TournamentFanFixture, FanTeamLogo } from '../../components/tournament/TournamentFanFixture';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
-import { MapPin, Moon, Sun, Share2 } from 'lucide-react';
+import { MapPin, Moon, Play, Sun, Share2 } from 'lucide-react';
+import { tournamentLivestreamEmbedUrl, tournamentLivestreamUrl } from '../../../server/lib/tournamentLivestream.js';
 import {
   fetchPublicTeamTournamentPage,
   groupPublicTournamentMatches,
@@ -80,6 +81,20 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const [page, setPage] = useState<PublicTeamTournamentPageDto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [openedStream, setOpenedStream] = useState<{ publicId: string; url: string } | null>(null);
+  const livestreamSection = useRef<HTMLElement>(null);
+  const tickerSection = useRef<HTMLElement>(null);
+  const livestreamUrl = tournamentLivestreamUrl(page?.livestreamUrl);
+  const embedUrl = tournamentLivestreamEmbedUrl(livestreamUrl);
+  const playerOpen = Boolean(embedUrl && openedStream?.publicId === publicId && openedStream.url === livestreamUrl);
+  useEffect(() => {
+    setOpenedStream(null);
+  }, [publicId, livestreamUrl]);
+  useEffect(() => {
+    if (location.hash === '#livestream' && !loading && !matchId) {
+      livestreamSection.current?.scrollIntoView({ block: 'start' });
+    }
+  }, [location.key, location.hash, livestreamUrl, loading, matchId]);
   const [shareHint, setShareHint] = useState<string | null>(null);
 
   const load = useCallback(async (silent = false) => {
@@ -255,6 +270,35 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
     ...groupedMatches.results.map(match => ({ kickoffAt: match.kickoffAt, time: match.kickoffTimeLabel, card: renderOwnCard(match) })),
     ...ownScheduledResults.map((fixture, index) => ({ kickoffAt: fixture.kickoffAt, time: fixture.time, card: renderScheduledFixture(fixture, index) })),
   ].sort((a, b) => compareFixtureKickoff(b, a)) : [];
+  const ticker = page ? (
+    <section ref={tickerSection} className="scroll-mt-4 space-y-4">
+      <h2 className={heading}>Unser Turnier-Liveticker</h2>
+      {groupedMatches.live.map(match => (
+        <PublicTournamentMatchView key={match.id} timelineOnly page={page} match={match} view="ticker"
+          onView={view => setSearchParams({ spiel: match.id, ansicht: view })} />
+      ))}
+      {groupedMatches.results.map(match => (
+        <details key={match.id} className="overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)]">
+          <summary className="cursor-pointer list-none">
+            <TournamentFanFixture
+              home={page.ownParticipantName || match.ourTeamName} away={match.opponentName}
+              status={match.status} clock={page.matchDetails?.find(detail => detail.id === match.id)}
+              homeGoals={match.scoreOur} awayGoals={match.scoreOpp} time={match.kickoffTimeLabel}
+              phase={match.groupLabel ? `Gruppe ${match.groupLabel}` : 'Turnierspiel'}
+              logos={page.teamLogos} ownName={page.ownParticipantName} ownLogo={page.teamLogoUrl}
+            />
+            <span className="block border-t border-[var(--t-border)] px-4 py-3 text-sm font-bold text-[var(--t-accent)]">
+              Spielverlauf aufklappen ⌄
+            </span>
+          </summary>
+          <PublicTournamentMatchView timelineOnly page={page} match={match} view="ticker"
+            onView={view => setSearchParams({ spiel: match.id, ansicht: view })} />
+        </details>
+      ))}
+      {!groupedMatches.live.length && !groupedMatches.results.length
+        ? <p className={card}>Noch keine Spiele mitgetickert.</p> : null}
+    </section>
+  ) : null;
   const presentationMode=searchParams.get('modus');
   if(!embedded && page && presentationMode==='print') return <TournamentPresentation page={page} mode="print" error={error}/>;
   if(!embedded && page && presentationMode==='screen') {
@@ -293,6 +337,43 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
           <div className="flex items-center gap-3"><TournamentClubLogo name={page.teamName} logoUrl={page.teamLogoUrl} size="sm"/><div className="min-w-0 flex-1"><h1 className="text-base font-extrabold leading-snug">{page.tournamentName}</h1><p className="mt-1 text-xs text-[var(--t-muted)]">{page.dateLabel} · {page.ageGroupLabel}</p></div></div>
           <details className="mt-2 text-xs text-[var(--t-muted)]"><summary className="cursor-pointer py-1 font-semibold">Turnierinfos & Aktualisierung</summary><p className="mt-2">{[page.teamName,page.seasonLabel].filter(Boolean).join(' · ')}</p><p className="mt-1 flex items-center gap-1"><MapPin size={14}/>{page.venue}</p><p className="mt-1">{page.allMatches.some(m=>m.status==='live')?'Läuft':page.tournamentStatusLabel}{page.syncedAt ? ` · Veranstalterstand ${new Date(page.syncedAt).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'})}` : ''}</p></details>
         </section> : null}
+        {livestreamUrl ? (
+          <section id="livestream" ref={livestreamSection} className={`${card} scroll-mt-4 space-y-3`}>
+            <h2 className={heading}>Livestream</h2>
+            {playerOpen && embedUrl ? (
+              <>
+                <iframe
+                  title="Turnier-Livestream"
+                  src={embedUrl}
+                  className="aspect-video w-full rounded-xl bg-black"
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  allowFullScreen
+                />
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <a href={livestreamUrl} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex min-h-11 items-center text-sm font-bold text-[var(--t-accent)]">
+                    Beim Anbieter öffnen ↗
+                  </a>
+                  <button type="button" onClick={() => setOpenedStream(null)}
+                    className="min-h-11 px-2 text-sm font-bold text-[var(--t-muted)]">
+                    Player schließen
+                  </button>
+                </div>
+              </>
+            ) : embedUrl ? (
+              <button type="button" onClick={() => setOpenedStream({ publicId, url: livestreamUrl })}
+                className="public-tournament-cta flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-5 font-bold">
+                <Play size={18} aria-hidden /> Livestream ansehen
+              </button>
+            ) : (
+              <a href={livestreamUrl} target="_blank" rel="noopener noreferrer"
+                className="public-tournament-cta flex min-h-12 items-center justify-center gap-2 rounded-full px-5 font-bold">
+                <Play size={18} aria-hidden /> Livestream beim Anbieter ansehen ↗
+              </a>
+            )}
+          </section>
+        ) : null}
+        {playerOpen ? ticker : null}
         {error?<p role="status" className="text-[var(--t-warning)]">Aktualisierung nicht möglich – letzter geladener Stand.</p>:null}
         {hasLiveGames ? (
           <section aria-label="Laufende Turnierspiele" className="space-y-3">
@@ -327,12 +408,6 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
             ) : null}
           </section>
         ) : null}
-        {page.livestreamUrl && <section id="livestream" className={card}>
-          <a href={page.livestreamUrl} target="_blank" rel="noopener noreferrer"
-            className="inline-flex min-h-11 items-center rounded-xl border border-[var(--t-border)] px-4 text-sm font-bold text-[var(--t-accent)]">
-            Livestream ansehen ↗
-          </a>
-        </section>}
         {featuredMatch ? <section aria-label={featuredMatch.status==='live'?'Aktuelles Livespiel':'Nächstes eigenes Spiel'}>{renderOwnCard(featuredMatch,true)}</section> : null}
         {featuredOwnFixture ? (
           <section aria-label={featuredOwnFixture.status === 'live' || isWithinScheduledMatch(featuredOwnFixture) ? 'Aktuelles Spiel' : 'Nächstes eigenes Spiel'}>
@@ -340,7 +415,10 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
           </section>
         ) : null}
         <nav aria-label="Turnierbereiche" className="space-y-1 rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-1">
-          <div className="grid grid-cols-2 gap-1 sm:grid-cols-4" role="group" aria-label="Spiele und Tabelle">{[['ours','Unsere Spiele'],['games','Alle Spiele'],['ticker','Liveticker'],['tables','Tabellen']].map(([id,label])=><button key={id} type="button" aria-pressed={tab===id} onClick={()=>setTab(id)} className="public-tournament-tab min-h-11 min-w-0 rounded-xl px-2 text-sm font-bold">{label}</button>)}</div>
+          <div className="grid grid-cols-2 gap-1 sm:grid-cols-4" role="group" aria-label="Spiele und Tabelle">{[['ours','Unsere Spiele'],['games','Alle Spiele'],['ticker','Liveticker'],['tables','Tabellen']].map(([id,label])=><button key={id} type="button" aria-pressed={tab===id} onClick={()=>{
+            setTab(id);
+            if (id === 'ticker' && playerOpen) tickerSection.current?.scrollIntoView({ block: 'start' });
+          }} className="public-tournament-tab min-h-11 min-w-0 rounded-xl px-2 text-sm font-bold">{label}</button>)}</div>
           <div className="grid grid-cols-3 gap-1 border-t border-[var(--t-border)] pt-1" role="group" aria-label="Finalrunde, Torschützen und Mannschaft">{[['final','Finalrunde'],['scorers','Torschützen'],['roster','Unser Team']].map(([id,label])=><button key={id} type="button" aria-pressed={tab===id} onClick={()=>setTab(id)} className="public-tournament-tab min-h-11 min-w-0 rounded-xl px-1 text-[13px] font-bold sm:text-sm">{label}</button>)}</div>
         </nav>
         {tab==='ours'? <section className="space-y-4">
@@ -369,7 +447,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
           {tab==='final'?finalRanking:null}</section>:null}
 
 
-        {tab==='ticker'?<section className="space-y-4"><h2 className={heading}>Unser Turnier-Liveticker</h2>{groupedMatches.live.map(m=><PublicTournamentMatchView key={m.id} timelineOnly page={page} match={m} view="ticker" onView={view=>setSearchParams({spiel:m.id,ansicht:view})}/>)}{groupedMatches.results.map(m=><details key={m.id} className="overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)]"><summary className="cursor-pointer list-none"><TournamentFanFixture home={page.ownParticipantName || m.ourTeamName} away={m.opponentName} status={m.status} clock={page.matchDetails?.find(d=>d.id===m.id)} homeGoals={m.scoreOur} awayGoals={m.scoreOpp} time={m.kickoffTimeLabel} phase={m.groupLabel?`Gruppe ${m.groupLabel}`:'Turnierspiel'} logos={page.teamLogos} ownName={page.ownParticipantName} ownLogo={page.teamLogoUrl}/><span className="block border-t border-[var(--t-border)] px-4 py-3 text-sm font-bold text-[var(--t-accent)]">Spielverlauf aufklappen ⌄</span></summary><PublicTournamentMatchView timelineOnly page={page} match={m} view="ticker" onView={view=>setSearchParams({spiel:m.id,ansicht:view})}/></details>)}{!groupedMatches.live.length&&!groupedMatches.results.length?<p className={card}>Noch keine Spiele mitgetickert.</p>:null}</section>:null}
+        {tab === 'ticker' && !playerOpen ? ticker : null}
 
         {tab==='scorers'?<section className={card}><h2 className={heading}>Unsere Torschützenliste</h2>{page.scorers?.some(s=>s.example)?<p className="mb-3 text-sm text-[var(--t-warning)]">TEST-Beispieldaten aus unserem Kader – keine bestätigten historischen Torschützen.</p>:null}{scorerTotals.length?<ol className="space-y-3">{scorerTotals.map((s,i)=><li key={s.name}><TournamentFanPlayerCard player={profileFor(s.name)} clubName={page.ownParticipantName || page.teamName} clubLogo={page.teamLogoUrl} goals={s.goals} rank={i+1}/></li>)}</ol>:<p>Noch keine Torschützen erfasst.</p>}</section>:null}
         {tab==='roster'?<section className={card}><h2 className={heading}>Unser Team</h2>{page.fanRosterExample?<p className="mb-3 text-sm text-[var(--t-muted)]">TEST-Beispiel mit Bildern und Nummern aus unserem aktuellen Kader.</p>:null}{rosterPlayers.length?<ul className="space-y-3">{rosterPlayers.map(player=><li key={player.name}><TournamentFanPlayerCard player={player} clubName={page.ownParticipantName || page.teamName} clubLogo={page.teamLogoUrl}/></li>)}</ul>:<p>Der Turnierkader ist noch nicht festgelegt.</p>}</section>:null}
