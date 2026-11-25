@@ -1,4 +1,15 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { Play } from 'lucide-react';
+import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
+import { publicTeamTournamentPath } from '../../lib/publicTeamTournamentPath';
+import { useFeedMediaSrc } from '../../hooks/useFeedMediaSrc';
+import { ParticipantLogoChip } from '../live/ParticipantLogoChip';
+import { FeedPostCtaButton } from './FeedPostCtaButton';
+import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
+import { FeedPostHeader } from './feedTypography';
+import { FeedPostDeleteButton } from './FeedPostDeleteButton';
+import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import { useMatchClubBranding } from '../../hooks/useMatchClubBranding';
 import type { ClassifiedFeedPost } from '../../lib/matchdayFeedTypes';
 import type { EventRow } from '../../hooks/useEvents';
@@ -47,6 +58,37 @@ const FeedPostContent: React.FC<Props> = ({
     ? () => notifyFeedPostDeleted(item.post.id)
     : undefined;
 
+  const livestreamImage = useFeedMediaSrc(item.kind === 'tournament_livestream' ? item.post.media_url : null, 'feed');
+  if (item.kind === 'tournament_livestream') {
+    const payload = item.post.payload as { participants?: unknown } | null;
+    const participants = Array.isArray(payload?.participants)
+      ? payload.participants.filter((entry): entry is { name: string; logoUrl?: string } =>
+        entry && typeof entry.name === 'string' && entry.name.trim().length > 0)
+      : [];
+    return <article className="rounded-2xl border border-white/15 p-4">
+      <FeedPostHeader teamLabel={teamLabel} seasonLabel={seasonLabel} whenLabel={formatDateTimeMediumDeVienna(item.post.created_at)}
+        actions={staffCanDelete && onFeedPostDeleted
+          ? <FeedPostDeleteButton input={toFeedPostDeleteInput(item.post)} onDeleted={onFeedPostDeleted} />
+          : null} />
+      {livestreamImage ? <img src={livestreamImage} alt="Turniermotiv" loading="lazy"
+        className="mt-3 aspect-video w-full rounded-xl object-cover" /> : null}
+      {participants.length ? (
+        <ul aria-label="Teilnehmende Mannschaften" className="mt-3 grid grid-cols-4 gap-x-2 gap-y-3">
+          {participants.map(({ name, logoUrl }) => <li key={name} className="min-w-0">
+            <ParticipantLogoChip teamName={name} logoUrl={logoUrl} carousel showHomeBadge={false} />
+          </li>)}
+        </ul>
+      ) : null}
+      <p className="py-3 font-bold">{item.post.caption}</p>
+      {eventId && item.post.cta_url ? (
+        <Link to={`${publicTeamTournamentPath(eventId)}#livestream`}
+          className={`${dsPrimaryCtaClass()} mt-3 flex min-h-12 w-full items-center justify-center gap-2 px-4 py-3 text-[13px] font-bold uppercase tracking-[0.04em]`}>
+          <Play className="h-4 w-4 shrink-0 fill-current" aria-hidden />
+          {item.post.cta_label || 'Zur Turnierseite'}
+        </Link>
+      ) : <FeedPostCtaButton ctaUrl={item.post.cta_url} ctaLabel={item.post.cta_label} />}
+    </article>;
+  }
   if (item.kind === 'live') {
     return (
       <LiveFeedPostCard
