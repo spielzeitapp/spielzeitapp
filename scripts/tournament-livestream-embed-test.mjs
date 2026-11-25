@@ -180,3 +180,5 @@ try {
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
+
+process.exit(0);
