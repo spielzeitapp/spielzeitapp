@@ -279,7 +279,9 @@ function slotForFieldPlayer(
 
 const FORMATION_OPTION_LABELS: Record<U11FormationId, string> = {
   '1-2-2': 'Halle · 4+1',
-  '1-2-1-2': 'Halle · 5+1',
+  '1-2-1-2': 'Halle · 2-1-2',
+  '1-3-2': 'Halle · 3-2',
+  '1-2-3': 'Halle · 2-3',
   '1-2-2-2': 'Kompakt',
   '1-2-3-1': 'Ausgewogen',
   '1-3-2-1': 'Defensiver',

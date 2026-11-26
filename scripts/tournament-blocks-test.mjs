@@ -15,7 +15,7 @@ try {
  assert.throws(()=>planBlockChange(current,{...target,LB:'missing'},squad,true));
  assert.throws(()=>planBlockChange(current,{...target,LB:'f'},squad,true));
  assert.equal(planBlockChange({...current,CM:'j'},{...target,CM:'k'},[...squad,'j','k'],true).changes.length,5);
- for(const id of ['1-2-2','1-2-1-2']){assert(f.auditFormationSlotLayout(id).valid);assert.equal(f.resolveLivePitchFormationId(id,false),id);}
+ for(const id of ['1-2-2','1-2-1-2','1-3-2','1-2-3']){assert(f.auditFormationSlotLayout(id).valid);assert.equal(f.resolveLivePitchFormationId(id,false),id);}
  const kickoff=['g','a','b','','c','d',''];const saved=['g','e','f','','h','i',''];const events=planBlockChange(current,target,squad,true).changes.map((c,i)=>({id:'s'+i,type:'substitution',timestamp:360,playerId:c.outId,swapWithPlayerId:c.inId}));
  const replay=engine.deriveLiveMatchReplayState({kickoffLineup:kickoff,squadPlayerIds:squad,events,finalSecond:600,fallbackStartingPlayerIds:saved});assert.deepEqual(new Set(replay.onFieldPlayerIds),new Set(saved.filter(Boolean)));
  const times=engine.computePlayerPlaytimeFromEvents({kickoffStartingPlayerIds:kickoff,squadPlayerIds:squad,events,finalMatchSecond:600});assert.equal(times.g,600);for(const id of ['a','b','c','d'])assert.equal(times[id],360);for(const id of ['e','f','h','i'])assert.equal(times[id],240);
