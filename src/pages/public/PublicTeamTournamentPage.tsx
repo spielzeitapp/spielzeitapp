@@ -23,6 +23,26 @@ import { TournamentClubLogo } from '../../components/tournament/TournamentClubLo
 
 const NEXT_PRO_U12_2026_ID = '42bf98e7-1047-4580-bddb-561457821562';
 
+function NextProIntro({ onFinished }: { onFinished: () => void }) {
+  const [fading, setFading] = useState(false);
+  useEffect(() => {
+    const fade = window.setTimeout(() => setFading(true), 900);
+    const finish = window.setTimeout(onFinished, 1100);
+    return () => {
+      window.clearTimeout(fade);
+      window.clearTimeout(finish);
+    };
+  }, [onFinished]);
+
+  return (
+    <div data-nextpro-intro aria-hidden="true"
+      className={`pointer-events-none fixed inset-0 z-50 grid place-items-center bg-[#101012] transition-opacity duration-200 motion-reduce:transition-none ${fading ? 'opacity-0' : 'opacity-100'}`}>
+      <img src="/images/nextpro-u12-2026.webp" alt="" fetchPriority="high" onError={onFinished}
+        className="max-h-full w-full max-w-5xl object-contain" />
+    </div>
+  );
+}
+
 function compareFixtureKickoff(
   a: { kickoffAt?: string | null; time: string },
   b: { kickoffAt?: string | null; time: string },
@@ -68,6 +88,9 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const returnsToLive = /^\/(app|demo)\/live(?:[/?]|$)/.test(returnTo);
   const [searchParams, setSearchParams] = useSearchParams();
   const matchId = searchParams.get('spiel');
+  const isNextProOverview = !embedded && !matchId && publicId === NEXT_PRO_U12_2026_ID;
+  const [showIntro, setShowIntro] = useState(() => isNextProOverview && !location.hash && searchParams.size === 0);
+  const finishIntro = useCallback(() => setShowIntro(false), []);
   const viewRaw = searchParams.get('ansicht');
   const matchView: PublicMatchView = viewRaw === 'formation' || viewRaw === 'ticker' || viewRaw === 'stats' ? viewRaw : 'overview';
   const requestId = useRef(0);
@@ -334,7 +357,6 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   }
   const ContentTag=embedded?'div':'main';
   const accent = normalizeBrandColor(page?.accentColor) ?? '#c82333';
-  const showTournamentCover = !embedded && !matchId && publicId === NEXT_PRO_U12_2026_ID;
   const pageHeader = (
     <header className="flex items-center justify-between gap-2">
         <Link to={selectedMatch && !returnsToLive ? location.pathname : returnTo} state={location.state} aria-label={returnsToLive ? 'Zurück zum Livespiel' : 'Zurück zum Turnier'} className="inline-flex min-h-11 min-w-0 items-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2 text-sm font-bold">← Zurück<span className="ml-1 hidden min-[380px]:inline">{returnsToLive ? 'zum Livespiel' : 'zum Turnier'}</span></Link>
@@ -372,31 +394,25 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
       '--t-warning': theme === 'day' ? '#854d0e' : '#fcd34d',
       colorScheme: theme === 'day' ? 'light' : 'dark',
     } as React.CSSProperties}>
+    {isNextProOverview && showIntro && !location.hash && searchParams.size === 0 ? <NextProIntro onFinished={finishIntro} /> : null}
     <ContentTag className={embedded?"space-y-4":"mx-auto max-w-2xl space-y-4 px-4 pb-8 pt-4"}>
-      {!embedded && !showTournamentCover ? pageHeader : embedded && selectedMatch ? <button type="button" onClick={()=>setSearchParams({})} className="min-h-11 rounded-full border border-[var(--t-border)] px-4 text-sm font-bold">← Zurück zur Turnierübersicht</button> : null}
+      {!embedded && !isNextProOverview ? pageHeader : embedded && selectedMatch ? <button type="button" onClick={()=>setSearchParams({})} className="min-h-11 rounded-full border border-[var(--t-border)] px-4 text-sm font-bold">← Zurück zur Turnierübersicht</button> : null}
       {shareHint ? <p role="status" className="text-sm text-[var(--t-muted)]">{shareHint}</p> : null}
       {loading ? <p>Turnier wird geladen…</p> : !page ? <section className={card}><p>{error || 'Turnier nicht verfügbar'}</p><button onClick={()=>void load()} className="mt-3 underline">Erneut laden</button></section> : <>
-        {!showTournamentCover ? presentationTools : null}
+        {!isNextProOverview ? presentationTools : null}
         {selectedMatch ? <PublicTournamentMatchView page={page} match={selectedMatch} view={matchView} onView={view=>setSearchParams({spiel:selectedMatch.id,ansicht:view})}/> : <>
-        {showTournamentCover ? (
-          <section aria-labelledby="nextpro-title" className="relative isolate overflow-hidden rounded-2xl bg-[#101012] text-white">
-            <img src="/images/nextpro-u12-2026.webp" alt="" fetchPriority="high"
-              className="pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover object-[72%_center]" />
-            <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-r from-black via-black/[.85] to-black/20" />
-            <div className="max-w-[75%] px-4 py-5 sm:px-6 sm:py-7">
-              <TournamentClubLogo name={page.teamName} logoUrl={page.teamLogoUrl} size="sm" />
-              <h1 id="nextpro-title" className="mt-2 text-2xl font-black uppercase leading-none sm:text-4xl">{page.tournamentName}</h1>
-              <p className="mt-2 text-sm font-semibold text-zinc-100">{page.dateLabel}</p>
-              {page.venue ? <p className="mt-1 text-sm text-zinc-200">{page.venue}</p> : null}
-            </div>
-            <div className="flex flex-wrap gap-2 bg-black/[.85] px-4 py-3 sm:px-6">
-              <button type="button" onClick={() => openTournamentSection('games')} className="min-h-11 rounded-xl bg-[#bd1733] px-4 text-sm font-bold text-white">Spielplan</button>
-              <button type="button" onClick={() => openTournamentSection('ticker')} className="min-h-11 rounded-xl border border-white/35 px-4 text-sm font-bold text-white">Liveticker</button>
-              {livestreamUrl ? <button type="button" onClick={() => livestreamSection.current?.scrollIntoView({ block: 'start' })} className="min-h-11 rounded-xl border border-white/35 px-4 text-sm font-bold text-white">{streamLabel}</button> : null}
+        {isNextProOverview ? (
+          <section aria-labelledby="nextpro-title" className="rounded-xl border border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2">
+            <h1 id="nextpro-title" className="text-base font-extrabold leading-snug">{page.tournamentName}</h1>
+            <p className="text-xs text-[var(--t-muted)]">{page.dateLabel}</p>
+            <div className="mt-1 flex flex-wrap gap-x-4 text-sm font-bold text-[var(--t-accent)]">
+              <button type="button" onClick={() => openTournamentSection('games')} className="min-h-11">Spielplan</button>
+              <button type="button" onClick={() => openTournamentSection('ticker')} className="min-h-11">Liveticker</button>
+              {livestreamUrl ? <button type="button" onClick={() => livestreamSection.current?.scrollIntoView({ block: 'start' })} className="min-h-11">{streamLabel}</button> : null}
             </div>
           </section>
         ) : null}
-        {!embedded && !showTournamentCover ? <section className="rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-3">
+        {!embedded && !isNextProOverview ? <section className="rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-3">
           <div className="flex items-center gap-3"><TournamentClubLogo name={page.teamName} logoUrl={page.teamLogoUrl} size="sm"/><div className="min-w-0 flex-1"><h1 className="text-base font-extrabold leading-snug">{page.tournamentName}</h1><p className="mt-1 text-xs text-[var(--t-muted)]">{page.dateLabel} · {page.ageGroupLabel}</p></div></div>
           {tournamentInfo}
         </section> : null}
@@ -540,7 +556,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
         {tab==='scorers'?<section className={card}><h2 className={heading}>Unsere Torschützenliste</h2>{page.scorers?.some(s=>s.example)?<p className="mb-3 text-sm text-[var(--t-warning)]">TEST-Beispieldaten aus unserem Kader – keine bestätigten historischen Torschützen.</p>:null}{scorerTotals.length?<ol className="space-y-3">{scorerTotals.map((s,i)=><li key={s.name}><TournamentFanPlayerCard player={profileFor(s.name)} clubName={page.ownParticipantName || page.teamName} clubLogo={page.teamLogoUrl} goals={s.goals} rank={i+1}/></li>)}</ol>:<p>Noch keine Torschützen erfasst.</p>}</section>:null}
         {tab==='roster'?<section className={card}><h2 className={heading}>Unser Team</h2>{page.fanRosterExample?<p className="mb-3 text-sm text-[var(--t-muted)]">TEST-Beispiel mit Bildern und Nummern aus unserem aktuellen Kader.</p>:null}{rosterPlayers.length?<ul className="space-y-3">{rosterPlayers.map(player=><li key={player.name}><TournamentFanPlayerCard player={player} clubName={page.ownParticipantName || page.teamName} clubLogo={page.teamLogoUrl}/></li>)}</ul>:<p>Der Turnierkader ist noch nicht festgelegt.</p>}</section>:null}
         </>}
-        {showTournamentCover ? <>{pageHeader}{presentationTools}<section className={card}>{tournamentInfo}</section></> : null}
+        {isNextProOverview ? <>{pageHeader}{presentationTools}<section className={card}>{tournamentInfo}</section></> : null}
         {!embedded ? <Link to={returnTo} className="public-tournament-cta block rounded-full px-5 py-3 text-center text-sm font-bold">Zum Turniercenter in der App</Link> : null}
       </>}
     </ContentTag>
