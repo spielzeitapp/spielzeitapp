@@ -51,6 +51,9 @@ type Props = {
 };
 const input =
   "min-h-12 w-full rounded-xl border border-[rgb(var(--club-border-rgb)/0.3)] bg-[#0c0c0f] px-3 py-2 text-[16px] text-white";
+const fieldPlayerCounts = [...new Set(U11_FORMATION_CHOICES.map(id => U11_FORMATIONS[id].length - 1))]
+  .sort((a, b) => a - b);
+
 export function TournamentLineupTemplatePanel({
   eventId,
   players,
@@ -126,6 +129,8 @@ export function TournamentLineupTemplatePanel({
     (p) => squad.includes(p.id) && !p.is_injured,
   );
   const layout = U11_FORMATIONS[current.formationId];
+  const fieldPlayerCount = layout.length - 1;
+  const formationsForFormat = U11_FORMATION_CHOICES.filter(id => U11_FORMATIONS[id].length === layout.length);
   const edit = (next: StoredMatchLineupVariants) => {
     setDraft(next);
     setMessage(null);
@@ -272,6 +277,36 @@ export function TournamentLineupTemplatePanel({
           Wähle zuerst den Turnierkader unter Schritt 2.
         </p>
       ) : null}
+      <fieldset className="space-y-2" disabled={!canEdit || busy}>
+        <legend className="text-[16px] font-semibold text-white">Spielform fürs Turnier</legend>
+        <div className="flex flex-wrap gap-2">
+          {fieldPlayerCounts.map(count => (
+            <button
+              key={count}
+              type="button"
+              aria-pressed={fieldPlayerCount === count}
+              className={`min-h-12 flex-1 rounded-xl border px-3 py-2 text-[16px] font-bold ${fieldPlayerCount === count ? 'sz-club-tab-active text-white' : 'sz-club-event-action text-white/65'}`}
+              onClick={() => {
+                if (fieldPlayerCount === count) return;
+                const formation = U11_FORMATION_CHOICES.find(id => U11_FORMATIONS[id].length === count + 1);
+                if (formation) setFormation(formation);
+              }}
+            >
+              {count}+1
+            </button>
+          ))}
+        </div>
+        <label className="block space-y-2 text-[16px] font-semibold text-white">
+          Formation
+          <select
+            className={input}
+            value={current.formationId}
+            onChange={(e) => setFormation(e.target.value as U11FormationId)}
+          >
+            {formationsForFormat.map(id => <option key={id} value={id}>{id}</option>)}
+          </select>
+        </label>
+      </fieldset>
       <div className="grid grid-cols-2 gap-2" role="group" aria-label="Aufstellungsart">
         {(['single', 'blocks'] as const).map(mode => <button key={mode} type="button"
           disabled={!canEdit || busy} aria-pressed={(draft.lineupMode ?? 'blocks') === mode}
@@ -303,21 +338,6 @@ export function TournamentLineupTemplatePanel({
           </button>
         ))}
       </div> : null}
-      <label className="block space-y-2 text-[16px] font-semibold text-white">
-        Spielform / Formation · gilt für die Turniervorlage
-        <select
-          disabled={!canEdit || busy}
-          className={input}
-          value={current.formationId}
-          onChange={(e) => setFormation(e.target.value as U11FormationId)}
-        >
-          {U11_FORMATION_CHOICES.map((id) => (
-            <option key={id} value={id}>
-              {id} · {U11_FORMATIONS[id].length - 1}+1
-            </option>
-          ))}
-        </select>
-      </label>
       <p className="text-[14px] text-white/65" role="status">
         {selectedPlayer ? 'Zielposition antippen oder auf die Ersatzbank setzen.' : 'Spieler ziehen oder antippen und danach die Zielposition wählen. Besetzte Positionen werden getauscht.'}
       </p>
