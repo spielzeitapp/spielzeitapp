@@ -18,7 +18,7 @@ module.exports=async function(req,res){
  try{
   const c=await db.from('clubs').select('id,name').eq('id',club).eq('status','active').maybeSingle();
   if(c.error)throw c.error;if(!c.data)return res.status(404).json({error:'Verein nicht verfügbar'});
-  let q=db.from('exchange_listings').select('id,title,category,size,condition,offer,price,description,status,photo_paths,created_at')
+  let q=db.from('exchange_listings').select('id,title,category,size,condition,offer,price,voluntary_donation,description,status,photo_paths,created_at')
    .eq('club_id',club).eq('is_public',true).not('public_confirmed_at','is',null).in('status',['Verfügbar','Reserviert']);
   if(listing)q=q.eq('id',listing);
   if(ids)q=q.in('id',ids);
@@ -32,6 +32,6 @@ module.exports=async function(req,res){
    res.setHeader('Content-Type','image/jpeg');return res.status(200).send(Buffer.from(await file.data.arrayBuffer()));
   }
   // Explicit serialization: never return owner IDs, names, teams, paths or contacts.
-  return res.status(200).json({club:c.data,items:(result.data||[]).map(i=>({id:i.id,title:i.title,category:i.category,size:i.size,condition:i.condition,offer:i.offer,price:i.price,description:i.description,status:i.status,created_at:i.created_at,photos:i.photo_paths.map((_,index)=>`/api/exchange/public?club=${club}&listing=${i.id}&photo=${index}`)}))});
+  return res.status(200).json({club:c.data,items:(result.data||[]).map(i=>({id:i.id,title:i.title,category:i.category,size:i.size,condition:i.condition,offer:i.offer,price:i.price,voluntary_donation:i.voluntary_donation,description:i.description,status:i.status,created_at:i.created_at,photos:i.photo_paths.map((_,index)=>`/api/exchange/public?club=${club}&listing=${i.id}&photo=${index}`)}))});
  }catch{return res.status(503).json({error:'Angebote konnten nicht geladen werden. Bitte erneut versuchen.'});}
 };

@@ -2,3 +2,5 @@
 
 .exchange-dialog .exchange-editor-offers>div{grid-template-columns:repeat(2,minmax(0,1fr))}
 html[data-market-theme=light] .team-fund-card{background:#fff8;border-color:#d9cbd6;color:#25202a}html[data-market-theme=dark] .team-fund-card{background:#21152099;border-color:#633346;color:#f5f1f6}.team-fund-card select,.team-fund-card input{min-width:0}.team-fund-card a{color:inherit;text-decoration:underline}
+
+.donation-choices{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.exchange .donation-choices button[aria-pressed=true]{background:#a51f40;color:#fff;border-color:#a51f40}.team-fund-card input,.team-fund-card select{max-width:100%}
