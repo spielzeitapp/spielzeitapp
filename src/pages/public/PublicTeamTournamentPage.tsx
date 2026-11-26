@@ -41,7 +41,7 @@ function NextProIntro({ ready, onFinished }: { ready: boolean; onFinished: () =>
   return (
     <div data-nextpro-intro aria-hidden="true"
       className={`market-splash pointer-events-none transition-opacity duration-200 motion-reduce:transition-none ${fading ? 'opacity-0' : 'opacity-100'}`}>
-      <img src="/logos/nsg-goelsental.png" alt="" width="130" height="130" fetchPriority="high" className="object-contain" />
+      <img src="/icons/turniere-180.png" alt="" width="130" height="130" fetchPriority="high" className="object-contain" />
       <h1>NextPro Hallencup</h1>
       <p>U12 · Sporthalle Wilhelmsburg</p>
       <div className="market-splash-track" />
