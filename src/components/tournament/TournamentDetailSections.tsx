@@ -1242,7 +1242,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
           </div>
         }
       />
-      {carpoolSection ? <Modal className="tournamentWorkflowModal" open={carpoolOpen} onClose={() => setCarpoolOpen(false)} title="Fahrgemeinschaft">
+      {carpoolSection ? <Modal className="carpool-modal" open={carpoolOpen} onClose={() => setCarpoolOpen(false)} title="Fahrgemeinschaft">
         {carpoolSection}
       </Modal> : null}
       {canManage && trainerActions ? (

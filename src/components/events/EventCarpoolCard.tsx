@@ -1,8 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Car,
-  ChevronDown,
-  ChevronUp,
   Clock3,
   MapPin,
   MessageCircle,
@@ -18,9 +16,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { profileDisplayName, type ProfileRow, useProfile } from '../../auth/useProfile';
 import { meetupUtcIsoOnViennaEventDay, utcIsoToViennaTimeHHmm } from '../../lib/viennaTime';
 import type { PlayerItem } from '../../hooks/usePlayers';
-import { Card } from '../../app/components/ui/Card';
 import { Modal } from '../../app/ui/Modal';
-import { dsPrimaryCtaClass, dsSecondaryCtaClass } from '../../lib/premiumDesignSystem';
 
 type CarpoolOffer = {
   id: string;
@@ -69,7 +65,6 @@ type Props = {
   players: PlayerItem[];
   canOffer: boolean;
   canManage?: boolean;
-  defaultExpanded?: boolean;
 };
 
 function playerName(player: PlayerItem | undefined): string {
@@ -148,7 +143,6 @@ export const EventCarpoolCard: React.FC<Props> = ({
   myPlayerIds,
   players,
   canOffer,
-  defaultExpanded = true,
 }) => {
   const { profile } = useProfile(currentUserId);
   const [offers, setOffers] = useState<CarpoolOffer[]>([]);
@@ -159,7 +153,6 @@ export const EventCarpoolCard: React.FC<Props> = ({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(defaultExpanded);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
   const [editingOffer, setEditingOffer] = useState<CarpoolOffer | null>(null);
   const [offerTime, setOfferTime] = useState('');
@@ -488,277 +481,246 @@ export const EventCarpoolCard: React.FC<Props> = ({
     );
   });
 
+  const canRequestSeat = myPlayers.some(
+    (player) =>
+      !reservations.some((row) => row.player_id === player.id) &&
+      !requests.some((row) => row.player_id === player.id),
+  );
+
   return (
     <>
-      <Card
-        className="sz-club-surface sz-club-surface--hero relative flex min-w-0 flex-col gap-3 overflow-hidden border !px-3 sm:!px-6"
-        style={{ borderColor: 'rgb(var(--club-primary-rgb) / 0.34)' }}
-      >
-        <span
-          className="pointer-events-none absolute inset-x-8 top-0 h-px"
-          style={{
-            background:
-              'linear-gradient(90deg, transparent, rgb(var(--club-primary-rgb) / 0.78), transparent)',
-          }}
-          aria-hidden
-        />
-        <button
-          type="button"
-          className="flex min-h-[44px] w-full items-center gap-3 text-left"
-          onClick={() => setExpanded((value) => !value)}
-          aria-expanded={expanded}
-        >
-          <span className="sz-club-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border">
-            <Car className="h-[22px] w-[22px] text-white" strokeWidth={2.25} aria-hidden />
+      <div className="carpool-content grid min-w-0 gap-4">
+        <div className="flex min-w-0 items-center gap-3" role="status">
+          <span className="carpool-status-icon flex size-10 shrink-0 items-center justify-center rounded-xl">
+            <Car className="size-5" aria-hidden />
           </span>
-          <span className="min-w-0 flex-1">
-            <span
-              className="block text-[15px] font-bold uppercase tracking-[0.12em]"
-              style={{ color: 'rgb(var(--club-primary-rgb))' }}
-            >
-              Fahrgemeinschaft
-            </span>
-            <span className="mt-1 block text-[14px] font-medium text-white/68">
-              {loading
-                ? 'Wird geladen…'
-                : totalFreeSeats > 0
-                  ? `${totalFreeSeats} ${totalFreeSeats === 1 ? 'Platz' : 'Plätze'} frei`
-                  : offers.length > 0
-                    ? 'Alle Fahrten voll'
-                    : requests.length > 0
-                      ? `${requests.length} ${requests.length === 1 ? 'Platz wird' : 'Plätze werden'} gesucht`
-                      : 'Fahrt anbieten oder Platz suchen'}
-            </span>
-          </span>
-          {expanded ? <ChevronUp className="h-5 w-5 text-white/45" /> : <ChevronDown className="h-5 w-5 text-white/45" />}
-        </button>
+          <p className="min-w-0 text-[15px] font-semibold">
+            {loading
+              ? 'Fahrten werden geladen…'
+              : totalFreeSeats > 0
+                ? `${totalFreeSeats} ${totalFreeSeats === 1 ? 'freier Platz' : 'freie Plätze'}`
+                : offers.length > 0
+                  ? 'Alle Fahrten sind voll'
+                  : 'Noch keine Fahrt angeboten'}
+          </p>
+        </div>
 
-        {expanded ? (
-          <div className="flex min-w-0 flex-col gap-3 border-t border-white/[0.07] pt-3">
-            {error ? (
-              <div className="rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-[13px] text-red-200">
-                {error}
-              </div>
-            ) : null}
-            {notice ? (
-              <div className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-[13px] text-emerald-200">
-                {notice}
-              </div>
-            ) : null}
-
-            {!loading && offers.length === 0 ? (
-              <p className="text-[14px] leading-relaxed text-white/68">Noch keine Fahrt angeboten.</p>
-            ) : null}
-
-            {offers.map((offer) => {
-              const offerReservations = reservations.filter((row) => row.offer_id === offer.id);
-              const freeSeats = Math.max(0, offer.seat_count - offerReservations.length);
-              const isOwn = isOfferOwnedByCurrentFamily(offer, currentUserId, ownDriverName);
-              const hasUnreservedOwnPlayer = myPlayers.some(
-                (player) => !reservations.some((row) => row.player_id === player.id),
-              );
-              return (
-                <section key={offer.id} className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-white/[0.09] bg-black/25 p-3 sm:p-3.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate text-[17px] font-bold text-white">
-                        {isOwn ? 'Meine Fahrt' : `${offer.driver_name} fährt`}
-                      </p>
-                      <span
-                        className={`mt-1.5 inline-flex rounded-full px-2.5 py-1 text-[12px] font-bold uppercase tracking-[0.06em] ${
-                          freeSeats > 0
-                            ? 'border border-emerald-400/25 bg-emerald-500/14 text-emerald-300'
-                            : 'border border-white/10 bg-white/[0.05] text-white/55'
-                        }`}
-                      >
-                        {freeSeats > 0 ? `Noch ${freeSeats} ${freeSeats === 1 ? 'Platz' : 'Plätze'} frei` : 'Voll besetzt'}
-                      </span>
-                    </div>
-                    {isOwn && (
-                      <div className="flex shrink-0 gap-1">
-                        {isOwn ? (
-                          <button type="button" className="rounded-lg p-2 text-white/65 hover:bg-white/[0.07] hover:text-white" onClick={() => openOfferModal(offer)} aria-label="Fahrt bearbeiten">
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                        ) : null}
-                        <button type="button" className="rounded-lg p-2 text-red-300/75 hover:bg-red-500/10 hover:text-red-200" onClick={() => void deleteOffer(offer)} aria-label="Fahrt löschen">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-3 grid gap-2.5 text-[15px] font-medium text-white/82">
-                    <div className="flex items-center gap-2"><Clock3 className="sz-club-accent-text h-4 w-4" /><span>Abfahrt {timeLabel(offer.departure_at)} Uhr</span></div>
-                    <div className="flex items-start gap-2"><MapPin className="sz-club-accent-text mt-0.5 h-4 w-4 shrink-0" /><span className="break-words">{offer.departure_location}</span></div>
-                    <div className="flex items-center gap-2"><RotateCcw className="sz-club-accent-text h-4 w-4" /><span>{offer.return_included ? 'Rückfahrt inklusive' : 'Nur Hinfahrt'}</span></div>
-                  </div>
-                  {offer.note ? <p className="mt-2.5 rounded-xl bg-white/[0.04] px-3 py-2.5 text-[14px] leading-relaxed text-white/70">{offer.note}</p> : null}
-                  {offerReservations.length > 0 ? (
-                    <div className="mt-3 min-w-0 border-t border-white/[0.07] pt-3 text-[14px] text-white/72">
-                      <div className="mb-2 flex items-center gap-2">
-                        <Users className="sz-club-accent-text h-4 w-4 shrink-0" />
-                        <span className="font-semibold">Mitfahrer</span>
-                      </div>
-                      <div className="grid min-w-0 gap-2">
-                        {offerReservations.map((row) => {
-                          const canRemovePassenger =
-                            isOwn ||
-                            row.reserved_by === currentUserId ||
-                            myPlayerIds.includes(row.player_id);
-                          const detail = pickupDetails.find((item) => item.reservation_id === row.id);
-                          return (
-                            <div
-                              key={row.id}
-                              className="min-w-0 max-w-full overflow-hidden rounded-xl border border-white/10 bg-black/20 px-3 py-2.5"
-                            >
-                              <div className="grid min-h-[34px] min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
-                                <span className="min-w-0 break-words py-1 text-[15px] font-semibold leading-tight text-white/88">
-                                  {playerName(playerById.get(row.player_id))}
-                                </span>
-                                <span className="flex min-w-0 shrink-0 items-center gap-1">
-                                  {isOwn ? (
-                                    <button
-                                      type="button"
-                                      disabled={busy}
-                                      className="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border border-emerald-400/25 bg-emerald-500/12 px-2.5 text-[12px] font-bold text-emerald-300"
-                                      onClick={() => openPickupModal(row, offer)}
-                                    >
-                                      <MessageCircle className="h-3.5 w-3.5" aria-hidden />
-                                      {detail ? 'Ändern' : 'Abholung'}
-                                    </button>
-                                  ) : null}
-                                  {canRemovePassenger ? (
-                                    <button
-                                      type="button"
-                                      disabled={busy}
-                                      className="flex h-8 w-8 items-center justify-center rounded-lg text-red-300/70 hover:bg-red-500/10 hover:text-red-200"
-                                      onClick={() => void cancelReservation(row)}
-                                      aria-label={`Mitfahrt für ${playerName(playerById.get(row.player_id))} löschen`}
-                                      title="Mitfahrt löschen"
-                                    >
-                                      <Trash2 className="h-4 w-4" aria-hidden />
-                                    </button>
-                                  ) : null}
-                                </span>
-                              </div>
-                              {detail ? (
-                                <div className="mt-2 grid min-w-0 gap-1 border-t border-white/[0.07] pt-2 text-[13px] leading-relaxed text-white/65 [&>span]:min-w-0 [&>span]:break-words">
-                                  <span><Clock3 className="mr-1.5 inline h-3.5 w-3.5 text-emerald-300" />Abholung {timeLabel(detail.pickup_at)} Uhr</span>
-                                  <span><MapPin className="mr-1.5 inline h-3.5 w-3.5 text-emerald-300" />{detail.pickup_location}</span>
-                                  {detail.message ? <span className="text-white/58">{detail.message}</span> : null}
-                                  <div className="mt-1 flex items-center justify-between gap-2">
-                                    {detail.confirmed_at ? (
-                                      <span className="inline-flex w-fit rounded-full border border-emerald-400/25 bg-emerald-500/12 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.06em] text-emerald-300">
-                                        Bestätigt
-                                      </span>
-                                    ) : isOwn ? (
-                                      <span className="inline-flex w-fit rounded-full border border-amber-300/20 bg-amber-400/[0.08] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.06em] text-amber-200/85">
-                                        Bestätigung offen
-                                      </span>
-                                    ) : null}
-                                    {!isOwn && myPlayerIds.includes(row.player_id) && !detail.confirmed_at ? (
-                                      <button
-                                        type="button"
-                                        disabled={busy}
-                                        className="ml-auto inline-flex min-h-[38px] items-center rounded-xl border border-emerald-400/30 bg-emerald-500/16 px-3 text-[12px] font-bold text-emerald-200 active:scale-95 disabled:opacity-50"
-                                        onClick={() => void confirmPickupDetails(row)}
-                                      >
-                                        Abholung bestätigen
-                                      </button>
-                                    ) : null}
-                                  </div>
-                                </div>
-                              ) : null}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : null}
-                  {freeSeats > 0 && hasUnreservedOwnPlayer ? (
-                    <button type="button" disabled={busy} className={`mt-3 w-full ${dsPrimaryCtaClass()}`} onClick={() => openPlayerAction({ kind: 'reserve', offerId: offer.id })}>
-                      <UserPlus className="h-4 w-4" aria-hidden /> Platz reservieren
-                    </button>
-                  ) : null}
-                </section>
-              );
-            })}
-
-            {requests.length > 0 ? (
-              <div className="rounded-xl border border-amber-300/16 bg-amber-400/[0.06] px-3 py-2.5">
-                <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-amber-200/80">Platz gesucht</p>
-                <div className="mt-2 grid gap-2">
-                  {requests.map((request) => {
-                    const own = myPlayerIds.includes(request.player_id);
-                    const ownOfferReservations = ownOffer
-                      ? reservations.filter((row) => row.offer_id === ownOffer.id).length
-                      : 0;
-                    const canAccept = Boolean(ownOffer && ownOfferReservations < ownOffer.seat_count && !own);
-                    return (
-                      <div
-                        key={request.id}
-                        className="flex min-h-[44px] items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-                      >
-                        <span className="min-w-0 truncate text-[14px] font-medium text-white/84">
-                          {playerName(playerById.get(request.player_id))}
-                        </span>
-                        {own ? (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            className="shrink-0 rounded-lg px-2.5 py-1.5 text-[12px] font-bold text-white/58 hover:bg-white/[0.06] hover:text-white"
-                            onClick={() => void cancelRequest(request)}
-                          >
-                            Zurücknehmen
-                          </button>
-                        ) : canAccept ? (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            className="shrink-0 rounded-lg border border-emerald-400/25 bg-emerald-500/14 px-3 py-1.5 text-[12px] font-bold text-emerald-300 active:scale-95"
-                            onClick={() => void acceptRequest(request)}
-                          >
-                            Mitnehmen
-                          </button>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
-
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {canOffer && !ownOffer ? (
-                <button type="button" className={`${dsPrimaryCtaClass()} !flex min-h-[52px] !items-center !justify-center !gap-3`} onClick={() => openOfferModal()}>
-                  <Car className="h-7 w-7 shrink-0" strokeWidth={2.2} aria-hidden />
-                  <span>Fahrt anbieten</span>
-                </button>
-              ) : null}
-              {myPlayers.some(
-                (player) =>
-                  !reservations.some((row) => row.player_id === player.id) &&
-                  !requests.some((row) => row.player_id === player.id),
-              ) ? (
-                <button type="button" className={dsSecondaryCtaClass()} onClick={() => openPlayerAction({ kind: 'request' })}>
-                  <Users className="h-4 w-4" aria-hidden /> Ich suche einen Platz
-                </button>
-              ) : null}
-            </div>
+        {error ? (
+          <div role="alert" className="rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-[13px] text-red-200">
+            {error}
           </div>
         ) : null}
-      </Card>
+        {notice ? (
+          <div role="status" className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-[13px] text-emerald-200">
+            {notice}
+          </div>
+        ) : null}
+
+        {offers.map((offer) => {
+          const offerReservations = reservations.filter((row) => row.offer_id === offer.id);
+          const freeSeats = Math.max(0, offer.seat_count - offerReservations.length);
+          const isOwn = isOfferOwnedByCurrentFamily(offer, currentUserId, ownDriverName);
+          const hasUnreservedOwnPlayer = myPlayers.some(
+            (player) => !reservations.some((row) => row.player_id === player.id),
+          );
+          return (
+            <section key={offer.id} className="carpool-offer min-w-0 rounded-xl border p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate text-[17px] font-bold text-white">
+                    {isOwn ? 'Meine Fahrt' : `${offer.driver_name} fährt`}
+                  </p>
+                  <span
+                    className={`mt-1.5 inline-flex rounded-full px-2.5 py-1 text-[12px] font-bold uppercase tracking-[0.06em] ${
+                      freeSeats > 0
+                        ? 'border border-emerald-400/25 bg-emerald-500/14 text-emerald-300'
+                        : 'border border-white/10 bg-white/[0.05] text-white/55'
+                    }`}
+                  >
+                    {freeSeats > 0 ? `Noch ${freeSeats} ${freeSeats === 1 ? 'Platz' : 'Plätze'} frei` : 'Voll besetzt'}
+                  </span>
+                </div>
+                {isOwn && (
+                  <div className="flex shrink-0 gap-1">
+                    {isOwn ? (
+                      <button type="button" className="rounded-lg p-2 text-white/65 hover:bg-white/[0.07] hover:text-white" onClick={() => openOfferModal(offer)} aria-label="Fahrt bearbeiten">
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    ) : null}
+                    <button type="button" className="rounded-lg p-2 text-red-300/75 hover:bg-red-500/10 hover:text-red-200" onClick={() => void deleteOffer(offer)} aria-label="Fahrt löschen">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-3 grid gap-2.5 text-[15px] font-medium text-white/82">
+                <div className="flex items-center gap-2"><Clock3 className="sz-club-accent-text h-4 w-4" /><span>Abfahrt {timeLabel(offer.departure_at)} Uhr</span></div>
+                <div className="flex items-start gap-2"><MapPin className="sz-club-accent-text mt-0.5 h-4 w-4 shrink-0" /><span className="break-words">{offer.departure_location}</span></div>
+                <div className="flex items-center gap-2"><RotateCcw className="sz-club-accent-text h-4 w-4" /><span>{offer.return_included ? 'Rückfahrt inklusive' : 'Nur Hinfahrt'}</span></div>
+              </div>
+              {offer.note ? <p className="mt-2.5 rounded-xl bg-white/[0.04] px-3 py-2.5 text-[14px] leading-relaxed text-white/70">{offer.note}</p> : null}
+              {offerReservations.length > 0 ? (
+                <div className="mt-3 min-w-0 border-t border-white/[0.07] pt-3 text-[14px] text-white/72">
+                  <div className="mb-2 flex items-center gap-2">
+                    <Users className="sz-club-accent-text h-4 w-4 shrink-0" />
+                    <span className="font-semibold">Mitfahrer</span>
+                  </div>
+                  <div className="grid min-w-0 gap-2">
+                    {offerReservations.map((row) => {
+                      const canRemovePassenger =
+                        isOwn ||
+                        row.reserved_by === currentUserId ||
+                        myPlayerIds.includes(row.player_id);
+                      const detail = pickupDetails.find((item) => item.reservation_id === row.id);
+                      return (
+                        <div
+                          key={row.id}
+                          className="min-w-0 max-w-full overflow-hidden rounded-xl border border-white/10 bg-black/20 px-3 py-2.5"
+                        >
+                          <div className="grid min-h-[34px] min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+                            <span className="min-w-0 break-words py-1 text-[15px] font-semibold leading-tight text-white/88">
+                              {playerName(playerById.get(row.player_id))}
+                            </span>
+                            <span className="flex min-w-0 shrink-0 items-center gap-1">
+                              {isOwn ? (
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  className="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border border-emerald-400/25 bg-emerald-500/12 px-2.5 text-[12px] font-bold text-emerald-300"
+                                  onClick={() => openPickupModal(row, offer)}
+                                >
+                                  <MessageCircle className="h-3.5 w-3.5" aria-hidden />
+                                  {detail ? 'Ändern' : 'Abholung'}
+                                </button>
+                              ) : null}
+                              {canRemovePassenger ? (
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  className="flex h-8 w-8 items-center justify-center rounded-lg text-red-300/70 hover:bg-red-500/10 hover:text-red-200"
+                                  onClick={() => void cancelReservation(row)}
+                                  aria-label={`Mitfahrt für ${playerName(playerById.get(row.player_id))} löschen`}
+                                  title="Mitfahrt löschen"
+                                >
+                                  <Trash2 className="h-4 w-4" aria-hidden />
+                                </button>
+                              ) : null}
+                            </span>
+                          </div>
+                          {detail ? (
+                            <div className="mt-2 grid min-w-0 gap-1 border-t border-white/[0.07] pt-2 text-[13px] leading-relaxed text-white/65 [&>span]:min-w-0 [&>span]:break-words">
+                              <span><Clock3 className="mr-1.5 inline h-3.5 w-3.5 text-emerald-300" />Abholung {timeLabel(detail.pickup_at)} Uhr</span>
+                              <span><MapPin className="mr-1.5 inline h-3.5 w-3.5 text-emerald-300" />{detail.pickup_location}</span>
+                              {detail.message ? <span className="text-white/58">{detail.message}</span> : null}
+                              <div className="mt-1 flex items-center justify-between gap-2">
+                                {detail.confirmed_at ? (
+                                  <span className="inline-flex w-fit rounded-full border border-emerald-400/25 bg-emerald-500/12 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.06em] text-emerald-300">
+                                    Bestätigt
+                                  </span>
+                                ) : isOwn ? (
+                                  <span className="inline-flex w-fit rounded-full border border-amber-300/20 bg-amber-400/[0.08] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.06em] text-amber-200/85">
+                                    Bestätigung offen
+                                  </span>
+                                ) : null}
+                                {!isOwn && myPlayerIds.includes(row.player_id) && !detail.confirmed_at ? (
+                                  <button
+                                    type="button"
+                                    disabled={busy}
+                                    className="ml-auto inline-flex min-h-[38px] items-center rounded-xl border border-emerald-400/30 bg-emerald-500/16 px-3 text-[12px] font-bold text-emerald-200 active:scale-95 disabled:opacity-50"
+                                    onClick={() => void confirmPickupDetails(row)}
+                                  >
+                                    Abholung bestätigen
+                                  </button>
+                                ) : null}
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+              {freeSeats > 0 && hasUnreservedOwnPlayer ? (
+                <button type="button" disabled={busy} className="carpool-secondary mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border px-2 font-semibold" onClick={() => openPlayerAction({ kind: 'reserve', offerId: offer.id })}>
+                  <UserPlus className="h-4 w-4" aria-hidden /> Platz reservieren
+                </button>
+              ) : null}
+            </section>
+          );
+        })}
+
+        {requests.length > 0 ? (
+          <section aria-label="Platzgesuche">
+            <h3 className="carpool-muted mb-1 text-[13px] font-semibold">
+              {requests.length === 1 ? '1 Platz gesucht' : `${requests.length} Plätze gesucht`}
+            </h3>
+            <ul className="carpool-requests">
+              {requests.map((request) => {
+                const own = myPlayerIds.includes(request.player_id);
+                const ownOfferReservations = ownOffer
+                  ? reservations.filter((row) => row.offer_id === ownOffer.id).length
+                  : 0;
+                const canAccept = Boolean(ownOffer && ownOfferReservations < ownOffer.seat_count && !own);
+                return (
+                  <li key={request.id} className="flex min-h-11 items-center justify-between gap-2">
+                    <span className="min-w-0 break-words text-[14px] font-medium">
+                      {playerName(playerById.get(request.player_id))}
+                    </span>
+                    {own ? (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        className="carpool-muted min-h-11 shrink-0 rounded-lg px-2 text-[12px] font-bold"
+                        onClick={() => void cancelRequest(request)}
+                      >
+                        Zurücknehmen
+                      </button>
+                    ) : canAccept ? (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        className="carpool-accept min-h-11 shrink-0 rounded-lg px-2 text-[12px] font-bold active:scale-95"
+                        onClick={() => void acceptRequest(request)}
+                      >
+                        Mitnehmen
+                      </button>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ) : null}
+      </div>
+
+      {(canOffer && !ownOffer) || canRequestSeat ? (
+        <div className="carpool-actions grid gap-2">
+          {canOffer && !ownOffer ? (
+            <button type="button" className="carpool-primary inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-3 font-bold" onClick={() => openOfferModal()}>
+              <Car className="size-5 shrink-0" aria-hidden />
+              Fahrt anbieten
+            </button>
+          ) : null}
+          {canRequestSeat ? (
+            <button type="button" className="carpool-secondary inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 font-semibold" onClick={() => openPlayerAction({ kind: 'request' })}>
+              <Users className="size-4 shrink-0" aria-hidden />
+              Platz suchen
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       <Modal
+        className="carpool-modal"
         open={Boolean(pickupReservation)}
         title="Abholung vereinbaren"
-        titleClassName="!text-[22px] !font-bold !tracking-[-0.02em]"
         onClose={() => !busy && setPickupReservation(null)}
         footer={
           <div className="grid w-full grid-cols-2 gap-2">
-            <button type="button" className={`${dsSecondaryCtaClass()} !min-h-[50px] !text-[16px]`} disabled={busy} onClick={() => setPickupReservation(null)}>Abbrechen</button>
-            <button type="button" className={`${dsPrimaryCtaClass()} !min-h-[50px] !text-[16px]`} disabled={busy} onClick={() => void savePickupDetails()}>{busy ? 'Sendet…' : 'Speichern & senden'}</button>
+            <button type="button" className="carpool-secondary min-h-12 rounded-xl border px-2 font-semibold" disabled={busy} onClick={() => setPickupReservation(null)}>Abbrechen</button>
+            <button type="button" className="carpool-primary min-h-12 rounded-xl px-2 font-bold" disabled={busy} onClick={() => void savePickupDetails()}>{busy ? 'Sendet…' : 'Speichern & senden'}</button>
           </div>
         }
       >
@@ -789,14 +751,14 @@ export const EventCarpoolCard: React.FC<Props> = ({
       </Modal>
 
       <Modal
+        className="carpool-modal"
         open={offerModalOpen}
         title={editingOffer ? 'Fahrt bearbeiten' : 'Fahrt anbieten'}
-        titleClassName="!text-[22px] !font-bold !tracking-[-0.02em]"
         onClose={() => !busy && setOfferModalOpen(false)}
         footer={
           <div className="grid w-full grid-cols-2 gap-2">
-            <button type="button" className={`${dsSecondaryCtaClass()} !min-h-[50px] !text-[16px]`} disabled={busy} onClick={() => setOfferModalOpen(false)}>Abbrechen</button>
-            <button type="button" className={`${dsPrimaryCtaClass()} !min-h-[50px] !text-[16px]`} disabled={busy} onClick={() => void saveOffer()}>
+            <button type="button" className="carpool-secondary min-h-12 rounded-xl border px-2 font-semibold" disabled={busy} onClick={() => setOfferModalOpen(false)}>Abbrechen</button>
+            <button type="button" className="carpool-primary min-h-12 rounded-xl px-2 font-bold" disabled={busy} onClick={() => void saveOffer()}>
               {busy ? 'Speichert…' : editingOffer ? 'Speichern' : 'Fahrt anbieten'}
             </button>
           </div>
@@ -889,14 +851,14 @@ export const EventCarpoolCard: React.FC<Props> = ({
       </Modal>
 
       <Modal
+        className="carpool-modal"
         open={Boolean(playerAction)}
         title={playerAction?.kind === 'reserve' ? 'Platz reservieren' : 'Platz suchen'}
-        titleClassName="!text-[22px] !font-bold !tracking-[-0.02em]"
         onClose={() => !busy && setPlayerAction(null)}
         footer={
           <div className="grid w-full grid-cols-2 gap-2">
-            <button type="button" className={`${dsSecondaryCtaClass()} !min-h-[50px] !text-[16px]`} disabled={busy} onClick={() => setPlayerAction(null)}>Abbrechen</button>
-            <button type="button" className={`${dsPrimaryCtaClass()} !min-h-[50px] !text-[16px]`} disabled={busy || !selectedPlayerId} onClick={() => void confirmPlayerAction()}>{busy ? 'Speichert…' : 'Bestätigen'}</button>
+            <button type="button" className="carpool-secondary min-h-12 rounded-xl border px-2 font-semibold" disabled={busy} onClick={() => setPlayerAction(null)}>Abbrechen</button>
+            <button type="button" className="carpool-primary min-h-12 rounded-xl px-2 font-bold" disabled={busy || !selectedPlayerId} onClick={() => void confirmPlayerAction()}>{busy ? 'Speichert…' : 'Bestätigen'}</button>
           </div>
         }
       >
