@@ -20,12 +20,12 @@ import {
 import { mutedAccentOnLight, normalizeBrandColor, readableTextColor } from '../../lib/clubBranding';
 import { dsMatchdaySectionLabelClass } from '../../lib/premiumDesignSystem';
 import { TournamentClubLogo } from '../../components/tournament/TournamentClubLogo';
+import '../../features/club/marketSplash.css';
 
 const NEXT_PRO_U12_2026_ID = '42bf98e7-1047-4580-bddb-561457821562';
 
 function NextProIntro({ ready, onFinished }: { ready: boolean; onFinished: () => void }) {
   const [minimumTimeElapsed, setMinimumTimeElapsed] = useState(false);
-  const [imageFailed, setImageFailed] = useState(false);
   useEffect(() => {
     const timer = window.setTimeout(() => setMinimumTimeElapsed(true), 900);
     return () => window.clearTimeout(timer);
@@ -40,11 +40,12 @@ function NextProIntro({ ready, onFinished }: { ready: boolean; onFinished: () =>
 
   return (
     <div data-nextpro-intro aria-hidden="true"
-      className={`pointer-events-none fixed inset-0 z-50 grid place-items-center bg-[#0d0d0d] transition-opacity duration-200 motion-reduce:transition-none ${fading ? 'opacity-0' : 'opacity-100'}`}>
-      {imageFailed ? <p className="text-sm font-semibold text-white">Turnier wird geladen…</p> : (
-        <img src="/images/nextpro-u12-2026-intro.webp" alt="" fetchPriority="high" onError={() => setImageFailed(true)}
-          className="h-full max-h-[100dvh] w-full object-contain" />
-      )}
+      className={`market-splash pointer-events-none transition-opacity duration-200 motion-reduce:transition-none ${fading ? 'opacity-0' : 'opacity-100'}`}>
+      <img src="/logos/nsg-goelsental.png" alt="" width="130" height="130" fetchPriority="high" className="object-contain" />
+      <h1>NextPro Hallencup</h1>
+      <p>U12 · Sporthalle Wilhelmsburg</p>
+      <div className="market-splash-track" />
+      <small>powered by SpielzeitApp</small>
     </div>
   );
 }
