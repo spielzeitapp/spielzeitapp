@@ -6,6 +6,7 @@ import { TournamentLogoContext } from './TournamentClubLogo';
 import { fetchTournamentLineupTemplate } from '../../lib/tournamentLineupTemplates';
 import { tournamentTemplateReady } from '../../lib/tournamentLineupTemplate';
 import { fetchTournamentSquadPlayerIds } from '../../lib/tournamentSquad';
+import { TournamentMatchRulesPanel } from './TournamentMatchRulesPanel';
 import { TournamentLineupTemplatePanel } from './TournamentLineupTemplatePanel';
 import { tournamentDisplayNotes } from '../../lib/tournamentDisplayNotes';
 import { Link, useNavigate } from 'react-router-dom';
@@ -1044,9 +1045,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
               </TournamentCollapsibleSection>
             </div>
       </div>;
-      case 'lineup': return <TournamentLineupTemplatePanel eventId={tournamentEventId} players={players} slots={ownSlots}
+      case 'lineup': return <><TournamentMatchRulesPanel key={tournamentEventId} eventId={tournamentEventId} onSaved={() => void reload()} />
+        <TournamentLineupTemplatePanel eventId={tournamentEventId} players={players} slots={ownSlots}
         refreshToken={assistantRefreshToken} onReady={setTemplateReady} onDirtyChange={setLineupDraftDirty} canEdit={!completion.completedAt}
-        onSaved={() => { setAssistantRefreshToken(token => token + 1); void reload(); }} />;
+        onSaved={() => { setAssistantRefreshToken(token => token + 1); void reload(); }} /></>;
       case 'communication': return <div className="space-y-4">
         {canShareLivestream && <TournamentLivestreamShare eventId={tournamentEventId} teamSeasonId={teamSeasonId} recording={tournamentPhase === 'after'}
           participants={participants} coverUrl={tournamentCoverUrl} />}

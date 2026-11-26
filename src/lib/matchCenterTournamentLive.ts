@@ -18,6 +18,7 @@ export type TournamentLiveMatchDetails = {
   scoreHome: number;
   scoreAway: number;
   liveElapsedSeconds: number;
+  plannedMatchMinutes?: number;
   liveIsRunning: boolean;
   livePeriod: number;
 };

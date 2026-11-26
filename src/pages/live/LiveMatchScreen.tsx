@@ -1,3 +1,5 @@
+import { Modal } from '../../app/ui/Modal';
+import { DEFAULT_TOURNAMENT_MATCH_RULES, fetchTournamentMatchRules } from '../../lib/tournamentMatchRules';
 import { fetchTournamentSquadPlayerIds } from '../../lib/tournamentSquad';
 import { prepareTournamentMatchFromTemplate } from '../../lib/tournamentLineupTemplates';
 import { fetchTournamentParticipants, tournamentOfficialOwnScore } from '../../lib/tournamentPlan';
@@ -279,7 +281,9 @@ function slotForFieldPlayer(
 
 const FORMATION_OPTION_LABELS: Record<U11FormationId, string> = {
   '1-2-2': 'Halle · 4+1',
-  '1-2-1-2': 'Halle · 5+1',
+  '1-2-1-2': 'Halle · 2-1-2',
+  '1-3-2': 'Halle · 3-2',
+  '1-2-3': 'Halle · 2-3',
   '1-2-2-2': 'Kompakt',
   '1-2-3-1': 'Ausgewogen',
   '1-3-2-1': 'Defensiver',
@@ -503,6 +507,7 @@ export const LIVE_NAV_RESET_EVENT = 'spielzeit:live-nav-reset';
 function eventIcon(t: MatchEventType): string {
   if (t === 'goal' || t === 'goal_away') return '⚽';
   if (t === 'sub_out' || t === 'sub_in' || t === 'substitution') return '⇄';
+  if (t === 'time_penalty') return '⏱';
   if (t === 'position_swap') return '↔';
   if (t === 'extra_player_on') return '🟡';
   if (t === 'extra_player_off') return '🔴';
@@ -659,7 +664,8 @@ function firstInvalidAtomicSubstitution(params: {
  */
 function buildLiveTickerRows(events: MatchEngineEvent[], filter: EventsFilter): { key: string; items: MatchEngineEvent[] }[] {
   if (filter === 'cards') {
-    return [];
+    return sortMatchEventsChronologically(events.filter(event => event.type === 'time_penalty'))
+      .reverse().map(event => ({ key: event.id, items: [event] }));
   }
   if (filter === 'goals') {
     const goals = events.filter((e) => e.type === 'goal' || e.type === 'goal_away');
@@ -1586,6 +1592,23 @@ export const LiveMatchScreen: React.FC = () => {
     const t = window.setTimeout(() => setFormationChangeToast(false), 2000);
     return () => window.clearTimeout(t);
   }, [formationChangeToast]);
+
+  const [timePenaltyOpen, setTimePenaltyOpen] = useState(false);
+  const [timePenaltyPlayer, setTimePenaltyPlayer] = useState('');
+  const [timePenaltyDuration, setTimePenaltyDuration] = useState(String(DEFAULT_TOURNAMENT_MATCH_RULES.penalty));
+  const [timePenaltyDefault, setTimePenaltyDefault] = useState(DEFAULT_TOURNAMENT_MATCH_RULES.penalty);
+  const [timePenaltySaving, setTimePenaltySaving] = useState(false);
+  const [timePenaltyError, setTimePenaltyError] = useState<string | null>(null);
+  const rulesEventId = tournamentNavContext?.tournamentEventId;
+  useEffect(() => {
+    let active = true;
+    setTimePenaltyOpen(false);
+    setTimePenaltyDefault(DEFAULT_TOURNAMENT_MATCH_RULES.penalty);
+    if (rulesEventId && !isDemo) void fetchTournamentMatchRules(rulesEventId).then(({ rules }) => {
+      if (active && rules) setTimePenaltyDefault(rules.penalty);
+    });
+    return () => { active = false; };
+  }, [effectiveMatchId, rulesEventId, isDemo]);
 
   const [homeGoalModalOpen, setHomeGoalModalOpen] = useState(false);
   const [homeGoalPickId, setHomeGoalPickId] = useState<string>('');
@@ -4070,6 +4093,8 @@ export const LiveMatchScreen: React.FC = () => {
     switch (ev.type) {
       case 'start':
         return 'Anpfiff';
+      case 'time_penalty':
+        return `Zeitstrafe · ${(ev.penaltySeconds ?? 0) / 60} Min.${name ? ` · ${name}` : ''}`;
       case 'goal':
         return name ? `⚽ TOR ${stadiumHomeDisplay}: ${name}` : `⚽ TOR ${stadiumHomeDisplay}`;
       case 'goal_away':
@@ -4117,6 +4142,8 @@ export const LiveMatchScreen: React.FC = () => {
         return 'Weiter nach Pause';
       case 'end':
         return 'Schlusspfiff';
+      case 'time_penalty':
+        return `Zeitstrafe · ${(ev.penaltySeconds ?? 0) / 60} Min.${name ? ` · ${name}` : ''}`;
       case 'goal':
         return name ? `${name} trifft für ${stadiumHomeDisplay}` : `Tor für ${stadiumHomeDisplay}`;
       case 'goal_away':
@@ -4909,6 +4936,30 @@ export const LiveMatchScreen: React.FC = () => {
       Zum Turnierplan
     </Link>
   ) : null;
+  const canRecordTimePenalty = Boolean(rulesEventId && canControlLiveMatch && matchRow?.status === 'live' && !matchIsFinished);
+  const activeTimePenalties = matchIsFinished ? [] : events.filter(event => event.type === 'time_penalty'
+    && event.timestamp <= currentMatchSeconds && event.timestamp + (event.penaltySeconds ?? 0) > currentMatchSeconds);
+  const penaltyEligibleIds = new Set(onFieldIds.length ? onFieldIds : squadPlayerIds);
+  const penaltyPlayers = roster.filter(player => penaltyEligibleIds.has(player.id)
+    && !activeTimePenalties.some(event => event.playerId === player.id));
+  const saveTimePenalty = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const minutes = Number(timePenaltyDuration);
+    if (!canRecordTimePenalty || timePenaltySaving || !Number.isInteger(minutes) || minutes < 1 || minutes > 15
+      || !penaltyPlayers.some(player => player.id === timePenaltyPlayer)) return;
+    setTimePenaltySaving(true);
+    setTimePenaltyError(null);
+    try {
+      const { ok } = await persistSingle({
+        type: 'time_penalty', timestamp: clampEffectiveMatchSeconds(currentMatchSeconds),
+        playerId: timePenaltyPlayer, penaltySeconds: minutes * 60,
+      });
+      if (ok) setTimePenaltyOpen(false);
+      else setTimePenaltyError('Zeitstrafe konnte nicht gespeichert werden.');
+    } finally {
+      setTimePenaltySaving(false);
+    }
+  };
   const missingOwnGoals = Math.max(0, (importedTournamentEnd?.home ?? matchRow?.score_home ?? 0) - totalsFromEvents.home);
   const canBackfillOwnGoals = canControlLiveMatch && !isDemo && matchIsFinished &&
     Boolean(tournamentNavContext) && sides.isOwnTeamHome;
@@ -6139,6 +6190,36 @@ export const LiveMatchScreen: React.FC = () => {
         {mainTab === 'events' && (
           <div className="flex min-h-0 flex-1 flex-col gap-3 px-1 pb-1 sm:px-2">
             {openGoalBackfill}
+            {canRecordTimePenalty && (
+              <button type="button" className="sz-club-event-action min-h-11 rounded-xl border font-bold" onClick={() => {
+                setTimePenaltyPlayer('');
+                setTimePenaltyDuration(String(timePenaltyDefault));
+                setTimePenaltyError(null);
+                setTimePenaltyOpen(true);
+              }}>Zeitstrafe erfassen</button>
+            )}
+            {activeTimePenalties.map(event => {
+              const remaining = event.timestamp + (event.penaltySeconds ?? 0) - currentMatchSeconds;
+              return <div key={event.id} className="rounded-xl border border-amber-500/30 px-3 py-2 text-sm font-semibold text-amber-200">
+                {rosterById.get(event.playerId ?? '')?.name ?? 'Spieler'} · Zeitstrafe noch {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}
+              </div>;
+            })}
+            <Modal open={timePenaltyOpen} onClose={() => { if (!timePenaltySaving) setTimePenaltyOpen(false); }} title="Zeitstrafe erfassen">
+              <form className="space-y-3" onSubmit={saveTimePenalty}>
+                <label className="block text-sm">Spieler
+                  <select required value={timePenaltyPlayer} disabled={timePenaltySaving} onChange={event => setTimePenaltyPlayer(event.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/20 bg-zinc-950 px-3">
+                    <option value="">Spieler wählen</option>
+                    {penaltyPlayers.map(player => <option key={player.id} value={player.id}>{player.name}</option>)}
+                  </select>
+                </label>
+                <label className="block text-sm">Dauer (Min.)
+                  <input required type="number" min="1" max="15" value={timePenaltyDuration} disabled={timePenaltySaving} onChange={event => setTimePenaltyDuration(event.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-white/20 bg-zinc-950 px-3" />
+                </label>
+                {!penaltyPlayers.length && <p className="text-sm text-white/65">Aktuell sind keine Spieler zur Auswahl verfügbar.</p>}
+                {timePenaltyError && <p role="alert" className="text-sm text-red-300">{timePenaltyError}</p>}
+                <button type="submit" disabled={timePenaltySaving || !timePenaltyPlayer} className="min-h-11 w-full rounded-xl bg-red-700 font-bold disabled:opacity-50">Zeitstrafe speichern</button>
+              </form>
+            </Modal>
             <div className="grid grid-cols-4 gap-1 rounded-xl border border-white/10 bg-black/40 p-1" role="group" aria-label="Liveticker filtern">
               {(
                 [
@@ -6163,7 +6244,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </button>
               ))}
             </div>
-            {useSourceTicker && oefbSource.report ? <OefbLiveReport report={oefbSource.report} view="events" filter={eventsFilter} /> : oefbSource.loading && !events.length ? <p role="status" className="p-6 text-center text-white/60">ÖFB-Spielbericht wird geladen…</p> : oefbSource.error && !events.length ? <p role="status" className="p-6 text-center text-amber-200">{oefbSource.error}</p> : eventsFilter === 'cards' ? (
+            {useSourceTicker && oefbSource.report ? <OefbLiveReport report={oefbSource.report} view="events" filter={eventsFilter} /> : oefbSource.loading && !events.length ? <p role="status" className="p-6 text-center text-white/60">ÖFB-Spielbericht wird geladen…</p> : oefbSource.error && !events.length ? <p role="status" className="p-6 text-center text-amber-200">{oefbSource.error}</p> : eventsFilter === 'cards' && trainerTickerGroups.length === 0 ? (
               <p className="rounded-2xl border border-amber-400/25 bg-amber-950/20 px-4 py-10 text-center text-sm font-medium leading-relaxed text-amber-100/90">
                 Keine Karten erfasst.
               </p>

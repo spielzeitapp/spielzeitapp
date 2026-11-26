@@ -48,6 +48,14 @@ try {
   different.variants[2].formationId = "1-2-1-2";
   different.variants[2].slots.CM = "f";
   assert.equal(ready(different, squad), false);
+  for (const formation of ['1-2-1-2', '1-3-2', '1-2-3']) {
+    const indoor = emptyTournamentTemplate(squad, formation);
+    for (const block of [1, 2]) {
+      Object.assign(indoor.variants[block].slots, { GK: 'a', LB: 'b', RB: 'c', LW: 'd', RW: 'e', CM: 'f' });
+    }
+    assert.equal(ready(indoor, squad), true, formation);
+    assert.equal(normalizeTournamentTemplate(indoor).variants[1].formationId, formation);
+  }
   const single = emptyTournamentTemplate(squad, '1-2-2', 'single');
   Object.assign(single.variants[1].slots, {GK:'a', LB:'b', RB:'c', LW:'d', RW:'e'});
   assert.equal(ready(single, squad), true, 'single lineup does not require a second block');

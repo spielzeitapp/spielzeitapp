@@ -6,7 +6,9 @@ export type U11SevenFormationId = '1-2-2-2' | '1-2-3-1' | '1-3-2-1' | '1-3-3';
 /** 8er FairPlay-Systeme (Zusatzspieler im FP-Slot). */
 export type FairPlayFormationId = '1-3-3-1' | '1-4-3' | '1-3-4';
 
-export type IndoorFormationId = '1-2-2' | '1-2-1-2';
+const INDOOR_FIVE_PLUS_ONE_FORMATIONS = ['1-2-1-2', '1-3-2', '1-2-3'] as const;
+
+export type IndoorFormationId = '1-2-2' | (typeof INDOOR_FIVE_PLUS_ONE_FORMATIONS)[number];
 export type U11FormationId = U11SevenFormationId | FairPlayFormationId | IndoorFormationId;
 
 export const DEFAULT_U11_FORMATION: U11SevenFormationId = '1-2-2-2';
@@ -16,8 +18,8 @@ export const U11_FORMATION_DB_FALLBACK: U11SevenFormationId = '1-2-3-1';
 
 export const DEFAULT_FAIRPLAY_FORMATION: FairPlayFormationId = '1-4-3';
 
-/** Normale 7er-Auswahl (Trainer vor Anpfiff / ohne FairPlay). */
-export const U11_FORMATION_CHOICES: (U11SevenFormationId | IndoorFormationId)[] = ['1-2-2-2', '1-2-3-1', '1-3-2-1', '1-3-3', '1-2-2', '1-2-1-2'];
+/** 7er- und Hallenformationen für die Aufstellung vor Anpfiff. */
+export const U11_FORMATION_CHOICES: (U11SevenFormationId | IndoorFormationId)[] = ['1-2-2-2', '1-2-3-1', '1-3-2-1', '1-3-3', '1-2-2', ...INDOOR_FIVE_PLUS_ONE_FORMATIONS];
 
 /** FairPlay +1: nur 8er-Layouts mit echtem FP-Slot. */
 export const FAIRPLAY_FORMATION_CHOICES: FairPlayFormationId[] = ['1-3-3-1', '1-4-3', '1-3-4'];
@@ -44,6 +46,22 @@ export const U11_FORMATIONS: Record<U11FormationId, FormationSlotLayout[]> = {
   ],
   '1-2-1-2': [
     {slot:'GK',label:'TW',x:50,y:88},{slot:'LB',label:'LV',x:27,y:67},{slot:'RB',label:'RV',x:73,y:67},{slot:'CM',label:'ZM',x:50,y:46},{slot:'LW',label:'LS',x:27,y:20},{slot:'RW',label:'RS',x:73,y:20},
+  ],
+  '1-3-2': [
+    { slot: 'GK', label: 'TW', x: 50, y: 88 },
+    { slot: 'LB', label: 'LV', x: 19, y: 63 },
+    { slot: 'CM', label: 'IV', x: 50, y: 65 },
+    { slot: 'RB', label: 'RV', x: 81, y: 63 },
+    { slot: 'LW', label: 'LS', x: 29, y: 22 },
+    { slot: 'RW', label: 'RS', x: 71, y: 22 },
+  ],
+  '1-2-3': [
+    { slot: 'GK', label: 'TW', x: 50, y: 88 },
+    { slot: 'LB', label: 'LV', x: 27, y: 65 },
+    { slot: 'RB', label: 'RV', x: 73, y: 65 },
+    { slot: 'LW', label: 'LS', x: 19, y: 24 },
+    { slot: 'CM', label: 'ST', x: 50, y: 21 },
+    { slot: 'RW', label: 'RS', x: 81, y: 24 },
   ],
   '1-2-2-2': [
     { slot: 'GK', label: 'GK', x: 50, y: 86, labelDy: -5 },
@@ -120,9 +138,9 @@ if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
   for (const fid of U11_FORMATION_CHOICES) {
     const rows = U11_FORMATIONS[fid];
     const slots = rows.map((r) => r.slot);
-    const count = fid === '1-2-2' ? 5 : fid === '1-2-1-2' ? 6 : 7;
+    const count = fid === '1-2-2' ? 5 : isSevenFormationId(fid) ? 7 : 6;
     if (rows.length !== count || new Set(slots).size !== count) {
-      throw new Error(`U11_FORMATIONS[${fid}] muss genau 7 eindeutige Slots haben.`);
+      throw new Error(`U11_FORMATIONS[${fid}] muss genau ${count} eindeutige Slots haben.`);
     }
   }
   for (const fid of FAIRPLAY_FORMATION_CHOICES) {
@@ -156,7 +174,7 @@ export function isSevenFormationId(v: string | null | undefined): v is U11SevenF
 }
 
 export function isU11FormationId(v: string | null | undefined): v is U11FormationId {
-  return isSevenFormationId(v) || isFairPlayFormationId(v) || v === '1-2-2' || v === '1-2-1-2';
+  return isSevenFormationId(v) || isFairPlayFormationId(v) || v === '1-2-2' || INDOOR_FIVE_PLUS_ONE_FORMATIONS.some(id => id === v);
 }
 
 const FAIRPLAY_REQUIRED_SLOT_COUNT = 8;
@@ -179,7 +197,7 @@ export function auditFormationSlotLayout(formationId: U11FormationId): {
     else seen.add(s);
   }
   const fairPlay = isFairPlayFormationId(formationId);
-  const expected = fairPlay ? FAIRPLAY_REQUIRED_SLOT_COUNT : formationId === '1-2-2' ? 5 : formationId === '1-2-1-2' ? 6 : 7;
+  const expected = fairPlay ? FAIRPLAY_REQUIRED_SLOT_COUNT : formationId === '1-2-2' ? 5 : isSevenFormationId(formationId) ? 7 : 6;
   const hasFp = slotIds.includes('FP');
   const valid =
     rows.length === expected &&

@@ -46,6 +46,7 @@ import {
   fairPlayRemovedPlayerIdFromEvent,
   sortMatchEventsChronologically,
   startingLineupToSlotMap,
+  statsMatchEventRowToEngine,
   swapTwoOccupiedFieldSlots,
   type MatchEngineEvent,
   type MatchEventType,
@@ -151,6 +152,7 @@ const ENGINE_TYPES = new Set<MatchEventType>([
  */
 export function matchEventDbRowToEngine(row: MatchEventDbRow): MatchEngineEvent | null {
   const createdAt = row.created_at;
+  if (row.type === 'card') return statsMatchEventRowToEngine(row);
   if (row.type === 'kickoff') {
     return {
       id: row.id,
@@ -354,6 +356,13 @@ export function engineEventToInsertPayload(
       period: period ?? null,
       player_id: ev.playerId ?? null,
       payload,
+    };
+  }
+  if (ev.type === 'time_penalty') {
+    return {
+      match_id: matchId, type: 'card', minute: safeMinute, period: period ?? null,
+      player_id: ev.playerId ?? null,
+      payload: { card_type: 'time_penalty', penalty_seconds: ev.penaltySeconds },
     };
   }
   const dbType = ev.type === 'goal' ? 'goal' : ev.type === 'goal_away' ? 'goal_away' : (ev.type as string);
