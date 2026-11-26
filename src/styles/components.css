@@ -1258,6 +1258,123 @@ html[data-club-theme="black-white"] .sz-club-placeholder-player {
   touch-action: manipulation;
 }
 
+/* Fahrgemeinschaft: scrollable list with actions in reach on narrow phones. */
+.modalSheet.carpool-modal {
+  --carpool-surface: #131316;
+  --carpool-row: #1a1a1e;
+  --carpool-line: #ffffff16;
+  --carpool-muted: #b8b7bf;
+  display: flex;
+  flex-direction: column;
+  max-width: 460px;
+  overflow: hidden;
+  border-radius: 20px;
+  border-color: var(--carpool-line);
+  background: var(--carpool-surface);
+  color: var(--text-main);
+  box-shadow: 0 20px 48px rgb(0 0 0 / 0.48);
+}
+
+.carpool-modal > :is(.modalHeader, .modalFooter) {
+  flex: none;
+  padding: 10px 16px;
+  border-color: var(--carpool-line);
+  background: var(--carpool-surface);
+}
+
+.carpool-modal .modalTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.carpool-modal .modalClose {
+  display: grid;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: 0 -6px 0 8px;
+  place-items: center;
+  color: var(--carpool-muted);
+}
+
+.carpool-modal > .modalBody {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px;
+}
+
+.carpool-modal > .modalBody:has(> .carpool-content) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+.carpool-content {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px;
+}
+
+.carpool-muted {
+  color: var(--carpool-muted);
+}
+
+.carpool-status-icon {
+  background: rgb(var(--club-accent-rgb) / 0.13);
+  color: rgb(var(--club-accent-text-rgb));
+}
+
+.carpool-offer,
+.carpool-secondary {
+  border-color: var(--carpool-line);
+  background: var(--carpool-row);
+}
+
+.carpool-requests > li + li,
+.carpool-actions {
+  border-top: 1px solid var(--carpool-line);
+}
+
+.carpool-actions {
+  flex: none;
+  padding: 12px 16px 16px;
+}
+
+.carpool-primary {
+  background: rgb(var(--club-primary-rgb));
+  color: var(--club-on-primary);
+}
+
+.carpool-secondary {
+  color: var(--text-main);
+}
+
+.carpool-accept {
+  color: #6ee7b7;
+}
+
+.carpool-modal button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.carpool-modal button:focus-visible {
+  outline: 2px solid rgb(var(--club-accent-text-rgb));
+  outline-offset: 2px;
+}
+
+.carpool-modal button:not(:disabled):is(:hover, :active).carpool-primary {
+  filter: brightness(1.15);
+}
+
+.carpool-modal button:not(:disabled):is(:hover, :active):is(.carpool-secondary, .carpool-muted, .carpool-accept) {
+  background: var(--btn-default-bg);
+}
+
 /* Termin-Editor: eigener Scrollbereich für Felder, Kopf und Aktionen bleiben sichtbar. */
 .modalSheet.eventEditModal {
   display: flex;

@@ -1,5 +1,5 @@
 import {managerPortalRoot} from '../../lib/managerPortal';
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { lockBodyScroll } from '../../lib/bodyScrollLock';
 
@@ -29,13 +29,16 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   footer,
 }) => {
+  const titleId = useId();
+  const overlayRef = useRef<HTMLDivElement>(null);
   const effectiveOpen = isOpen ?? open ?? false;
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
+      if (event.key !== 'Escape') return;
+      const overlay = overlayRef.current;
+      const overlays = overlay?.parentElement?.querySelectorAll(':scope > .modalOverlay');
+      if (overlays && overlay === overlays[overlays.length - 1]) onClose();
     },
     [onClose],
   );
@@ -64,6 +67,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   const modal = (
     <div
+      ref={overlayRef}
       className={placement === 'center' ? 'modalOverlay modalOverlay--centered' : 'modalOverlay'}
       onClick={handleOverlayClick}
       role="presentation"
@@ -72,12 +76,12 @@ export const Modal: React.FC<ModalProps> = ({
         className={['modalSheet', className ?? ''].filter(Boolean).join(' ')}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={title ? 'modal-title' : undefined}
+        aria-labelledby={title ? titleId : undefined}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modalHeader">
           {title ? (
-            <div id="modal-title" className={['modalTitle', titleClassName ?? ''].filter(Boolean).join(' ')}>
+            <div id={titleId} className={['modalTitle', titleClassName ?? ''].filter(Boolean).join(' ')}>
               {title}
             </div>
           ) : null}

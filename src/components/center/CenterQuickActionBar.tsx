@@ -57,7 +57,7 @@ export function CenterQuickActionBar({
       <div className="flex flex-wrap items-center justify-around gap-2" role="group" aria-label="Terminaktionen">
         {actions.map(({ label, icon: Icon, onClick }) => <button key={label} type="button" aria-label={label} title={label} onClick={onClick} className="sz-club-event-action inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"><Icon className="sz-club-accent-text h-5 w-5" aria-hidden /></button>)}
       </div>
-      <Modal open={dialog !== null} onClose={() => setDialog(null)} title={dialog === 'manage' ? 'Termin verwalten' : dialog === 'communication' ? 'Feed & Kommunikation' : dialog === 'carpool' ? 'Fahrgemeinschaft' : 'Team-Erinnerungen'}>
+      <Modal className={dialog === 'carpool' ? 'carpool-modal' : undefined} open={dialog !== null} onClose={() => setDialog(null)} title={dialog === 'manage' ? 'Termin verwalten' : dialog === 'communication' ? 'Feed & Kommunikation' : dialog === 'carpool' ? 'Fahrgemeinschaft' : 'Team-Erinnerungen'}>
         {dialog === 'manage' ? <div className="space-y-3">
           {onEdit ? <ActionChip icon={Pencil} label="Bearbeiten / Verschieben" onClick={() => run(onEdit)} layout="grid" /> : null}
           {managementSettings}
