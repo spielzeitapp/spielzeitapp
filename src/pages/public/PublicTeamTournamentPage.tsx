@@ -21,6 +21,8 @@ import { mutedAccentOnLight, normalizeBrandColor, readableTextColor } from '../.
 import { dsMatchdaySectionLabelClass } from '../../lib/premiumDesignSystem';
 import { TournamentClubLogo } from '../../components/tournament/TournamentClubLogo';
 
+const NEXT_PRO_U12_2026_ID = '42bf98e7-1047-4580-bddb-561457821562';
+
 function compareFixtureKickoff(
   a: { kickoffAt?: string | null; time: string },
   b: { kickoffAt?: string | null; time: string },
@@ -89,6 +91,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const [openedStream, setOpenedStream] = useState<{ publicId: string; url: string | null } | null>(null);
   const livestreamSection = useRef<HTMLElement>(null);
   const tickerSection = useRef<HTMLElement>(null);
+  const tournamentNavigation = useRef<HTMLElement>(null);
   const livestreamUrl = tournamentLivestreamUrl(page?.livestreamUrl);
   const recording = page?.livestreamIsRecording ?? page?.tournamentStatus === 'finished';
   const recordingParts = recording && page?.recordingParts?.length ? page.recordingParts : [];
@@ -331,6 +334,30 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   }
   const ContentTag=embedded?'div':'main';
   const accent = normalizeBrandColor(page?.accentColor) ?? '#c82333';
+  const showTournamentCover = !embedded && !matchId && publicId === NEXT_PRO_U12_2026_ID;
+  const pageHeader = (
+    <header className="flex items-center justify-between gap-2">
+        <Link to={selectedMatch && !returnsToLive ? location.pathname : returnTo} state={location.state} aria-label={returnsToLive ? 'Zurück zum Livespiel' : 'Zurück zum Turnier'} className="inline-flex min-h-11 min-w-0 items-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2 text-sm font-bold">← Zurück<span className="ml-1 hidden min-[380px]:inline">{returnsToLive ? 'zum Livespiel' : 'zum Turnier'}</span></Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <button type="button" onClick={()=>void onShare()} className="flex h-11 items-center gap-2 rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 text-sm font-bold"><Share2 size={18} aria-hidden/>Teilen</button>
+          <button type="button" onClick={toggleTheme} aria-label={theme === 'night' ? 'Tagmodus einschalten' : 'Nachtmodus einschalten'} title={theme === 'night' ? 'Tagmodus einschalten' : 'Nachtmodus einschalten'} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)]">{theme === 'night' ? <Sun size={20} aria-hidden/> : <Moon size={20} aria-hidden/>}</button>
+        </div>
+      </header>
+  );
+  const presentationTools = page && !embedded ? <>
+    <TournamentPresentationTools page={page} canScreen={screenAccess.canScreen} onShare={() => void onShare()} />
+    {screenAccess.canManage ? <TournamentScreenManagers eventId={publicId} onChanged={() => void refreshScreenAccess()} /> : null}
+  </> : null;
+
+  const tournamentInfo = page ? <details className="mt-2 text-xs text-[var(--t-muted)]"><summary className="cursor-pointer py-1 font-semibold">Turnierinfos & Aktualisierung</summary><p className="mt-2">{[page.teamName,page.seasonLabel].filter(Boolean).join(' · ')}</p><p className="mt-1 flex items-center gap-1"><MapPin size={14}/>{page.venue}</p><p className="mt-1">{page.allMatches.some(m=>m.status==='live')?'Läuft':page.tournamentStatusLabel}{page.syncedAt ? ` · Veranstalterstand ${new Date(page.syncedAt).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'})}` : ''}</p></details> : null;
+
+  const openTournamentSection = (section: 'games' | 'ticker') => {
+    setTab(section);
+    if (section === 'games') setScheduleView('upcoming');
+    const target = section === 'ticker' && playerOpen ? tickerSection : tournamentNavigation;
+    target.current?.scrollIntoView({ block: 'start' });
+  };
+
   return <div ref={scrollSurface} data-embedded={embedded || undefined} data-theme={theme} className={`${embedded?'tournament-audience-overview w-full min-w-0':'public-tournament-page bg-[var(--t-bg)]'} text-[var(--t-text)]`} style={{
       '--t-accent': embedded ? 'rgb(var(--club-accent-text-rgb))' : theme === 'day' ? mutedAccentOnLight(accent) : accent,
       '--t-on-accent': theme === 'day' ? '#ffffff' : readableTextColor(accent),
@@ -346,20 +373,32 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
       colorScheme: theme === 'day' ? 'light' : 'dark',
     } as React.CSSProperties}>
     <ContentTag className={embedded?"space-y-4":"mx-auto max-w-2xl space-y-4 px-4 pb-8 pt-4"}>
-      {!embedded ? <header className="flex items-center justify-between gap-2">
-        <Link to={selectedMatch && !returnsToLive ? location.pathname : returnTo} state={location.state} aria-label={returnsToLive ? 'Zurück zum Livespiel' : 'Zurück zum Turnier'} className="inline-flex min-h-11 min-w-0 items-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2 text-sm font-bold">← Zurück<span className="ml-1 hidden min-[380px]:inline">{returnsToLive ? 'zum Livespiel' : 'zum Turnier'}</span></Link>
-        <div className="flex shrink-0 items-center gap-2">
-          <button type="button" onClick={()=>void onShare()} className="flex h-11 items-center gap-2 rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 text-sm font-bold"><Share2 size={18} aria-hidden/>Teilen</button>
-          <button type="button" onClick={toggleTheme} aria-label={theme === 'night' ? 'Tagmodus einschalten' : 'Nachtmodus einschalten'} title={theme === 'night' ? 'Tagmodus einschalten' : 'Nachtmodus einschalten'} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)]">{theme === 'night' ? <Sun size={20} aria-hidden/> : <Moon size={20} aria-hidden/>}</button>
-        </div>
-      </header> : selectedMatch ? <button type="button" onClick={()=>setSearchParams({})} className="min-h-11 rounded-full border border-[var(--t-border)] px-4 text-sm font-bold">← Zurück zur Turnierübersicht</button> : null}
+      {!embedded && !showTournamentCover ? pageHeader : embedded && selectedMatch ? <button type="button" onClick={()=>setSearchParams({})} className="min-h-11 rounded-full border border-[var(--t-border)] px-4 text-sm font-bold">← Zurück zur Turnierübersicht</button> : null}
       {shareHint ? <p role="status" className="text-sm text-[var(--t-muted)]">{shareHint}</p> : null}
       {loading ? <p>Turnier wird geladen…</p> : !page ? <section className={card}><p>{error || 'Turnier nicht verfügbar'}</p><button onClick={()=>void load()} className="mt-3 underline">Erneut laden</button></section> : <>
-        {!embedded?<><TournamentPresentationTools page={page} canScreen={screenAccess.canScreen} onShare={()=>void onShare()}/>{screenAccess.canManage?<TournamentScreenManagers eventId={publicId} onChanged={()=>void refreshScreenAccess()}/>:null}</>:null}
+        {!showTournamentCover ? presentationTools : null}
         {selectedMatch ? <PublicTournamentMatchView page={page} match={selectedMatch} view={matchView} onView={view=>setSearchParams({spiel:selectedMatch.id,ansicht:view})}/> : <>
-        {!embedded ? <section className="rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-3">
+        {showTournamentCover ? (
+          <section aria-labelledby="nextpro-title" className="relative isolate overflow-hidden rounded-2xl bg-[#101012] text-white">
+            <img src="/images/nextpro-u12-2026.webp" alt="" fetchPriority="high"
+              className="pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover object-[72%_center]" />
+            <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-r from-black via-black/[.85] to-black/20" />
+            <div className="max-w-[75%] px-4 py-5 sm:px-6 sm:py-7">
+              <TournamentClubLogo name={page.teamName} logoUrl={page.teamLogoUrl} size="sm" />
+              <h1 id="nextpro-title" className="mt-2 text-2xl font-black uppercase leading-none sm:text-4xl">{page.tournamentName}</h1>
+              <p className="mt-2 text-sm font-semibold text-zinc-100">{page.dateLabel}</p>
+              {page.venue ? <p className="mt-1 text-sm text-zinc-200">{page.venue}</p> : null}
+            </div>
+            <div className="flex flex-wrap gap-2 bg-black/[.85] px-4 py-3 sm:px-6">
+              <button type="button" onClick={() => openTournamentSection('games')} className="min-h-11 rounded-xl bg-[#bd1733] px-4 text-sm font-bold text-white">Spielplan</button>
+              <button type="button" onClick={() => openTournamentSection('ticker')} className="min-h-11 rounded-xl border border-white/35 px-4 text-sm font-bold text-white">Liveticker</button>
+              {livestreamUrl ? <button type="button" onClick={() => livestreamSection.current?.scrollIntoView({ block: 'start' })} className="min-h-11 rounded-xl border border-white/35 px-4 text-sm font-bold text-white">{streamLabel}</button> : null}
+            </div>
+          </section>
+        ) : null}
+        {!embedded && !showTournamentCover ? <section className="rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-3">
           <div className="flex items-center gap-3"><TournamentClubLogo name={page.teamName} logoUrl={page.teamLogoUrl} size="sm"/><div className="min-w-0 flex-1"><h1 className="text-base font-extrabold leading-snug">{page.tournamentName}</h1><p className="mt-1 text-xs text-[var(--t-muted)]">{page.dateLabel} · {page.ageGroupLabel}</p></div></div>
-          <details className="mt-2 text-xs text-[var(--t-muted)]"><summary className="cursor-pointer py-1 font-semibold">Turnierinfos & Aktualisierung</summary><p className="mt-2">{[page.teamName,page.seasonLabel].filter(Boolean).join(' · ')}</p><p className="mt-1 flex items-center gap-1"><MapPin size={14}/>{page.venue}</p><p className="mt-1">{page.allMatches.some(m=>m.status==='live')?'Läuft':page.tournamentStatusLabel}{page.syncedAt ? ` · Veranstalterstand ${new Date(page.syncedAt).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'})}` : ''}</p></details>
+          {tournamentInfo}
         </section> : null}
         {livestreamUrl ? (
           <section id="livestream" ref={livestreamSection} className={`${card} scroll-mt-4 space-y-3`}>
@@ -463,7 +502,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
             {renderScheduledFixture(featuredOwnFixture, 0)}
           </section>
         ) : null}
-        <nav aria-label="Turnierbereiche" className="tournament-filter-track space-y-1 rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-1">
+        <nav ref={tournamentNavigation} aria-label="Turnierbereiche" className="tournament-filter-track scroll-mt-4 space-y-1 rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-1">
           <div className="grid grid-cols-2 gap-1 sm:grid-cols-4" role="group" aria-label="Spiele und Tabelle">{[['ours','Unsere Spiele'],['games','Alle Spiele'],['ticker','Liveticker'],['tables','Tabellen']].map(([id,label])=><button key={id} type="button" aria-pressed={tab===id} onClick={()=>{
             setTab(id);
             if (id === 'ticker' && playerOpen) tickerSection.current?.scrollIntoView({ block: 'start' });
@@ -501,6 +540,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
         {tab==='scorers'?<section className={card}><h2 className={heading}>Unsere Torschützenliste</h2>{page.scorers?.some(s=>s.example)?<p className="mb-3 text-sm text-[var(--t-warning)]">TEST-Beispieldaten aus unserem Kader – keine bestätigten historischen Torschützen.</p>:null}{scorerTotals.length?<ol className="space-y-3">{scorerTotals.map((s,i)=><li key={s.name}><TournamentFanPlayerCard player={profileFor(s.name)} clubName={page.ownParticipantName || page.teamName} clubLogo={page.teamLogoUrl} goals={s.goals} rank={i+1}/></li>)}</ol>:<p>Noch keine Torschützen erfasst.</p>}</section>:null}
         {tab==='roster'?<section className={card}><h2 className={heading}>Unser Team</h2>{page.fanRosterExample?<p className="mb-3 text-sm text-[var(--t-muted)]">TEST-Beispiel mit Bildern und Nummern aus unserem aktuellen Kader.</p>:null}{rosterPlayers.length?<ul className="space-y-3">{rosterPlayers.map(player=><li key={player.name}><TournamentFanPlayerCard player={player} clubName={page.ownParticipantName || page.teamName} clubLogo={page.teamLogoUrl}/></li>)}</ul>:<p>Der Turnierkader ist noch nicht festgelegt.</p>}</section>:null}
         </>}
+        {showTournamentCover ? <>{pageHeader}{presentationTools}<section className={card}>{tournamentInfo}</section></> : null}
         {!embedded ? <Link to={returnTo} className="public-tournament-cta block rounded-full px-5 py-3 text-center text-sm font-bold">Zum Turniercenter in der App</Link> : null}
       </>}
     </ContentTag>
