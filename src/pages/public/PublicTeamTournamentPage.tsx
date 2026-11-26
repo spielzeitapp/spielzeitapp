@@ -36,9 +36,9 @@ function NextProIntro({ onFinished }: { onFinished: () => void }) {
 
   return (
     <div data-nextpro-intro aria-hidden="true"
-      className={`pointer-events-none fixed inset-0 z-50 grid place-items-center bg-[#101012] transition-opacity duration-200 motion-reduce:transition-none ${fading ? 'opacity-0' : 'opacity-100'}`}>
-      <img src="/images/nextpro-u12-2026.webp" alt="" fetchPriority="high" onError={onFinished}
-        className="max-h-full w-full max-w-5xl object-contain" />
+      className={`pointer-events-none fixed inset-0 z-50 grid place-items-center bg-[#0d0d0d] transition-opacity duration-200 motion-reduce:transition-none ${fading ? 'opacity-0' : 'opacity-100'}`}>
+      <img src="/images/nextpro-u12-2026-intro.webp" alt="" fetchPriority="high" onError={onFinished}
+        className="h-full max-h-[100dvh] w-full object-contain" />
     </div>
   );
 }
