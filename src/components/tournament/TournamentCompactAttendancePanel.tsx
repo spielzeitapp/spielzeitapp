@@ -1,14 +1,12 @@
+import { AttendanceStatCard } from '../events/AttendanceStatCard';
 import { AttendanceThumbControls } from '../events/AttendanceThumbControls';
-import { dbStatusToTrainingAttendance, type TrainingAttendanceStatus } from '../../lib/trainingAttendance';
-import { PremiumStatusBadge } from '../player/PremiumStatusBadge';
+import { dbStatusToTrainingAttendance, trainingAttendanceLabel, type TrainingAttendanceStatus } from '../../lib/trainingAttendance';
+import { PremiumStatusBadge, type PremiumStatusBadgeTone } from '../player/PremiumStatusBadge';
 import React from 'react';
 import { MatchPlayerRow } from '../match/MatchPlayerRow';
 import {
-  dsRsvpChoiceClass,
   dsSectionLabelClass,
-  dsStatusChipClass,
   DS_LIST_GAP,
-  DS_STAT_GRID_GAP,
 } from '../../lib/premiumDesignSystem';
 import type { PlayerItem } from '../../hooks/usePlayers';
 
@@ -52,10 +50,10 @@ export function TournamentCompactAttendancePanel({
   readOnly = false,
 }: Props) {
   const summary = (
-    <div className={`flex flex-wrap ${DS_STAT_GRID_GAP}`}>
-      <span className={dsStatusChipClass('present')}>✅ Zugesagt: {yesCount}</span>
-      <span className={dsStatusChipClass('absent')}>❌ Abgesagt: {noCount}</span>
-      <span className={dsStatusChipClass('open')}>❓ Offen: {openCount}</span>
+    <div className="grid w-full grid-cols-3 gap-2">
+      <AttendanceStatCard label="Zugesagt" value={yesCount} tone="present" />
+      <AttendanceStatCard label="Abgesagt" value={noCount} tone="absent" />
+      <AttendanceStatCard label="Offen" value={openCount} tone="open" />
     </div>
   );
 
@@ -85,30 +83,21 @@ export function TournamentCompactAttendancePanel({
   const renderGroup = (title: 'OFFEN' | 'ZUGESAGT' | 'ABGESAGT', group: PlayerItem[]) => {
     return (
       <div className="flex flex-col gap-1.5">
-        <p className={`${dsSectionLabelClass()} !text-[11px]`}>{title} ({group.length})</p>
+        <p className={`${dsSectionLabelClass()} !text-[11px]`}>{title}</p>
         {group.length === 0 ? <p className="text-[12px] text-white/45">Keine Spieler</p> : null}
         <ul className={`flex flex-col ${DS_LIST_GAP}`}>
           {group.map((player) => {
             const bucket = statusBucket(getAttendanceStatus, player.id);
             const rsvpDisplay = getMatchRsvpDisplay(player.id);
-            const badge =
-              rsvpDisplay === 'yes'
-                ? 'ZUGESAGT'
-                : rsvpDisplay === 'injured'
-                  ? 'VERLETZT'
-                  : rsvpDisplay === 'sick'
-                    ? 'KRANK'
-                    : bucket === 'no'
-                      ? 'ABGESAGT'
-                      : 'OFFEN';
-            const status: 'open' | 'yes' | 'no' =
-              bucket === 'yes' ? 'yes' : bucket === 'no' ? 'no' : 'open';
+            const status = dbStatusToTrainingAttendance(rsvpDisplay) ?? 'open';
+            const reasonTone: PremiumStatusBadgeTone | undefined =
+              status === 'sick' || status === 'injured' || status === 'external' ? status : undefined;
 
             return (
               <li key={player.id}>
-                <MatchPlayerRow player={player} status={status} layout="team-roster" hideSubline
-                  nameStatus={<PremiumStatusBadge label={rsvpDisplay === 'external_training' ? 'LAZ' : badge} tone={rsvpDisplay === 'injured' ? 'injured' : rsvpDisplay === 'sick' ? 'sick' : rsvpDisplay === 'external_training' ? 'external' : bucket === 'yes' ? 'present' : bucket === 'no' ? 'absent' : 'open'} />}
-                  trailing={readOnly ? undefined : <AttendanceThumbControls name={player.display_name ?? player.name ?? 'Spieler'} status={dbStatusToTrainingAttendance(rsvpDisplay) ?? 'open'} isLaz={player.is_laz_player}
+                <MatchPlayerRow player={player} status={bucket} layout="team-roster" hideNumber hideSubline
+                  nameStatus={reasonTone && <PremiumStatusBadge label={trainingAttendanceLabel(status)} tone={reasonTone} />}
+                  trailing={readOnly ? undefined : <AttendanceThumbControls name={player.display_name ?? player.name ?? 'Spieler'} status={status} isLaz={player.is_laz_player}
                     onSelect={next => onSetDetailedStatus ? onSetDetailedStatus(player.id, next) : onSetAttendance(player.id, next === 'present' ? 'yes' : 'no')} />}
                 />
               </li>

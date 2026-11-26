@@ -65,7 +65,8 @@ export const MatchPlayerRow: React.FC<{
   /** Blendet die Positionszeile aus, wenn nur Name und Status relevant sind. */
   hideSubline?: boolean;
   nameStatus?: React.ReactNode;
-}> = ({ player, status, selected = false, rightLabel, metricHint, onClick, tone = "utility", layout = "default", roomy = false, trailing, hideSubline = false, nameStatus }) => {
+  hideNumber?: boolean;
+}> = ({ player, status, selected = false, rightLabel, metricHint, onClick, tone = "utility", layout = "default", roomy = false, trailing, hideSubline = false, nameStatus, hideNumber = false }) => {
   const number = player.jersey_number ?? player.number ?? null;
   const isMatchday = tone === "matchday";
   const baseSub = positionSubline(player.position);
@@ -90,7 +91,7 @@ export const MatchPlayerRow: React.FC<{
           />
         </div>
         {/* Attendance rows use the number column for the player name. */}
-        {!nameStatus ? (
+        {!hideNumber && !nameStatus ? (
         <span className="sz-club-number-divider w-11 shrink-0 border-l pl-2 text-[25px] font-black leading-none text-white max-[359px]:w-8 max-[359px]:pl-1.5 max-[359px]:text-[21px]">
           {number ?? "–"}
         </span>
