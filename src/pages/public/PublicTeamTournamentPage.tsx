@@ -91,7 +91,8 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const {access:screenAccess,refresh:refreshScreenAccess}=useTournamentScreenAccess(publicId);
   const location = useLocation();
   const candidate = (location.state as {returnTo?: unknown} | null)?.returnTo;
-  const returnTo = typeof candidate === 'string' && /^\/(app|demo|manager)\//.test(candidate) ? candidate : `/app/events/${encodeURIComponent(publicId)}`;
+  const appReturnTo = typeof candidate === 'string' && /^\/(app|demo|manager)\//.test(candidate) ? candidate : null;
+  const returnTo = appReturnTo ?? `/app/events/${encodeURIComponent(publicId)}`;
   const returnsToLive = /^\/(app|demo)\/live(?:[/?]|$)/.test(returnTo);
   const [searchParams, setSearchParams] = useSearchParams();
   const matchId = searchParams.get('spiel');
@@ -371,7 +372,16 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const accent = normalizeBrandColor(page?.accentColor) ?? '#c82333';
   const pageHeader = (
     <header className="flex items-center justify-between gap-2">
-        <Link to={selectedMatch && !returnsToLive ? location.pathname : returnTo} state={location.state} aria-label={returnsToLive ? 'Zurück zum Livespiel' : 'Zurück zum Turnier'} className="inline-flex min-h-11 min-w-0 items-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2 text-sm font-bold">← Zurück<span className="ml-1 hidden min-[380px]:inline">{returnsToLive ? 'zum Livespiel' : 'zum Turnier'}</span></Link>
+        {isNextProOverview && !appReturnTo ? (
+          <button type="button" onClick={() => {
+            setTab('ours');
+            scrollSurface.current?.scrollTo({ top: 0 });
+          }} className="inline-flex min-h-11 min-w-0 items-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2 text-sm font-bold">
+            ↑ Nach oben
+          </button>
+        ) : (
+          <Link to={selectedMatch && !returnsToLive ? location.pathname : returnTo} state={location.state} aria-label={returnsToLive ? 'Zurück zum Livespiel' : 'Zurück zum Turnier'} className="inline-flex min-h-11 min-w-0 items-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2 text-sm font-bold">← Zurück<span className="ml-1 hidden min-[380px]:inline">{returnsToLive ? 'zum Livespiel' : 'zum Turnier'}</span></Link>
+        )}
         <div className="flex shrink-0 items-center gap-2">
           <button type="button" onClick={()=>void onShare()} className="flex h-11 items-center gap-2 rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 text-sm font-bold"><Share2 size={18} aria-hidden/>Teilen</button>
           <button type="button" onClick={toggleTheme} aria-label={theme === 'night' ? 'Tagmodus einschalten' : 'Nachtmodus einschalten'} title={theme === 'night' ? 'Tagmodus einschalten' : 'Nachtmodus einschalten'} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)]">{theme === 'night' ? <Sun size={20} aria-hidden/> : <Moon size={20} aria-hidden/>}</button>
