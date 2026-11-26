@@ -370,6 +370,7 @@ export function buildPublicTeamTournamentPageDto(input: {
 
 export async function fetchPublicTeamTournamentPage(
   publicId: string,
+  signal?: AbortSignal,
 ): Promise<{ page: PublicTeamTournamentPageDto | null; error: string | null }> {
   const id = String(publicId ?? '').trim();
   if (!id) return { page: null, error: 'Turnierseite nicht gefunden.' };
@@ -418,7 +419,7 @@ export async function fetchPublicTeamTournamentPage(
   try {
     const res = await fetch(
       `/api/tournament-plan-analyze?publicTournamentId=${encodeURIComponent(id)}`,
-      { cache: 'no-store' },
+      { cache: 'no-store', signal },
     );
     const json = (await res.json().catch(() => ({}))) as {
       ok?: boolean;

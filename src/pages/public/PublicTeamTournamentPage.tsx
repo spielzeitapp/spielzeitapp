@@ -23,22 +23,28 @@ import { TournamentClubLogo } from '../../components/tournament/TournamentClubLo
 
 const NEXT_PRO_U12_2026_ID = '42bf98e7-1047-4580-bddb-561457821562';
 
-function NextProIntro({ onFinished }: { onFinished: () => void }) {
-  const [fading, setFading] = useState(false);
+function NextProIntro({ ready, onFinished }: { ready: boolean; onFinished: () => void }) {
+  const [minimumTimeElapsed, setMinimumTimeElapsed] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
   useEffect(() => {
-    const fade = window.setTimeout(() => setFading(true), 900);
-    const finish = window.setTimeout(onFinished, 1100);
-    return () => {
-      window.clearTimeout(fade);
-      window.clearTimeout(finish);
-    };
-  }, [onFinished]);
+    const timer = window.setTimeout(() => setMinimumTimeElapsed(true), 900);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const fading = ready && minimumTimeElapsed;
+  useEffect(() => {
+    if (!fading) return;
+    const timer = window.setTimeout(onFinished, 200);
+    return () => window.clearTimeout(timer);
+  }, [fading, onFinished]);
 
   return (
     <div data-nextpro-intro aria-hidden="true"
       className={`pointer-events-none fixed inset-0 z-50 grid place-items-center bg-[#0d0d0d] transition-opacity duration-200 motion-reduce:transition-none ${fading ? 'opacity-0' : 'opacity-100'}`}>
-      <img src="/images/nextpro-u12-2026-intro.webp" alt="" fetchPriority="high" onError={onFinished}
-        className="h-full max-h-[100dvh] w-full object-contain" />
+      {imageFailed ? <p className="text-sm font-semibold text-white">Turnier wird geladen…</p> : (
+        <img src="/images/nextpro-u12-2026-intro.webp" alt="" fetchPriority="high" onError={() => setImageFailed(true)}
+          className="h-full max-h-[100dvh] w-full object-contain" />
+      )}
     </div>
   );
 }
@@ -93,7 +99,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const finishIntro = useCallback(() => setShowIntro(false), []);
   const viewRaw = searchParams.get('ansicht');
   const matchView: PublicMatchView = viewRaw === 'formation' || viewRaw === 'ticker' || viewRaw === 'stats' ? viewRaw : 'overview';
-  const requestId = useRef(0);
+  const activeRequest = useRef<AbortController | null>(null);
   const scrollSurface = useRef<HTMLDivElement>(null);
   useEffect(() => {
     scrollSurface.current?.scrollTo({ top: 0 });
@@ -140,11 +146,15 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const [shareHint, setShareHint] = useState<string | null>(null);
 
   const load = useCallback(async (silent = false) => {
-    const request = ++requestId.current;
+    if (activeRequest.current) return;
+    const request = new AbortController();
+    activeRequest.current = request;
     if (!silent) setLoading(true);
     setError(null);
-    const result = await fetchPublicTeamTournamentPage(publicId);
-    if (request !== requestId.current) return;
+    const timeout = window.setTimeout(() => request.abort(), 20_000);
+    const result = await fetchPublicTeamTournamentPage(publicId, request.signal).finally(() => window.clearTimeout(timeout));
+    if (request !== activeRequest.current) return;
+    activeRequest.current = null;
     if (result.page) setPage(result.page);
     setError(result.error);
     setLoading(false);
@@ -158,7 +168,8 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
     window.addEventListener('online', refresh);
     document.addEventListener('visibilitychange', refresh);
     return () => {
-      requestId.current++;
+      activeRequest.current?.abort();
+      activeRequest.current = null;
       window.clearInterval(timer);
       window.removeEventListener('focus', refresh);
       window.removeEventListener('online', refresh);
@@ -394,7 +405,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
       '--t-warning': theme === 'day' ? '#854d0e' : '#fcd34d',
       colorScheme: theme === 'day' ? 'light' : 'dark',
     } as React.CSSProperties}>
-    {isNextProOverview && showIntro && !location.hash && searchParams.size === 0 ? <NextProIntro onFinished={finishIntro} /> : null}
+    {isNextProOverview && showIntro && !location.hash && searchParams.size === 0 ? <NextProIntro ready={!loading} onFinished={finishIntro} /> : null}
     <ContentTag className={embedded?"space-y-4":"mx-auto max-w-2xl space-y-4 px-4 pb-8 pt-4"}>
       {!embedded && !isNextProOverview ? pageHeader : embedded && selectedMatch ? <button type="button" onClick={()=>setSearchParams({})} className="min-h-11 rounded-full border border-[var(--t-border)] px-4 text-sm font-bold">← Zurück zur Turnierübersicht</button> : null}
       {shareHint ? <p role="status" className="text-sm text-[var(--t-muted)]">{shareHint}</p> : null}
