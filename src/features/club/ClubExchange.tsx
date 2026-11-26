@@ -1,8 +1,9 @@
+import {DonationFields,DonationBuyer,DonationOwner} from './VoluntaryDonation';
 import {marketFullTeamLabel} from './marketFullTeamLabel';
 import {submitExchangeRequest} from './exchangeRequest';
 import {ListingCompletionDialog,removeListingPhotos} from './ListingCompletionDialog';
 import {TeamFundFields,TeamFundDetail,type FundRow} from './TeamFundFields';
-import {buildFundSplit,fundPrice,type FundSplit} from './teamFund';
+import {buildFundSplit,fundPrice,fundCents,fundMoney,type FundSplit} from './teamFund';
 import {ListingPhotoActions} from './ListingPhotoActions';
 import {ExchangePhotoGallery} from './ExchangePhotoGallery';
 import {ExchangeArticleChoices} from './ExchangeArticleChoices';
@@ -20,7 +21,7 @@ import { ExchangeFilterSheet } from './ExchangeFilterSheet';
 import { isExchangeShoe, exchangeSizeSystem, exchangeSizeOptions, selectExchangeItems, type CatalogSort } from './exchangeCatalog';
 import './clubExchange.css';
 
-type Listing = { id: string; club_id: string; owner_id: string; owner_label: string; title: string; category: string; size: string; condition: string; offer: string; price: number | null; description: string; team_label: string; status: string; photo_paths: string[]; created_at: string; is_public?: boolean; revision: number; archived_at?: string|null; completion_outcome?: string|null; team_fund_split?: FundSplit[] };
+type Listing = { id: string; club_id: string; owner_id: string; owner_label: string; title: string; category: string; size: string; condition: string; offer: string; price: number | null; description: string; team_label: string; status: string; photo_paths: string[]; created_at: string; is_public?: boolean; revision: number; archived_at?: string|null; completion_outcome?: string|null; voluntary_donation?:boolean;donation_team_id?:string|null;team_fund_split?: FundSplit[] };
 type Thread = { id: string; listing_id: string; requester_id: string; requester_label: string; requester_team_label?: string; created_at: string };
 type Message = { id: string; thread_id: string; sender_id: string; body: string; created_at: string };
 const conditions = ['Wie neu', 'Sehr gut', 'Gut', 'Gebraucht'];
@@ -77,6 +78,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   const [editing, setEditing] = useState<string | null>(null);
   const [editingRevision, setEditingRevision] = useState(0);
   const [form, setForm] = useState(emptyForm);
+  const [voluntary,setVoluntary]=useState(false),[donationTarget,setDonationTarget]=useState(''),[donationAmount,setDonationAmount]=useState('0');
   const [fundRows,setFundRows]=useState<FundRow[]>([]);
   const [files, setFiles] = useState<File[]>([]);
   const [existingPaths, setExistingPaths] = useState<string[]>([]);
@@ -96,6 +98,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   const threadId = params.get('thread');
   const currentThread = threads.find(t => t.id === threadId);
   const detail = items.find(item => item.id === (currentThread?.listing_id || detailId || params.get('listing')));
+  useEffect(()=>setDonationAmount('0'),[detail?.id]);
   const myItem = detail?.owner_id === userId;
   const otherId = currentThread && detail ? (myItem ? currentThread.requester_id : detail.owner_id) : null;
   const isBlocked = Boolean(otherId && blocked.includes(otherId));
@@ -172,9 +175,10 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
     finally { if (alive.current) setBusy(false); }
   };
   const startRequest = () => act(async () => {
+    if(detail?.voluntary_donation&&fundCents(donationAmount)===null)throw Error('Bitte einen gültigen freiwilligen Betrag eingeben.');
     if (!detail || !adult) throw Error('Bitte bestätige, dass du die Anfrage als erwachsene Person verwaltest.');
     const existing=threads.find(t=>t.listing_id===detail.id&&t.requester_id===userId);
-    const result=await submitExchangeRequest({listingId:detail.id,userId,existingThreadId:existing?.id,text:body});
+    const result=await submitExchangeRequest({listingId:detail.id,userId,existingThreadId:existing?.id,text:detail.voluntary_donation?`${body.trim()}\n\n${donationAmount==='0'?'Ohne Spende angefragt.':`Freiwillige Spende vorgeschlagen: ${fundMoney(fundCents(donationAmount)??0)}. Zahlung bei Übergabe vereinbaren.`}`:body});
     if(result.sent||!existing)await loadRef.current();
     openThread(result.threadId);
     if(result.sent)await dispatchPush();
@@ -197,6 +201,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
   const openEditor = (item?: Listing) => {
     setPublicListing(Boolean(item?.is_public)); setPublicationConfirmed(false); setShowTeam(Boolean(item ? item.team_label : teamSharingDefault && defaultTeamLabel));
     setEditingRevision(item?.revision ?? 0);
+    setVoluntary(item?.voluntary_donation===true);setDonationTarget(item?.donation_team_id||'');
     setFundRows((item?.team_fund_split||[]).map(x=>({team_id:x.team_id,value:String(x.amount_cents/100)})));
     setEditing(item?.id || 'new'); setFiles([]); setAdult(false); setExistingPaths(item?.photo_paths || []);
     setForm(item ? { title: item.title, category: item.category, size: item.size, condition: item.condition, offer: item.offer, price: String(item.price ?? ''), description: item.description, team_label: item.team_label } : {...emptyForm,team_label:defaultTeamLabel});
@@ -211,7 +216,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
       if (!publicationConfirmed) throw Error('Bitte bestätige die Veröffentlichung der genannten Angaben.');
       if (!existingPaths.length && !files.length) throw Error('Bitte mindestens ein Foto vom Gewand hinzufügen.');
       const id = editing === 'new' ? crypto.randomUUID() : editing!;
-      const values = { ...form, is_public: publicListing, team_label: showTeam ? form.team_label : '', title: form.title.trim(), size: form.size.trim(), team_fund_split:form.offer==='Fürs Team'?buildFundSplit(fundRows,form.price):[], price: ['Verkaufen','Fürs Team'].includes(form.offer) ? Number(form.price.replace(',', '.')) : null };
+      const values = { ...form, voluntary_donation:form.offer==='Gratis'&&voluntary,donation_team_id:form.offer==='Gratis'&&voluntary?donationTarget||null:null, is_public: publicListing, team_label: showTeam ? form.team_label : '', title: form.title.trim(), size: form.size.trim(), team_fund_split:form.offer==='Fürs Team'?buildFundSplit(fundRows,form.price):[], price: ['Verkaufen','Fürs Team'].includes(form.offer) ? Number(form.price.replace(',', '.')) : null };
       if (['Verkaufen','Fürs Team'].includes(form.offer) && (!form.price.trim() || !Number.isFinite(values.price) || Number(values.price) < 0 || Number(values.price) > 9999)) throw Error('Bitte einen gültigen Preis eingeben.');
       const paths = [...existingPaths]; const uploaded: string[] = [];
       let published = false;
@@ -291,6 +296,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
         {myItem&&!detail.archived_at&&<div className="exchange-edit-action"><button type="button" className="exchange-edit-listing" onClick={()=>openEditor(detail)}><Pencil size={20} aria-hidden="true"/>Inserat bearbeiten</button></div>}
         <dl className="listing-facts"><div><dt>Größe</dt><dd>{detail.size}</dd></div><div><dt>Zustand</dt><dd>{detail.condition}</dd></div><div><dt>Status</dt><dd>{detail.completion_outcome==='withdrawn'?'Entfernt':detail.archived_at?'Archiviert':detail.status}</dd></div></dl>
         <p className="exchange-owner">{detail.owner_label}{detail.team_label ? ` · ${detail.team_label}` : ''}</p><p className="exchange-description">{detail.description}</p>
+        {detail.voluntary_donation&&(myItem?<DonationOwner clubId={clubId} listingId={detail.id} revision={detail.revision} onChanged={()=>void loadRef.current()}/>:<DonationBuyer value={donationAmount} onChange={setDonationAmount}/>)}
         {detail.offer==='Fürs Team'&&(!detail.archived_at||detail.completion_outcome==='team')&&<TeamFundDetail key={detail.id} listingId={detail.id} revision={detail.revision} owner={myItem} onChanged={()=>loadRef.current()}/>}
         {myItem && <div className="exchange-owner-tools">{!detail.archived_at&&<><select aria-label="Status des Inserats" disabled={busy} value={detail.status} onChange={e => void status(e.target.value)}>{['Entwurf', 'Verfügbar', 'Reserviert', 'Vergeben'].map(s => <option key={s}>{s}</option>)}</select></>}<button disabled={busy} onClick={()=>remove()}><Trash2 size={16}/>{detail.archived_at?'Endgültig löschen':'Abschließen / Entfernen'}</button></div>}
         {currentThread ? <div className="exchange-chat"><h3><LockKeyhole size={17} /> Privater Chat mit {myItem ? [currentThread.requester_label,currentThread.requester_team_label].filter(Boolean).join(' · ') : [detail.owner_label,detail.team_label].filter(Boolean).join(' · ')}</h3><p>Nur ihr beide seht diese Nachrichten.</p>
@@ -332,6 +338,7 @@ export function ClubExchange({ clubId, userId, seasons, defaultTeamLabel = '', o
         <ExchangeChoiceGroup label={isExchangeShoe(form.category)?'Schuhgröße':'Größe'} value={form.size} options={exchangeSizeOptions(form.category,items)} compact onChange={size=>setForm(previous=>({...previous,size}))}/>
         <label>Größe direkt eingeben<input required maxLength={15} value={form.size} placeholder={isExchangeShoe(form.category)?'Andere Schuhgröße, z. B. 35,5':'Andere Größe, z. B. 128/134'} onChange={e=>setForm(previous=>({...previous,size:e.target.value}))}/></label>
         <ExchangeChoiceGroup label="Zustand" value={form.condition} options={conditions} onChange={condition=>setForm(previous=>({...previous,condition}))}/>
+        {form.offer==='Gratis'&&<DonationFields clubId={clubId} enabled={voluntary} target={donationTarget} onChange={(enabled,target)=>{setVoluntary(enabled);setDonationTarget(target);}}/>}
         <ExchangeChoiceGroup label="Angebot" value={form.offer} options={['Gratis','Tauschen','Verkaufen','Fürs Team']} onChange={offer=>setForm(previous=>({...previous,offer}))}/>
         {['Verkaufen','Fürs Team'].includes(form.offer) && <label>{form.offer==='Fürs Team'?'Teambeitrag in Euro (fest vereinbart)':'Preis in Euro'}<input required inputMode="decimal" value={form.price} onChange={e => setForm({...form,price:e.target.value})} /></label>}
         {form.offer==='Fürs Team'&&<TeamFundFields clubId={clubId} rows={fundRows} onChange={setFundRows}/>}
