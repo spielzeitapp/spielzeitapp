@@ -97,6 +97,7 @@ export function MinimumPlaytimeMatchSettings({
         planned_match_minutes: normPlanned,
         minimum_playtime_enabled: nextEnabled,
         minimum_playtime_minutes: normMinutes,
+        tournament_playtime_override: true,
       });
       setSaving(false);
       if (updErr) {

@@ -225,6 +225,7 @@ async function fetchLiveDetailsForMatch(matchId: string): Promise<TournamentLive
       scoreHome: Number(row.score_home ?? 0),
       scoreAway: Number(row.score_away ?? 0),
       liveElapsedSeconds: Number(row.live_elapsed_seconds ?? 0) || 0,
+      plannedMatchMinutes: row.planned_match_minutes ?? undefined,
       liveIsRunning: Boolean(row.live_is_running),
       livePeriod: Number(row.live_period ?? 1) || 1,
     };
@@ -232,7 +233,7 @@ async function fetchLiveDetailsForMatch(matchId: string): Promise<TournamentLive
 
   const { data, error } = await supabase
     .from('matches')
-    .select('status, score_home, score_away, live_elapsed_seconds, live_is_running, live_period')
+    .select('status, score_home, score_away, live_elapsed_seconds, live_is_running, live_period, planned_match_minutes')
     .eq('id', matchId)
     .maybeSingle();
 
@@ -242,6 +243,7 @@ async function fetchLiveDetailsForMatch(matchId: string): Promise<TournamentLive
     scoreHome: Number(data.score_home ?? 0),
     scoreAway: Number(data.score_away ?? 0),
     liveElapsedSeconds: Number(data.live_elapsed_seconds ?? 0) || 0,
+    plannedMatchMinutes: data.planned_match_minutes ?? undefined,
     liveIsRunning: Boolean(data.live_is_running),
     livePeriod: Number(data.live_period ?? 1) || 1,
   };
@@ -393,7 +395,7 @@ export function TournamentFeaturedMatchCard({
     isLive || status.kind === 'result' || isAllFinished ? `${scoreHome} : ${scoreAway}` : null;
   const liveMinuteLabel =
     isLive && liveDetails
-      ? formatTournamentLiveClock(liveDetails.liveElapsedSeconds, focusSlot.planned_minutes)
+      ? formatTournamentLiveClock(liveDetails.liveElapsedSeconds, liveDetails.plannedMatchMinutes ?? focusSlot.planned_minutes)
       : null;
 
   const headerIcon =

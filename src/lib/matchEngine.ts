@@ -103,6 +103,7 @@ export type MatchEventType =
   | 'substitution'
   | 'goal'
   | 'goal_away'
+  | 'time_penalty'
   /** Nur Slot-Tausch am Feld; kein Bank-Wechsel, keine Spielzeit-Logik wie sub_* . */
   | 'position_swap'
   /** U11 FairPlay: zusätzlicher Spieler ohne normalen Wechsel / ohne Slot-Remap. */
@@ -116,6 +117,7 @@ export type MatchEngineEvent = {
   playerId?: string;
   /** Goal credited to this event side, without personal scorer credit. */
   ownGoal?: boolean;
+  penaltySeconds?: number;
   /** DB `created_at` (ISO), für stabile Wechsel-Paarung bei gleicher Spielsekunde. */
   createdAt?: string;
   /** `position_swap`: zweiter Spieler (UUID), Tausch nur zwischen diesen beiden auf dem Feld. */
@@ -155,6 +157,7 @@ const TYPE_ORDER: Record<MatchEventType, number> = {
   extra_player_on: 3.53,
   goal: 4,
   goal_away: 5,
+  time_penalty: 5.5,
   pause: 6,
   end: 7,
 };
@@ -1269,6 +1272,9 @@ export function computePlayerPlaytimeFromEvents(params: ComputePlayerPlaytimePar
   const trackIds = collectPlaytimePlayerIds(kickoff, params.squadPlayerIds, sorted);
   for (const id of trackIds) seconds[id] = 0;
 
+  const penalties = sorted.flatMap(event => event.type === 'time_penalty' && event.playerId && event.penaltySeconds
+    ? [{ playerId: event.playerId, start: event.timestamp, end: event.timestamp + event.penaltySeconds }]
+    : []);
   const runningSegments = buildEffectiveRunningSegments(sorted, cap);
 
   for (const [runA, runB] of runningSegments) {
@@ -1278,6 +1284,10 @@ export function computePlayerPlaytimeFromEvents(params: ComputePlayerPlaytimePar
       const t = eventMatchSecondOrNull(e);
       if (t == null || t < runA || t > runB) continue;
       subCuts.add(t);
+    }
+    for (const { start, end } of penalties) {
+      if (start > runA && start < runB) subCuts.add(start);
+      if (end > runA && end < runB) subCuts.add(end);
     }
     const points = [...subCuts].sort((a, b) => a - b);
 
@@ -1301,6 +1311,7 @@ export function computePlayerPlaytimeFromEvents(params: ComputePlayerPlaytimePar
       }
 
       for (const pid of active) {
+        if (penalties.some(penalty => penalty.playerId === pid && penalty.start <= a && penalty.end > a)) continue;
         const prev = seconds[pid] ?? 0;
         seconds[pid] = prev + dur;
         if (isDevPlaytimeWarn() && seconds[pid] < prev) {
@@ -1332,6 +1343,13 @@ export function statsMatchEventRowToEngine(row: {
   const minute = row.minute != null ? clampEffectiveMatchSeconds(Number(row.minute)) : 0;
   const type = String(row.type ?? '').trim();
 
+  if (type === 'card' && row.player_id) {
+    const payload = row.payload as Record<string, unknown> | null;
+    const seconds = Number(payload?.penalty_seconds);
+    if (payload?.card_type === 'time_penalty' && Number.isInteger(seconds) && seconds >= 60 && seconds <= 900) {
+      return { id, type: 'time_penalty', timestamp: minute, playerId: row.player_id, penaltySeconds: seconds, createdAt };
+    }
+  }
   if (type === 'kickoff') {
     return { id, type: 'start', timestamp: minute, createdAt };
   }

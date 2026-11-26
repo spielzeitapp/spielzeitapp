@@ -1,3 +1,4 @@
+import { TournamentMatchRulesPanel } from './TournamentMatchRulesPanel';
 import {TournamentRegistrationAdminLink} from '../../features/tournamentRegistration/AdminLink';
 import { PublicTeamTournamentPage } from '../../pages/public/PublicTeamTournamentPage';
 import { resolveMeinTurnierplanFinalStandings } from '../../../server/lib/meinTurnierplanModel.js';
@@ -1045,9 +1046,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
               </TournamentCollapsibleSection>
             </div>
       </div>;
-      case 'lineup': return <TournamentLineupTemplatePanel eventId={tournamentEventId} players={players} slots={ownSlots}
+      case 'lineup': return <><TournamentMatchRulesPanel key={tournamentEventId} eventId={tournamentEventId} onSaved={() => void reload()} />
+        <TournamentLineupTemplatePanel eventId={tournamentEventId} players={players} slots={ownSlots}
         refreshToken={assistantRefreshToken} onReady={setTemplateReady} onDirtyChange={setLineupDraftDirty} canEdit={!completion.completedAt}
-        onSaved={() => { setAssistantRefreshToken(token => token + 1); void reload(); }} />;
+        onSaved={() => { setAssistantRefreshToken(token => token + 1); void reload(); }} /></>;
       case 'communication': return <div className="space-y-4">
         {canShareLivestream && <TournamentLivestreamShare eventId={tournamentEventId} teamSeasonId={teamSeasonId} recording={tournamentPhase === 'after'}
           participants={participants} coverUrl={tournamentCoverUrl} />}

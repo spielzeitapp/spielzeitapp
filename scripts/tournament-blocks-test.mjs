@@ -19,6 +19,12 @@ try {
  const kickoff=['g','a','b','','c','d',''];const saved=['g','e','f','','h','i',''];const events=planBlockChange(current,target,squad,true).changes.map((c,i)=>({id:'s'+i,type:'substitution',timestamp:360,playerId:c.outId,swapWithPlayerId:c.inId}));
  const replay=engine.deriveLiveMatchReplayState({kickoffLineup:kickoff,squadPlayerIds:squad,events,finalSecond:600,fallbackStartingPlayerIds:saved});assert.deepEqual(new Set(replay.onFieldPlayerIds),new Set(saved.filter(Boolean)));
  const times=engine.computePlayerPlaytimeFromEvents({kickoffStartingPlayerIds:kickoff,squadPlayerIds:squad,events,finalMatchSecond:600});assert.equal(times.g,600);for(const id of ['a','b','c','d'])assert.equal(times[id],360);for(const id of ['e','f','h','i'])assert.equal(times[id],240);
+ const penalty=engine.statsMatchEventRowToEngine({id:'penalty',type:'card',minute:60,player_id:'g',payload:{card_type:'time_penalty',penalty_seconds:120}});
+ assert.equal(penalty.type,'time_penalty');
+ const reduced=engine.computePlayerPlaytimeFromEvents({kickoffStartingPlayerIds:kickoff,squadPlayerIds:squad,events:[...events,penalty],finalMatchSecond:600});
+ assert.equal(reduced.g,480);
+ assert.equal(reduced.a,360);
+ assert.equal(engine.statsMatchEventRowToEngine({type:'card',player_id:'g',payload:{card_type:'time_penalty',penalty_seconds:0}}),null);
  const {computeTournamentPreparationChecks,resolveTournamentPrimaryAction}=load('src/lib/tournamentPreparationFlow.ts');const input={hasOfficialPlanUrl:false,participantCount:0,slots:[],attendance:{playerCount:12,yesCount:4,noCount:1,openCount:7},lineupReady:false,tournamentSquadCount:0};assert.equal(computeTournamentPreparationChecks(input)[0].id,'availability');assert.equal(resolveTournamentPrimaryAction(input).kind,'check_attendance');assert.equal(resolveTournamentPrimaryAction({...input,attendance:{...input.attendance,openCount:0}}).kind,'set_squad');
  console.log('PASS tournament preparation priority, 4+1/5+1 blocks, individual overrides, validation, live replay and playtime');
 }finally{rmSync(tmp,{recursive:true,force:true})}
