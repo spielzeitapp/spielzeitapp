@@ -1,10 +1,14 @@
 {
   "schema_version": 1,
   "migrations": {
+    "supabase/migrations/20261125101039_tournament_confirmed_group_times.sql": "47da963ed161c385e509e8597addf24c7519ed7b",
+    "supabase/migrations/20261124114411_tournament_plan_replace.sql": "703482441f2d92b25efc15d545fd249bf35b6473",
+    "supabase/migrations/20261116120000_tournament_screen_access.sql": "ba71c6fee17a9ad48b2cbe4ecfbadad97ca61781",
     "supabase/migrations/20261121080947_manager_team_appearance.sql": "cd40430887e405f0c2ee37af79632d59282d94f4",
     "supabase/migrations/20261120162000_team_branding_overrides.sql": "ce885e5ec39588b98e4262823a6ef9b5c364f4a5",
     "supabase/migrations/20261120155000_allow_same_team_name_across_age_groups.sql": "a65ece5e714136e0cd783478f248b0bbb018af0e",
     "supabase/migrations/20261120112500_exchange_active_season_age.sql": "3f0f8dbaa224f89a400f29478bee0d3045a8278c",
+    "supabase/migrations/20261120101500_auth_signup_mail_outbox.sql": "9b0c712b7a5be7a07367e1cb200db12d55d335c1",
     "supabase/migrations/20260929130000_pending_team_staff_invites.sql": "3be21a1f19fa51881001246636eff89af332df9b",
     "supabase/migrations/20260929160000_lock_down_onboarding_rpcs.sql": "7f18327f0fa3ec4991c6a26917920ec24f20cd59",
     "supabase/migrations/20261001120000_platform_registered_users_dashboard.sql": "f332f90e7d42c7b4c9bf21670913891ed34183f7",

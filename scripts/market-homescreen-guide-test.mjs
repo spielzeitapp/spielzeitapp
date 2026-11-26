@@ -39,3 +39,15 @@ standalone=true;await mountAfter('installed');await act(async()=>requestMarketHo
 pending.set('vereinsmarkt-guide-after-join:reload','1');await mountAfter('reload');assert.ok(text().includes('Wischbare Installationsanleitung'),'pending join survives remount');await act(async()=>button('Zum Vereinsmarkt').props.onClick());assert.equal(app.toJSON(),null);await unmount();await mountAfter('reload');assert.equal(app.toJSON(),null,'consumed join does not reopen');await unmount();
 storage.set('vereinsmarkt-home-guide:snoozed',String(Date.now()+86400000));await mountAfter('snoozed');await act(async()=>requestMarketHomeGuide('snoozed'));assert.ok(text().includes('Wischbare Installationsanleitung'),'fresh join overrides an older banner dismissal');await unmount();
 console.log('PASS: successful join opens swipe guide once; club isolation, fresh-account onboarding despite old preferences, standalone suppression and remount recovery');
+
+// First mobile link visit works before registration without a native install prompt.
+const firstVisit=clubId=>act(async()=>{app=create(React.createElement(MarketHomeScreenGuide,{clubId,afterJoinOnly:true,autoOnFirstVisit:true}));});
+standalone=false;blocked=false;navigator.userAgent='iPhone';
+await firstVisit('new-visitor');assert.ok(text().includes('Schritt 1'));assert.ok(button('Jetzt stöbern'));await act(async()=>button('Jetzt stöbern').props.onClick());assert.equal(app.toJSON(),null);await unmount();
+await firstVisit('new-visitor');assert.equal(app.toJSON(),null,'repeat visit should not reopen');await unmount();
+standalone=true;await firstVisit('already-in-app');assert.equal(app.toJSON(),null);await unmount();standalone=false;
+navigator.userAgent='Desktop';navigator.platform='Linux';navigator.maxTouchPoints=0;await firstVisit('desktop-visitor');assert.equal(app.toJSON(),null);await unmount();
+navigator.userAgent='Android';await firstVisit('android-visitor');assert.ok(text().includes('Chrome'));await unmount();
+storage.set('vereinsmarkt-home-guide:known-icon','present');await firstVisit('known-icon');assert.equal(app.toJSON(),null);await unmount();
+blocked=true;await firstVisit('blocked-first-visitor');assert.ok(button('Jetzt stöbern'));await act(async()=>button('Jetzt stöbern').props.onClick());await unmount();await firstVisit('blocked-first-visitor');assert.equal(app.toJSON(),null,'in-memory fallback avoids repeat popups');await unmount();
+console.log('PASS: guest first mobile visit starts swipe guide, browse skip, repeat/installed/desktop suppression, Android and blocked-storage fallback');

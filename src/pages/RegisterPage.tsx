@@ -309,8 +309,11 @@ export const RegisterPage: React.FC = () => {
       const { data, error: signUpError } = result;
 
       if (signUpError) {
-        setError(authErrorMessage(signUpError));
-        setMessage({ type: 'error', text: authErrorMessage(signUpError) });
+        const message = signUpError.code === 'hook_timeout' || signUpError.code === 'email_send_failed'
+          ? 'Die Bestätigungsmail konnte gerade nicht versendet werden. Bitte versuche es später erneut.'
+          : authErrorMessage(signUpError);
+        setError(message);
+        setMessage({ type: 'error', text: message });
         setLoading(false);
         return;
       }
@@ -472,7 +475,7 @@ export const RegisterPage: React.FC = () => {
             </button>
 
             <p className="mt-4 text-center text-[12px] leading-5 text-white/45">
-              {market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend alle passenden Teams deiner Kinder. Mehrere Teams sind möglich. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
+              {market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend alle passenden Teams deiner Kinder. Bei mehreren Kindern in verschiedenen U-Teams kannst du alle passenden Teams auswählen. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
                 ? 'Nach der Bestätigung öffnet sich deine persönliche Einladung.'
                 : tournamentReturnTo ? 'Nach der Bestätigung geht es direkt zur Mannschaftsmeldung. Ein Vereinssetup ist nicht erforderlich.' : 'Nach der Bestätigung geht es automatisch zur Rollenwahl.'}
               {' '}Dein Passwort bleibt gespeichert.
@@ -514,7 +517,7 @@ export const RegisterPage: React.FC = () => {
           {existingAccount ? 'Du hast bereits ein Konto' : market ? 'Für den Vereinsmarkt registrieren' : tournamentReturnTo ? 'Für das Turnier registrieren' : hasInviteSession ? 'Konto vervollständigen' : clubReturnTo ? 'Für USC Rohrbach registrieren' : 'Registrieren'}
         </h1>
         <p className="mt-1 text-sm text-white/60">
-          {existingAccount ? tournamentReturnTo ? 'Du kannst deinen bestehenden SpielzeitApp-Zugang auch für die Turniermeldung verwenden. Bitte anmelden.' : 'Für diese E-Mail-Adresse gibt es bereits ein Konto. Du kannst dich damit auch beim Vereinsmarkt anmelden. Tippe auf „Zur Anmeldung“ und verwende dein bisheriges Passwort. Weißt du es nicht mehr? Wähle „Passwort vergessen“. Eine neue Registrierung ist nicht nötig.' : market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend alle passenden Teams deiner Kinder. Mehrere Teams sind möglich. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
+          {existingAccount ? tournamentReturnTo ? 'Du kannst deinen bestehenden SpielzeitApp-Zugang auch für die Turniermeldung verwenden. Bitte anmelden.' : 'Für diese E-Mail-Adresse gibt es bereits ein Konto. Du kannst dich damit auch beim Vereinsmarkt anmelden. Tippe auf „Zur Anmeldung“ und verwende dein bisheriges Passwort. Weißt du es nicht mehr? Wähle „Passwort vergessen“. Eine neue Registrierung ist nicht nötig.' : market ? 'Ein Konto für Vereinsmarkt und SpielzeitApp. Bestätige deine E-Mail und wähle anschließend alle passenden Teams deiner Kinder. Bei mehreren Kindern in verschiedenen U-Teams kannst du alle passenden Teams auswählen. Kindernamen und eine Trainerfreigabe sind dafür nicht nötig.' : isParentInviteFlow
             ? hasInviteSession
               ? 'Name und Passwort setzen. Danach geht es direkt zur Einladung — ohne Rollen- oder Mannschaftswahl.'
               : 'Konto mit der eingeladenen E-Mail anlegen. Nach der Bestätigung kannst du die Einladung annehmen — ohne Vereins- oder Kindauswahl.'

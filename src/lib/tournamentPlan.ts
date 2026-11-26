@@ -1,4 +1,4 @@
-import { mergeTournamentParticipantLogos } from './tournamentParticipantLogos';
+import { filterOfficialTeamVariants, mergeTournamentParticipantLogos } from './tournamentParticipantLogos';
 import { meinTurnierplanLiveByMatchId } from '../../server/lib/meinTurnierplanModel.js';
 import { safeOptionalText, safeText } from './safeText';
 import type { TournamentPlanAnalysis } from './tournamentPlanImport';
@@ -510,6 +510,7 @@ function normalizeMatchSlotRow(row: TournamentMatchSlot): TournamentMatchSlot {
 
 export async function fetchTournamentParticipants(
   tournamentEventId: string,
+  options?: { preferOfficialTeamVariants?: boolean },
 ): Promise<{ data: TournamentParticipant[]; error: string | null }> {
   if (isDemoTournamentEventId(tournamentEventId)) {
     return { data: getDemoTournamentParticipants(tournamentEventId), error: null };
@@ -528,8 +529,14 @@ export async function fetchTournamentParticipants(
   const { data: sync } = await supabase.from('tournament_sync_state')
     .select('analysis').eq('event_id', tournamentEventId).maybeSingle();
 
+  const rows = ((data ?? []) as TournamentParticipant[]).map(normalizeParticipantRow);
+  const officialTeams = (sync?.analysis as TournamentPlanAnalysis | null)?.teams;
+  const participants = options?.preferOfficialTeamVariants && Array.isArray(officialTeams)
+    ? filterOfficialTeamVariants(rows, officialTeams.map(team => safeText(team?.teamName)))
+    : rows;
+
   return {
-    data: mergeTournamentParticipantLogos(((data ?? []) as TournamentParticipant[]).map(normalizeParticipantRow), sync?.analysis),
+    data: mergeTournamentParticipantLogos(participants, sync?.analysis),
     error: null,
   };
 }

@@ -204,6 +204,7 @@ export function adminSwitchLabel(mode: ManagerWorkMode): string {
 
 /** Admin-only Manager-Routen (UI-Guard; Server bleibt maßgeblich). */
 export function isAdminOnlyManagerLocation(pathname: string, search: string): boolean {
+  if (pathname === '/manager/vereinsmarkt') return true;
   if (pathname.startsWith('/manager/plattform')) return true;
   if (pathname.startsWith('/manager/vereine')) return true;
   const tab = new URLSearchParams(search).get('tab');

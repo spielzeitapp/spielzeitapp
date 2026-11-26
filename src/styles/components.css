@@ -47,7 +47,8 @@
 }
 
 /* Termine: same diagonal club language as Team, with a quieter hero pattern. */
-.sz-club-schedule-hero-card {
+.sz-club-schedule-hero-card,
+.tournament-audience-overview :is([data-fan-fixture], .tournament-fixture-frame) {
   border-color: rgb(var(--club-border-rgb) / 0.5);
   background:
     radial-gradient(ellipse 62% 130% at 100% 52%, rgb(var(--club-primary-rgb) / 0.22), transparent 72%),
@@ -86,7 +87,8 @@
     linear-gradient(105deg, transparent 34%, rgb(var(--club-primary-rgb) / 0.09) 100%);
 }
 
-.sz-club-schedule-filter-track {
+.sz-club-schedule-filter-track,
+.tournament-audience-overview .tournament-filter-track {
   border-color: rgb(var(--club-border-rgb) / 0.34);
   background:
     repeating-linear-gradient(
@@ -161,7 +163,8 @@
   outline-offset: -3px;
 }
 
-.sz-club-primary {
+.sz-club-primary,
+.tournament-audience-overview .public-tournament-tab[aria-pressed="true"] {
   border-color: rgb(var(--club-primary-rgb) / 0.34);
   color: var(--club-on-primary);
   background: linear-gradient(145deg, rgb(var(--club-primary-rgb) / 0.96), rgb(var(--club-primary-rgb) / 0.62));
@@ -1615,11 +1618,75 @@ html[data-club-theme="black-white"] .sz-club-placeholder-player {
 .public-tournament-tab {
   color: var(--t-muted);
 }
-.public-tournament-tab[aria-pressed="true"],
+.public-tournament-page .public-tournament-tab[aria-pressed="true"],
 .public-tournament-cta {
   background: var(--t-accent);
   color: var(--t-on-accent);
 }
+/* The in-app tournament center follows the Termine filter and match-card styles. */
+.tournament-audience-overview .public-tournament-tab {
+  border: 1px solid transparent;
+}
+
+.tournament-audience-overview .public-tournament-tab[aria-pressed="true"] {
+  border-color: rgb(var(--club-border-rgb) / 0.45);
+  color: var(--club-on-primary);
+}
+
+.tournament-audience-overview .tournament-fixture-frame [data-fan-fixture] {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.tournament-audience-overview .tournament-fixture-frame .tournament-kickoff-countdown {
+  background: transparent;
+}
+
+.tournament-audience-overview .fan-fixture-meta {
+  margin-bottom: .75rem;
+}
+
+.tournament-audience-overview .fan-fixture-kickoff {
+  display: none;
+}
+
+.tournament-audience-overview .fan-fixture-center {
+  min-width: 0;
+  max-width: clamp(5.25rem, 22vw, 7.25rem);
+}
+
+.tournament-audience-overview .fan-fixture-team {
+  width: 100%;
+  font-size: clamp(.75rem, 3.5vw, .875rem);
+  overflow-wrap: anywhere;
+}
+
+.tournament-audience-overview .fan-fixture-team > span {
+  font-size: .6875rem;
+  letter-spacing: .14em;
+}
+
+.tournament-audience-overview .fan-fixture-pairing img {
+  width: 3rem;
+  height: 3rem;
+}
+
+.tournament-audience-overview [data-fan-fixture="featured"] .fan-fixture-pairing img {
+  width: 3.5rem;
+  height: 3.5rem;
+}
+
+.tournament-audience-overview .fan-fixture-status {
+  color: var(--t-text);
+  font-size: .6875rem;
+  letter-spacing: .16em;
+}
+
+.tournament-audience-overview .fan-fixture-score {
+  font-size: clamp(1.625rem, 8vw, 2.75rem);
+}
+
 .public-tournament-page[data-theme="night"] {
   --t-selection-border: color-mix(in srgb, var(--t-accent) 85%, white);
 }

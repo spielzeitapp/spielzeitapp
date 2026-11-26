@@ -374,6 +374,10 @@
       "destination": "/turniere.html"
     },
     {
+      "source": "/vereinsmarkt/9c7a8741-6e73-42d5-88d8-46ce5217e8cd",
+      "destination": "/markt.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

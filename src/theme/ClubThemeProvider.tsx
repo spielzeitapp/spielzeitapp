@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useSession } from "../auth/useSession";
 import {
+  BRANDING_CHANGED_EVENT,
   getClubBrandingForTeamSeason,
   hexToRgbChannels,
   readableAccentOnDark,
@@ -43,13 +44,6 @@ export const ClubThemeProvider: React.FC<React.PropsWithChildren<{ brandingOverr
   const routeTeamId = requestedId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestedId) ? requestedId : null;
   const teamSeasonId = combinedView ? null : routeTeamId ?? singleFilterId ?? viewTeamSeasonId ?? selectedTeamSeasonId;
   const isDemo = location.pathname.startsWith('/demo');
-  const [brandingRevision, setBrandingRevision] = useState(0);
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const refresh = () => setBrandingRevision(value => value + 1);
-    window.addEventListener('spielzeit:club-branding-changed', refresh);
-    return () => window.removeEventListener('spielzeit:club-branding-changed', refresh);
-  }, []);
   const [loaded, setLoaded] = useState<{ teamSeasonId: string; branding: ClubBranding | null } | null>(null);
   // Do not show the previous club's colors while the next club is loading.
   const storedBranding = brandingOverride ?? (!combinedView && !isDemo && loaded?.teamSeasonId === teamSeasonId
@@ -60,13 +54,21 @@ export const ClubThemeProvider: React.FC<React.PropsWithChildren<{ brandingOverr
     if (brandingOverride || !teamSeasonId || combinedView || isDemo) {
       return () => { cancelled = true; };
     }
-    void getClubBrandingForTeamSeason(teamSeasonId).then((result) => {
-      if (cancelled) return;
+    let latestRequest = 0;
+    const refresh = async () => {
+      const request = ++latestRequest;
+      const result = await getClubBrandingForTeamSeason(teamSeasonId);
+      if (cancelled || request !== latestRequest) return;
       if (result.error) console.warn('[ClubThemeProvider] branding could not be loaded:', result.error);
       setLoaded({ teamSeasonId, branding: result.data });
-    });
-    return () => { cancelled = true; };
-  }, [isDemo, teamSeasonId, combinedView, brandingOverride, brandingRevision]);
+    };
+    void refresh();
+    window.addEventListener(BRANDING_CHANGED_EVENT, refresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(BRANDING_CHANGED_EVENT, refresh);
+    };
+  }, [isDemo, teamSeasonId, combinedView, brandingOverride]);
 
   useEffect(() => {
     const root = document.documentElement;

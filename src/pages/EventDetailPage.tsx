@@ -3947,6 +3947,7 @@ export const EventDetailPage: React.FC = () => {
   const carpoolingCard = showCarpooling && sessionUser?.id ? (
     <EventCarpoolCard
       eventId={event.id}
+      defaultExpanded
       eventStartsAt={event.starts_at}
       meetingAt={event.meeting_at}
       defaultLocation={null}

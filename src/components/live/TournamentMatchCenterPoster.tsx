@@ -1,3 +1,4 @@
+import { TournamentTeamName } from '../tournament/TournamentTeamName';
 import React, { useMemo } from 'react';
 import { CalendarDays } from 'lucide-react';
 import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
@@ -19,6 +20,19 @@ type Props = {
 function resolveLogo(name: unknown, map?: ReadonlyMap<string, string | null>): string {
   const url = map?.get(safeText(name).toLowerCase());
   return getClubLogo(name, { logoUrl: url ?? undefined });
+}
+
+function tournamentOwnDisplayName(slot: TournamentMatchSlotView, seasonName: string): string {
+  const home = safeText(slot.home_team);
+  const away = safeText(slot.away_team);
+  const opponent = safeText(slot.opponent_name).toLowerCase();
+
+  if (home && away && opponent && home.toLowerCase() !== away.toLowerCase()) {
+    if (away.toLowerCase() === opponent) return home;
+    if (home.toLowerCase() === opponent) return away;
+  }
+
+  return safeText(seasonName) || 'Unser Team';
 }
 
 function TournamentTeamLogo({
@@ -57,7 +71,7 @@ export function TournamentMatchCenterPoster({
   tournamentTitle,
   participantLogoByName,
 }: Props) {
-  const homeTeam = safeText(ourTeamName) || 'Unser Team';
+  const homeTeam = tournamentOwnDisplayName(slot, ourTeamName);
   const awayTeam = safeText(slot.opponent_name) || 'Gegner';
   const kickoff = formatTimeHHmmDe(slot.kickoff_at);
   const phaseLabel = tournamentPhaseDisplayLabel(slot.phase, slot.group_label);
@@ -127,7 +141,7 @@ export function TournamentFirstMatchPreview({
     );
   }
 
-  const homeTeam = safeText(ourTeamName) || 'Unser Team';
+  const homeTeam = tournamentOwnDisplayName(slot, ourTeamName);
   const awayTeam = safeText(slot.opponent_name) || 'Gegner';
   const dateParts = formatHeroDateParts(slot.kickoff_at);
   const kickoff = formatTimeHHmmDe(slot.kickoff_at);
@@ -137,20 +151,20 @@ export function TournamentFirstMatchPreview({
       <p className="text-xs font-bold uppercase tracking-[0.1em] text-white/38">
         Nächstes Spiel
       </p>
-      <div className="mt-1.5 flex items-center justify-between gap-2">
+      <div className="mt-1.5 flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
           <TournamentTeamLogo name={homeTeam} map={participantLogoByName} />
           <p className="w-full text-center text-sm font-semibold text-white/88" title={homeTeam}>
-            {homeTeam}
+            <TournamentTeamName name={homeTeam} />
           </p>
         </div>
-        <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.2em] text-white/30">
+        <span className="shrink-0 self-center text-[11px] font-bold uppercase tracking-[0.2em] text-white/30">
           vs
         </span>
         <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
           <TournamentTeamLogo name={awayTeam} map={participantLogoByName} />
           <p className="w-full text-center text-sm font-semibold text-white/88" title={awayTeam}>
-            {awayTeam}
+            <TournamentTeamName name={awayTeam} />
           </p>
         </div>
       </div>

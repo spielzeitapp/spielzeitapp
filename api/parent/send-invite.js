@@ -10,6 +10,7 @@
  * Client Host/Origin headers are never trusted.
  */
 import clubShopTestOrder from '../../server/lib/clubShopTestOrder.js';
+import {deliverSignupMail} from '../../server/lib/authSignupMailQueue.js';
 import authEmailHook from '../../server/lib/authEmailEndpoint.js';
 export const config={api:{bodyParser:false}};
 
@@ -314,6 +315,7 @@ async function handleCompleteSignup(req, res, { supabaseUrl, serviceKey, admin }
 }
 
 export default async function handler(req, res) {
+  if(req.query?.auth_email_worker==='1')return deliverSignupMail(req,res);
   // Auth hook requires the exact signed bytes; existing invitation calls are parsed below.
   if(req.query?.auth_email_hook==='1')return authEmailHook(req,res);
   try {

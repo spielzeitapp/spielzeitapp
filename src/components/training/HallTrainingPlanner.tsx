@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Lock, Play, Pause, Shirt, Undo2, Volume2, VolumeX, Goal, Trophy, Crown, Clock3, Trash2, ChevronDown, BarChart3, UserPlus } from 'lucide-react';
+import { Lock, Play, Pause, Shirt, Undo2, Volume2, VolumeX, Goal, Trophy, Crown, Clock3, Trash2, ChevronDown, BarChart3, UserPlus, Shuffle, Users, ChevronRight, X } from 'lucide-react';
 import { Modal } from '../../app/ui/Modal';
 import { useDemoMode } from '../../demo/DemoContext';
 import { hallTiming, fitHallRemaining, calculateTrainingPlan, hallTimeMinutes, hallTimeAfter, hallWindowMinutes, creditHallFullDuration, hallPlayerTimes, prepareHallPlayers, changeHallPlayers, relieveHallPlayer, hallReliefCandidates, hallCanPlay, withHallFirstPairing, hallGameSeconds, hallPlanSeconds, withHallGameDuration, hallScorers, calculateHallSchedule, createHallDay, hallClock, hallElapsed, hallReady, hallScore, hallStandings, HALL_COLORS, HALL_NAMES, type HallDay, type HallExtraPlayer } from '../../lib/hallTraining';
@@ -109,6 +109,12 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds: 
   function addPlayer(player: HallExtraPlayer) {
     if (extraPlayers.length >= 40 || players.some(existing => existing.id === player.id) || extraById.has(player.id)) return;
     setDay(previous => ({ ...previous, extraPlayers: [...(previous.extraPlayers ?? []), player] }));
+    setAddMode('closed');
+    setGuestName('');
+    setClubSearch('');
+  }
+
+  function closePlayerPicker() {
     setAddMode('closed');
     setGuestName('');
     setClubSearch('');
@@ -398,39 +404,43 @@ export function HallTrainingPlanner({ eventId, startsAt, players, availableIds: 
         </section> : null}
         {teamsLocked ? <p className="text-[15px] text-amber-200">Bitte zuerst das aktuelle Spiel beenden. Danach kannst du die Mannschaften umstellen.</p> : null}
         {!teamsLocked && !readOnly ? <>
-          <button type="button" disabled={busy} className={`${button} w-full`} onClick={() => { if (day.teams.some(t => t.playerIds.length) && !window.confirm('Vorhandene Einteilung neu verteilen?')) return; const next = structuredClone(day); next.teams.forEach(t => { t.playerIds = []; }); availableIds.forEach((id, i) => next.teams[i % next.teams.length].playerIds.push(id)); setDay(next); }}>Zugesagte Spieler gleichmäßig verteilen</button>
-          <p className="text-[15px] text-white/60">Nach Spielerzahl verteilt. Du kannst die Teams danach frei anpassen.</p>
-          <details className="hall-settings" open={!started}>
-            <summary><Shirt size={20} aria-hidden /><span>Spieler einteilen<small>Team antippen · aktive Auswahl in Teamfarbe</small></span><span className="hall-expand">⌄</span></summary>
-            <div className="space-y-2 p-3">
-              {addMode === 'closed' ? <button type="button" disabled={busy || extraPlayers.length >= 40} className={`${button} flex w-full items-center justify-center gap-2`} onClick={() => setAddMode('choice')}><UserPlus size={19} aria-hidden /> Spieler hinzufügen</button> : (
-                <fieldset disabled={busy} className="space-y-3 rounded-xl border border-white/15 p-3">
-                  <legend className="px-1 font-semibold">Spieler hinzufügen</legend>
-                  {addMode === 'choice' ? <div className="grid gap-2">
-                    <button type="button" className={button} onClick={() => setAddMode('club')}>Aus anderer Mannschaft</button>
-                    <button type="button" className={button} onClick={() => setAddMode('guest')}>Probetraining / Gast</button>
-                  </div> : null}
-                  {addMode === 'guest' ? <div className="space-y-2">
-                    <label className="block">Name des Gasts<input className={input} autoFocus maxLength={80} value={guestName} onChange={e => setGuestName(e.target.value)} /></label>
-                    <p className="text-sm text-white/65">Der Gast wird nur für dieses Training als anwesend erfasst.</p>
-                    <button type="button" className={`${button} sz-club-tab-active`} disabled={!guestName.trim()} onClick={() => addPlayer({ id: `guest-${crypto.randomUUID()}`, name: guestName.trim(), kind: 'guest' })}>Gast hinzufügen</button>
-                  </div> : null}
-                  {addMode === 'club' ? <div className="space-y-2">
-                    <label className="block">Vereinsspieler suchen<input className={input} autoFocus maxLength={80} placeholder="Mindestens 2 Zeichen" value={clubSearch} onChange={e => setClubSearch(e.target.value)} /></label>
-                    {clubStatus === 'loading' ? <p role="status">Suche läuft…</p> : null}
-                    {clubStatus === 'error' ? <p role="alert">Vereinsspieler konnten nicht geladen werden. Bitte starte die Suche erneut.</p> : null}
-                    {clubStatus === 'ready' ? (clubCandidates.length ? <div className="grid gap-2">{clubCandidates.map(player => <button type="button" key={player.id} className={`${button} text-left`} onClick={() => addPlayer({ ...player, kind: 'club' })}>{player.name} · {player.team}</button>)}</div> : <p role="status">Keine weiteren Spieler gefunden.</p>) : null}
-                  </div> : null}
-                  <button type="button" className={button} onClick={() => { setAddMode('closed'); setGuestName(''); setClubSearch(''); }}>Auswahl schließen</button>
-                </fieldset>
-              )}
-              {[...new Set([...availableIds, ...day.teams.flatMap(team => team.playerIds)])].map(id => {
+          <details className="hall-settings hall-roster" open={!started}>
+            <summary><Shirt size={20} aria-hidden /><span>Spieler einteilen</span><span className="hall-expand" aria-hidden>⌄</span></summary>
+            <div className="hall-roster-body">
+              <div className="hall-roster-actions">
+                <button type="button" className="hall-roster-action hall-roster-add" disabled={busy || extraPlayers.length >= 40} aria-expanded={addMode !== 'closed'} aria-controls="hall-roster-picker" onClick={() => addMode === 'closed' ? setAddMode('choice') : closePlayerPicker()}><UserPlus size={17} aria-hidden />Spieler hinzufügen</button>
+                <button type="button" className="hall-roster-action" disabled={busy} title="Zugesagte Spieler gleichmäßig verteilen" onClick={() => { if (day.teams.some(t => t.playerIds.length) && !window.confirm('Vorhandene Einteilung neu verteilen?')) return; const next = structuredClone(day); next.teams.forEach(t => { t.playerIds = []; }); availableIds.forEach((id, i) => next.teams[i % next.teams.length].playerIds.push(id)); setDay(next); }}>
+                  <Shuffle size={17} aria-hidden />Verteilen
+                </button>
+              </div>
+              <fieldset id="hall-roster-picker" disabled={busy} hidden={addMode === 'closed'} className="hall-roster-picker">
+                <div className="hall-roster-picker-heading">
+                  <h3>{addMode === 'guest' ? 'Probetraining / Gast' : addMode === 'club' ? 'Aus anderer Mannschaft' : 'Spieler hinzufügen'}</h3>
+                  <button type="button" className="hall-roster-icon" aria-label="Auswahl schließen" onClick={closePlayerPicker}><X size={18} aria-hidden /></button>
+                </div>
+                {addMode === 'choice' ? <div className="hall-roster-choices">
+                  <button type="button" className="hall-roster-choice" onClick={() => setAddMode('guest')}><UserPlus size={18} aria-hidden /><span>Probetraining / Gast</span><ChevronRight size={16} aria-hidden /></button>
+                  <button type="button" className="hall-roster-choice" onClick={() => setAddMode('club')}><Users size={18} aria-hidden /><span>Aus anderer Mannschaft</span><ChevronRight size={16} aria-hidden /></button>
+                </div> : null}
+                {addMode === 'guest' ? <div className="hall-roster-choices">
+                  <label>Name des Gasts<input className={input} autoFocus maxLength={80} value={guestName} onChange={e => setGuestName(e.target.value)} /></label>
+                  <p>Nur für diesen Trainingstermin.</p>
+                  <button type="button" className="hall-roster-action hall-roster-add" disabled={!guestName.trim()} onClick={() => addPlayer({ id: `guest-${crypto.randomUUID()}`, name: guestName.trim(), kind: 'guest' })}>Gast hinzufügen</button>
+                </div> : null}
+                {addMode === 'club' ? <div className="hall-roster-choices">
+                  <label>Vereinsspieler suchen<input className={input} autoFocus maxLength={80} placeholder="Mindestens 2 Zeichen" value={clubSearch} onChange={e => setClubSearch(e.target.value)} /></label>
+                  {clubStatus === 'loading' ? <p role="status">Suche läuft…</p> : null}
+                  {clubStatus === 'error' ? <p role="alert">Vereinsspieler konnten nicht geladen werden. Bitte starte die Suche erneut.</p> : null}
+                  {clubStatus === 'ready' ? (clubCandidates.length ? clubCandidates.map(player => <button type="button" key={player.id} className="hall-roster-choice" onClick={() => addPlayer({ ...player, kind: 'club' })}><span>{player.name} · {player.team}</span><ChevronRight size={16} aria-hidden /></button>) : <p role="status">Keine weiteren Spieler gefunden.</p>) : null}
+                </div> : null}
+              </fieldset>
+              {[...new Set([...extraById.keys(), ...availableIds, ...day.teams.flatMap(team => team.playerIds)])].map(id => {
                 const extra = extraById.get(id);
                 const name = names.get(id) ?? 'Spieler';
-                return <div key={id} className="rounded-xl border border-white/10 p-3">
-                  <div className="mb-3 flex items-start justify-between gap-2">
-                    <p className="text-[16px] font-semibold">{name}{extra ? <span className="ml-2 text-sm font-normal text-white/65">{extra.kind === 'guest' ? 'Gast' : extra.team}</span> : !availableIds.includes(id) ? ' · abgemeldet' : ''}</p>
-                    {extra && !hasPlayed(id) ? <button type="button" className="min-h-10 min-w-10 text-white/65" aria-label={`${name} entfernen`} disabled={busy} onClick={() => removePlayer(id)}><Trash2 size={18} className="mx-auto" aria-hidden /></button> : null}
+                return <div key={id} className="hall-roster-player">
+                  <div className="hall-roster-player-heading">
+                    <p className="hall-roster-player-name">{name}{extra ? <span className="hall-roster-tag">{extra.kind === 'guest' ? 'Gast' : extra.team}</span> : !availableIds.includes(id) ? ' · abgemeldet' : ''}</p>
+                    {extra && !hasPlayed(id) ? <button type="button" className="hall-roster-icon" aria-label={`${name} entfernen`} disabled={busy} onClick={() => removePlayer(id)}><Trash2 size={18} className="mx-auto" aria-hidden /></button> : null}
                   </div>
                   <div className="hall-team-options" role="group" aria-label={`Team für ${name}`}>{day.teams.map((team, i) => <button key={i} type="button" className={`hall-team-option ${team.playerIds.includes(id) ? 'is-selected' : ''}`} style={{ '--team-color': HALL_COLORS[i] } as React.CSSProperties} disabled={busy} aria-pressed={team.playerIds.includes(id)} onClick={() => assign(id, team.playerIds.includes(id) ? -1 : i)}><Shirt size={17} aria-hidden />{team.name}</button>)}</div>
                 </div>;
