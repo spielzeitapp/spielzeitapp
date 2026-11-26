@@ -139,3 +139,59 @@
 .hall-custom-duration small{display:block;margin-top:3px;font-size:12px;font-weight:500;opacity:.8}.hall-duration-picker{display:grid;gap:20px;padding:6px 0}.hall-duration-picker>p{color:#a3a7b3;font-size:15px;line-height:1.6}.hall-duration-stepper{display:flex;align-items:center;justify-content:center;gap:18px;padding:12px 0}.hall-duration-stepper>button{width:48px;height:52px;flex-shrink:0;border-radius:16px;border:1px solid #ffffff24;background:#ffffff06;color:white;font-size:30px}.hall-duration-stepper>button:disabled{opacity:.35}.hall-duration-stepper>label{display:flex;flex-direction:column;align-items:center;gap:6px;color:#a3a7b3;font-size:13px}.hall-duration-stepper input{width:112px;height:80px;padding:8px;border:1px solid rgb(var(--club-accent-rgb) / .7);border-radius:18px;background:#101014;color:white;text-align:center;font-size:36px;font-weight:800;font-variant-numeric:tabular-nums}.hall-picker-actions{display:flex;gap:10px}.hall-picker-actions>button{flex:1;padding:12px 8px;font-size:15px}.hall-stats-title{display:flex;align-items:center;gap:10px}.hall-stats-title>svg{color:rgb(var(--club-accent-rgb))}.hall-section-tabs button{min-width:0;font-size:14px}
 
 .hall-timing-notice{padding:15px;border:1px solid #ffffff20;border-radius:18px;background:#ffffff04}.hall-timing-notice>strong{display:flex;align-items:center;gap:8px;font-size:16px}.hall-timing-notice p{margin-top:8px;color:#a3a7b3;font-size:13px;line-height:1.6}.hall-timing-notice button{margin-top:12px;width:100%}.hall-timing-notice.is-delayed{border-color:#facc1560;background:#facc1509}.hall-timing-notice.is-delayed>strong{color:#fde68a}
+
+.hall-roster > summary { padding: 12px 14px; }
+.hall-roster > summary > svg,
+.hall-roster-action > svg,
+.hall-roster-choice > svg { flex: none; }
+.hall-roster-body { display: grid; gap: 7px; padding: 0 10px 10px; }
+.hall-roster-actions { display: flex; gap: 7px; }
+.hall-roster-action,
+.hall-roster-choice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 7px 10px;
+  border: 1px solid #ffffff24;
+  border-radius: 999px;
+  background: #ffffff08;
+  color: #f5f6f8;
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 750;
+  touch-action: manipulation;
+}
+.hall-roster-actions .hall-roster-add { flex: 1; }
+.hall-roster-action.hall-roster-add {
+  border-color: rgb(var(--club-accent-rgb, 255 65 87) / .6);
+  background: linear-gradient(145deg, rgb(var(--club-accent-rgb, 198 39 58) / .65), rgb(var(--club-primary-rgb, 152 24 43) / .95));
+  color: var(--club-on-primary, #fff);
+}
+.hall-roster .hall-roster-picker {
+  min-width: 0;
+  padding: 8px 10px 10px;
+  border: 1px solid rgb(var(--club-accent-rgb, 255 65 87) / .28) !important;
+  border-radius: 14px;
+  background: #ffffff05 !important;
+}
+.hall-roster-picker-heading,
+.hall-roster-player-heading { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.hall-roster-picker-heading h3 { font-size: 15px; font-weight: 750; }
+.hall-roster-icon { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; color: #c8d0dc; }
+.hall-roster-choices { display: grid; gap: 7px; }
+.hall-roster-choices label { display: grid; gap: 5px; font-size: 13px; }
+.hall-roster-choices p { color: #b9c0cd; font-size: 13px; }
+.hall-roster-choice { justify-content: flex-start; border-radius: 11px; text-align: left; }
+.hall-roster-choice span { flex: 1; overflow-wrap: anywhere; }
+.hall-roster-player { padding: 8px; border: 1px solid #ffffff14; border-radius: 12px; background: #ffffff03; }
+.hall-roster-player-heading { min-height: 23px; margin-bottom: 5px; }
+.hall-roster-player-name { min-width: 0; overflow-wrap: anywhere; font-size: 14px; font-weight: 750; }
+.hall-roster-tag { display: inline-block; margin-left: 6px; padding: 2px 6px; border-radius: 999px; background: rgb(var(--club-accent-rgb, 255 65 87) / .16); color: #f5f6f8; font-size: 11px; font-weight: 650; }
+.hall-roster .hall-team-option { flex-wrap: nowrap; border-radius: 9px; padding: 5px 3px; font-size: 12px; line-height: 1.2; }
+.hall-roster .hall-team-option svg { flex: none; width: 14px; height: 14px; }
+@media (max-width: 390px) {
+  .hall-roster .hall-team-options:has(> :nth-child(4)) .hall-team-option svg { display: none; }
+}

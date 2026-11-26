@@ -3,8 +3,8 @@ const {createClient}=require('@supabase/supabase-js');
 module.exports=async function handler(req,res){
  res.setHeader('Cache-Control','no-store');
  if(req.method!=='POST')return res.status(405).json({error:'POST erforderlich.'});
- const url=process.env.SUPABASE_URL||process.env.VITE_SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;
- if(url?.replace(/\/$/,'')!=='https://acbaecjzoabafbsjrzvr.supabase.co')return res.status(403).json({error:'Kontolöschung wird derzeit auf TEST vorbereitet.'});
+ const url=String(process.env.SUPABASE_URL||process.env.VITE_SUPABASE_URL||'').trim().replace(/\/$/,''),key=process.env.SUPABASE_SERVICE_ROLE_KEY;
+ if(!['https://acbaecjzoabafbsjrzvr.supabase.co','https://shxugattqatahckhspwk.supabase.co'].includes(url))return res.status(403).json({error:'Unbekannte Umgebung.'});
  if(!key)return res.status(503).json({error:'Kontolöschung ist derzeit nicht verfügbar.'});
  const token=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
  if(!token)return res.status(401).json({error:'Bitte erneut anmelden.'});
@@ -27,7 +27,7 @@ module.exports=async function handler(req,res){
   for(let i=0;i<files.length;i+=100){const removed=await db.storage.from('exchange-photos').remove(files.slice(i,i+100).map(f=>f.path));if(removed.error)throw removed.error;}
   for(const table of ['push_subscriptions','notifications']){const cleared=await db.from(table).delete().eq('user_id',user.id);if(cleared.error)throw cleared.error;}
   const revoke=await db.auth.admin.signOut(token,'global');if(revoke.error)throw revoke.error;
-  const deleted=await db.auth.admin.deleteUser(user.id);if(deleted.error)throw deleted.error;
+  const deleted=await db.auth.admin.deleteUser(user.id,false);if(deleted.error)throw deleted.error;
   return res.status(200).json({deleted:true});
  }catch{return res.status(503).json({error:'Das Löschen konnte nicht vollständig abgeschlossen werden. Bitte melde dich erneut an und versuche es nochmals oder kontaktiere die Vereinsverwaltung.'});}
 };

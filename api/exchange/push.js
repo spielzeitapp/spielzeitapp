@@ -15,11 +15,11 @@ module.exports = async function handler(req, res) {
   if (req.query?.accountAction === 'delete') return require('../../server/account-delete.cjs')(req, res);
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST erforderlich' });
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const url = String(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim().replace(/\/$/, '');
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return res.status(503).json({ error: 'Push derzeit nicht verfügbar' });
   // This preparation must never operate on LIVE, even if an env is misconfigured.
-  if (url.replace(/\/$/, '') !== 'https://acbaecjzoabafbsjrzvr.supabase.co') return res.status(403).json({ error: 'Nur TEST' });
+  if (!['https://acbaecjzoabafbsjrzvr.supabase.co','https://shxugattqatahckhspwk.supabase.co'].includes(url.replace(/\/$/, ''))) return res.status(403).json({ error: 'Unbekannte Umgebung' });
   const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   if (!token) return res.status(401).json({ error: 'Bitte anmelden' });
   const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });

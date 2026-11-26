@@ -27,7 +27,7 @@ export function isSafeAuthRedirectPath(path: string): boolean {
   if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return false;
   if (trimmed.includes('\\') || trimmed.includes('@')) return false;
   const pathname = trimmed.split(/[?#]/, 1)[0];
-  if (/^\/(?:vereinsmarkt|marktplatz)\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pathname)) return true;
+  if (/^\/(?:vereinsmarkt|marktplatz)\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/?$/i.test(pathname)) return true;
   if (/^\/vereinsmarkt-manager(?:\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?$/i.test(pathname)) return true;
   if (/^\/turnier-meldung\/[a-f0-9]{64}$/.test(pathname)) return true;
   if (/^\/turnier-verwaltung\/[a-f0-9-]{36}$/.test(pathname)) return true;

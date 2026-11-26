@@ -3,8 +3,8 @@ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 module.exports=async function(req,res){
  res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
  if(req.method!=='GET')return res.status(405).json({error:'GET erforderlich'});
- const url=process.env.SUPABASE_URL||process.env.VITE_SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;
- if(url!=='https://acbaecjzoabafbsjrzvr.supabase.co')return res.status(403).json({error:'Nur TEST'});
+ const url=String(process.env.SUPABASE_URL||process.env.VITE_SUPABASE_URL||'').trim().replace(/\/$/,''),key=process.env.SUPABASE_SERVICE_ROLE_KEY;
+ if(!['https://acbaecjzoabafbsjrzvr.supabase.co','https://shxugattqatahckhspwk.supabase.co'].includes(url))return res.status(403).json({error:'Unbekannte Umgebung'});
  if(!key)return res.status(503).json({error:'Marktplatz derzeit nicht verfügbar'});
  const club=String(req.query.club||''),listing=String(req.query.listing||'');
  if(!UUID.test(club)||(listing&&!UUID.test(listing)))return res.status(400).json({error:'Ungültiger Link'});

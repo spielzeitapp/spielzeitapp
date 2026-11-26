@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),React=require('react'),{act,create}=require('react-test-renderer'),Module=require('module');
+const fixture=globalThis.profileChoice={error:null,writes:[],clubs:[{club_id:'own',team_labels:['U12','U13']},{club_id:'other',team_labels:['Other team']}]};
+const out=await build({entryPoints:['src/features/club/MarketProfileMembership.tsx'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false,plugins:[{name:'db',setup(b){b.onResolve({filter:/supabaseClient$/},()=>({path:'db',namespace:'db'}));b.onLoad({filter:/.*/,namespace:'db'},()=>({contents:"export const supabase={rpc:async()=>({data:globalThis.profileChoice.clubs,error:null}),auth:{updateUser:async(p)=>{globalThis.profileChoice.writes.push(p);return {error:globalThis.profileChoice.error}}}};",loader:'js'}));}}]});
+const m=new Module('profile-choice');m.paths=require.resolve.paths('react');m._compile(out.outputFiles[0].text,'profile-choice');let app;
+await act(async()=>{app=create(React.createElement(m.exports.MarketProfileMembership,{clubId:'own',user:{id:'u',user_metadata:{market_show_team:true}}}));});
+const text=()=>JSON.stringify(app.toJSON()),checkbox=()=>app.root.findByType('input');
+assert.ok(text().includes('U12')&&text().includes('U13'));assert.ok(!text().includes('Other team'));assert.equal(checkbox().props.checked,true);
+fixture.error={message:'network'};await act(async()=>await checkbox().props.onChange({target:{checked:false}}));assert.equal(checkbox().props.checked,true,'failed save must retain actual consent state');assert.ok(text().includes('nicht gespeichert'));
+fixture.error=null;await act(async()=>await checkbox().props.onChange({target:{checked:false}}));assert.equal(checkbox().props.checked,false);assert.deepEqual(fixture.writes.at(-1),{data:{market_show_team:false}});
+await act(async()=>app.unmount());console.log('PASS: own club team chips, persisted sharing preference, failed-save recovery and explicit withdrawal');

@@ -18,7 +18,8 @@ import {
   type PublicTournamentPlayer,
   type PublicTournamentScheduleFixture,
 } from '../../lib/publicTeamTournament';
-import { normalizeBrandColor, readableTextColor } from '../../lib/clubBranding';
+import { mutedAccentOnLight, normalizeBrandColor, readableTextColor } from '../../lib/clubBranding';
+import { dsMatchdaySectionLabelClass } from '../../lib/premiumDesignSystem';
 import { TournamentClubLogo } from '../../components/tournament/TournamentClubLogo';
 
 const NEXT_PRO_U12_2026_ID = '42bf98e7-1047-4580-bddb-561457821562';
@@ -42,13 +43,18 @@ function PublicKickoffCountdown({ kickoffAt }: { kickoffAt: string }) {
   }, [remaining]);
 
   if (!Number.isFinite(remaining) || remaining <= 0) return null;
-  const hours = Math.floor(remaining / 3600);
+  const totalHours = Math.floor(remaining / 3600);
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
   const minutes = String(Math.floor((remaining % 3600) / 60)).padStart(2, '0');
   const seconds = String(remaining % 60).padStart(2, '0');
+  const countdown = days > 0
+    ? `${days} ${days === 1 ? 'Tag' : 'Tage'}${hours ? ` ${hours} Std.` : ''}`
+    : `${hours ? `${hours}:` : ''}${minutes}:${seconds}`;
   return (
-    <div role="timer" className="flex items-center justify-center gap-2 border-t border-[var(--t-border)] bg-[var(--t-surface)] px-4 py-2.5">
+    <div role="timer" className="tournament-kickoff-countdown flex items-center justify-center gap-2 border-t border-[var(--t-border)] bg-[var(--t-surface)] px-4 py-2.5">
       <span className="text-sm font-semibold text-[var(--t-muted)]">Anpfiff in</span>
-      <span className="text-xl font-extrabold tabular-nums text-[var(--t-accent)]">{hours ? `${hours}:` : ''}{minutes}:{seconds}</span>
+      <span className="text-xl font-extrabold tabular-nums text-[var(--t-accent)]">{countdown}</span>
     </div>
   );
 }
@@ -154,6 +160,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const card = 'rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] shadow-sm p-4';
   const [tab, setTab] = useState(() => searchParams.get('bereich') === 'spielplan' ? 'games' : 'ours');
   const [scheduleView,setScheduleView]=useState<'upcoming'|'results'>('upcoming');
+  const nextMatchHeading = <h2 className={`mb-2 ${dsMatchdaySectionLabelClass()}`}>Nächstes Spiel</h2>;
   const heading = 'public-tournament-heading mb-3 text-[15px] font-extrabold uppercase tracking-[.14em] text-[var(--t-accent)]';
   const scorerTotals = Object.values((page?.scorers ?? []).reduce((all,s)=>{const row=all[s.name]??{name:s.name,goals:0};row.goals+=s.goals;all[s.name]=row;return all;},{} as Record<string,{name:string;goals:number}>)).sort((a,b)=>b.goals-a.goals);
   const profileFor = (name: string): PublicTournamentPlayer => page?.fanPlayers?.find(player => player.name === name) ?? {
@@ -200,6 +207,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
     ownScheduledOpen.find(isWithinScheduledMatch) ??
     (nextScheduledOwn && (!nextOwn || Date.parse(nextScheduledOwn.kickoffAt ?? '') < Date.parse(nextOwn.kickoffAt))
       ? nextScheduledOwn : undefined);
+  const featuredFixtureIsCurrent = featuredOwnFixture && (featuredOwnFixture.status === 'live' || isWithinScheduledMatch(featuredOwnFixture));
   const featuredMatch = tab === 'ours' && !featuredOwnFixture ? ownLive ?? nextOwn : undefined;
   const externalLiveFixtures = tab === 'games' ? schedule.filter(fixture => {
     if (fixture.status !== 'live') return false;
@@ -214,8 +222,8 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
     ? groupedMatches.upcoming.find(match => match.kickoffTimeLabel === currentGroupFixture.time)
     : undefined;
   const renderOwnCard = (m: PublicTeamTournamentPageDto['allMatches'][number], prominent = false) => page ? (
-    <Link key={m.id} to={`?spiel=${encodeURIComponent(m.id)}`} className="block overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--t-accent)]" aria-label={`${m.kickoffTimeLabel} · ${m.opponentName} · Zum Spiel`}>
-      <TournamentFanFixture prominent={prominent} home={page.ownParticipantName || m.ourTeamName} away={m.opponentName} status={m.status} clock={page.matchDetails?.find(d=>d.id===m.id)} homeGoals={m.scoreOur} awayGoals={m.scoreOpp} time={m.kickoffTimeLabel} phase={m.groupLabel?`Gruppe ${m.groupLabel}`:'Turnierspiel'} logos={page.teamLogos} ownName={page.ownParticipantName} ownLogo={page.teamLogoUrl} scorers={page.scorers?.filter(s=>s.time===m.kickoffTimeLabel)}/>
+    <Link key={m.id} to={`?spiel=${encodeURIComponent(m.id)}`} className="tournament-fixture-frame block overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--t-accent)]" aria-label={`${m.kickoffTimeLabel} · ${m.opponentName} · Zum Spiel`}>
+      <TournamentFanFixture prominent={prominent} kickoffLabel={embedded ? 'Anpfiff' : undefined} home={page.ownParticipantName || m.ourTeamName} away={m.opponentName} status={m.status} clock={page.matchDetails?.find(d=>d.id===m.id)} homeGoals={m.scoreOur} awayGoals={m.scoreOpp} time={m.kickoffTimeLabel} phase={m.groupLabel?`Gruppe ${m.groupLabel}`:'Turnierspiel'} logos={page.teamLogos} ownName={page.ownParticipantName} ownLogo={page.teamLogoUrl} scorers={page.scorers?.filter(s=>s.time===m.kickoffTimeLabel)}/>
       {prominent && m.status === 'upcoming' ? <PublicKickoffCountdown key={m.kickoffAt} kickoffAt={m.kickoffAt} /> : null}
       <p className="border-t border-[var(--t-border)] px-4 py-3 text-sm font-bold text-[var(--t-accent)]">{m.status==='finished'?'Spielverlauf öffnen':'Zum Spiel'} →</p>
     </Link>
@@ -227,7 +235,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
     const own = ownMatchForFixture(fixture);
     return own ? own.status==='finished' : fixture.homeGoals!=null && fixture.awayGoals!=null;
   };
-  const scheduledUpcoming = fixtures.filter(m=>!scheduleFinished(m)).sort((a,b)=>a.time.localeCompare(b.time));
+  const scheduledUpcoming = fixtures.filter(m=>!scheduleFinished(m)).sort(compareFixtureKickoff);
   const scheduledResults = fixtures.filter(scheduleFinished).sort((a,b)=>b.time.localeCompare(a.time));
   const renderScheduledFixture = (fixture: NonNullable<PublicTeamTournamentPageDto['schedule']>[number], index: number) => {
     if (!page) return null;
@@ -245,6 +253,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
     const content = <>
       <TournamentFanFixture
         prominent={isFeatured || externalLiveFixtures.includes(fixture)}
+        kickoffLabel={embedded ? 'Anpfiff' : undefined}
         home={fixture.homeProjection ?? fixture.homeTeam}
         away={fixture.awayProjection ?? fixture.awayTeam}
         homeGoals={hg}
@@ -267,7 +276,12 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
         <PublicKickoffCountdown key={fixture.kickoffAt} kickoffAt={fixture.kickoffAt} />
       ) : null}
     </>;
-    return own ? <Link key={fixture.id || index} to={`?spiel=${encodeURIComponent(own.id)}`} className="block rounded-xl" aria-label={`${own.opponentName} · Zum Spiel, Aufstellung und Spielverlauf`}>{content}</Link> : <React.Fragment key={fixture.id || index}>{content}</React.Fragment>;
+    const frame = embedded && (own || isFeatured)
+      ? 'tournament-fixture-frame overflow-hidden rounded-2xl border'
+      : '';
+    return own ? <Link key={fixture.id || index} to={`?spiel=${encodeURIComponent(own.id)}`} className={`block ${frame || 'rounded-xl'}`} aria-label={`${own.opponentName} · Zum Spiel, Aufstellung und Spielverlauf`}>{content}{embedded ? <p className="border-t border-[var(--t-border)] px-4 py-3 text-sm font-bold text-[var(--t-accent)]">{status === 'finished' ? 'Spielverlauf öffnen' : 'Zum Spiel'} →</p> : null}</Link>
+      : frame ? <div key={fixture.id || index} className={frame}>{content}</div>
+      : <React.Fragment key={fixture.id || index}>{content}</React.Fragment>;
 
   };
   const liveGameCards = hasLiveGames ? [
@@ -292,7 +306,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
           onView={view => setSearchParams({ spiel: match.id, ansicht: view })} />
       ))}
       {groupedMatches.results.map(match => (
-        <details key={match.id} className="overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)]">
+        <details key={match.id} className="tournament-fixture-frame overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)]">
           <summary className="cursor-pointer list-none">
             <TournamentFanFixture
               home={page.ownParticipantName || match.ourTeamName} away={match.opponentName}
@@ -352,14 +366,14 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   };
 
   return <div ref={scrollSurface} data-embedded={embedded || undefined} data-theme={theme} className={`${embedded?'tournament-audience-overview w-full min-w-0':'public-tournament-page bg-[var(--t-bg)]'} text-[var(--t-text)]`} style={{
-      '--t-accent': accent,
-      '--t-on-accent': readableTextColor(accent),
+      '--t-accent': embedded ? 'rgb(var(--club-accent-text-rgb))' : theme === 'day' ? mutedAccentOnLight(accent) : accent,
+      '--t-on-accent': theme === 'day' ? '#ffffff' : readableTextColor(accent),
       '--t-bg': theme === 'day' ? '#f7f8fa' : '#0b0b0f',
       '--t-surface': theme === 'day' ? '#ffffff' : '#15151b',
       '--t-text': theme === 'day' ? '#13151b' : '#ffffff',
       '--t-muted': theme === 'day' ? '#526071' : '#b5b5bc',
-      '--t-border': theme === 'day' ? 'color-mix(in srgb, var(--t-accent) 18%, transparent)' : 'color-mix(in srgb, var(--t-accent) 27%, #25252d)',
-      '--t-fixture': theme === 'day' ? 'linear-gradient(135deg,#ffffff,#fff1f2)' : 'linear-gradient(135deg, var(--t-surface), color-mix(in srgb, var(--t-accent) 10%, var(--t-surface)))',
+      '--t-border': theme === 'day' ? 'color-mix(in srgb, var(--t-accent) 10%, #e9e7ec)' : 'color-mix(in srgb, var(--t-accent) 27%, #25252d)',
+      '--t-fixture': theme === 'day' ? 'linear-gradient(135deg, var(--t-surface), color-mix(in srgb, var(--t-accent) 3%, var(--t-surface)))' : 'linear-gradient(135deg, var(--t-surface), color-mix(in srgb, var(--t-accent) 10%, var(--t-surface)))',
       '--t-player-badge': theme === 'day' ? '#f1f5f9' : 'rgba(0,0,0,.25)',
       '--t-live': theme==='day'?'#15803d':'#6ee7b7',
       '--t-warning': theme === 'day' ? '#854d0e' : '#fcd34d',
@@ -457,13 +471,14 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
         ) : null}
         {groupHighlight && currentGroupFixture ? (
           <section aria-label="Spiel unserer Gruppe">
-            <h2 className={heading}>
+            {embedded && groupHighlight.state === 'next' ? nextMatchHeading : <h2 className={heading}>
               {groupHighlight.state === 'live'
                 ? 'Gerade live in unserer Gruppe'
                 : groupHighlight.state === 'on_schedule' ? 'Jetzt laut Spielplan' : 'Nächstes Gruppenspiel'}
-            </h2>
+            </h2>}
             <TournamentFanFixture
               prominent
+              kickoffLabel={embedded ? 'Anpfiff' : undefined}
               home={currentGroupFixture.homeTeam}
               away={currentGroupFixture.awayTeam}
               status={groupHighlight.state === 'on_schedule' ? 'scheduled-live' : currentGroupFixture.status}
@@ -482,13 +497,19 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
             ) : null}
           </section>
         ) : null}
-        {featuredMatch ? <section aria-label={featuredMatch.status==='live'?'Aktuelles Livespiel':'Nächstes eigenes Spiel'}>{renderOwnCard(featuredMatch,true)}</section> : null}
+        {featuredMatch ? (
+          <section aria-label={featuredMatch.status === 'live' ? 'Aktuelles Livespiel' : 'Nächstes eigenes Spiel'}>
+            {embedded && featuredMatch.status === 'upcoming' ? nextMatchHeading : null}
+            {renderOwnCard(featuredMatch, true)}
+          </section>
+        ) : null}
         {featuredOwnFixture ? (
-          <section aria-label={featuredOwnFixture.status === 'live' || isWithinScheduledMatch(featuredOwnFixture) ? 'Aktuelles Spiel' : 'Nächstes eigenes Spiel'}>
+          <section aria-label={featuredFixtureIsCurrent ? 'Aktuelles Spiel' : 'Nächstes eigenes Spiel'}>
+            {embedded && !featuredFixtureIsCurrent ? nextMatchHeading : null}
             {renderScheduledFixture(featuredOwnFixture, 0)}
           </section>
         ) : null}
-        <nav ref={tournamentNavigation} aria-label="Turnierbereiche" className="scroll-mt-4 space-y-1 rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-1">
+        <nav ref={tournamentNavigation} aria-label="Turnierbereiche" className="tournament-filter-track scroll-mt-4 space-y-1 rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-1">
           <div className="grid grid-cols-2 gap-1 sm:grid-cols-4" role="group" aria-label="Spiele und Tabelle">{[['ours','Unsere Spiele'],['games','Alle Spiele'],['ticker','Liveticker'],['tables','Tabellen']].map(([id,label])=><button key={id} type="button" aria-pressed={tab===id} onClick={()=>{
             setTab(id);
             if (id === 'ticker' && playerOpen) tickerSection.current?.scrollIntoView({ block: 'start' });
@@ -517,7 +538,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
 
         {tab==='tables'?<>{finalRanking}{!(page.groupTables?.length)?<p className={card}>Noch keine Gruppentabellen vorhanden.</p>:page.groupTables.map(g=><section className={card} key={g.groupLabel}><h2 className={heading}>Gruppe {g.groupLabel}</h2><table className="w-full table-fixed text-[15px]"><thead className="text-xs text-[var(--t-muted)]"><tr><th className="w-7 py-2 text-left">#</th><th className="text-left">Mannschaft</th><th className="w-8">Sp.</th><th className="w-12">Tore</th><th className="w-9">Pkt.</th></tr></thead><tbody>{g.rows.map(r=><tr key={r.teamName} className="border-t border-[var(--t-border)]"><td className="py-3 font-bold">{r.rank || '–'}</td><td className="py-3 pr-2 font-semibold break-words"><span className="flex items-center gap-2">{<FanTeamLogo name={r.teamName} logos={page.teamLogos} ownName={page.ownParticipantName} ownLogo={page.teamLogoUrl} small/>}{r.teamName}</span></td><td className="text-center tabular-nums">{r.played}</td><td className="text-center tabular-nums">{r.goalsFor}:{r.goalsAgainst}</td><td className="text-center font-extrabold tabular-nums">{r.points}</td></tr>)}</tbody></table></section>)}<p className="text-sm text-[var(--t-muted)]">{page.standingsProvisional ? 'Vorläufig · eigene abgeschlossene Spiele und Veranstalterergebnisse berücksichtigt. Sortierung: Punkte, Tordifferenz, erzielte Tore; die offizielle Platzierung kann bei Gleichstand abweichen.' : 'Veranstaltertabelle'}</p></>:null}
         {tab==='games'||tab==='final'? <section className="space-y-4"><h2 className={heading}>{tab==='final'?'Final- und Platzierungsspiele':'Spielplan & Ergebnisse'}</h2>
-          {tab==='games'?<><div className="grid grid-cols-2 gap-2 rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-1" role="group" aria-label="Spielplan oder Ergebnisse">{([['upcoming','Spielplan',scheduledUpcoming.length],['results','Ergebnisse',scheduledResults.length]] as const).map(([value,label,count])=><button key={value} type="button" aria-pressed={scheduleView===value} onClick={()=>setScheduleView(value)} className="public-tournament-tab min-h-11 rounded-xl px-2 text-sm font-bold">{label} · {count}</button>)}</div>{scheduleView==='upcoming'?(scheduledUpcoming.length?scheduledUpcoming.map(renderScheduledFixture):<p className={card}>Keine weiteren Spiele geplant.</p>):(scheduledResults.length?scheduledResults.map(renderScheduledFixture):<p className={card}>Noch keine Ergebnisse vorhanden.</p>)}</>:!fixtures.length?<p className={card}>Noch keine Spiele hinterlegt.</p>:<>{scheduledUpcoming.map(renderScheduledFixture)}{scheduledResults.map(renderScheduledFixture)}</>}
+          {tab==='games'?<><div className="tournament-filter-track grid grid-cols-2 gap-2 rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-1" role="group" aria-label="Spielplan oder Ergebnisse">{([['upcoming','Spielplan',scheduledUpcoming.length],['results','Ergebnisse',scheduledResults.length]] as const).map(([value,label,count])=><button key={value} type="button" aria-pressed={scheduleView===value} onClick={()=>setScheduleView(value)} className="public-tournament-tab min-h-11 rounded-xl px-2 text-sm font-bold">{label} · {count}</button>)}</div>{scheduleView==='upcoming'?(scheduledUpcoming.length?scheduledUpcoming.map(renderScheduledFixture):<p className={card}>Keine weiteren Spiele geplant.</p>):(scheduledResults.length?scheduledResults.map(renderScheduledFixture):<p className={card}>Noch keine Ergebnisse vorhanden.</p>)}</>:!fixtures.length?<p className={card}>Noch keine Spiele hinterlegt.</p>:<>{scheduledUpcoming.map(renderScheduledFixture)}{scheduledResults.map(renderScheduledFixture)}</>}
           {tab==='final'?finalRanking:null}</section>:null}
 
 

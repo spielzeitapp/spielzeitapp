@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';import {build} from 'esbuild';import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),React=require('react'),{act,create}=require('react-test-renderer'),Module=require('module');
+const fixture=globalThis.teamSettingsFixture={calls:[],error:null,data:{version:3,teams:[{id:'youth',name:'SPG Rohrbach',age_group:'U09',enabled:true,label:null},{id:'km',name:'USC Rohrbach',age_group:'KM',enabled:true,label:null}]}};
+const b=await build({stdin:{contents:"export {MarketTeamSettings} from './src/features/club/MarketTeamSettings';",resolveDir:process.cwd(),loader:'ts'},bundle:true,platform:'node',format:'cjs',packages:'external',write:false,plugins:[{name:'db',setup(b){b.onResolve({filter:/supabaseClient$/},()=>({path:'db',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({loader:'js',contents:'export const supabase={rpc:async(name,args)=>{const f=globalThis.teamSettingsFixture;f.calls.push({name,args});return {data:f.data,error:f.error}}};'}));}}]});
+const m=new Module('settings-ui');m.paths=require.resolve.paths('react');m._compile(b.outputFiles[0].text,'settings-ui');let app;
+await act(async()=>{app=create(React.createElement(m.exports.MarketTeamSettings,{clubId:'club'}))});
+const inputs=()=>app.root.findAllByType('input');const btn=t=>app.root.findAllByType('button').find(x=>x.children.includes(t));
+await act(async()=>inputs()[2].props.onChange({target:{checked:false}}));assert.equal(inputs()[3].props.disabled,true);
+await act(async()=>inputs()[1].props.onChange({target:{value:'U9 Rohrbach'}}));
+await act(async()=>btn('Elternauswahl speichern').props.onClick());assert.deepEqual(fixture.calls.at(-1).args,{p_club_id:'club',p_choices:[{id:'youth',label:'U9 Rohrbach'}],p_expected:3});assert.ok(JSON.stringify(app.toJSON()).includes('Elternauswahl gespeichert'));
+fixture.error={message:'Die Auswahl wurde inzwischen geändert. Bitte neu laden.'};await act(async()=>btn('Elternauswahl speichern').props.onClick());assert.ok(app.root.findByProps({role:'alert'}).children.join('').includes('inzwischen geändert'));
+fixture.error={message:'forbidden'};await act(async()=>app.update(React.createElement(m.exports.MarketTeamSettings,{clubId:'other'})));assert.ok(app.root.findByProps({role:'alert'}));assert.equal(btn('Elternauswahl speichern'),undefined,'failed/unauthorized club load cannot save stale settings');await act(async()=>app.unmount());
+console.log('PASS: hide disables label, edited alias and expected version sent, conflict visible, failed club load clears editor');

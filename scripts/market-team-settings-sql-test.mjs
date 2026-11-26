@@ -1,0 +1,47 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),{PGlite}=require(process.env.EXCHANGE_PGLITE_PATH||'@electric-sql/pglite');const db=new PGlite();
+const c='10000000-0000-0000-0000-000000000001',other='10000000-0000-0000-0000-000000000002',admin='20000000-0000-0000-0000-000000000001',parent='20000000-0000-0000-0000-000000000002',youth='30000000-0000-0000-0000-000000000001',km='30000000-0000-0000-0000-000000000002',foreign='30000000-0000-0000-0000-000000000003';
+try{
+ await db.exec(`create role anon;create role authenticated;create schema auth;create schema private;grant usage on schema auth,private,public to authenticated;
+ create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ create table auth.users(id uuid primary key,email_confirmed_at timestamptz,is_anonymous boolean default false);
+ create table public.clubs(id uuid primary key);
+ create table public.teams(id uuid primary key,club_id uuid,name text,age_group text);
+ create table public.exchange_partner_teams(club_id uuid,team_id uuid);
+ create table private.exchange_join_settings(club_id uuid primary key references public.clubs(id),self_join_enabled boolean not null default false);
+ alter table private.exchange_join_settings enable row level security;revoke all on private.exchange_join_settings from public,anon,authenticated;
+ create table private.exchange_members(club_id uuid,user_id uuid,revoked_at timestamptz,primary key(club_id,user_id));
+ create table private.exchange_member_teams(club_id uuid,user_id uuid,team_id uuid,primary key(club_id,user_id,team_id));
+ create table private.exchange_invitations(club_id uuid,token text,expires_at timestamptz);
+ create function public.club_is_operable(c uuid) returns boolean language sql as $$select exists(select 1 from public.clubs where id=c)$$;
+ create function public.can_manage_club_venues(c uuid) returns boolean language sql as $$select auth.uid()='${admin}'::uuid and c='${c}'::uuid$$;
+ create function private.exchange_member(c uuid) returns boolean language sql as $$select exists(select 1 from private.exchange_members where club_id=c and user_id=auth.uid() and revoked_at is null)$$;
+ create function private.exchange_join(c uuid,t text,accepted boolean) returns boolean language plpgsql as $$begin if accepted is not true or t<>'invite' then raise exception 'invalid invite';end if;insert into private.exchange_members(club_id,user_id) values(c,auth.uid()) on conflict do nothing;return true;end$$;
+ insert into public.clubs values('${c}'),('${other}');insert into auth.users values('${admin}',now(),false),('${parent}',now(),false);
+ insert into public.teams values('${youth}','${c}','SPG Rohrbach','U09'),('${km}','${c}','Kampfmannschaft','KM'),('${foreign}','${other}','Fremd','U10');
+ insert into private.exchange_join_settings values('${c}',true);insert into private.exchange_invitations values('${c}','invite',now()+interval '1 day');`);
+ await db.exec(fs.readFileSync('supabase/migrations/'+fs.readdirSync('supabase/migrations').find(n=>n.endsWith('_exchange_parent_team_choices.sql')),'utf8'));
+ // Exact production wrapper ACL shape for the pre-existing APIs.
+ await db.exec(`create function public.exchange_team_options(p_club_id uuid,p_token text) returns jsonb language sql security invoker as $$select private.exchange_team_options(p_club_id,p_token)$$;create function public.exchange_self_join(c uuid,a boolean,ids uuid[]) returns boolean language sql security invoker as $$select private.exchange_self_join(c,a,ids)$$;create function public.exchange_join(c uuid,t text,a boolean,ids uuid[]) returns boolean language sql security invoker as $$select private.exchange_join_with_teams(c,t,a,ids)$$;
+ revoke all on function public.exchange_team_options(uuid,text),private.exchange_team_options(uuid,text),public.exchange_self_join(uuid,boolean,uuid[]),private.exchange_self_join(uuid,boolean,uuid[]),public.exchange_join(uuid,text,boolean,uuid[]),private.exchange_join_with_teams(uuid,text,boolean,uuid[]) from public,anon;grant execute on function public.exchange_team_options(uuid,text),private.exchange_team_options(uuid,text),public.exchange_self_join(uuid,boolean,uuid[]),private.exchange_self_join(uuid,boolean,uuid[]),public.exchange_join(uuid,text,boolean,uuid[]),private.exchange_join_with_teams(uuid,text,boolean,uuid[]) to authenticated;`);
+ const as=async user=>db.exec(`reset role;set role authenticated;select set_config('request.jwt.claim.sub','${user}',false)`);
+ const q=async(s,p=[])=> (await db.query(s,p)).rows[0]?.v;
+ const deny=async(s,p=[])=>{await assert.rejects(()=>db.query(s,p));};
+ await as(admin);let state=await q('select public.exchange_parent_teams_admin($1) v',[c]);assert.equal(state.version,0);assert.equal(state.teams.length,2);assert.ok(state.teams.every(t=>t.enabled));
+ const choices=[{id:youth,label:'U9 Rohrbach'}];state=await q('select public.exchange_parent_teams_admin($1,$2,$3) v',[c,JSON.stringify(choices),0]);assert.equal(state.version,1);assert.equal(state.teams.find(t=>t.id===km).enabled,false);
+ await deny('select public.exchange_parent_teams_admin($1,$2,0)',[c,JSON.stringify(choices)]);
+ for(const invalid of [[{id:foreign}], [{id:youth},{id:youth}], [{id:youth,label:'x'.repeat(61)}], [{id:'invalid'}],{}])await deny('select public.exchange_parent_teams_admin($1,$2,1)',[c,JSON.stringify(invalid)]);
+ await deny('select public.exchange_parent_teams_admin($1)',[other]);
+ await as(parent);await deny('select public.exchange_parent_teams_admin($1)',[c]);await deny('select * from private.exchange_join_settings');
+ let options=await q('select public.exchange_team_options($1,null) v',[c]);assert.equal(options.length,1);assert.equal(options[0].age_group,'U9 Rohrbach');
+ await deny('select public.exchange_self_join($1,true,$2)',[c,[km]]);await deny('select public.exchange_join($1,\'invite\',true,$2)',[c,[km]]);
+ assert.equal(await q('select public.exchange_self_join($1,true,$2) v',[c,[youth]]),true);assert.equal(await q('select public.exchange_join($1,\'invite\',true,$2) v',[c,[youth]]),true);
+ await as(admin);state=await q('select public.exchange_parent_teams_admin($1,$2,1) v',[c,'[]']);assert.equal(state.version,2);
+ await as(parent);options=await q('select public.exchange_team_options($1,null) v',[c]);assert.deepEqual(options,[]);
+ await db.exec('reset role');assert.equal(await q('select count(*)::int v from private.exchange_member_teams'),1,'hiding team preserves existing memberships');
+ await as(admin);const outcomes=await Promise.allSettled([db.query('select public.exchange_parent_teams_admin($1,$2,2)',[c,JSON.stringify(choices)]),db.query('select public.exchange_parent_teams_admin($1,$2,2)',[c,JSON.stringify([{id:km}])])]);assert.equal(outcomes.filter(r=>r.status==='fulfilled').length,1,'only one stale-version writer wins');
+ await db.exec('reset role;set role anon');await deny('select public.exchange_parent_teams_admin($1)',[c]);await db.exec('reset role');
+ assert.equal(await q("select has_function_privilege('anon','public.exchange_parent_teams_admin(uuid,jsonb,integer)','execute') v"),false);
+ assert.equal(await q("select has_function_privilege('authenticated','private.exchange_parent_team_allowed(uuid,uuid)','execute') v"),false);
+ console.log('PASS: real authenticated invoker wrappers, admin/club/anon/table ACL gates, defaults, hide/rename, self/invite join rejection, existing membership preservation, invalid payloads, repeat and competing stale writes');
+}finally{await db.close()}
