@@ -93,7 +93,7 @@ function homeFeedCategory(item: ClassifiedFeedPost): Exclude<HomeFeedFilter, 'al
     return 'matchday';
   }
   if (
-    item.kind === 'squad' ||
+    item.kind === 'squad' || item.kind === 'tournament_squad' ||
     postKind === 'squad_published' ||
     mediaType === 'squad' ||
     legacyHintMatches('squad', 'kader') ||

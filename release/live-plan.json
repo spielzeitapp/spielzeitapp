@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "migrations": {
+    "supabase/migrations/20261127112516_tournament_squad_publication.sql": "d299b7eedbd34a04eb09dac8fb02bc52287057cb",
     "supabase/migrations/20261126193615_tournament_5plus1_formations.sql": "64cc7c642b3ca9f24b2cba757cb764f8bb9f70f0",
     "supabase/migrations/20261126194515_tournament_match_rules.sql": "4fee5f0950e8d257001083a1a47434c379540287",
     "supabase/migrations/20261125101039_tournament_confirmed_group_times.sql": "47da963ed161c385e509e8597addf24c7519ed7b",

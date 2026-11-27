@@ -1,17 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Modal } from '../../app/ui/Modal';
 import { ClipboardList } from 'lucide-react';
 import { usePlayers } from '../../hooks/usePlayers';
 import { playerAvailabilityFromItem, resolveMatchEventRsvpStatus } from '../../lib/playerAvailability';
 import { comparePlayerItems } from '../../lib/rosterPlayer';
 import { matchLineupPath, matchPreparationPath } from '../../lib/matchPreparationAccess';
-import { dsScheduleGlassButtonClass, dsSectionLabelClass, dsStatusChipClass, DS_LIST_GAP } from '../../lib/premiumDesignSystem';
+import { dsPrimaryCtaClass, dsSecondaryCtaClass, dsScheduleGlassButtonClass, dsSectionLabelClass, dsStatusChipClass, DS_LIST_GAP } from '../../lib/premiumDesignSystem';
 import { AttendanceStatCard } from '../events/AttendanceStatCard';
 import { MatchPlayerRow } from '../match/MatchPlayerRow';
 import { PremiumStatusBadge } from '../player/PremiumStatusBadge';
 import {
   fetchTournamentSquadPlayerIds,
+  getTournamentSquadPublication,
+  publishTournamentSquad,
   saveTournamentSquad,
+  type TournamentSquadPublication,
 } from '../../lib/tournamentSquad';
 import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
 import { pickFeaturedTournamentSlot } from './tournamentCenterUtils';
@@ -22,6 +26,7 @@ type Props = {
   tournamentEventId: string;
   teamSeasonId: string;
   tournamentStartsAt: string;
+  tournamentTitle: string;
   slots: TournamentMatchSlotView[];
   loading?: boolean;
   canManage?: boolean;
@@ -81,6 +86,7 @@ export function TournamentSquadPanel({
   tournamentEventId,
   teamSeasonId,
   tournamentStartsAt,
+  tournamentTitle,
   slots,
   loading: slotsLoading = false,
   canManage = false,
@@ -99,6 +105,28 @@ export function TournamentSquadPanel({
   const [saveBusy, setSaveBusy] = useState(false);
   const [attendanceByPlayerId, setAttendanceByPlayerId] = useState<Record<string, string>>({});
   const [attendanceLoading, setAttendanceLoading] = useState(true);
+
+  const [publication, setPublication] = useState<TournamentSquadPublication | null>(null);
+  const [publicationLoading, setPublicationLoading] = useState(!isDemo);
+  const [publicationLoadError, setPublicationLoadError] = useState<string | null>(null);
+  const [publishBusy, setPublishBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [messages, setMessages] = useState({ selected: '', notSelected: '' });
+
+  useEffect(() => {
+    if (isDemo || !canManage) return;
+    let active = true;
+    setPublicationLoading(true);
+    setPublicationLoadError(null);
+    void getTournamentSquadPublication(tournamentEventId).then(({ data, error }) => {
+      if (!active) return;
+      setPublication(data);
+      setPublicationLoadError(error ? 'Veröffentlichungsstand konnte nicht geladen werden. Bitte neu öffnen.' : null);
+      setPublicationLoading(false);
+    });
+    return () => { active = false; };
+  }, [canManage, isDemo, tournamentEventId]);
 
   const reloadSquad = useCallback(async () => {
     setSquadLoading(true);
@@ -192,7 +220,7 @@ export function TournamentSquadPanel({
   const persistSquad = async (nextIds: string[]) => {
     setSaveBusy(true);
     setSquadError(null);
-    const { error } = await saveTournamentSquad(tournamentEventId, nextIds);
+    const { error } = await saveTournamentSquad(tournamentEventId, nextIds, squadIds);
     setSaveBusy(false);
     if (error) {
       setSquadError(error);
@@ -203,8 +231,45 @@ export function TournamentSquadPanel({
     return true;
   };
 
+  const publicationMatches = Boolean(publication &&
+    publication.selected_player_ids.length === squadIds.length &&
+    publication.selected_player_ids.every(id => squadSet.has(id)));
+  const publishLabel = publication ? 'Kader aktualisieren' : 'Kader veröffentlichen';
+
+  const openPublishConfirmation = () => {
+    setMessages({
+      selected: `Für „${tournamentTitle}“ ist ein mit deinem Konto verknüpfter Spieler im Turnierkader.`.slice(0, 500),
+      notSelected: `Für „${tournamentTitle}“ seid ihr diesmal nicht im Turnierkader.`.slice(0, 500),
+    });
+    setPublishError(null);
+    setConfirming(true);
+  };
+
+  const confirmPublication = async () => {
+    if (publishBusy || saveBusy || !squadIds.length || publicationMatches) return;
+    setPublishError(null);
+    setPublishBusy(true);
+    try {
+      if (isDemo) {
+        setPublication({ selected_player_ids: [...squadIds], version: (publication?.version ?? 0) + 1, published_at: new Date().toISOString() });
+      } else {
+        const { data, error } = await publishTournamentSquad(tournamentEventId, squadIds, publication?.version ?? 0, messages);
+        if (error || !data) {
+          setPublishError(error?.message ?? 'Der Kader konnte nicht veröffentlicht werden.');
+          return;
+        }
+        setPublication(data);
+      }
+      setConfirming(false);
+    } catch {
+      setPublishError('Die Veröffentlichung konnte nicht bestätigt werden. Bitte erneut versuchen.');
+    } finally {
+      setPublishBusy(false);
+    }
+  };
+
   const toggleSquadPlayer = (playerId: string) => {
-    if (saveBusy) return;
+    if (saveBusy || publishBusy || confirming) return;
     const next = squadSet.has(playerId)
       ? squadIds.filter((id) => id !== playerId)
       : [...squadIds, playerId];
@@ -229,7 +294,7 @@ export function TournamentSquadPanel({
           <button
             type="button"
             className={`${dsScheduleGlassButtonClass()} min-h-11 px-3 text-sm disabled:opacity-50`}
-            disabled={saveBusy || missingConfirmedIds.length === 0}
+            disabled={saveBusy || publishBusy || confirming || missingConfirmedIds.length === 0}
             onClick={() => void persistSquad([...squadIds, ...missingConfirmedIds])}
             aria-label="Alle zugesagten Spieler auswählen"
           >
@@ -244,7 +309,7 @@ export function TournamentSquadPanel({
           {list.map((p) => {
             const inSquad = squadSet.has(p.id);
             const reason = getAttendance(p);
-            const disabled = saveBusy || (status === 'absent' && !inSquad);
+            const disabled = saveBusy || publishBusy || confirming || (status === 'absent' && !inSquad);
             return (
               <li key={p.id} className={disabled ? 'opacity-70' : ''}>
                 <MatchPlayerRow
@@ -279,6 +344,49 @@ export function TournamentSquadPanel({
           <strong className="text-white">{squadIds.length}</strong> im Turnierkader
         </p>
       ) : null}
+
+      <button type="button" className={`${dsPrimaryCtaClass()} min-h-11 w-full disabled:opacity-45`}
+        disabled={dataLoading || publicationLoading || Boolean(publicationLoadError) || Boolean(squadError) ||
+          saveBusy || publishBusy || squadIds.length === 0 || publicationMatches}
+        onClick={openPublishConfirmation}>
+        {publishLabel}
+      </button>
+      {publicationLoadError ? <p role="alert" className="text-sm text-red-300">{publicationLoadError}</p> : null}
+      {publication ? <p role="status" className="text-sm text-white/65">
+        {publicationMatches
+          ? isDemo ? 'Turnierkader in der Demo veröffentlicht.' : 'Turnierkader veröffentlicht. Benachrichtigungen wurden eingeplant.'
+          : 'Die aktuelle Auswahl ist gespeichert. Die Änderungen können veröffentlicht werden.'}
+      </p> : null}
+
+      <Modal open={confirming} title={publishLabel} className="tournamentWorkflowModal"
+        onClose={() => { if (!publishBusy) setConfirming(false); }}
+        footer={<div className="grid w-full grid-cols-2 gap-2">
+          <button type="button" className={`${dsSecondaryCtaClass()} min-h-11`} disabled={publishBusy}
+            onClick={() => setConfirming(false)}>Abbrechen</button>
+          <button type="button" className={`${dsPrimaryCtaClass()} min-h-11 disabled:opacity-45`}
+            disabled={publishBusy || !messages.selected.trim() || !messages.notSelected.trim()}
+            onClick={() => void confirmPublication()}>
+            {publishBusy ? 'Speichert…' : publication ? 'Aktualisieren' : 'Veröffentlichen'}
+          </button>
+        </div>}>
+        <p className="text-sm text-white/70">
+          {squadIds.length} Spieler im Turnierkader. Nach der Bestätigung erscheint der Kader im Team-Feed.
+          Die verknüpften Spieler- und Elternkonten erhalten ihre Nachricht in der App und per Push.
+        </p>
+        <label className="mt-4 block text-sm font-semibold">
+          Für Spieler im Kader
+          <textarea className="mt-1 w-full rounded-xl border border-white/15 bg-black/35 p-3 text-sm"
+            rows={3} maxLength={500} disabled={publishBusy} value={messages.selected}
+            onChange={event => setMessages({ ...messages, selected: event.target.value })} />
+        </label>
+        <label className="mt-3 block text-sm font-semibold">
+          Für Spieler außerhalb des Kaders
+          <textarea className="mt-1 w-full rounded-xl border border-white/15 bg-black/35 p-3 text-sm"
+            rows={3} maxLength={500} disabled={publishBusy} value={messages.notSelected}
+            onChange={event => setMessages({ ...messages, notSelected: event.target.value })} />
+        </label>
+        {publishError ? <p role="alert" className="mt-2 text-sm text-red-300">{publishError}</p> : null}
+      </Modal>
 
       {dataLoading ? (
         <p className="text-[14px] text-white/55">Lade Spieler…</p>
