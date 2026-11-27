@@ -458,7 +458,7 @@ const spectatorTabBtnCompactIdle = 'text-white/45 hover:bg-white/[0.05] hover:te
 /** Live Hub: große Touch-Ziele, kein Mini-Tab-Gefühl. */
 const hubNavSpectator = 'mt-1.5 grid w-full grid-cols-2 gap-1.5 sm:gap-2';
 const hubNavTrainer = 'mt-3 grid w-full grid-cols-2 gap-2.5 sm:gap-3';
-const hubNavBtn = `${dsLiveHubNavBtnClass()} !border-red-400/15 !bg-[rgba(27,17,21,0.9)] hover:!border-red-400/40 hover:!bg-red-950/45`;
+const hubNavBtn = `live-hub-tile ${dsLiveHubNavBtnClass()} !border-red-400/15 !bg-[rgba(27,17,21,0.9)] hover:!border-red-400/40 hover:!bg-red-950/45`;
 const liveModuleBackBar =
   'sticky top-0 z-40 mt-0 flex min-h-[48px] shrink-0 flex-wrap items-center gap-2 border-b border-white/10 bg-black/85 px-2 py-2 backdrop-blur-md sm:px-3';
 
@@ -5044,7 +5044,7 @@ export const LiveMatchScreen: React.FC = () => {
       ) : null}
       {!wechselScreenActive ? (
       <>
-      <div aria-hidden className={`pointer-events-none absolute inset-0 z-0 ${videoScreenActive ? 'bg-[linear-gradient(180deg,#070708_0%,#170507_45%,#070708_100%)]' : ''}`}>
+      <div aria-hidden className={`${mainTab === 'hub' ? 'live-hub-backdrop' : ''} pointer-events-none absolute inset-0 z-0 ${videoScreenActive ? 'bg-[linear-gradient(180deg,#070708_0%,#170507_45%,#070708_100%)]' : ''}`}>
         {!videoScreenActive && <>
         <div
           className="absolute inset-0 bg-cover opacity-[0.22] brightness-[0.42] saturate-[0.72]"
@@ -5065,7 +5065,7 @@ export const LiveMatchScreen: React.FC = () => {
       <div className="relative z-[1] flex min-h-0 flex-1 flex-col">
       <header
         ref={mainTab === 'hub' ? liveHubScrollRef : undefined}
-        className={`border-b bg-black/78 shadow-[0_4px_32px_rgba(0,0,0,0.5)] backdrop-blur-md ${
+        className={`${mainTab === 'hub' ? 'live-hub-header' : ''} border-b bg-black/78 shadow-[0_4px_32px_rgba(0,0,0,0.5)] backdrop-blur-md ${
           mainTab === 'lineup' ? 'border-white/10' : 'border-red-500/35'
         } ${
           mainTab === 'hub' && !compactLiveHub
@@ -5095,7 +5095,7 @@ export const LiveMatchScreen: React.FC = () => {
           ) : null}
           {matchboardVisible && (
             <div
-              className={`relative mx-auto mb-0 w-full max-w-none overflow-hidden rounded-2xl border border-red-500/30 bg-black/82 shadow-[0_0_40px_rgba(239,68,68,0.18),0_8px_40px_rgba(0,0,0,0.45)] backdrop-blur-md ${
+              className={`live-hub-scoreboard relative mx-auto mb-0 w-full max-w-none overflow-hidden rounded-2xl border border-red-500/30 bg-black/82 shadow-[0_0_40px_rgba(239,68,68,0.18),0_8px_40px_rgba(0,0,0,0.45)] backdrop-blur-md ${
                 spectatorView ? 'md:max-w-xl' : 'md:max-w-2xl'
               }`}
             >

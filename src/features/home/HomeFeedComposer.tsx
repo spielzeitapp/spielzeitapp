@@ -350,11 +350,11 @@ export const HomeFeedComposer: React.FC<Props> = ({
     <PremiumCard
       as="section"
       matchday
-      className="sz-club-accent-panel p-[1px] shadow-2xl"
+      className="app-feed-composer sz-club-accent-panel p-[1px] shadow-2xl"
       aria-label="Beitrag erstellen"
     >
       <div
-        className={`rounded-[1.35rem] bg-[linear-gradient(180deg,rgb(var(--club-primary-rgb)/0.2),#0c0c0c_38%,#080808)] px-4 sm:px-5 ${composerExpanded ? 'py-4' : 'py-2.5'}`}
+        className={`app-feed-composer-content rounded-[1.1rem] bg-[linear-gradient(180deg,rgb(var(--club-primary-rgb)/0.2),#0c0c0c_38%,#080808)] px-4 sm:px-5 ${composerExpanded ? 'py-4' : 'py-2.5'}`}
         style={{
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
         }}
@@ -389,7 +389,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
               <Clapperboard className="sz-club-accent-text h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
               <span className="text-base font-bold tracking-tight text-white">+ Beitrag erstellen</span>
             </div>
-            <p className="mt-1 text-xs leading-snug text-white/50">Foto oder Video posten</p>
+            <p className="app-feed-composer-description mt-1 text-xs leading-snug text-white/60">Foto oder Video posten</p>
             {publishFeedback ? <p className="mt-2 text-xs leading-snug text-white/75" role="status">{publishFeedback}</p> : null}
           </button>
         ) : (
