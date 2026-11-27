@@ -349,16 +349,15 @@ export const HomeFeedComposer: React.FC<Props> = ({
   return (
     <PremiumCard
       as="section"
-      matchday
-      className="sz-club-accent-panel p-[1px] shadow-2xl"
+      showAmbientGlow={false}
+      className="p-[1px]"
       aria-label="Beitrag erstellen"
+      style={{
+        background: 'linear-gradient(180deg, rgb(var(--club-primary-rgb) / 0.2), #0c0c0c 38%, #080808), #0c0c0c',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
+      }}
     >
-      <div
-        className={`rounded-[1.35rem] bg-[linear-gradient(180deg,rgb(var(--club-primary-rgb)/0.2),#0c0c0c_38%,#080808)] px-4 sm:px-5 ${composerExpanded ? 'py-4' : 'py-2.5'}`}
-        style={{
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
-        }}
-      >
+      <div className={`px-4 sm:px-5 ${composerExpanded ? 'py-4' : 'py-2.5'}`}>
         <div
           className={`pointer-events-none absolute inset-x-0 top-0 bg-[radial-gradient(ellipse_80%_100%_at_50%_0%,rgb(var(--club-primary-rgb)/0.24),transparent)] opacity-90 ${composerExpanded ? 'h-24' : 'h-14'}`}
         />
