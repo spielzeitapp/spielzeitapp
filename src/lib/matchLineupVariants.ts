@@ -1,5 +1,6 @@
 import type { U11FormationId } from './matchFormations';
 import type { FieldSlotId } from '../types/match';
+import type { TournamentRotation, RotationGame } from './tournamentRotation';
 
 export type MatchLineupVariantNumber = 1 | 2;
 
@@ -11,6 +12,8 @@ export type MatchLineupVariantDraft = {
 
 export type StoredMatchLineupVariants = {
   version: 1;
+  rotation?: TournamentRotation;
+  rotationMatch?: RotationGame;
   /** Missing on older saved plans: two independent blocks. */
   lineupMode?: 'single' | 'blocks';
   startVariant: MatchLineupVariantNumber;
@@ -69,7 +72,11 @@ export function readMatchLineupVariants(matchId: string): StoredMatchLineupVaria
 
 export function writeMatchLineupVariants(matchId: string, value: StoredMatchLineupVariants): void {
   try {
-    window.localStorage.setItem(storageKey(matchId), JSON.stringify(value));
+    const previous = readMatchLineupVariants(matchId);
+    // Keep the per-game plan when older editors reconstruct the legacy variants.
+    // A changed start is revalidated against the frames before any live execution.
+    const next = { ...value, rotation: value.rotation ?? previous?.rotation, rotationMatch: value.rotationMatch ?? previous?.rotationMatch };
+    window.localStorage.setItem(storageKey(matchId), JSON.stringify(next));
   } catch {
     // Die kanonische Startaufstellung bleibt weiterhin in Supabase gespeichert.
   }
