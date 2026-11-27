@@ -6,7 +6,7 @@ import { TournamentFanPlayerCard } from '../../components/tournament/TournamentF
 import { TournamentFanFixture, FanTeamLogo } from '../../components/tournament/TournamentFanFixture';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
-import { MapPin, Moon, Play, Sun, Share2 } from 'lucide-react';
+import { CalendarDays, MapPin, Radio, Moon, Play, Sun, Share2 } from 'lucide-react';
 import { tournamentLivestreamEmbedUrl, tournamentLivestreamUrl } from '../../../server/lib/tournamentLivestream.js';
 import {
   fetchPublicTeamTournamentPage,
@@ -372,7 +372,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   const accent = normalizeBrandColor(page?.accentColor) ?? '#c82333';
   const pageActions = (
     <div className="flex shrink-0 items-center gap-2">
-      <button type="button" onClick={()=>void onShare()} aria-label="Teilen" title="Teilen" className="flex h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 text-sm font-bold"><Share2 size={18} aria-hidden/><span className={isNextProOverview ? "hidden min-[380px]:inline" : undefined}>Teilen</span></button>
+      <button type="button" onClick={()=>void onShare()} aria-label="Teilen" title="Teilen" className="flex h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 text-sm font-bold"><Share2 size={18} aria-hidden/><span className={isNextProOverview ? "sr-only" : undefined}>Teilen</span></button>
       <button type="button" onClick={toggleTheme} aria-label={theme === 'night' ? 'Tagmodus einschalten' : 'Nachtmodus einschalten'} title={theme === 'night' ? 'Tagmodus einschalten' : 'Nachtmodus einschalten'} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)]">{theme === 'night' ? <Sun size={20} aria-hidden/> : <Moon size={20} aria-hidden/>}</button>
     </div>
   );
@@ -427,19 +427,20 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
         {!isNextProOverview ? presentationTools : null}
         {selectedMatch ? <PublicTournamentMatchView page={page} match={selectedMatch} view={matchView} onView={view=>setSearchParams({spiel:selectedMatch.id,ansicht:view})}/> : <>
         {isNextProOverview ? (
-          <section aria-labelledby="nextpro-title" className="rounded-xl border border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2">
+          <section aria-labelledby="nextpro-title" className="rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] px-3 pb-2 pt-3">
             <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <h1 id="nextpro-title" className="text-base font-extrabold leading-snug">{page.tournamentName}</h1>
-                <p className="text-xs text-[var(--t-muted)]">{page.dateLabel}</p>
+              <img src="/logos/nextpro-hallencup.webp" alt="NextPro" width="50" height="50" className="h-auto w-[50px] shrink-0 rounded-full max-[359px]:w-10" />
+              <div className="min-w-0 flex-1">
+                <h1 id="nextpro-title" className="text-base font-extrabold leading-tight">{page.tournamentName}</h1>
+                <p className="mt-1 text-xs text-[var(--t-muted)]">{page.dateLabel}</p>
               </div>
               {pageActions}
             </div>
             {shareHint ? <p role="status" className="mt-1 text-xs text-[var(--t-muted)]">{shareHint}</p> : null}
-            <div className="mt-1 flex flex-wrap gap-x-4 text-sm font-bold text-[var(--t-accent)]">
-              <button type="button" onClick={() => openTournamentSection('games')} className="min-h-11">Spielplan</button>
-              <button type="button" onClick={() => openTournamentSection('ticker')} className="min-h-11">Liveticker</button>
-              {livestreamUrl ? <button type="button" onClick={() => livestreamSection.current?.scrollIntoView({ block: 'start' })} className="min-h-11">{streamLabel}</button> : null}
+            <div className="mt-2 flex flex-wrap gap-2 border-t border-[var(--t-border)] pt-1 text-sm font-bold text-[var(--t-accent)]">
+              <button type="button" onClick={() => openTournamentSection('games')} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 hover:bg-[color-mix(in_srgb,var(--t-accent)_8%,transparent)]"><CalendarDays size={15} aria-hidden/>Spielplan</button>
+              <button type="button" onClick={() => openTournamentSection('ticker')} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 hover:bg-[color-mix(in_srgb,var(--t-accent)_8%,transparent)]"><Radio size={15} aria-hidden/>Liveticker</button>
+              {livestreamUrl ? <button type="button" onClick={() => livestreamSection.current?.scrollIntoView({ block: 'start' })} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 hover:bg-[color-mix(in_srgb,var(--t-accent)_8%,transparent)]">{streamLabel}</button> : null}
             </div>
           </section>
         ) : null}
