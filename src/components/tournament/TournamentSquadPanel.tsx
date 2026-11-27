@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Modal } from '../../app/ui/Modal';
 import { ClipboardList } from 'lucide-react';
@@ -112,6 +112,8 @@ export function TournamentSquadPanel({
   const [publishBusy, setPublishBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const deliveryGroup = useId();
+  const [feedOnly, setFeedOnly] = useState(false);
   const [messages, setMessages] = useState({ selected: '', notSelected: '' });
 
   useEffect(() => {
@@ -242,6 +244,7 @@ export function TournamentSquadPanel({
       notSelected: `Für „${tournamentTitle}“ seid ihr diesmal nicht im Turnierkader.`.slice(0, 500),
     });
     setPublishError(null);
+    setFeedOnly(false);
     setConfirming(true);
   };
 
@@ -253,7 +256,7 @@ export function TournamentSquadPanel({
       if (isDemo) {
         setPublication({ selected_player_ids: [...squadIds], version: (publication?.version ?? 0) + 1, published_at: new Date().toISOString() });
       } else {
-        const { data, error } = await publishTournamentSquad(tournamentEventId, squadIds, publication?.version ?? 0, messages);
+        const { data, error } = await publishTournamentSquad(tournamentEventId, squadIds, publication?.version ?? 0, feedOnly ? null : messages);
         if (error || !data) {
           setPublishError(error?.message ?? 'Der Kader konnte nicht veröffentlicht werden.');
           return;
@@ -354,7 +357,7 @@ export function TournamentSquadPanel({
       {publicationLoadError ? <p role="alert" className="text-sm text-red-300">{publicationLoadError}</p> : null}
       {publication ? <p role="status" className="text-sm text-white/65">
         {publicationMatches
-          ? isDemo ? 'Turnierkader in der Demo veröffentlicht.' : 'Turnierkader veröffentlicht. Benachrichtigungen wurden eingeplant.'
+          ? isDemo ? 'Turnierkader in der Demo veröffentlicht.' : 'Turnierkader im Team-Feed veröffentlicht.'
           : 'Die aktuelle Auswahl ist gespeichert. Die Änderungen können veröffentlicht werden.'}
       </p> : null}
 
@@ -364,27 +367,39 @@ export function TournamentSquadPanel({
           <button type="button" className={`${dsSecondaryCtaClass()} min-h-11`} disabled={publishBusy}
             onClick={() => setConfirming(false)}>Abbrechen</button>
           <button type="button" className={`${dsPrimaryCtaClass()} min-h-11 disabled:opacity-45`}
-            disabled={publishBusy || !messages.selected.trim() || !messages.notSelected.trim()}
+            disabled={publishBusy || (!feedOnly && (!messages.selected.trim() || !messages.notSelected.trim()))}
             onClick={() => void confirmPublication()}>
             {publishBusy ? 'Speichert…' : publication ? 'Aktualisieren' : 'Veröffentlichen'}
           </button>
         </div>}>
         <p className="text-sm text-white/70">
           {squadIds.length} Spieler im Turnierkader. Nach der Bestätigung erscheint der Kader im Team-Feed.
-          Die verknüpften Spieler- und Elternkonten erhalten ihre Nachricht in der App und per Push.
         </p>
-        <label className="mt-4 block text-sm font-semibold">
-          Für Spieler im Kader
-          <textarea className="mt-1 w-full rounded-xl border border-white/15 bg-black/35 p-3 text-sm"
-            rows={3} maxLength={500} disabled={publishBusy} value={messages.selected}
-            onChange={event => setMessages({ ...messages, selected: event.target.value })} />
-        </label>
-        <label className="mt-3 block text-sm font-semibold">
-          Für Spieler außerhalb des Kaders
-          <textarea className="mt-1 w-full rounded-xl border border-white/15 bg-black/35 p-3 text-sm"
-            rows={3} maxLength={500} disabled={publishBusy} value={messages.notSelected}
-            onChange={event => setMessages({ ...messages, notSelected: event.target.value })} />
-        </label>
+        <fieldset className="mt-4 space-y-2" disabled={publishBusy}>
+          <legend className="mb-2 text-sm font-bold">Veröffentlichen in</legend>
+          <label className="flex min-h-11 items-center gap-3 rounded-xl border border-white/15 px-3 text-sm font-semibold">
+            <input type="radio" name={deliveryGroup} checked={feedOnly} onChange={() => setFeedOnly(true)} />
+            Nur im Team-Feed
+          </label>
+          <label className="flex min-h-11 items-center gap-3 rounded-xl border border-white/15 px-3 text-sm font-semibold">
+            <input type="radio" name={deliveryGroup} checked={!feedOnly} onChange={() => setFeedOnly(false)} />
+            Team-Feed und Benachrichtigungen
+          </label>
+        </fieldset>
+        {!feedOnly && <>
+          <label className="mt-4 block text-sm font-semibold">
+            Für Spieler im Kader
+            <textarea className="mt-1 w-full rounded-xl border border-white/15 bg-black/35 p-3 text-sm"
+              rows={3} maxLength={500} disabled={publishBusy} value={messages.selected}
+              onChange={event => setMessages({ ...messages, selected: event.target.value })} />
+          </label>
+          <label className="mt-3 block text-sm font-semibold">
+            Für Spieler außerhalb des Kaders
+            <textarea className="mt-1 w-full rounded-xl border border-white/15 bg-black/35 p-3 text-sm"
+              rows={3} maxLength={500} disabled={publishBusy} value={messages.notSelected}
+              onChange={event => setMessages({ ...messages, notSelected: event.target.value })} />
+          </label>
+        </>}
         {publishError ? <p role="alert" className="mt-2 text-sm text-red-300">{publishError}</p> : null}
       </Modal>
 

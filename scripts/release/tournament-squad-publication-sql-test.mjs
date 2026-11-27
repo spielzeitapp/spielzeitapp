@@ -40,6 +40,7 @@ try {
       unique (source_notification_job_id, user_id));
   `);
   await db.exec(readFileSync('supabase/migrations/20261127112516_tournament_squad_publication.sql', 'utf8'));
+  await db.exec(readFileSync('supabase/migrations/20261127123804_tournament_squad_feed_only.sql', 'utf8'));
   await db.query('insert into teams values ($1)', [team]);
   await db.query("insert into team_seasons values ($1,$2,'active')", [season, team]);
   await db.query("insert into events(id,team_season_id,kind,status,notes) values ($1,$2,'tournament','upcoming','Hallencup · Halle'),($3,$2,'match','upcoming',null)", [event, season, matchEvent]);
@@ -106,7 +107,19 @@ try {
   assert.deepEqual(posts[0].payload.players, ['Sam B']);
   assert.equal((await db.query('select * from notification_jobs')).rows.length, 4);
   assert.equal((await db.query('select * from notifications')).rows.length, 6);
-  console.log('PASS: tournament-only authorization, draft isolation, stale writes, deduplicated recipients and retry, single updated feed post.');
+  await as(trainer);
+  await save([first, second], [second]);
+  const feedOnly = () => db.query('select publish_tournament_squad($1,$2,2,null,null) as result', [event, [first, second]]);
+  await assert.rejects(publish([first, second], 2, null), /500 Zeichen/);
+  assert.equal((await feedOnly()).rows[0].result.version, 3);
+  assert.equal((await feedOnly()).rows[0].result.version, 3);
+  await db.exec('reset role');
+  const updatedPosts = (await db.query('select * from team_feed_posts')).rows;
+  assert.equal(updatedPosts.length, 1);
+  assert.deepEqual(updatedPosts[0].payload.players, ['Alex A', 'Sam B']);
+  assert.equal((await db.query('select * from notification_jobs')).rows.length, 4);
+  assert.equal((await db.query('select * from notifications')).rows.length, 6);
+  console.log('PASS: tournament-only authorization, draft isolation, stale writes, deduplicated recipients and retry, single updated feed post, and feed-only publication with no notifications.');
 } finally {
   await db.close();
 }
