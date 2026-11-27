@@ -1,4 +1,5 @@
 import {MarketManagerSplash} from '../features/marketManager/MarketManagerSplash';
+import {TournamentAuthBrand,tournamentAuthTarget} from '../features/tournamentRegistration/AuthBrand';
 import { marketAuthContext, marketAuthPath } from '../features/club/marketAuth';
 import { MarketAuthBrand } from '../features/club/MarketAuthBrand';
 import { MarketLegalLinks } from '../features/club/MarketLegalLinks';
@@ -156,6 +157,7 @@ export const LoginPage: React.FC = () => {
     !(isParentInviteFlow && isAppIntroEntryPath(fromStatePath))
       ? fromStatePath
       : null;
+  const tournamentReturnTo=tournamentAuthTarget(nextSafe);
   const isManagerLogin = location.pathname === '/manager/login' || [nextFromQuery, safeFromState].some(
     (path) => path === '/manager' || path?.startsWith('/manager/') || path?.startsWith('/manager?'),
   );
@@ -323,7 +325,7 @@ export const LoginPage: React.FC = () => {
         <div className={`pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-red-600/10 blur-3xl ${isUscLogin ? 'usc-auth-glow' : ''}`} />
 
         <header className="relative">
-          {market ? <MarketAuthBrand back={market.back} manager={market.manager}/> : isUscLogin ? <UscAuthBrand/> : isManagerLogin ? (
+          {market ? <MarketAuthBrand back={market.back} manager={market.manager}/> : tournamentReturnTo ? <TournamentAuthBrand back={tournamentReturnTo}/> : isUscLogin ? <UscAuthBrand/> : isManagerLogin ? (
             <div className="flex items-center gap-3" aria-label="Spielzeit Manager">
               <img src="/manager-icon-192.png" alt="" className="h-[4.25rem] w-[4.25rem] rounded-2xl" />
               <span className="text-xl font-black tracking-tight text-white">Spielzeit <span className="text-red-500">Manager</span></span>
@@ -336,7 +338,7 @@ export const LoginPage: React.FC = () => {
             />
           )}
           <h1 className="mt-3 text-2xl font-bold tracking-tight text-white">
-            {market?.manager ? 'Beim Vereinsmarkt-Manager anmelden' : market ? 'Willkommen im Vereinsmarkt' : isUscLogin ? 'Beim USC Rohrbach anmelden' : 'Willkommen zurück'}
+            {market?.manager ? 'Beim Vereinsmarkt-Manager anmelden' : market ? 'Willkommen im Vereinsmarkt' : tournamentReturnTo ? 'Zum Turnier anmelden' : isUscLogin ? 'Beim USC Rohrbach anmelden' : 'Willkommen zurück'}
           </h1>
         </header>
 
