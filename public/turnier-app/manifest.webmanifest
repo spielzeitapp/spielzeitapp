@@ -1,0 +1,25 @@
+{
+  "id": "/turnier-app/",
+  "name": "Spielzeit Turniere",
+  "short_name": "Turniere",
+  "description": "Dein Verein. Dein Turnier. Live dabei.",
+  "start_url": "/turnier-app/",
+  "scope": "/turnier-app/",
+  "display": "standalone",
+  "background_color": "#101014",
+  "theme_color": "#101014",
+  "icons": [
+    {
+      "src": "/turnier-app/clock-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/turnier-app/clock-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

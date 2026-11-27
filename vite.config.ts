@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
         },
         input: {
           main: resolve(__dirname, "index.html"),
+          tournamentAudience: resolve(__dirname, "turniere.html"),
           marketManager: resolve(__dirname, "vereinsmarkt-manager.html"),
           market: resolve(__dirname, "markt.html"),
           preview: resolve(__dirname, "preview.html"),
