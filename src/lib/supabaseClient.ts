@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { authSessionLock } from './authSessionLock';
 import {
   isStagingApp,
   supabaseUrlLooksLikeLive,
@@ -140,6 +141,7 @@ const authStorage = {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
+    ...(typeof navigator !== 'undefined' && navigator.locks ? { lock: authSessionLock } : {}),
     storage: authStorage,
     persistSession: true,
     autoRefreshToken: true,
