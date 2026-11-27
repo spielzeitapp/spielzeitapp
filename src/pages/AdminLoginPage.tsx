@@ -1,4 +1,4 @@
-import { authErrorMessage } from '../lib/authErrorMessage';
+import { authErrorMessage, clearRecoveredCaptchaError } from '../lib/authErrorMessage';
 import React, { useState, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
@@ -76,7 +76,10 @@ export const AdminLoginPage: React.FC = () => {
           </div>
 
           <TurnstileWidget
-            onTokenChange={setCaptchaToken}
+            onTokenChange={token => {
+                setCaptchaToken(token);
+                if (token) setError(clearRecoveredCaptchaError);
+              }}
             resetKey={captchaResetKey}
           />
 

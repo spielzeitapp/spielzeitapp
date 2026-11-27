@@ -2,7 +2,7 @@ import {MarketManagerSplash} from '../features/marketManager/MarketManagerSplash
 import { marketAuthContext, marketAuthPath } from '../features/club/marketAuth';
 import { MarketAuthBrand } from '../features/club/MarketAuthBrand';
 import { MarketLegalLinks } from '../features/club/MarketLegalLinks';
-import { authErrorMessage } from '../lib/authErrorMessage';
+import { authErrorMessage, clearRecoveredCaptchaError } from '../lib/authErrorMessage';
 import { managerComparisonHref } from '../lib/managerComparison';
 import { uscAuthTarget, uscAuthPath } from '../features/club/uscAuth';
 import { UscAuthBrand, UscAuthFooter } from '../features/club/UscAuthBrand';
@@ -451,7 +451,10 @@ export const LoginPage: React.FC = () => {
               Sichere Anmeldung
             </div>
             <TurnstileWidget
-              onTokenChange={setCaptchaToken}
+              onTokenChange={token => {
+                setCaptchaToken(token);
+                if (token) setError(clearRecoveredCaptchaError);
+              }}
               resetKey={captchaResetKey}
             />
           </div>
