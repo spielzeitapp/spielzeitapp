@@ -83,7 +83,6 @@ export const InternalLayout: React.FC = () => {
   const isLiveRoute =
     location.pathname.startsWith('/app/live') || location.pathname.startsWith('/demo/live');
   const pathClean = location.pathname.replace(/\/+$/, '') || '/';
-  const useCardTheme = /^\/(app|demo)\/(home|termine|team|mehr|live)$/.test(pathClean);
   const isWideMobileShellRoute =
     pathClean === '/app/tabelle' ||
     pathClean === '/app/home' ||
@@ -332,10 +331,10 @@ export const InternalLayout: React.FC = () => {
     <AppBackground>
       {isTouchLayout || isDemo ? null : <TopNav />}
 
-      <div className={`app app--internal min-h-screen bg-black text-white ${useCardTheme ? 'app-card-theme' : ''} ${isTouchLayout ? 'app--touch' : ''} ${useTabletRail ? 'app--tablet-rail' : ''}`}>
+      <div className={`app app--internal min-h-screen bg-black text-white ${isTouchLayout ? 'app--touch' : ''} ${useTabletRail ? 'app--tablet-rail' : ''}`}>
         <Header />
         <main
-          className={`app__content appMain pt-[var(--app-header-offset)] ${pathClean === '/app/tabelle' ? 'max-md:!px-0' : ''} ${useCardTheme ? 'max-sm:!px-0' : ''} ${isDemo && location.pathname === '/demo/home' ? 'max-md:!px-0' : ''} ${
+          className={`app__content appMain pt-[var(--app-header-offset)] ${pathClean === '/app/tabelle' ? 'max-md:!px-0' : ''} ${pathClean === '/app/home' || pathClean === '/demo/home' ? 'max-sm:!px-0' : ''} ${isDemo && location.pathname === '/demo/home' ? 'max-md:!px-0' : ''} ${
             useTabletRail
               ? 'pb-6'
               : isTouchLayout

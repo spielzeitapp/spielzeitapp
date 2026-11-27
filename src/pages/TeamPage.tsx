@@ -1181,8 +1181,8 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
       {isDemo ? <DemoAiDisclosure className="mt-3" /> : null}
 
       {activeTab === "squad" ? (
-      <PremiumCard variant="subtle" showAmbientGlow={false} className="sz-club-surface--unframed !rounded-none !border-0 !bg-transparent !p-0 !shadow-none sm:!rounded-3xl sm:!border sm:!bg-inherit sm:!p-5">
-        <div data-team-section-heading className="flex min-w-0 items-center justify-between gap-2 px-3 sm:px-0">
+      <PremiumCard variant="subtle" showAmbientGlow={false} className="!rounded-none !border-0 !bg-transparent !p-0 !shadow-none sm:!rounded-3xl sm:!border sm:!bg-inherit sm:!p-5">
+        <div className="flex min-w-0 items-center justify-between gap-2 px-3 sm:px-0">
           <h2 className="min-w-0 flex-1 font-black uppercase text-white" style={{ margin: 0, fontSize: "clamp(16px, 4.6vw, 20px)", lineHeight: 1.1, letterSpacing: "-0.025em", whiteSpace: "nowrap" }}>Unser Team</h2>
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
             {!isDemo && archivedTeamSeasons.length > 0 ? (
@@ -1268,8 +1268,8 @@ export const TeamPage: React.FC<{ rosterOnly?: boolean }> = ({ rosterOnly = fals
       ) : null}
 
       {activeTab === "trainers" ? (
-        <PremiumCard variant="subtle" showAmbientGlow={false} className="sz-club-surface--unframed !rounded-none !border-0 !bg-transparent !p-0 !shadow-none sm:!rounded-3xl sm:!border sm:!bg-inherit sm:!p-5">
-          <div data-team-section-heading className="flex items-center justify-between gap-2 px-3 sm:px-0">
+        <PremiumCard variant="subtle" showAmbientGlow={false} className="!rounded-none !border-0 !bg-transparent !p-0 !shadow-none sm:!rounded-3xl sm:!border sm:!bg-inherit sm:!p-5">
+          <div className="flex items-center justify-between gap-2 px-3 sm:px-0">
             <SectionTitle as="h2" className="shrink-0 [&>h2]:whitespace-nowrap [&>h2]:text-xl [&>h2]:font-black [&>h2]:uppercase [&>h2]:tracking-tight">
               Unsere Trainer
             </SectionTitle>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, Camera, CalendarDays, CalendarRange, ChevronRight, Dumbbell, LayoutDashboard, Music2, Link2, Settings, Smartphone, Users, Vibrate, Wrench } from 'lucide-react';
+import { Bell, Camera, CalendarDays, CalendarRange, ChevronRight, Dumbbell, Music2, Link2, Settings, Smartphone, Users, Wrench } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { supabase } from '../lib/supabaseClient';
@@ -54,8 +54,7 @@ function DemoHelpCard(): React.ReactElement {
   );
 }
 
-const menuRowClass = `${dsPanelRowClass()} more-menu-row`;
-const subRowClass = `${menuRowClass} pl-10`;
+const subRowClass = `${dsPanelRowClass()} pl-10`;
 
 function isTrainerToolsRole(role: string): boolean {
   const r = (role ?? '').trim().toLowerCase();
@@ -314,325 +313,319 @@ export const MoreHubPage: React.FC = () => {
       className="page mehr-hub min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-3 py-6 sm:px-4 md:px-0"
       contentClassName="mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl lg:max-w-4xl"
     >
-      <SectionTitle>Mehr</SectionTitle>
+      <SectionTitle subtitle="Einstellungen und weitere Bereiche">Mehr</SectionTitle>
 
-      <section aria-labelledby="more-management-heading">
-        <h2 id="more-management-heading" className="more-section-heading">Verwaltung</h2>
-        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-          {!isDemo && isStagingApp() ? <Link to="/app/tauschboerse" className={menuRowClass}><span className="flex items-center gap-3"><Shirt className="more-menu-icon h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden /><span><span className="block">Vereinsmarkt</span><span className="more-description block text-[12px] font-normal">Trainingsgewand · alle Mannschaften im Verein</span></span></span><ChevronRight className="h-5 w-5 text-white/40" aria-hidden /></Link> : null}
-          {showPreviewLink&&<Link to={fotoboxHref} className={menuRowClass}><span className="flex items-center gap-3"><Camera className="more-menu-icon h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden/><span><span className="block">Fotobox</span><span className="more-description block text-[12px] font-normal">Spielerfotos aufnehmen · Fernsteuerung verbinden</span></span></span><ChevronRight className="h-5 w-5 text-white/40" aria-hidden/></Link>}
-          {showManagerLink ? (
-            <Link to="/manager/musikstudio" className={menuRowClass}>
-              <span className="flex items-center gap-3">
-                <Music2 className="more-menu-icon h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
-                <span>Musikplayer</span>
-              </span>
-              <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
-            </Link>
-          ) : null}
-          <HubRowLink to="/app/nachrichten" className={menuRowClass} isDemo={isDemo}>
-            <span className="flex min-w-0 flex-col gap-0.5">
-              <span className="flex items-center gap-3">
-                <Bell className="more-menu-icon h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
-                <span>Nachrichten</span>
-                {unreadCount > 0 && (
-                  <span className="ml-2 inline-flex min-h-[17px] min-w-[17px] translate-y-[-1px] items-center justify-center rounded-full bg-[rgb(var(--club-accent-text-rgb))] px-[5px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-neutral-900">
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </span>
-                )}
-              </span>
-              {isDemo ? (
-                <span className="pl-8 text-[11px] font-normal text-white/40">Noch nicht Teil der Demo</span>
-              ) : null}
+      <nav className="grid gap-2 md:grid-cols-2 lg:grid-cols-3" aria-label="Mehr-Menü">
+        {!isDemo && isStagingApp() ? <Link to="/app/tauschboerse" className={dsPanelRowClass()}><span className="flex items-center gap-3"><Shirt className="h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden /><span><span className="block">Vereinsmarkt</span><span className="block text-[11px] text-white/60">Trainingsgewand · alle Mannschaften im Verein</span></span></span><ChevronRight className="h-5 w-5 text-white/40" aria-hidden /></Link> : null}
+        {showPreviewLink&&<Link to={fotoboxHref} className={dsPanelRowClass()}><span className="flex items-center gap-3"><Camera className="h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden/><span><span className="block">Fotobox</span><span className="block text-[11px] text-white/60">Spielerfotos aufnehmen · Fernsteuerung verbinden</span></span></span><ChevronRight className="h-5 w-5 text-white/40" aria-hidden/></Link>}
+        {showManagerLink ? (
+          <Link to="/manager/musikstudio" className={dsPanelRowClass()}>
+            <span className="flex items-center gap-3">
+              <Music2 className="h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
+              <span>Musikplayer</span>
             </span>
             <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
-          </HubRowLink>
-
-          {showSeasonManagement && (
-            <div className="space-y-1.5 md:col-span-2 lg:col-span-1">
-              <button
-                type="button"
-                className={menuRowClass}
-                onClick={() => setTeamAdminOpen((v) => !v)}
-                aria-expanded={teamAdminOpen}
-              >
-                <span className="flex items-center gap-2">
-                  <Users className="more-menu-icon h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
-                  <span>Teamverwaltung</span>
+          </Link>
+        ) : null}
+        <HubRowLink to="/app/nachrichten" className={dsPanelRowClass()} isDemo={isDemo}>
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="flex items-center gap-3">
+              <Bell className="h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
+              <span>Nachrichten</span>
+              {unreadCount > 0 && (
+                <span className="ml-2 inline-flex min-h-[17px] min-w-[17px] translate-y-[-1px] items-center justify-center rounded-full bg-[rgb(var(--club-accent-text-rgb))] px-[5px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-neutral-900">
+                  {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
-                <ChevronRight
-                  className={[
-                    'h-5 w-5 text-white/40 transition-transform',
-                    teamAdminOpen ? 'rotate-90' : '',
-                  ].join(' ')}
-                  aria-hidden
-                />
-              </button>
-              {teamAdminOpen && (
-                <PremiumCard variant="subtle" showAmbientGlow={false} className="!p-1.5">
-                  <HubRowLink to="/app/mehr/seasons" className={subRowClass} isDemo={isDemo}>
-                    <span className="flex items-center gap-2">
-                      <CalendarRange className="h-4 w-4 text-[rgb(var(--club-accent-text-rgb)/0.9)]" aria-hidden />
-                      Saison &amp; Meisterschaft verwalten
+              )}
+            </span>
+            {isDemo ? (
+              <span className="pl-8 text-[11px] font-normal text-white/40">Noch nicht Teil der Demo</span>
+            ) : null}
+          </span>
+          <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
+        </HubRowLink>
+
+        {showSeasonManagement && (
+          <div className="space-y-1.5 md:col-span-2 lg:col-span-1">
+            <button
+              type="button"
+              className={dsPanelRowClass()}
+              onClick={() => setTeamAdminOpen((v) => !v)}
+              aria-expanded={teamAdminOpen}
+            >
+              <span className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
+                <span>Teamverwaltung</span>
+              </span>
+              <ChevronRight
+                className={[
+                  'h-5 w-5 text-white/40 transition-transform',
+                  teamAdminOpen ? 'rotate-90' : '',
+                ].join(' ')}
+                aria-hidden
+              />
+            </button>
+            {teamAdminOpen && (
+              <PremiumCard variant="subtle" showAmbientGlow={false} className="!p-1.5">
+                <HubRowLink to="/app/mehr/seasons" className={subRowClass} isDemo={isDemo}>
+                  <span className="flex items-center gap-2">
+                    <CalendarRange className="h-4 w-4 text-[rgb(var(--club-accent-text-rgb)/0.9)]" aria-hidden />
+                    Saison &amp; Meisterschaft verwalten
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
+                </HubRowLink>
+                {showParentAccessLink ? (
+                  <HubRowLink to="/app/mehr/parent-access" className={subRowClass} isDemo={isDemo}>
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className="flex items-center gap-2">
+                        <Smartphone className="h-4 w-4 shrink-0 text-[rgb(var(--club-accent-text-rgb)/0.9)]" aria-hidden />
+                        Eltern &amp; Spielerzugänge
+                      </span>
+                      <span className="pl-6 text-[11px] font-normal leading-snug text-white/45">
+                        Verknüpfungen, Push &amp; Spieler-App prüfen
+                      </span>
                     </span>
-                    <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-white/35" aria-hidden />
                   </HubRowLink>
-                  {showParentAccessLink ? (
-                    <HubRowLink to="/app/mehr/parent-access" className={subRowClass} isDemo={isDemo}>
-                      <span className="flex min-w-0 flex-col gap-0.5">
-                        <span className="flex items-center gap-2">
-                          <Smartphone className="h-4 w-4 shrink-0 text-[rgb(var(--club-accent-text-rgb)/0.9)]" aria-hidden />
-                          Eltern &amp; Spielerzugänge
-                        </span>
-                        <span className="pl-6 text-[11px] font-normal leading-snug text-white/45">
-                          Verknüpfungen, Push &amp; Spieler-App prüfen
+                ) : null}
+              </PremiumCard>
+            )}
+          </div>
+        )}
+
+        {showTrainerToolsSection && (
+          <div className="space-y-1.5 pt-1 md:col-span-2 lg:col-span-3">
+            <button
+              type="button"
+              className={dsPanelRowClass()}
+              onClick={() => setTrainerToolsOpen((v) => !v)}
+              aria-expanded={trainerToolsOpen}
+            >
+              <span className="flex items-center gap-2">
+                <Wrench className="h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
+                <span>Trainer-Tools</span>
+              </span>
+              <ChevronRight
+                className={[
+                  'h-5 w-5 text-white/40 transition-transform',
+                  trainerToolsOpen ? 'rotate-90' : '',
+                ].join(' ')}
+                aria-hidden
+              />
+            </button>
+
+            {trainerToolsOpen && (
+              <PremiumCard variant="subtle" showAmbientGlow={false} className="!p-1.5">
+                <div className="flex flex-col gap-1.5">
+                  {showPlatzbelegung ? (
+                    <HubRowLink to="/app/platzbelegung" className={subRowClass} isDemo={isDemo}>
+                      <span className="flex min-w-0 items-start gap-2">
+                        <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
+                        <span className="flex min-w-0 flex-col gap-0.5">
+                          <span>Platzbelegung</span>
+                          <span className="text-[11px] font-normal leading-snug text-white/45">
+                            Freie Plätze und Belegungen prüfen
+                          </span>
                         </span>
                       </span>
                       <ChevronRight className="h-4 w-4 shrink-0 text-white/35" aria-hidden />
                     </HubRowLink>
                   ) : null}
-                </PremiumCard>
-              )}
-            </div>
-          )}
-
-          {showTrainerToolsSection && (
-            <div className="space-y-1.5 pt-1 md:col-span-2 lg:col-span-3">
-              <button
-                type="button"
-                className={menuRowClass}
-                onClick={() => setTrainerToolsOpen((v) => !v)}
-                aria-expanded={trainerToolsOpen}
-              >
-                <span className="flex items-center gap-2">
-                  <Wrench className="more-menu-icon h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
-                  <span>Trainer-Tools</span>
-                </span>
-                <ChevronRight
-                  className={[
-                    'h-5 w-5 text-white/40 transition-transform',
-                    trainerToolsOpen ? 'rotate-90' : '',
-                  ].join(' ')}
-                  aria-hidden
-                />
-              </button>
-
-              {trainerToolsOpen && (
-                <PremiumCard variant="subtle" showAmbientGlow={false} className="!p-1.5">
-                  <div className="flex flex-col gap-1.5">
-                    {showPlatzbelegung ? (
-                      <HubRowLink to="/app/platzbelegung" className={subRowClass} isDemo={isDemo}>
-                        <span className="flex min-w-0 items-start gap-2">
-                          <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
-                          <span className="flex min-w-0 flex-col gap-0.5">
-                            <span>Platzbelegung</span>
-                            <span className="text-[11px] font-normal leading-snug text-white/45">
-                              Freie Plätze und Belegungen prüfen
-                            </span>
-                          </span>
-                        </span>
-                        <ChevronRight className="h-4 w-4 shrink-0 text-white/35" aria-hidden />
-                      </HubRowLink>
-                    ) : null}
-                    {showTrainerTools ? (
-                      <>
-                    {showManagerLink ? (
-                      <HubRowLink to="/manager/training/einheiten" className={subRowClass} isDemo={isDemo}>
-                        <span className="flex min-w-0 items-start gap-2">
-                          <Dumbbell className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
-                          <span className="flex min-w-0 flex-col gap-0.5">
-                            <span>Trainingsplanung</span>
-                            <span className="text-[11px] font-normal leading-snug text-white/45">
-                              Öffnet den Manager zum Planen und Vorbereiten
-                            </span>
-                          </span>
-                        </span>
-                        <ChevronRight className="h-4 w-4 shrink-0 text-white/35" aria-hidden />
-                      </HubRowLink>
-                    ) : null}
-                    <HubRowLink to="/app/mehr/trainer/team-push" className={subRowClass} isDemo={isDemo}>
-                      <span>Team-Push</span>
-                      <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
-                    </HubRowLink>
-                    <HubRowLink to="/app/mehr/trainer/vorlagen" className={subRowClass} isDemo={isDemo}>
-                      <span>Vorlagen</span>
-                      <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
-                    </HubRowLink>
-                    {showDebugHubButtons && (
-                      <button type="button" onClick={runParentsPushDebug} className={subRowClass}>
-                        <span>Direkt-Push Debug</span>
-                        <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
-                      </button>
-                    )}
-                      </>
-                    ) : null}
-                    {showPreviewLink && (
-                      <HubRowLink to="/app/mehr/trainer/preview" className={subRowClass} isDemo={isDemo}>
+                  {showTrainerTools ? (
+                    <>
+                  {showManagerLink ? (
+                    <HubRowLink to="/manager/training/einheiten" className={subRowClass} isDemo={isDemo}>
+                      <span className="flex min-w-0 items-start gap-2">
+                        <Dumbbell className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
                         <span className="flex min-w-0 flex-col gap-0.5">
-                          <span>Rollen-Vorschau (nur Plattformadmin)</span>
+                          <span>Trainingsplanung</span>
                           <span className="text-[11px] font-normal leading-snug text-white/45">
-                            Ändert nur die Darstellung, nicht deine Berechtigungen.
+                            Öffnet den Manager zum Planen und Vorbereiten
                           </span>
                         </span>
-                        <ChevronRight className="h-4 w-4 shrink-0 text-white/35" aria-hidden />
-                      </HubRowLink>
-                    )}
-                  </div>
-                </PremiumCard>
-              )}
-            </div>
-          )}
+                      </span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-white/35" aria-hidden />
+                    </HubRowLink>
+                  ) : null}
+                  <HubRowLink to="/app/mehr/trainer/team-push" className={subRowClass} isDemo={isDemo}>
+                    <span>Team-Push</span>
+                    <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
+                  </HubRowLink>
+                  <HubRowLink to="/app/mehr/trainer/vorlagen" className={subRowClass} isDemo={isDemo}>
+                    <span>Vorlagen</span>
+                    <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
+                  </HubRowLink>
+                  {showDebugHubButtons && (
+                    <button type="button" onClick={runParentsPushDebug} className={subRowClass}>
+                      <span>Direkt-Push Debug</span>
+                      <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
+                    </button>
+                  )}
+                    </>
+                  ) : null}
+                  {showPreviewLink && (
+                    <HubRowLink to="/app/mehr/trainer/preview" className={subRowClass} isDemo={isDemo}>
+                      <span className="flex min-w-0 flex-col gap-0.5">
+                        <span>Rollen-Vorschau (nur Plattformadmin)</span>
+                        <span className="text-[11px] font-normal leading-snug text-white/45">
+                          Ändert nur die Darstellung, nicht deine Berechtigungen.
+                        </span>
+                      </span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-white/35" aria-hidden />
+                    </HubRowLink>
+                  )}
+                </div>
+              </PremiumCard>
+            )}
+          </div>
+        )}
 
-          {showManagerLink ? (
-            <HubRowLink to="/manager" className={menuRowClass} isDemo={isDemo}>
-              <span className="flex min-w-0 items-center gap-3">
-                <LayoutDashboard className="more-menu-icon h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
-                <span>
-                  <span className="block">Spielzeit Manager öffnen</span>
-                  <span className="more-description block text-[12px] font-normal leading-snug">Vereinsverwaltung und Planung</span>
-                </span>
+        {showManagerLink ? (
+          <HubRowLink to="/manager" className={dsPanelRowClass()} isDemo={isDemo}>
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="font-semibold">Spielzeit Manager öffnen</span>
+              <span className="text-[11px] font-normal leading-snug text-white/45">
+                Eigener Bereich für Verwaltung und Planung · Anmeldung bleibt erhalten
               </span>
-              <ChevronRight className="h-5 w-5 shrink-0 text-white/40" aria-hidden />
-            </HubRowLink>
-          ) : null}
+            </span>
+            <ChevronRight className="h-5 w-5 shrink-0 text-white/40" aria-hidden />
+          </HubRowLink>
+        ) : null}
 
-          {(effectiveRole === 'parent' ||
-            normalizeRole(effectiveRole) === 'parent' ||
-            normalizeRole(sessionEffectiveRole) === 'parent') && (
-            <HubRowLink
-              to="/app/parent-onboarding?mode=link"
-              className={menuRowClass}
-              isDemo={isDemo}
-            >
-              <span className="flex min-w-0 flex-col gap-0.5">
-                <span className="flex items-center gap-3">
-                  <Link2 className="more-menu-icon h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
-                  <span>{hasLinkedChildren ? 'Weiteres Kind verknüpfen' : 'Kind verknüpfen'}</span>
-                </span>
-                <span className="more-description more-description--indented text-[12px] font-normal">
-                  Aktive Saison und verfügbare Spieler
-                </span>
-              </span>
-              <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
-            </HubRowLink>
-          )}
-        </div>
-      </section>
-
-      <section aria-labelledby="more-settings-heading">
-        <h2 id="more-settings-heading" className="more-section-heading">Einstellungen</h2>
-        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-          {showTrainerTools ? (
-            <HubRowLink
-              to="/app/mehr/trainer/erinnerungen"
-              className={menuRowClass}
-              isDemo={isDemo}
-            >
-              <span className="flex min-w-0 flex-col gap-0.5">
-                <span className="flex items-center gap-3">
-                  <Bell className="more-menu-icon h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
-                  <span>Automatische Erinnerungen</span>
-                </span>
-                <span className="more-description more-description--indented text-[12px] font-normal">
-                  Training, Match, Push und Badge einstellen
-                </span>
-              </span>
-              <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
-            </HubRowLink>
-          ) : null}
-
-          <HubRowLink to="/app/profile" className={menuRowClass} isDemo={isDemo}>
+        {(effectiveRole === 'parent' ||
+          normalizeRole(effectiveRole) === 'parent' ||
+          normalizeRole(sessionEffectiveRole) === 'parent') && (
+          <HubRowLink
+            to="/app/parent-onboarding?mode=link"
+            className={dsPanelRowClass()}
+            isDemo={isDemo}
+          >
             <span className="flex min-w-0 flex-col gap-0.5">
               <span className="flex items-center gap-3">
-                <Settings className="more-menu-icon h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
-                <span>Einstellungen</span>
+                <Link2 className="h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
+                <span>{hasLinkedChildren ? 'Weiteres Kind verknüpfen' : 'Kind verknüpfen'}</span>
               </span>
-              {isDemo ? (
-                <span className="pl-8 text-[11px] font-normal text-white/40">Noch nicht Teil der Demo</span>
-              ) : null}
+              <span className="pl-8 text-[11px] font-normal text-white/45">
+                Aktive Saison und verfügbare Spieler
+              </span>
             </span>
             <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
           </HubRowLink>
-          <div className={menuRowClass}>
-            <span className="flex items-center gap-3">
-              <Vibrate className="more-menu-icon h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
-              <span>Vibration bei Aktionen</span>
+        )}
+
+        {showTrainerTools ? (
+          <HubRowLink
+            to="/app/mehr/trainer/erinnerungen"
+            className={dsPanelRowClass()}
+            isDemo={isDemo}
+          >
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="flex items-center gap-3">
+                <Bell className="h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
+                <span>Automatische Erinnerungen</span>
+              </span>
+              <span className="pl-8 text-[11px] font-normal text-white/45">
+                Training, Match, Push und Badge einstellen
+              </span>
             </span>
-            <button
-              type="button"
-              role="switch"
-              aria-label="Vibration bei Aktionen"
-              aria-checked={hapticOn}
-              className={dsGlassToggleTrack(hapticOn)}
-              onClick={() => {
-                const next = !hapticOn;
-                setHapticEnabled(next);
-                setHapticOn(next);
-                if (next) triggerHaptic();
-              }}
-            >
-              <span
-                className={[
-                  'absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-200 ease-out',
-                  hapticOn ? 'left-5' : 'left-0.5',
-                ].join(' ')}
-                aria-hidden
-              />
-            </button>
-          </div>
-        </div>
-      </section>
+            <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
+          </HubRowLink>
+        ) : null}
+
+        <HubRowLink to="/app/profile" className={dsPanelRowClass()} isDemo={isDemo}>
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="flex items-center gap-3">
+              <Settings className="h-5 w-5 text-[rgb(var(--club-accent-text-rgb))]" aria-hidden />
+              <span>Einstellungen</span>
+            </span>
+            {isDemo ? (
+              <span className="pl-8 text-[11px] font-normal text-white/40">Noch nicht Teil der Demo</span>
+            ) : null}
+          </span>
+          <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
+        </HubRowLink>
+      </nav>
 
       {isDemo ? <DemoHelpCard /> : null}
 
+      <PremiumCard variant="subtle" showAmbientGlow={false}>
+        <div className="flex items-center justify-between gap-3 text-[16px] font-semibold text-white">
+          <span className="flex items-center gap-3">
+            <span className="text-lg leading-none" aria-hidden>
+              🔘
+            </span>
+            <span>Vibration bei Aktionen</span>
+          </span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={hapticOn}
+            className={dsGlassToggleTrack(hapticOn)}
+            onClick={() => {
+              const next = !hapticOn;
+              setHapticEnabled(next);
+              setHapticOn(next);
+              if (next) triggerHaptic();
+            }}
+          >
+            <span
+              className={[
+                'absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-200 ease-out',
+                hapticOn ? 'left-5' : 'left-0.5',
+              ].join(' ')}
+              aria-hidden
+            />
+          </button>
+        </div>
+      </PremiumCard>
+
       {canSwitchTeam && (
-        <section aria-labelledby="more-team-heading">
-          <h2 id="more-team-heading" className="more-section-heading">Team &amp; Saison</h2>
-          <PremiumCard variant="subtle" showAmbientGlow={false} className="text-white">
-            <label className="more-description block text-[12px]" htmlFor="mehr-team-switch">
-              Angezeigte Mannschaft und Saison
-            </label>
-            <select
-              id="mehr-team-switch"
-              className="mt-1 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white"
-              value={viewTeamSeasonId ?? selectedTeamSeasonId ?? ''}
-              onChange={(e) => {
-                const id = e.target.value || null;
-                if (!id) {
-                  setViewTeamSeasonId(null);
-                  return;
-                }
-                const ts = (teamSeasons ?? []).find((row) => row.id === id);
-                if (!ts) return;
-                const action = resolveTeamSeasonSwitcherAction(ts.status);
-                if (action === 'select-work') {
-                  setSelectedTeamSeasonId(id);
-                  return;
-                }
-                setViewTeamSeasonId(id);
-              }}
-            >
-              {(teamSeasons ?? []).map((ts) => (
-                <option key={ts.id} value={ts.id}>
-                  {formatTeamSeasonCompactSwitcherLabel(
-                    {
-                      displayName: ts.display_name,
-                      ageGroup: ts.age_group,
-                      teamName: ts.team?.name,
-                      seasonName: ts.season?.name,
-                      status: ts.status,
-                    },
-                    {
-                      markArchived: true,
-                      markCurrent: ts.id === selectedTeamSeasonId,
-                    },
-                  )}
-                </option>
-              ))}
-            </select>
-            <p className="more-description mt-2 text-[12px]">Die aktive Saison bleibt beim Wechsel ins Archiv erhalten.</p>
-          </PremiumCard>
-        </section>
+        <PremiumCard variant="subtle" showAmbientGlow={false} className="mt-6 text-white">
+          <SectionTitle as="h2" variant="subtle" className="!text-[16px] !font-semibold !text-white">
+            Team / Saison
+          </SectionTitle>
+          <label className="mt-2 block text-[12px] text-white/60" htmlFor="mehr-team-switch">
+            Anzeige / Historie (Archiv ändert die aktive Saison nicht)
+          </label>
+          <select
+            id="mehr-team-switch"
+            className="mt-1 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white"
+            value={viewTeamSeasonId ?? selectedTeamSeasonId ?? ''}
+            onChange={(e) => {
+              const id = e.target.value || null;
+              if (!id) {
+                setViewTeamSeasonId(null);
+                return;
+              }
+              const ts = (teamSeasons ?? []).find((row) => row.id === id);
+              if (!ts) return;
+              const action = resolveTeamSeasonSwitcherAction(ts.status);
+              if (action === 'select-work') {
+                setSelectedTeamSeasonId(id);
+                return;
+              }
+              setViewTeamSeasonId(id);
+            }}
+          >
+            {(teamSeasons ?? []).map((ts) => (
+              <option key={ts.id} value={ts.id}>
+                {formatTeamSeasonCompactSwitcherLabel(
+                  {
+                    displayName: ts.display_name,
+                    ageGroup: ts.age_group,
+                    teamName: ts.team?.name,
+                    seasonName: ts.season?.name,
+                    status: ts.status,
+                  },
+                  {
+                    markArchived: true,
+                    markCurrent: ts.id === selectedTeamSeasonId,
+                  },
+                )}
+              </option>
+            ))}
+          </select>
+        </PremiumCard>
       )}
 
       {showDebugHubButtons && (
