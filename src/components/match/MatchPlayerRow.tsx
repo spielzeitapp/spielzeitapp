@@ -66,7 +66,8 @@ export const MatchPlayerRow: React.FC<{
   hideSubline?: boolean;
   nameStatus?: React.ReactNode;
   hideNumber?: boolean;
-}> = ({ player, status, selected = false, rightLabel, metricHint, onClick, tone = "utility", layout = "default", roomy = false, trailing, hideSubline = false, nameStatus, hideNumber = false }) => {
+  hideLaz?: boolean;
+}> = ({ player, status, selected = false, rightLabel, metricHint, onClick, tone = "utility", layout = "default", roomy = false, trailing, hideSubline = false, nameStatus, hideNumber = false, hideLaz = false }) => {
   const number = player.jersey_number ?? player.number ?? null;
   const isMatchday = tone === "matchday";
   const baseSub = positionSubline(player.position);
@@ -115,7 +116,7 @@ export const MatchPlayerRow: React.FC<{
         ) : (
           <span className="ml-1 flex max-w-[7.25rem] shrink-0 flex-col items-end gap-1">
             <PlayerSpecialStatusBadges
-              isLaz={player.is_laz_player}
+              isLaz={!hideLaz && player.is_laz_player}
               isInjured={player.is_injured}
               size="xs"
             />
@@ -154,7 +155,7 @@ export const MatchPlayerRow: React.FC<{
       trailing={
         <>
           <PlayerSpecialStatusBadges
-            isLaz={player.is_laz_player}
+            isLaz={!hideLaz && player.is_laz_player}
             isInjured={player.is_injured}
             size="xs"
             className="mr-1"
