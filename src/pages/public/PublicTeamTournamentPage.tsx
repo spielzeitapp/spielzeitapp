@@ -7,7 +7,7 @@ import { TournamentFanPlayerCard } from '../../components/tournament/TournamentF
 import { TournamentFanFixture, FanTeamLogo } from '../../components/tournament/TournamentFanFixture';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
-import { MapPin, Moon, Play, Sun, Share2 } from 'lucide-react';
+import { CalendarDays, MapPin, Radio, Moon, Play, Sun, Share2 } from 'lucide-react';
 import { tournamentLivestreamEmbedUrl, tournamentLivestreamUrl } from '../../../server/lib/tournamentLivestream.js';
 import {
   fetchPublicTeamTournamentPage,
@@ -335,14 +335,17 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   }
   const ContentTag=embedded?'div':'main';
   const accent = normalizeBrandColor(page?.accentColor) ?? '#c82333';
-  const showTournamentCover = !embedded && !matchId && publicId === NEXT_PRO_U12_2026_ID;
+  const isNextProOverview = !embedded && !matchId && publicId === NEXT_PRO_U12_2026_ID;
+  const pageActions = (
+    <div className="flex shrink-0 items-center gap-2">
+      <button type="button" onClick={()=>void onShare()} aria-label="Teilen" title="Teilen" className="flex h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 text-sm font-bold"><Share2 size={18} aria-hidden/><span className={isNextProOverview ? "sr-only" : undefined}>Teilen</span></button>
+      <button type="button" onClick={toggleTheme} aria-label={theme === 'night' ? 'Tagmodus einschalten' : 'Nachtmodus einschalten'} title={theme === 'night' ? 'Tagmodus einschalten' : 'Nachtmodus einschalten'} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)]">{theme === 'night' ? <Sun size={20} aria-hidden/> : <Moon size={20} aria-hidden/>}</button>
+    </div>
+  );
   const pageHeader = (
     <header className="flex items-center justify-between gap-2">
         <Link to={selectedMatch && !returnsToLive ? location.pathname : returnTo} state={location.state} aria-label={returnsToLive ? 'Zurück zum Livespiel' : 'Zurück zum Turnier'} className="inline-flex min-h-11 min-w-0 items-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2 text-sm font-bold">← Zurück<span className="ml-1 hidden min-[380px]:inline">{returnsToLive ? 'zum Livespiel' : 'zum Turnier'}</span></Link>
-        <div className="flex shrink-0 items-center gap-2">
-          <button type="button" onClick={()=>void onShare()} className="flex h-11 items-center gap-2 rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] px-3 text-sm font-bold"><Share2 size={18} aria-hidden/>Teilen</button>
-          <button type="button" onClick={toggleTheme} aria-label={theme === 'night' ? 'Tagmodus einschalten' : 'Nachtmodus einschalten'} title={theme === 'night' ? 'Tagmodus einschalten' : 'Nachtmodus einschalten'} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)]">{theme === 'night' ? <Sun size={20} aria-hidden/> : <Moon size={20} aria-hidden/>}</button>
-        </div>
+        {!isNextProOverview ? pageActions : null}
       </header>
   );
   const presentationTools = page && !embedded ? <>
@@ -380,30 +383,30 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
       colorScheme: theme === 'day' ? 'light' : 'dark',
     } as React.CSSProperties}>
     <ContentTag className={embedded?"space-y-4":"mx-auto max-w-2xl space-y-4 px-4 pb-8 pt-4"}>
-      {!embedded && !showTournamentCover ? pageHeader : embedded && selectedMatch ? <button type="button" onClick={()=>setSearchParams({})} className="min-h-11 rounded-full border border-[var(--t-border)] px-4 text-sm font-bold">← Zurück zur Turnierübersicht</button> : null}
-      {shareHint ? <p role="status" className="text-sm text-[var(--t-muted)]">{shareHint}</p> : null}
+      {!embedded && !isNextProOverview ? pageHeader : embedded && selectedMatch ? <button type="button" onClick={()=>setSearchParams({})} className="min-h-11 rounded-full border border-[var(--t-border)] px-4 text-sm font-bold">← Zurück zur Turnierübersicht</button> : null}
+      {!isNextProOverview && shareHint ? <p role="status" className="text-sm text-[var(--t-muted)]">{shareHint}</p> : null}
       {loading ? <p>Turnier wird geladen…</p> : !page ? <section className={card}><p>{error || 'Turnier nicht verfügbar'}</p><button onClick={()=>void load()} className="mt-3 underline">Erneut laden</button></section> : <>
-        {!showTournamentCover ? presentationTools : null}
+        {!isNextProOverview ? presentationTools : null}
         {selectedMatch ? <PublicTournamentMatchView page={page} match={selectedMatch} view={matchView} onView={view=>setSearchParams({spiel:selectedMatch.id,ansicht:view})}/> : <>
-        {showTournamentCover ? (
-          <section aria-labelledby="nextpro-title" className="relative isolate overflow-hidden rounded-2xl bg-[#101012] text-white">
-            <img src="/images/nextpro-u12-2026.webp" alt="" fetchPriority="high"
-              className="pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover object-[72%_center]" />
-            <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-r from-black via-black/[.85] to-black/20" />
-            <div className="max-w-[75%] px-4 py-5 sm:px-6 sm:py-7">
-              <TournamentClubLogo name={page.teamName} logoUrl={page.teamLogoUrl} size="sm" />
-              <h1 id="nextpro-title" className="mt-2 text-2xl font-black uppercase leading-none sm:text-4xl">{page.tournamentName}</h1>
-              <p className="mt-2 text-sm font-semibold text-zinc-100">{page.dateLabel}</p>
-              {page.venue ? <p className="mt-1 text-sm text-zinc-200">{page.venue}</p> : null}
+        {isNextProOverview ? (
+          <section aria-labelledby="nextpro-title" className="rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] px-3 pb-2 pt-3">
+            <div className="flex items-center justify-between gap-2">
+              <img src="/logos/nextpro-hallencup.webp" alt="NextPro" width="50" height="50" className="h-auto w-[50px] shrink-0 rounded-full max-[359px]:w-10" />
+              <div className="min-w-0 flex-1">
+                <h1 id="nextpro-title" className="text-base font-extrabold leading-tight">{page.tournamentName}</h1>
+                <p className="mt-1 text-xs text-[var(--t-muted)]">{page.dateLabel}</p>
+              </div>
+              {pageActions}
             </div>
-            <div className="flex flex-wrap gap-2 bg-black/[.85] px-4 py-3 sm:px-6">
-              <button type="button" onClick={() => openTournamentSection('games')} className="min-h-11 rounded-xl bg-[#bd1733] px-4 text-sm font-bold text-white">Spielplan</button>
-              <button type="button" onClick={() => openTournamentSection('ticker')} className="min-h-11 rounded-xl border border-white/35 px-4 text-sm font-bold text-white">Liveticker</button>
-              {livestreamUrl ? <button type="button" onClick={() => livestreamSection.current?.scrollIntoView({ block: 'start' })} className="min-h-11 rounded-xl border border-white/35 px-4 text-sm font-bold text-white">{streamLabel}</button> : null}
+            {shareHint ? <p role="status" className="mt-1 text-xs text-[var(--t-muted)]">{shareHint}</p> : null}
+            <div className="mt-2 flex flex-wrap gap-2 border-t border-[var(--t-border)] pt-1 text-sm font-bold text-[var(--t-accent)]">
+              <button type="button" onClick={() => openTournamentSection('games')} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 hover:bg-[color-mix(in_srgb,var(--t-accent)_8%,transparent)]"><CalendarDays size={15} aria-hidden/>Spielplan</button>
+              <button type="button" onClick={() => openTournamentSection('ticker')} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 hover:bg-[color-mix(in_srgb,var(--t-accent)_8%,transparent)]"><Radio size={15} aria-hidden/>Liveticker</button>
+              {livestreamUrl ? <button type="button" onClick={() => livestreamSection.current?.scrollIntoView({ block: 'start' })} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 hover:bg-[color-mix(in_srgb,var(--t-accent)_8%,transparent)]">{streamLabel}</button> : null}
             </div>
           </section>
         ) : null}
-        {!embedded && !showTournamentCover ? <section className="rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-3">
+        {!embedded && !isNextProOverview ? <section className="rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] p-3">
           <div className="flex items-center gap-3"><TournamentClubLogo name={page.teamName} logoUrl={page.teamLogoUrl} size="sm"/><div className="min-w-0 flex-1"><h1 className="text-base font-extrabold leading-snug">{page.tournamentName}</h1><p className="mt-1 text-xs text-[var(--t-muted)]">{page.dateLabel} · {page.ageGroupLabel}</p></div></div>
           {tournamentInfo}
         </section> : null}
@@ -547,7 +550,7 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
         {tab==='scorers'?<section className={card}><h2 className={heading}>Unsere Torschützenliste</h2>{page.scorers?.some(s=>s.example)?<p className="mb-3 text-sm text-[var(--t-warning)]">TEST-Beispieldaten aus unserem Kader – keine bestätigten historischen Torschützen.</p>:null}{scorerTotals.length?<ol className="space-y-3">{scorerTotals.map((s,i)=><li key={s.name}><TournamentFanPlayerCard player={profileFor(s.name)} clubName={page.ownParticipantName || page.teamName} clubLogo={page.teamLogoUrl} goals={s.goals} rank={i+1}/></li>)}</ol>:<p>Noch keine Torschützen erfasst.</p>}</section>:null}
         {tab==='roster'?<section className={card}><h2 className={heading}>Unser Team</h2>{page.fanRosterExample?<p className="mb-3 text-sm text-[var(--t-muted)]">TEST-Beispiel mit Bildern und Nummern aus unserem aktuellen Kader.</p>:null}{rosterPlayers.length?<ul className="space-y-3">{rosterPlayers.map(player=><li key={player.name}><TournamentFanPlayerCard player={player} clubName={page.ownParticipantName || page.teamName} clubLogo={page.teamLogoUrl}/></li>)}</ul>:<p>Der Turnierkader ist noch nicht festgelegt.</p>}</section>:null}
         </>}
-        {showTournamentCover ? <>{pageHeader}{presentationTools}<section className={card}>{tournamentInfo}</section></> : null}
+        {isNextProOverview ? <>{pageHeader}{presentationTools}<section className={card}>{tournamentInfo}</section></> : null}
         {!embedded ? <Link to={returnTo} className="public-tournament-cta block rounded-full px-5 py-3 text-center text-sm font-bold">Zum Turniercenter in der App</Link> : null}
       </>}
     </ContentTag>
