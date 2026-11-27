@@ -251,10 +251,6 @@
     outline: 2px solid #b91c1c;
     outline-offset: 2px;
   }
-  .manager-desktop-light section[aria-label="Beitrag erstellen"] > div > div {
-    background: #fff !important;
-    box-shadow: none !important;
-  }
   .manager-desktop-light section[aria-label="Beitrag erstellen"] .pointer-events-none { display: none; }
 }
 
