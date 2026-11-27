@@ -1,4 +1,6 @@
 import { supabase } from "./supabaseClient";
+import { resolveRotationForMatch, sameRotationSlots } from './tournamentRotation';
+import { templateEmptySlots } from './tournamentLineupTemplate';
 import { isDemoTournamentEventId } from "../demo/demoTournamentState";
 import {
   readMatchLineupVariants,
@@ -57,18 +59,27 @@ export async function applyTournamentLineupTemplate(
     throw new Error(
       "Die Übernahme wird für echte, noch nicht vorbereitete Turnierspiele angeboten.",
     );
+  // Validate the per-game plan before the RPC creates the canonical start lineup.
+  const resolved = await resolveStoredRotation(record.blocks, matchId);
   const { error } = await supabase.rpc("apply_tournament_lineup_template", {
     p_event: eventId,
     p_match: matchId,
     p_expected_updated_at: record.updated_at,
   });
   if (error) throw new Error(error.message);
-  writeMatchLineupVariants(matchId, record.blocks);
+  writeMatchLineupVariants(matchId, resolved);
+}
+async function resolveStoredRotation(blocks: StoredMatchLineupVariants, matchId: string): Promise<StoredMatchLineupVariants> {
+  if (!blocks.rotation || blocks.rotationMatch) return blocks;
+  const { data, error } = await supabase.from('tournament_matches').select('phase,planned_minutes').eq('match_id', matchId).maybeSingle();
+  if (error || !data) throw new Error(error?.message ?? 'Spielphase konnte nicht geladen werden.');
+  return resolveRotationForMatch(blocks, matchId, data.phase, data.planned_minutes);
 }
 export async function fetchRemoteMatchBlocks(
   matchId: string,
 ): Promise<StoredMatchLineupVariants | null> {
   if (matchId.includes("demo")) return readMatchLineupVariants(matchId);
+  let hasRotation = false;
   try {
     const { data, error } = await supabase
       .from("matches")
@@ -78,12 +89,15 @@ export async function fetchRemoteMatchBlocks(
     if (error) return null;
     const value =
       data?.tournament_lineup_blocks as StoredMatchLineupVariants | null;
+    hasRotation = Boolean(value?.rotation);
     return value?.version === 1 &&
       value.variants?.[1]?.slots &&
       value.variants?.[2]?.slots
-      ? value
+      ? await resolveStoredRotation(value, matchId)
       : null;
-  } catch {
+  } catch (error) {
+    // Never let an unresolved scheduled plan fall back to legacy A/B rotation.
+    if (hasRotation || readMatchLineupVariants(matchId)?.rotation) throw error;
     return null;
   }
 }
@@ -92,12 +106,36 @@ export async function saveRemoteMatchBlocks(
   blocks: StoredMatchLineupVariants,
 ): Promise<void> {
   if (matchId.includes("demo")) return;
+  // The regular lineup editor reconstructs variants; preserve per-match policy.
+  const previous = readMatchLineupVariants(matchId);
+  blocks = { ...blocks, rotation: blocks.rotation ?? previous?.rotation, rotationMatch: blocks.rotationMatch ?? previous?.rotationMatch };
   const { error } = await supabase
     .from("matches")
     .update({ tournament_lineup_blocks: blocks })
     .eq("id", matchId)
     .eq("status", "upcoming");
   if (error) throw new Error(error.message);
+}
+
+/** Attach only the policy to an already prepared, upcoming match. Never replace its lineup. */
+export async function savePreparedTournamentRotation(matchId: string, blocks: StoredMatchLineupVariants, phase: string | null | undefined, duration: number): Promise<void> {
+  const resolved = resolveRotationForMatch(blocks, matchId, phase, duration);
+  const [lineup, bench] = await Promise.all([
+    supabase.from('match_lineup').select('slot,player_id').eq('match_id', matchId),
+    supabase.from('match_bench').select('player_id').eq('match_id', matchId),
+  ]);
+  if (lineup.error || bench.error) throw new Error((lineup.error || bench.error)!.message);
+  const actual = templateEmptySlots();
+  for (const row of lineup.data ?? []) {
+    if (row.slot in actual) actual[row.slot as keyof typeof actual] = row.player_id;
+  }
+  const actualSquad = new Set([...(lineup.data ?? []).map(row => row.player_id), ...(bench.data ?? []).map(row => row.player_id)]);
+  const start = resolved.variants[resolved.startVariant];
+  if (!sameRotationSlots(actual, start.slots) || actualSquad.size !== start.squadIds.length || [...actualSquad].some(id => !start.squadIds.includes(id))) throw new Error('Dieses Spiel hat eine andere Aufstellung oder einen anderen Kader. Zuerst im Spiel mit der geplanten Startaufstellung abgleichen.');
+  const { data, error } = await supabase.from('matches').update({ tournament_lineup_blocks: resolved })
+    .eq('id', matchId).eq('status', 'upcoming').is('live_started_at', null).select('id').maybeSingle();
+  if (error || !data) throw new Error(error?.message ?? 'Spiel wurde bereits gestartet oder ist nicht bearbeitbar.');
+  writeMatchLineupVariants(matchId, resolved);
 }
 
 /** Prepare empty tournament matches before the regular match editor loads defaults.
