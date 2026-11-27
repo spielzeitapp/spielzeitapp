@@ -1,4 +1,6 @@
 import { Modal } from '../../app/ui/Modal';
+import { TournamentRotationPlanner } from './TournamentRotationPlanner';
+import { resolveRotationForMatch } from '../../lib/tournamentRotation';
 import { useNavigate } from 'react-router-dom';
 import { useInternalBasePath } from '../../demo/demoPaths';
 import { matchLineupPath as matchPreparationPath } from '../../lib/matchPreparationAccess';
@@ -26,6 +28,7 @@ import {
   fetchTournamentLineupTemplate,
   saveTournamentLineupTemplate,
   applyTournamentLineupTemplate,
+  savePreparedTournamentRotation,
   type TournamentTemplateRecord,
 } from "../../lib/tournamentLineupTemplates";
 import { fetchTournamentSquadPlayerIds } from "../../lib/tournamentSquad";
@@ -238,9 +241,10 @@ export function TournamentLineupTemplatePanel({
       if (!game.match_id || !eligible.some(s => s.id === game.id)) continue;
       try {
         if (demo) {
-          const start = saved.blocks.variants[saved.blocks.startVariant];
+          const blocks = resolveRotationForMatch(saved.blocks, game.match_id, game.phase, game.planned_minutes);
+          const start = blocks.variants[blocks.startVariant];
           demo.setDemoMatchLineup(game.match_id, start.slots, start.squadIds, start.formationId);
-          writeMatchLineupVariants(game.match_id, saved.blocks);
+          writeMatchLineupVariants(game.match_id, blocks);
         } else await applyTournamentLineupTemplate(eventId, game.match_id, saved);
         count++;
         setAppliedMatches(ids => [...ids, game.match_id!]);
@@ -309,7 +313,7 @@ export function TournamentLineupTemplatePanel({
       </fieldset>
       <div className="grid grid-cols-2 gap-2" role="group" aria-label="Aufstellungsart">
         {(['single', 'blocks'] as const).map(mode => <button key={mode} type="button"
-          disabled={!canEdit || busy} aria-pressed={(draft.lineupMode ?? 'blocks') === mode}
+          disabled={!canEdit || busy || Boolean(draft.rotation && mode === 'blocks')} aria-pressed={(draft.lineupMode ?? 'blocks') === mode}
           className={`min-h-12 rounded-xl border px-2 py-2 text-[16px] font-bold ${(draft.lineupMode ?? 'blocks') === mode ? 'sz-club-tab-active text-white' : 'sz-club-event-action text-white/65'}`}
           onClick={() => {
             const next = structuredClone(draft);
@@ -393,6 +397,21 @@ export function TournamentLineupTemplatePanel({
         </div>
       </section>
       </div>
+      <TournamentRotationPlanner draft={draft} players={players} games={slots} disabled={!canEdit || busy} onApplyPrepared={async game => {
+        if (!canEdit || busy || !game.match_id || game.match_status !== 'upcoming') return;
+        if (demo) throw new Error('Die Speicherung für bereits vorbereitete Spiele ist für echte Turnierspiele verfügbar.');
+        await savePreparedTournamentRotation(game.match_id, draft, game.phase, game.planned_minutes);
+      }} onChange={next => {
+        // Per-game rotation is based on a single, shared start lineup.
+        if (next.rotation) {
+          next.lineupMode = 'single';
+          next.variants[1] = structuredClone(next.variants[next.startVariant]);
+          next.variants[2] = structuredClone(next.variants[1]);
+          next.startVariant = 1;
+          setBlock(1);
+        }
+        edit(next);
+      }}/>
       {canEdit ? (
         <div className={`grid gap-2 ${useBlocks ? 'grid-cols-3' : 'grid-cols-1'}`} aria-label="Blockaktionen">
           {useBlocks ? <><button

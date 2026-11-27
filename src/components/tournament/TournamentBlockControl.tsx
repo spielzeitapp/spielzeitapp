@@ -7,9 +7,23 @@ import {readMatchLineupVariants,writeMatchLineupVariants,type StoredMatchLineupV
 import {planBlockChange,type BlockChange} from '../../lib/tournamentBlocks';
 import {tournamentBlockReminder} from '../../lib/tournamentBlockReminder';
 import {dsPrimaryCtaClass} from '../../lib/premiumDesignSystem';
+import {TournamentRotationControl} from './TournamentRotationControl';
 function readProgress(matchId:string): {next:1|2;last:number}|null {try {const p=JSON.parse(localStorage.getItem(`spielzeit:block-progress:${matchId}`)||'null');return p&&(p.next===1||p.next===2)&&Number.isFinite(p.last)?p:null;}catch{return null;}}
 type Props={matchId:string;seconds:number;running?:boolean;current:Record<FieldSlotId,string|null>;squad:string[];name:(id:string)=>string;busy:boolean;onApply:(changes:BlockChange[],slots:Record<FieldSlotId,string|null>)=>Promise<boolean>;basePath:string};
 export function TournamentBlockControl({matchId,seconds,running=true,current,squad,name,busy,onApply,basePath}:Props) {
+ const [stored,setStored]=useState<StoredMatchLineupVariants|null>(null);
+ const [loading,setLoading]=useState(true);
+ const [error,setError]=useState('');
+ useEffect(()=>{let active=true;setLoading(true);setError('');setStored(null);
+  void fetchRemoteMatchBlocks(matchId).then(value=>{if(active){setStored(value??readMatchLineupVariants(matchId));if(value)writeMatchLineupVariants(matchId,value);}})
+   .catch(e=>{if(active)setError(e instanceof Error?e.message:String(e));})
+   .finally(()=>{if(active)setLoading(false);});return()=>{active=false;};},[matchId]);
+ if(loading)return <p className="p-3 text-white/60">Lade Wechselplanung…</p>;
+ if(error)return <p role="alert" className="p-3 text-amber-200">{error} Einzelwechsel bleiben möglich.</p>;
+ if(stored?.rotation||stored?.rotationMatch)return <TournamentRotationControl key={matchId} stored={stored} seconds={seconds} running={running} current={current} squad={squad} name={name} busy={busy} onApply={onApply}/>;
+ return <LegacyTournamentBlockControl key={matchId} matchId={matchId} seconds={seconds} running={running} current={current} squad={squad} name={name} busy={busy} onApply={onApply} basePath={basePath}/>;
+}
+function LegacyTournamentBlockControl({matchId,seconds,running=true,current,squad,name,busy,onApply,basePath}:Props) {
  const [remote,setRemote]=useState<StoredMatchLineupVariants|null>(null);
  const stored=remote??readMatchLineupVariants(matchId);
  const [next,setNext]=useState<1|2>(()=>readProgress(matchId)?.next ?? (stored?.startVariant===2?1:2));
