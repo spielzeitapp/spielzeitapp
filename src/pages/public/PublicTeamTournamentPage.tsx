@@ -371,12 +371,12 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
   return <div ref={scrollSurface} data-embedded={embedded || undefined} data-theme={theme} className={`${embedded?'tournament-audience-overview w-full min-w-0':'public-tournament-page bg-[var(--t-bg)]'} text-[var(--t-text)]`} style={{
       '--t-accent': embedded ? 'rgb(var(--club-accent-text-rgb))' : theme === 'day' ? mutedAccentOnLight(accent) : accent,
       '--t-on-accent': theme === 'day' ? '#ffffff' : readableTextColor(accent),
-      '--t-bg': theme === 'day' ? '#f7f8fa' : '#0b0b0f',
-      '--t-surface': theme === 'day' ? '#ffffff' : '#15151b',
+      '--t-bg': theme === 'day' ? '#f7f8fa' : '#08080b',
+      '--t-surface': theme === 'day' ? '#ffffff' : '#151217',
       '--t-text': theme === 'day' ? '#13151b' : '#ffffff',
       '--t-muted': theme === 'day' ? '#526071' : '#b5b5bc',
       '--t-border': theme === 'day' ? 'color-mix(in srgb, var(--t-accent) 10%, #e9e7ec)' : 'color-mix(in srgb, var(--t-accent) 27%, #25252d)',
-      '--t-fixture': theme === 'day' ? 'linear-gradient(135deg, var(--t-surface), color-mix(in srgb, var(--t-accent) 3%, var(--t-surface)))' : 'linear-gradient(135deg, var(--t-surface), color-mix(in srgb, var(--t-accent) 10%, var(--t-surface)))',
+      '--t-fixture': theme === 'day' ? 'linear-gradient(135deg, var(--t-surface), color-mix(in srgb, var(--t-accent) 3%, var(--t-surface)))' : 'repeating-linear-gradient(135deg,transparent 0 30px,#ffffff02 30px 31px),linear-gradient(135deg,var(--t-surface),color-mix(in srgb,var(--t-accent) 16%,#120d12))',
       '--t-player-badge': theme === 'day' ? '#f1f5f9' : 'rgba(0,0,0,.25)',
       '--t-live': theme==='day'?'#15803d':'#6ee7b7',
       '--t-warning': theme === 'day' ? '#854d0e' : '#fcd34d',
@@ -410,6 +410,12 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
           <div className="flex items-center gap-3"><TournamentClubLogo name={page.teamName} logoUrl={page.teamLogoUrl} size="sm"/><div className="min-w-0 flex-1"><h1 className="text-base font-extrabold leading-snug">{page.tournamentName}</h1><p className="mt-1 text-xs text-[var(--t-muted)]">{page.dateLabel} · {page.ageGroupLabel}</p></div></div>
           {tournamentInfo}
         </section> : null}
+        {!embedded ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2">
+            <a href={`/turnier-app/${encodeURIComponent(publicId)}`} className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-[var(--t-accent)]">Publikums-App öffnen →</a>
+            <button type="button" onClick={()=>void load(true)} className="min-h-11 rounded-lg px-2 text-xs font-semibold text-[var(--t-muted)]">↻ Aktualisieren</button>
+          </div>
+        ) : null}
         {livestreamUrl ? (
           <section id="livestream" ref={livestreamSection} className={`${card} scroll-mt-4 space-y-3`}>
             <h2 className={heading}>{recording ? 'Turnieraufzeichnung' : 'Livestream'}</h2>
