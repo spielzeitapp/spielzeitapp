@@ -95,6 +95,11 @@ await act(async () => { finishLogin({ error: { code: 'captcha_failed', message: 
 assert.equal(renderer.root.findByType(TurnstileMock).props.resetKey, 1);
 assert.match(renderer.root.findByProps({ role: 'alert' }).children.join(''), /Sicherheitsprüfung/);
 assert.doesNotMatch(renderer.root.findByProps({ role: 'alert' }).children.join(''), /timeout-or-duplicate/);
+act(() => renderer.root.findByType(TurnstileMock).props.onTokenChange('fresh-verified-token'));
+assert.equal(renderer.root.findAllByProps({ role: 'alert' }).length, 0, 'fresh captcha success must clear obsolete captcha failure');
+assert.equal(calls, 1, 'new captcha must not automatically resubmit login');
+const credentialsMessage = errorModule.exports.authErrorMessage({code:'invalid_credentials',message:'Invalid login credentials'});
+assert.equal(errorModule.exports.clearRecoveredCaptchaError(credentialsMessage), credentialsMessage);
 act(() => renderer.unmount());
 console.log('auth-login-single-submit-test: OK');
 assert.match(errorModule.exports.authErrorMessage({message:'Invalid login credentials',code:'invalid_credentials'}),/E-Mail-Adresse oder Passwort ist falsch/);

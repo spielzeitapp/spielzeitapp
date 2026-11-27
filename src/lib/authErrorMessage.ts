@@ -18,3 +18,9 @@ export function authErrorMessage(error: { message: string; code?: string }): str
   if(/[äöüß]|Bitte |Dein |Deine |konnte |nicht |bereits /.test(message))return message;
   return 'Die Anmeldung konnte nicht abgeschlossen werden. Bitte versuche es erneut oder verwende „Passwort vergessen“.';
 }
+
+/** A fresh verified token supersedes only the previous captcha error.
+ * Credential errors remain visible and no login is submitted automatically. */
+export function clearRecoveredCaptchaError(message: string): string {
+  return message === authErrorMessage({ code: 'captcha_failed', message: '' }) ? '' : message;
+}
