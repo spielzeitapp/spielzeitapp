@@ -232,9 +232,26 @@ export function TournamentSquadPanel({
   const featured = pickFeaturedTournamentSlot(slots);
   const featuredMatchId = featured?.match_id?.trim() ?? '';
 
+  const missingConfirmedIds = grouped.available
+    .filter((player) => !squadSet.has(player.id))
+    .map((player) => player.id);
+
   const renderGroup = (title: string, list: typeof players, status: PrepStatus) => (
     <section className="flex flex-col gap-1.5">
-      <p className={`${dsSectionLabelClass()} !text-[11px]`}>{title}</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className={`${dsSectionLabelClass()} !text-[11px]`}>{title}</p>
+        {status === 'available' && list.length > 0 ? (
+          <button
+            type="button"
+            className={`${dsScheduleGlassButtonClass()} min-h-11 px-3 text-sm disabled:opacity-50`}
+            disabled={saveBusy || missingConfirmedIds.length === 0}
+            onClick={() => void persistSquad([...squadIds, ...missingConfirmedIds])}
+            aria-label="Alle zugesagten Spieler auswählen"
+          >
+            Alle auswählen
+          </button>
+        ) : null}
+      </div>
       {list.length === 0 ? (
         <p className="text-[12px] text-white/45">Keine Spieler</p>
       ) : (
@@ -246,10 +263,10 @@ export function TournamentSquadPanel({
               <li key={p.id} className={disabled ? 'opacity-70' : ''}>
                 <MatchPlayerRow
                   player={p}
-                  selected={inSquad}
                   status={status === 'available' ? 'yes' : status === 'absent' ? 'no' : 'open'}
                   rightLabel={inSquad ? 'Im Kader' : undefined}
                   layout="team-roster"
+                  hideLaz
                   hideNumber
                   hideSubline
                   onClick={disabled ? undefined : () => toggleSquadPlayer(p.id)}
