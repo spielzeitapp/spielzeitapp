@@ -2,11 +2,13 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ClipboardList } from 'lucide-react';
 import { usePlayers } from '../../hooks/usePlayers';
+import { playerAvailabilityFromItem, resolveMatchEventRsvpStatus } from '../../lib/playerAvailability';
 import { comparePlayerItems } from '../../lib/rosterPlayer';
 import { matchLineupPath, matchPreparationPath } from '../../lib/matchPreparationAccess';
 import { dsScheduleGlassButtonClass, dsSectionLabelClass, dsStatusChipClass, DS_LIST_GAP } from '../../lib/premiumDesignSystem';
 import { AttendanceStatCard } from '../events/AttendanceStatCard';
 import { MatchPlayerRow } from '../match/MatchPlayerRow';
+import { PremiumStatusBadge } from '../player/PremiumStatusBadge';
 import {
   fetchTournamentSquadPlayerIds,
   saveTournamentSquad,
@@ -19,6 +21,7 @@ import { useInternalBasePath } from '../../demo/demoPaths';
 type Props = {
   tournamentEventId: string;
   teamSeasonId: string;
+  tournamentStartsAt: string;
   slots: TournamentMatchSlotView[];
   loading?: boolean;
   canManage?: boolean;
@@ -26,20 +29,7 @@ type Props = {
   onOpenTemplate?: () => void;
 };
 
-function normalizeAttendanceStatus(value: unknown): 'yes' | 'no' | null {
-  const raw = String(value ?? '').trim().toLowerCase();
-  if (raw === 'yes' || raw === 'dabei' || raw === 'attending' || raw === 'confirmed' || raw === 'present') return 'yes';
-  if (raw === 'no' || raw === 'abwesend' || raw === 'absent' || raw === 'declined') return 'no';
-  return null;
-}
-
 type PrepStatus = 'available' | 'open' | 'absent';
-
-function playerStatusFromAttendance(value: 'yes' | 'no' | null): PrepStatus {
-  if (value === 'yes') return 'available';
-  if (value === 'no') return 'absent';
-  return 'open';
-}
 
 function LineupLink({
   slots,
@@ -90,6 +80,7 @@ function LineupLink({
 export function TournamentSquadPanel({
   tournamentEventId,
   teamSeasonId,
+  tournamentStartsAt,
   slots,
   loading: slotsLoading = false,
   canManage = false,
@@ -106,7 +97,7 @@ export function TournamentSquadPanel({
   const [squadLoading, setSquadLoading] = useState(true);
   const [squadError, setSquadError] = useState<string | null>(null);
   const [saveBusy, setSaveBusy] = useState(false);
-  const [attendanceByPlayerId, setAttendanceByPlayerId] = useState<Record<string, 'yes' | 'no'>>({});
+  const [attendanceByPlayerId, setAttendanceByPlayerId] = useState<Record<string, string>>({});
   const [attendanceLoading, setAttendanceLoading] = useState(true);
 
   const reloadSquad = useCallback(async () => {
@@ -129,11 +120,10 @@ export function TournamentSquadPanel({
       if (isDemo && demo) {
         const byEvent = demo.getAttendanceByEventIds([tournamentEventId]);
         const data = byEvent[tournamentEventId];
-        const byPlayer: Record<string, 'yes' | 'no'> = {};
+        const byPlayer: Record<string, string> = {};
         if (data) {
           for (const [pid, status] of Object.entries(data.availabilityByPlayerId ?? {})) {
-            const n = normalizeAttendanceStatus(status);
-            if (n) byPlayer[pid.toLowerCase()] = n;
+            if (typeof status === 'string') byPlayer[pid.toLowerCase()] = status;
           }
         }
         if (!cancelled) {
@@ -151,12 +141,10 @@ export function TournamentSquadPanel({
       if (error) {
         setAttendanceByPlayerId({});
       } else {
-        const byPlayer: Record<string, 'yes' | 'no'> = {};
-        for (const row of (data ?? []) as Array<{ player_id: string | null; status: unknown }>) {
+        const byPlayer: Record<string, string> = {};
+        for (const row of (data ?? []) as Array<{ player_id: string | null; status: string | null }>) {
           const pid = String(row.player_id ?? '').toLowerCase();
-          if (!pid) continue;
-          const status = normalizeAttendanceStatus(row.status);
-          if (status) byPlayer[pid] = status;
+          if (pid && row.status) byPlayer[pid] = row.status;
         }
         setAttendanceByPlayerId(byPlayer);
       }
@@ -168,15 +156,12 @@ export function TournamentSquadPanel({
   }, [tournamentEventId, isDemo, demo]);
 
   const getAttendance = useCallback(
-    (playerId: string): 'yes' | 'no' | null => {
-      const key = playerId.toLowerCase();
-      const explicit = attendanceByPlayerId[key];
-      if (explicit) return explicit;
-      const player = players.find((p) => p.id.toLowerCase() === key);
-      if (player?.is_injured) return 'no';
-      return null;
-    },
-    [attendanceByPlayerId, players],
+    (player: (typeof players)[number]) => resolveMatchEventRsvpStatus(
+      attendanceByPlayerId[player.id.toLowerCase()],
+      playerAvailabilityFromItem(player),
+      tournamentStartsAt,
+    ),
+    [attendanceByPlayerId, tournamentStartsAt],
   );
 
   const squadSet = useMemo(() => new Set(squadIds), [squadIds]);
@@ -187,9 +172,9 @@ export function TournamentSquadPanel({
     const open: typeof sorted = [];
     const absent: typeof sorted = [];
     for (const p of sorted) {
-      const st = playerStatusFromAttendance(getAttendance(p.id));
-      if (st === 'available') available.push(p);
-      else if (st === 'open') open.push(p);
+      const status = getAttendance(p);
+      if (status === 'yes') available.push(p);
+      else if (status === 'unset') open.push(p);
       else absent.push(p);
     }
     return { available, open, absent };
@@ -219,7 +204,7 @@ export function TournamentSquadPanel({
   };
 
   const toggleSquadPlayer = (playerId: string) => {
-    if (saveBusy || getAttendance(playerId) === 'no') return;
+    if (saveBusy) return;
     const next = squadSet.has(playerId)
       ? squadIds.filter((id) => id !== playerId)
       : [...squadIds, playerId];
@@ -258,11 +243,13 @@ export function TournamentSquadPanel({
         <ul className={`flex flex-col ${DS_LIST_GAP}`}>
           {list.map((p) => {
             const inSquad = squadSet.has(p.id);
-            const disabled = saveBusy || status === 'absent';
+            const reason = getAttendance(p);
+            const disabled = saveBusy || (status === 'absent' && !inSquad);
             return (
               <li key={p.id} className={disabled ? 'opacity-70' : ''}>
                 <MatchPlayerRow
-                  player={p}
+                  player={{ ...p, is_injured: reason === 'injured' }}
+                  nameStatus={reason === 'sick' ? <PremiumStatusBadge label="Krank" tone="sick" /> : undefined}
                   status={status === 'available' ? 'yes' : status === 'absent' ? 'no' : 'open'}
                   rightLabel={inSquad ? 'Im Kader' : undefined}
                   layout="team-roster"
