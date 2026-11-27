@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ClipboardList, Users } from 'lucide-react';
+import { ClipboardList } from 'lucide-react';
 import { usePlayers } from '../../hooks/usePlayers';
 import { comparePlayerItems } from '../../lib/rosterPlayer';
 import { matchLineupPath, matchPreparationPath } from '../../lib/matchPreparationAccess';
 import { dsScheduleGlassButtonClass, dsSectionLabelClass, dsStatusChipClass, DS_LIST_GAP } from '../../lib/premiumDesignSystem';
+import { AttendanceStatCard } from '../events/AttendanceStatCard';
 import { MatchPlayerRow } from '../match/MatchPlayerRow';
 import {
   fetchTournamentSquadPlayerIds,
@@ -12,7 +13,6 @@ import {
 } from '../../lib/tournamentSquad';
 import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
 import { pickFeaturedTournamentSlot } from './tournamentCenterUtils';
-import { TC_CARD, TC_CARD_INNER, TC_SECTION_LABEL } from './tournamentCenterStyles';
 import { useDemoMode } from '../../demo/DemoContext';
 import { useInternalBasePath } from '../../demo/demoPaths';
 
@@ -233,83 +233,73 @@ export function TournamentSquadPanel({
   const featuredMatchId = featured?.match_id?.trim() ?? '';
 
   const renderGroup = (title: string, list: typeof players, status: PrepStatus) => (
-    <section className="flex flex-col gap-1">
-      <p className={`${dsSectionLabelClass()} !text-[14px]`}>{title}</p>
+    <section className="flex flex-col gap-1.5">
+      <p className={`${dsSectionLabelClass()} !text-[11px]`}>{title}</p>
       {list.length === 0 ? (
-        <p className="text-[16px] text-white/42">Keine Spieler</p>
+        <p className="text-[12px] text-white/45">Keine Spieler</p>
       ) : (
-        <div className={`flex flex-col ${DS_LIST_GAP}`}>
+        <ul className={`flex flex-col ${DS_LIST_GAP}`}>
           {list.map((p) => {
             const inSquad = squadSet.has(p.id);
             const disabled = saveBusy || status === 'absent';
             return (
-              <div key={p.id} className={disabled ? 'opacity-70' : ''}>
+              <li key={p.id} className={disabled ? 'opacity-70' : ''}>
                 <MatchPlayerRow
                   player={p}
                   selected={inSquad}
                   status={status === 'available' ? 'yes' : status === 'absent' ? 'no' : 'open'}
                   rightLabel={inSquad ? 'Im Kader' : undefined}
                   layout="team-roster"
+                  hideNumber
                   hideSubline
                   onClick={disabled ? undefined : () => toggleSquadPlayer(p.id)}
                 />
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
     </section>
   );
 
   return (
-    <section id="tournament-squad-section" className={TC_CARD}>
-      <div className={`${TC_CARD_INNER} flex flex-col gap-2`}>
-        <div className="flex items-center justify-between gap-2">
-          <p className={`${TC_SECTION_LABEL} inline-flex items-center gap-1.5`}>
-            <Users className="h-3.5 w-3.5 sz-club-accent-text" strokeWidth={2.25} aria-hidden />
-            Turnierkader
-          </p>
-          <span className={dsStatusChipClass(squadIds.length > 0 ? 'present' : 'open')}>
-            {squadIds.length} Spieler im Turnierkader
-          </span>
-        </div>
-
-        <p className="text-[16px] leading-snug text-white/65">
-          Einmal für das gesamte Turnier festlegen. Die Match-Vorbereitung einzelner Spiele nutzt diesen Kader als
-          Vorauswahl — bestehende Spiel-Kader bleiben unverändert.
-        </p>
-
-        <div className="flex flex-wrap gap-1.5">
-          <span className={dsStatusChipClass('present')}>✅ Zugesagt: {attendanceSummary.yes}</span>
-          <span className={dsStatusChipClass('absent')}>❌ Abgesagt: {attendanceSummary.no}</span>
-          <span className={dsStatusChipClass('open')}>❓ Offen: {attendanceSummary.open}</span>
-        </div>
-
-        {dataLoading ? (
-          <p className="text-[14px] text-white/55">Lade Spieler…</p>
-        ) : players.length === 0 ? (
-          <p className="text-[14px] text-white/55">Keine Spieler im Team.</p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {renderGroup('ZUGESAGT', grouped.available, 'available')}
-            {renderGroup('OFFEN', grouped.open, 'open')}
-            {renderGroup('ABGESAGT', grouped.absent, 'absent')}
-          </div>
-        )}
-
-        {squadError ? <p className="text-[16px] text-red-300/90">{squadError}</p> : null}
-
-        {featuredMatchId ? (
-          <Link
-            to={matchPreparationPath(featuredMatchId, basePath)}
-            className={`inline-flex min-h-[48px] w-full items-center justify-center rounded-full px-3 text-[16px] font-semibold touch-manipulation ${dsScheduleGlassButtonClass()}`}
-          >
-            Match-Vorbereitung für nächstes Spiel
-          </Link>
-        ) : null}
-
-        {!featuredMatchId && onOpenTemplate ? <div className="space-y-3 rounded-xl border sz-club-surface p-4"><p className="text-[16px] text-white/75">Block A und B schon vor dem Spielplan vorbereiten.</p><button type="button" className={`${dsScheduleGlassButtonClass()} min-h-12 w-full !text-[16px]`} onClick={onOpenTemplate}>Grundaufstellung & Blöcke planen</button></div> : <LineupLink slots={slots} loading={slotsLoading} basePath={basePath} />}
+    <section id="tournament-squad-section" aria-label="Turnierkader" className="flex min-w-0 flex-col gap-3">
+      <div className="grid w-full grid-cols-3 gap-2">
+        <AttendanceStatCard label="Zugesagt" value={attendanceSummary.yes} tone="present" />
+        <AttendanceStatCard label="Abgesagt" value={attendanceSummary.no} tone="absent" />
+        <AttendanceStatCard label="Offen" value={attendanceSummary.open} tone="open" />
       </div>
+
+      {!dataLoading ? (
+        <p className="text-sm font-medium text-white/65" role="status">
+          <strong className="text-white">{squadIds.length}</strong> im Turnierkader
+        </p>
+      ) : null}
+
+      {dataLoading ? (
+        <p className="text-[14px] text-white/55">Lade Spieler…</p>
+      ) : players.length === 0 ? (
+        <p className="text-[14px] text-white/55">Keine Spieler im Team.</p>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {renderGroup('ZUGESAGT', grouped.available, 'available')}
+          {renderGroup('OFFEN', grouped.open, 'open')}
+          {renderGroup('ABGESAGT', grouped.absent, 'absent')}
+        </div>
+      )}
+
+      {squadError ? <p className="text-[16px] text-red-300/90">{squadError}</p> : null}
+
+      {featuredMatchId ? (
+        <Link
+          to={matchPreparationPath(featuredMatchId, basePath)}
+          className={`inline-flex min-h-[48px] w-full items-center justify-center rounded-full px-3 text-[16px] font-semibold touch-manipulation ${dsScheduleGlassButtonClass()}`}
+        >
+          Match-Vorbereitung für nächstes Spiel
+        </Link>
+      ) : null}
+
+      {!featuredMatchId && onOpenTemplate ? <div className="space-y-3 rounded-xl border sz-club-surface p-4"><p className="text-[16px] text-white/75">Block A und B schon vor dem Spielplan vorbereiten.</p><button type="button" className={`${dsScheduleGlassButtonClass()} min-h-12 w-full !text-[16px]`} onClick={onOpenTemplate}>Grundaufstellung & Blöcke planen</button></div> : <LineupLink slots={slots} loading={slotsLoading} basePath={basePath} />}
     </section>
   );
 }
