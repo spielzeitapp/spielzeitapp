@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { lockBodyScroll } from '../../lib/bodyScrollLock';
 
@@ -28,6 +28,7 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   footer,
 }) => {
+  const titleId = useId();
   const effectiveOpen = isOpen ?? open ?? false;
 
   const handleKeyDown = useCallback(
@@ -71,12 +72,12 @@ export const Modal: React.FC<ModalProps> = ({
         className={['modalSheet', className ?? ''].filter(Boolean).join(' ')}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={title ? 'modal-title' : undefined}
+        aria-labelledby={title ? titleId : undefined}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modalHeader">
           {title ? (
-            <div id="modal-title" className={['modalTitle', titleClassName ?? ''].filter(Boolean).join(' ')}>
+            <div id={titleId} className={['modalTitle', titleClassName ?? ''].filter(Boolean).join(' ')}>
               {title}
             </div>
           ) : null}

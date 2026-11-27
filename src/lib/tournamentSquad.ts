@@ -89,14 +89,14 @@ export async function publishTournamentSquad(
   eventId: string,
   selectedIds: string[],
   version: number,
-  messages: { selected: string; notSelected: string },
+  messages: { selected: string; notSelected: string } | null,
 ) {
   const { data, error } = await supabase.rpc('publish_tournament_squad', {
     p_event: eventId,
     p_expected: selectedIds,
     p_version: version,
-    p_selected_message: messages.selected.trim(),
-    p_not_selected_message: messages.notSelected.trim(),
+    p_selected_message: messages?.selected.trim() ?? null,
+    p_not_selected_message: messages?.notSelected.trim() ?? null,
   });
   return { data: data as TournamentSquadPublication | null, error };
 }
