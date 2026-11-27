@@ -89,6 +89,26 @@ const FeedPostContent: React.FC<Props> = ({
       ) : <FeedPostCtaButton ctaUrl={item.post.cta_url} ctaLabel={item.post.cta_label} />}
     </article>;
   }
+  if (item.kind === 'tournament_squad') {
+    const payload = item.post.payload as { title?: unknown; players?: unknown } | null;
+    const players = Array.isArray(payload?.players)
+      ? payload.players.filter((entry): entry is string => typeof entry === 'string') : [];
+    return (
+      <article className="sz-club-feed-shell rounded-2xl border p-4">
+        <FeedPostHeader teamLabel={teamLabel} seasonLabel={seasonLabel} whenLabel={formatDateTimeMediumDeVienna(item.post.created_at)}
+          actions={staffCanDelete && onFeedPostDeleted
+            ? <FeedPostDeleteButton input={toFeedPostDeleteInput(item.post)} onDeleted={onFeedPostDeleted} />
+            : null} />
+        <h2 className="mt-3 text-lg font-bold">{typeof payload?.title === 'string' ? payload.title : 'Turnierkader'}</h2>
+        <p className="mt-1 text-sm text-white/70">{item.post.caption}</p>
+        <ul className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-2" aria-label="Spieler im Turnierkader">
+          {players.map((name, index) => <li key={index}>{name}</li>)}
+        </ul>
+        {eventId && <Link className={`${dsPrimaryCtaClass()} mt-4 flex min-h-11 items-center justify-center px-4`}
+          to={`/app/events/${encodeURIComponent(eventId)}`}>Zum Turnier</Link>}
+      </article>
+    );
+  }
   if (item.kind === 'live') {
     return (
       <LiveFeedPostCard

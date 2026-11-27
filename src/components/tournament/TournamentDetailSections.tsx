@@ -1007,7 +1007,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
     switch (preparationDialog) {
       case 'attendance': return trainerAttendanceSection;
       case 'squad': return <TournamentSquadPanel
-        tournamentEventId={tournamentEventId} teamSeasonId={teamSeasonId} tournamentStartsAt={tournamentDayIso} slots={ownSlots}
+        tournamentEventId={tournamentEventId} teamSeasonId={teamSeasonId} tournamentStartsAt={tournamentDayIso} tournamentTitle={tournamentTitle} slots={ownSlots}
         loading={loading} canManage={canManage}
         onSaved={() => setAssistantRefreshToken(token => token + 1)}
         onOpenTemplate={() => openPreparationDialog('lineup')} />;

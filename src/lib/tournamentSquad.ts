@@ -50,6 +50,7 @@ export async function fetchTournamentSquadPlayerIds(
 export async function saveTournamentSquad(
   tournamentEventId: string,
   playerIds: string[],
+  expectedPlayerIds: string[],
 ): Promise<{ error: string | null }> {
   const eventId = String(tournamentEventId ?? '').trim();
   if (!eventId) return { error: 'Turnier-Event fehlt.' };
@@ -61,14 +62,43 @@ export async function saveTournamentSquad(
     return { error: null };
   }
 
-  const { error: delErr } = await supabase.from('tournament_squad').delete().eq('tournament_event_id', eventId);
-  if (delErr) return { error: delErr.message };
+  const { error } = await supabase.rpc('save_tournament_squad_draft', {
+    p_event: eventId,
+    p_players: unique,
+    p_expected: expectedPlayerIds,
+  });
+  return { error: error?.message ?? null };
+}
 
-  if (unique.length === 0) return { error: null };
+export type TournamentSquadPublication = {
+  selected_player_ids: string[];
+  version: number;
+  published_at: string;
+};
 
-  const rows = unique.map((player_id) => ({ tournament_event_id: eventId, player_id }));
-  const { error: insErr } = await supabase.from('tournament_squad').insert(rows);
-  return { error: insErr?.message ?? null };
+export async function getTournamentSquadPublication(eventId: string) {
+  const { data, error } = await supabase
+    .from('tournament_squad_publications')
+    .select('selected_player_ids, version, published_at')
+    .eq('event_id', eventId)
+    .maybeSingle();
+  return { data: data as TournamentSquadPublication | null, error };
+}
+
+export async function publishTournamentSquad(
+  eventId: string,
+  selectedIds: string[],
+  version: number,
+  messages: { selected: string; notSelected: string },
+) {
+  const { data, error } = await supabase.rpc('publish_tournament_squad', {
+    p_event: eventId,
+    p_expected: selectedIds,
+    p_version: version,
+    p_selected_message: messages.selected.trim(),
+    p_not_selected_message: messages.notSelected.trim(),
+  });
+  return { data: data as TournamentSquadPublication | null, error };
 }
 
 /** RSVP-Event: Turnier-Event bei Turnierspielen, sonst Match-Event. */
