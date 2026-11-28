@@ -284,7 +284,8 @@ async function runParentsDebugTest(req, res, body) {
           .from("notifications")
           .select("id", { count: "exact", head: true })
           .eq("user_id", recipientUserId)
-          .eq("read", false);
+          .eq("read", false)
+          .or("event_type.is.null,event_type.neq.exchange");
         if (!cErr && count != null) {
           unreadForBadge = Math.min(99, Math.max(0, Math.floor(Number(count))));
         }

@@ -1,3 +1,4 @@
+import { clearLegacyMarketManagerBadge } from '../lib/notifications/marketPushScope';
 import {marketAuthContext} from '../features/club/marketAuth';
 import {uscAuthTarget} from '../features/club/uscAuth';
 import { isUscAppPath, USC_MANIFEST, USC_APP_ICON } from '../features/club/uscClub';
@@ -36,6 +37,7 @@ function ensureManifestLink(href: string): void {
  */
 export function ManifestSync(): null {
   const { pathname, search } = useLocation();
+  useEffect(() => { void clearLegacyMarketManagerBadge().catch(() => undefined); }, []);
 
   useEffect(() => {
     const marketManager=Boolean(marketAuthContext(search,pathname)?.manager)||/^\/vereinsmarkt-manager(?:\/|$)/.test(pathname)||(pathname==='/manager/vereinsmarkt'&&new URLSearchParams(search).get('from')==='vereinsmarkt-manager');

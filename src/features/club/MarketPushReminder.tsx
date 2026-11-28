@@ -2,11 +2,12 @@ import React,{useEffect,useRef,useState} from 'react';
 import {BellRing} from 'lucide-react';
 import {usePushSubscription} from '../../hooks/usePushSubscription';
 import {isStandaloneDisplayMode} from '../../lib/pwaDisplayMode';
+import {ownsMarketBadge} from '../../lib/notifications/marketPushScope';
 
 const WEEK=7*24*60*60*1000;
 /** Only an app reminder; the native permission request stays behind an explicit tap. */
 export function MarketPushReminder({clubId,userId,enabled}:{clubId:string;userId:string;enabled:boolean}){
- const push=usePushSubscription(userId),key=`vereinsmarkt-push-later:${userId}:${clubId}`;
+ const push=usePushSubscription(userId,clubId),key=`vereinsmarkt-push-later:${userId}:${clubId}`;
  const [state,setState]=useState({key:'',until:0}),[standalone,setStandalone]=useState(isStandaloneDisplayMode);
  useEffect(()=>{
   if(!enabled||typeof window==='undefined')return;
@@ -16,7 +17,7 @@ export function MarketPushReminder({clubId,userId,enabled}:{clubId:string;userId
   return()=>{window.removeEventListener('focus',refresh);window.removeEventListener('pageshow',refresh);window.removeEventListener('vereinsmarkt:push-changed',refresh);document.removeEventListener('visibilitychange',visible);};
  },[key,enabled,push.syncFromBrowser]);
  const later=()=>{const until=Date.now()+WEEK;setState({key,until});try{localStorage.setItem(key,String(until));}catch{}};
- if(!enabled||!standalone||!push.initDone||!push.browserOk||!push.hasVapidKey||push.isActive||push.permission==='denied'||state.key!==key||state.until>Date.now())return null;
+ if(!enabled||!standalone||!ownsMarketBadge(clubId)||!push.initDone||!push.browserOk||!push.hasVapidKey||push.isActive||push.permission==='denied'||state.key!==key||state.until>Date.now())return null;
  return <PushChoice onLater={later} onActivate={push.activate} busy={push.loading} error={push.actionError}/>;
 }
 

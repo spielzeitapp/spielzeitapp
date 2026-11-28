@@ -7,11 +7,11 @@ const output=await build({entryPoints:['api/exchange/push.js'],bundle:true,platf
  b.onResolve({filter:/^@supabase\/supabase-js$/},()=>({path:'db',namespace:'fixture'}));
  b.onLoad({filter:/^db$/,namespace:'fixture'},()=>({contents:`
  class Query{
- constructor(table){this.table=table;this.filters=[];this.values=null;this.single=false;this.op='read';this.countOnly=false;}
- select(_,options){this.countOnly=Boolean(options?.head);return this;}eq(k,v){this.filters.push(r=>r[k]===v);return this;}lt(k,v){this.filters.push(r=>r[k]<v);return this;}order(){return this;}limit(){return this;}
- update(values){this.values=values;return this;}delete(){this.op='delete';return this;}maybeSingle(){this.single=true;return this;}
- then(resolve,reject){const rows=(global.__exchange[this.table]||[]).filter(r=>this.filters.every(f=>f(r)));if(this.values)rows.forEach(r=>Object.assign(r,this.values));if(this.op==='delete')global.__exchange[this.table]=global.__exchange[this.table].filter(r=>!rows.includes(r));return Promise.resolve({count:this.countOnly?rows.length:undefined,data:this.single?rows[0]||null:rows,error:null}).then(resolve,reject);}}
- exports.createClient=()=>({auth:{getUser:async token=>({data:{user:token==='valid'?{id:'sender'}:null},error:token==='valid'?null:Error('invalid')})},from:table=>new Query(table)});
+ constructor(table){this.table=table;this.filters=[];this.values=null;this.single=false;this.op='read';this.countOnly=false;this.insert=null;}
+ select(_,options){this.countOnly=Boolean(options?.head);return this;}eq(k,v){this.filters.push(r=>r[k]===v);return this;}like(k,v){this.filters.push(r=>r[k]?.startsWith(v.slice(0,-1)));return this;}lt(k,v){this.filters.push(r=>r[k]<v);return this;}order(){return this;}limit(){return this;}
+ upsert(values){this.insert=values;return this;}update(values){this.values=values;return this;}delete(){this.op='delete';return this;}maybeSingle(){this.single=true;return this;}
+ then(resolve,reject){const rows=(global.__exchange[this.table]||[]).filter(r=>this.filters.every(f=>f(r)));if(this.insert)(global.__exchange[this.table]??=[]).push(this.insert);if(this.values)rows.forEach(r=>Object.assign(r,this.values));if(this.op==='delete')global.__exchange[this.table]=global.__exchange[this.table].filter(r=>!rows.includes(r));return Promise.resolve({count:this.countOnly?rows.length:undefined,data:this.single?rows[0]||null:rows,error:null}).then(resolve,reject);}}
+ exports.createClient=()=>({auth:{getUser:async token=>({data:{user:token==='valid'?{id:'sender'}:null},error:token==='valid'?null:Error('invalid')})},rpc:async()=>({data:global.__exchange.allowed}),from:table=>new Query(table)});
  `}));
  b.onResolve({filter:/^web-push$/},()=>({path:'push',namespace:'fixture'}));
  b.onLoad({filter:/^push$/,namespace:'fixture'},()=>({contents:`module.exports={setVapidDetails(){},sendNotification:async(sub,payload)=>{if(sub.endpoint.includes('expired'))throw Object.assign(Error('Gone'),{statusCode:410});if(global.__exchange.failPush)throw Object.assign(Error('Transient'),{statusCode:503});global.__exchange.sent.push({sub,payload:JSON.parse(payload)});}};`}));
@@ -27,20 +27,46 @@ try{
  assert.equal((await call({method:'GET'})).statusCode,405);
  assert.equal((await call({headers:{}})).statusCode,401);
  assert.equal((await call({headers:{authorization:'Bearer invalid'}})).statusCode,401);
- process.env.SUPABASE_URL='https://shxugattqatahckhspwk.supabase.co';
- assert.equal((await call()).statusCode,403,'LIVE is blocked');
+ process.env.SUPABASE_URL='https://unexpected.example.invalid';
+ assert.equal((await call()).statusCode,403,'unrecognized projects are blocked');
  process.env.SUPABASE_URL='https://acbaecjzoabafbsjrzvr.supabase.co';
  process.env.STAGING_DISABLE_OUTBOUND='true';
  assert.equal((await call()).body.disabled,true);
  delete process.env.STAGING_DISABLE_OUTBOUND;
- global.__exchange={sent:[],exchange_push_queue:[{message_id:'message',sender_id:'sender',recipient_id:'receiver',link:'/app/usc-rohrbach?tab=verein&section=tauschboerse&thread=thread',status:'pending',attempts:0},{message_id:'foreign',sender_id:'other',recipient_id:'intruder',link:'/malicious',status:'pending',attempts:0}],exchange_messages:[{id:'message'}],notifications:[{user_id:'receiver',read:false},{user_id:'receiver',read:false},{user_id:'receiver',read:true}],push_subscriptions:[{id:'sub',user_id:'receiver',is_active:true,endpoint:'https://push.example.invalid',p256dh:'key',auth:'auth'}]};
+ const club='9c7a8741-6e73-42d5-88d8-46ce5217e8cd', otherClub='3db6fce2-a4c1-44a5-a333-19d1d4d62e6a';
+ const thread='11111111-2222-4333-8444-555555555555';
+ const link=`/app/tauschboerse?club=${club}&thread=${thread}`;
+ global.__exchange={allowed:true,sent:[],exchange_push_queue:[
+   {message_id:'message',sender_id:'sender',recipient_id:'receiver',link,status:'pending',attempts:0},
+   {message_id:'foreign',sender_id:'other',recipient_id:'intruder',link:'/invalid',status:'pending',attempts:0},
+ ],exchange_messages:[{id:'message'}],notifications:[
+   {user_id:'receiver',read:false,event_type:'exchange',link},
+   {user_id:'receiver',read:false,event_type:'exchange',link:link.replace(club,otherClub)},
+   {user_id:'receiver',read:false,event_type:'reminder',link},
+   {user_id:'receiver',read:true,event_type:'exchange',link},
+ ],push_subscriptions:[{user_id:'receiver',endpoint:'https://root.example.invalid'}],
+ market_push_subscriptions:[
+   {user_id:'receiver',club_id:club,endpoint:'https://market.example.invalid',p256dh:'key',auth:'auth'},
+   {user_id:'receiver',club_id:otherClub,endpoint:'https://other-club.example.invalid',p256dh:'key',auth:'auth'},
+ ]};
  const result=await call({body:{recipient_id:'intruder',title:'Injected',message:'PRIVATE CHAT'}});
  assert.equal(result.statusCode,200);assert.equal(result.body.sent,1);
- const sent=global.__exchange.sent[0];assert.equal(sent.payload.title,'Vereinsmarkt');assert.equal(sent.payload.unread_count,2);assert.equal(sent.payload.data.badge_count,2);assert.ok(!JSON.stringify(sent.payload).includes('PRIVATE CHAT'));
- assert.ok(sent.payload.url.includes('thread=thread'));assert.equal(global.__exchange.exchange_push_queue[1].status,'pending','other senders untouched');
+ const sent=global.__exchange.sent[0];assert.equal(sent.sub.endpoint,'https://market.example.invalid');assert.equal(sent.payload.kind,'exchange');assert.equal(sent.payload.badge_count,1);assert.ok(!JSON.stringify(sent.payload).includes('PRIVATE CHAT'));
+ assert.equal(sent.payload.threadId,thread);assert.equal(sent.payload.clubId,club);assert.equal(global.__exchange.exchange_push_queue[1].status,'pending','other senders untouched');
  assert.equal(global.__exchange.exchange_push_queue[0].status,'sent');
  assert.equal((await call()).body.sent,0,'completed delivery not sent again');
  global.__exchange.exchange_push_queue[0].status='pending';global.__exchange.failPush=true;assert.equal((await call()).body.pending,1);assert.equal(global.__exchange.exchange_push_queue[0].status,'pending');global.__exchange.failPush=false;assert.equal((await call()).body.sent,1);
- global.__exchange.exchange_push_queue[0].status='pending';global.__exchange.push_subscriptions[0].endpoint='https://expired.example.invalid';await call();assert.equal(global.__exchange.push_subscriptions.length,0,'expired device removed from actual table');
- console.log('PASS: push auth, TEST guard, outbound-disable, server-selected recipient/content, claim/deduplication; no real push sent');
+ global.__exchange.exchange_push_queue[0].status='pending';global.__exchange.market_push_subscriptions[0].endpoint='https://expired.example.invalid';await call();
+ assert.equal(global.__exchange.market_push_subscriptions.length,1,'only the expired market endpoint is removed');
+ assert.equal(global.__exchange.push_subscriptions.length,1,'general app endpoint is untouched');
+ const sub={clubId:club,endpoint:'https://fcm.googleapis.com/fcm/send/example',keys:{p256dh:Buffer.concat([Buffer.from([4]),Buffer.alloc(64)]).toString('base64url'),auth:Buffer.alloc(16).toString('base64url')}};
+ const action=(subscriptionAction,body)=>call({query:{subscriptionAction},body});
+ global.__exchange.allowed=false;assert.equal((await action('subscribe',sub)).statusCode,403);
+ global.__exchange.allowed=true;assert.equal((await action('subscribe',{...sub,endpoint:'https://invalid.example'})).statusCode,400);
+ assert.equal((await action('subscribe',sub)).body.ok,true);
+ assert.equal((await action('status',sub)).body.active,true);
+ assert.equal((await action('status',{...sub,clubId:otherClub})).body.active,false);
+ assert.equal((await action('unsubscribe',sub)).body.ok,true);
+ assert.equal((await action('status',sub)).body.active,false);
+ console.log('PASS: account and club scoped registration, only market pushes and badge counts, expired subscription handling; no real push sent');
 }finally{for(const [k,v]of Object.entries(previous)){if(v===undefined)delete process.env[k];else process.env[k]=v;}delete global.__exchange;}
