@@ -41,6 +41,10 @@ assert.equal(effectiveKickoff, scheduled.kickoff_delay_until);
 assert.equal(toPublicMatchDto({ kickoff_at: effectiveKickoff, match_status: 'upcoming' }, 'Heim').kickoffTimeLabel, '20:43');
 assert.equal(effectiveTournamentKickoff({ ...scheduled, kickoff_at: '2026-11-27T19:35:00Z' }), '2026-11-27T19:35:00Z');
 assert.equal(effectiveTournamentKickoff({ kickoff_at: scheduled.kickoff_at }), scheduled.kickoff_at);
+const actualKickoff = '2026-11-27T19:48:00Z';
+const started = effectiveTournamentKickoff({ ...scheduled, kickoff_actual_at: actualKickoff });
+assert.equal(started, actualKickoff);
+assert.equal(toPublicMatchDto({ kickoff_at: started, match_status: 'live' }, 'Heim').kickoffTimeLabel, '20:48');
 
 const teamSeasonA = 'ts-a';
 const slotsRaw = [
