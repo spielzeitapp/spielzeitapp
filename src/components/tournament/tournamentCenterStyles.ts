@@ -5,12 +5,13 @@ export const TC_STACK_GAP = 'gap-4';
 export const TC_SECTION_LABEL = 'sz-club-accent-text text-[14px] font-bold uppercase tracking-[0.12em]';
 export const TC_META_ICON = 'sz-club-accent-text h-3.5 w-3.5 shrink-0';
 
-export type TournamentCenterTabId = 'games' | 'table' | 'teams' | 'admin';
+export type TournamentCenterTabId = 'games' | 'table' | 'teams' | 'stats' | 'admin';
 
 const BASE_TABS: { id: TournamentCenterTabId; label: string }[] = [
   { id: 'teams', label: 'Teilnehmer' },
   { id: 'games', label: 'Spielplan' },
   { id: 'table', label: 'Tabelle' },
+  { id: 'stats', label: 'Statistik' },
 ];
 
 const ADMIN_TAB: { id: TournamentCenterTabId; label: string } = {
