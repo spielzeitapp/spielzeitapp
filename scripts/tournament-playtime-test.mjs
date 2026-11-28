@@ -24,6 +24,7 @@ const timing = {
   kickoffPlayerIds: ['a', 'b'],
   squadPlayerIds: ['a', 'b', 'c', 'bench'],
   elapsedSeconds: 720,
+  liveStartedAt: null,
   events: [
     event('start', 0),
     event('pause', 240),
@@ -51,4 +52,20 @@ assert.deepEqual(sumTournamentPlaytime([group, final]), [
 assert.equal(tournamentMatchPlaytime({ ...timing, kickoffPlayerIds: [] }), null);
 assert.equal(tournamentMatchPlaytime({ ...timing, events: [event('end', 720)] }), null);
 assert.equal(tournamentMatchPlaytime({ ...timing, elapsedSeconds: 0, events: [event('start', 0)] }), null);
+const liveStartedAt = '2026-11-27T16:00:00Z';
+const recoveredGroup = tournamentMatchPlaytime({
+  ...timing,
+  liveStartedAt,
+  elapsedSeconds: 600,
+  events: timing.events.filter(({ type }) => type === 'substitution' || type === 'time_penalty'),
+});
+assert.deepEqual(recoveredGroup, group);
+assert.deepEqual(tournamentMatchPlaytime({
+  ...timing,
+  liveStartedAt,
+  events: timing.events.filter(({ type }) => type !== 'start'),
+}), group);
+assert.equal(tournamentMatchPlaytime({
+  ...timing, liveStartedAt, elapsedSeconds: 0, events: [],
+}), null);
 console.log('PASS real seconds, substitutions, penalties, and coverage across tournament matches');

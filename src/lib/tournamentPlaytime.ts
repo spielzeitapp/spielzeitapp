@@ -5,10 +5,13 @@ type MatchTiming = {
   squadPlayerIds: string[];
   events: MatchEngineEvent[];
   elapsedSeconds: number | null;
+  liveStartedAt: string | null;
 };
 
-export function tournamentMatchPlaytime({ kickoffPlayerIds, squadPlayerIds, events, elapsedSeconds }: MatchTiming) {
-  if (!kickoffPlayerIds.some(Boolean) || !events.some((event) => event.type === 'start')) return null;
+export function tournamentMatchPlaytime({ kickoffPlayerIds, squadPlayerIds, events, elapsedSeconds, liveStartedAt }: MatchTiming) {
+  const hasRecordedStart = events.some((event) => event.type === 'start') ||
+    (liveStartedAt !== null && Number.isFinite(Date.parse(liveStartedAt)));
+  if (!kickoffPlayerIds.some(Boolean) || !hasRecordedStart) return null;
   if (!(elapsedSeconds && elapsedSeconds > 0) && !events.some((event) => event.type === 'end' && event.timestamp > 0)) {
     return null;
   }
