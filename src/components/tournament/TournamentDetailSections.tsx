@@ -89,6 +89,7 @@ import { TournamentOfficialPlanCard } from './TournamentOfficialPlanCard';
 import { TournamentTeamAliasesCard } from './TournamentTeamAliasesCard';
 import { TournamentCenterTabBar } from './TournamentCenterTabBar';
 import { TournamentPlaytimeStats } from './TournamentPlaytimeStats';
+import { TournamentScheduleDelay } from './TournamentScheduleDelay';
 import { TournamentCompactCard } from './TournamentCompactCard';
 import { TournamentFeaturedMatchCard } from './TournamentFeaturedMatchCard';
 import { TournamentAssistantCard } from './TournamentAssistantCard';
@@ -1355,6 +1356,9 @@ export const TournamentDetailSections: React.FC<Props> = ({
         <TournamentPlaytimeStats slots={slots} players={players} teamSeasonId={isDemo ? null : teamSeasonId} loading={loading} />
       ) : null}
       {canManage && activeTab === 'games' ? <div className={`flex flex-col ${TC_STACK_GAP}`}>
+        {!isDemo && !tournamentCanceled && !completion.completedAt ? (
+          <TournamentScheduleDelay key={tournamentEventId} eventId={tournamentEventId} slots={slots} onSaved={reload} />
+        ) : null}
         <h2 className="text-[16px] font-bold text-white">Unsere Spiele</h2>
         {loading && !ownSlots.length ? <p className="text-[16px] text-white/65">Lade unsere Spiele…</p> : !ownSlots.length ? <section className={TC_CARD}><div className={TC_CARD_INNER}><p className="text-[16px] text-white/65">Noch keine eigenen Turnierspiele hinterlegt.</p></div></section> : ownSlots.map(slot => <TournamentMatchSlotCard key={slot.id} slot={slot} canManage={!tournamentCanceled} isNextUpcoming={slot.id === nextMatchId}
           onOpen={() => { if (!slot.match_id) return; if (slot.match_status === 'finished' || (!tournamentCanceled && slot.match_status === 'live')) navigate(`${basePath}/live?matchId=${encodeURIComponent(slot.match_id)}`); else onOpenMatchPreparation(slot.match_id); }}

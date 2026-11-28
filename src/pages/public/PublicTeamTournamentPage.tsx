@@ -184,7 +184,9 @@ export function PublicTeamTournamentPage({publicIdOverride,embedded=false}:{publ
       fixture.awayProjection ?? fixture.awayTeam,
     ].includes(page.ownParticipantName));
   const ownMatchForFixture = (fixture: PublicTournamentScheduleFixture) => {
-    if (!page || !isOwnScheduleFixture(fixture)) return undefined;
+    if (!page) return undefined;
+    if (fixture.ownMatchId !== undefined) return page.allMatches.find(match => match.id === fixture.ownMatchId);
+    if (!isOwnScheduleFixture(fixture)) return undefined;
     return page.allMatches.find(match => fixture.kickoffAt
       ? match.kickoffAt === fixture.kickoffAt || Date.parse(match.kickoffAt) === Date.parse(fixture.kickoffAt)
       : match.kickoffTimeLabel === fixture.time);
