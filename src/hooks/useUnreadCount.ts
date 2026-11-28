@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { syncAppBadge } from '../lib/notifications/appBadge';
+import { installedPushSurface, ownsMarketBadge } from '../lib/notifications/marketPushScope';
 import {
   INBOX_SYNC_EVENT,
   NOTIFICATIONS_READ_CHANGED_EVENT,
@@ -9,10 +10,12 @@ import {
 import { useNotificationsInboxRealtime } from './useNotificationsInboxRealtime';
 
 /**
- * Nur `public.notifications` mit read = false (keine messages-Tabelle).
- * Homescreen-Badge nicht bei Fokus/Visibility/Route wegsyncen — nur bei echtem Count oder Read-Events.
+ * Count unread notifications for the requested product and club.
+ * Only the installed product owning that count may write to its Home Screen badge.
  */
 export function useUnreadCount(userId: string | undefined | null, scope: 'inbox' | 'feed' | 'exchange' = 'inbox', scopeClubId?: string): number {
+  const ownsBadge = scope === 'exchange' ? ownsMarketBadge(scopeClubId)
+    : installedPushSurface !== 'market' && installedPushSurface !== 'market-manager';
   const key=JSON.stringify([userId,scope,scopeClubId]);
   const [state,setState]=useState({key,count:0});
   const currentKey=useRef(key);currentKey.current=key;
@@ -23,7 +26,7 @@ export function useUnreadCount(userId: string | undefined | null, scope: 'inbox'
     const version=++request.current;
     if (!userId) {
       setState({key,count:0});
-      void syncAppBadge(0);
+      if (ownsBadge) void syncAppBadge(0);
       return;
     }
     try {
@@ -38,14 +41,15 @@ export function useUnreadCount(userId: string | undefined | null, scope: 'inbox'
       }
       if(!mounted.current||currentKey.current!==key||request.current!==version)return;
       const rows = data ?? [];
-      const feedCount = rows.filter(row => row.event_type === 'feed_post').length;
-      const count=scope==='exchange'?rows.filter(row=>{if(row.event_type!=='exchange')return false;if(!scopeClubId)return true;try{return new URL(row.link||'', 'https://app.invalid').searchParams.get('club')===scopeClubId;}catch{return false;}}).length:scope==='feed'?feedCount:rows.length-feedCount;
+      const appRows = rows.filter(row => row.event_type !== 'exchange');
+      const feedCount = appRows.filter(row => row.event_type === 'feed_post').length;
+      const count=scope==='exchange'?rows.filter(row=>{if(row.event_type!=='exchange')return false;if(!scopeClubId)return true;try{return new URL(row.link||'', 'https://app.invalid').searchParams.get('club')===scopeClubId;}catch{return false;}}).length:scope==='feed'?feedCount:appRows.length-feedCount;
       setState({key,count});
-      void syncAppBadge(rows.length);
+      if (ownsBadge) void syncAppBadge(scope === 'exchange' ? count : appRows.length);
     } catch (e) {
       console.warn('[useUnreadCount]', e);
     }
-  }, [userId,scope,scopeClubId,key]);
+  }, [userId,scope,scopeClubId,key,ownsBadge]);
 
   useEffect(() => {
     void refresh();

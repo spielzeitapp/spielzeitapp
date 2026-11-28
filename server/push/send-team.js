@@ -604,7 +604,8 @@ export default async function handler(req, res) {
               .from("notifications")
               .select("id", { count: "exact", head: true })
               .eq("user_id", uid)
-              .eq("read", false);
+              .eq("read", false)
+              .or("event_type.is.null,event_type.neq.exchange");
             if (!cntErr && count != null) {
               unreadForBadge = Math.min(99, Math.max(0, Math.floor(Number(count))));
             }

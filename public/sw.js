@@ -120,7 +120,8 @@ function shouldRequireInteraction(payload, dataObj) {
 }
 
 self.addEventListener('push', (event) => {
-  const payload = parsePushPayload(event);
+  const payload = parsePayloadData(parsePushPayload(event));
+  if (payload.kind === 'exchange' || payload.data?.kind === 'exchange') return;
 
   const title =
     typeof payload.title === 'string' && payload.title.trim()
