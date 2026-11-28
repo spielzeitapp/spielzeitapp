@@ -21,6 +21,7 @@ async function loadMatchPlaytime(matchId: string) {
     squadPlayerIds: lineup.data.squadPlayerIds,
     events: events.data,
     elapsedSeconds: match.data.live_elapsed_seconds,
+    liveStartedAt: match.data.live_started_at,
   });
 }
 
