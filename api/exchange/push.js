@@ -2,6 +2,22 @@ const { createClient } = require('@supabase/supabase-js');
 const webpush = require('web-push');
 const clubIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+function validMarketSubscription(subscription) {
+  try {
+    const url = new URL(subscription.endpoint);
+    const host = url.hostname;
+    const supported = host === 'fcm.googleapis.com' || host === 'web.push.apple.com'
+      || host.endsWith('.push.services.mozilla.com') || host.endsWith('.notify.windows.com');
+    if (!supported || url.protocol !== 'https:' || url.username || url.password || url.port) return false;
+    const { p256dh, auth } = subscription.keys ?? {};
+    if (!/^[A-Za-z0-9_-]{86,88}={0,2}$/.test(p256dh ?? '') || !/^[A-Za-z0-9_-]{22}={0,2}$/.test(auth ?? '')) return false;
+    const publicKey = Buffer.from(p256dh, 'base64url');
+    return publicKey.length === 65 && publicKey[0] === 4 && Buffer.from(auth, 'base64url').length === 16;
+  } catch {
+    return false;
+  }
+}
+
 function parseMarketLink(link) {
   try {
     const url = new URL(link, 'https://market.invalid');
@@ -34,8 +50,7 @@ async function subscriptionAction(req, res, db, userId, client) {
   }
   if (action !== 'subscribe') return res.status(400).json({ ok: false });
 
-  const { validAudienceSubscription } = await import('../../server/lib/tournamentAudiencePushLogic.js');
-  if (!validAudienceSubscription(body)) return res.status(400).json({ ok: false });
+  if (!validMarketSubscription(body)) return res.status(400).json({ ok: false });
   const access = await client.rpc('exchange_access', { p_club_id: clubId });
   if (access.error || access.data !== true) return res.status(403).json({ ok: false });
   const { error } = await subscriptions.upsert({
