@@ -41,7 +41,7 @@ export async function readPushStateFromBrowser(): Promise<{
   }
   const permission = Notification.permission;
   try {
-    const reg = await navigator.serviceWorker.getRegistration();
+    const reg = await navigator.serviceWorker.getRegistration('/');
     const sub = await reg?.pushManager.getSubscription();
     return { permission, subscriptionActive: Boolean(sub) };
   } catch {
