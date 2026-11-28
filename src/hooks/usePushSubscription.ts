@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
+import { findPushRegistration, isIsolatedIosHomeApp, legacyMarketSubscription, marketWorkerScope, ownsMarketBadge } from '../lib/notifications/marketPushScope';
 import { markPushOnboardingActivated } from '../lib/pushOnboardingPrompt';
 import {
   getVapidPublicKey,
@@ -12,7 +14,44 @@ import {
 
 type ActivateResult = { ok: true } | { ok: false; reason: 'denied' | 'error' };
 
-export function usePushSubscription(userId: string | undefined) {
+async function updateMarketSubscription(action: 'subscribe' | 'unsubscribe' | 'status', clubId: string, subscription: PushSubscription) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return false;
+  const response = await fetch(`/api/exchange/push?subscriptionAction=${action}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({ clubId, ...subscription.toJSON() }),
+  });
+  if (!response.ok) return false;
+  const result = await response.json() as { ok?: boolean; active?: boolean };
+  return action === 'status' ? result.active === true : result.ok === true;
+}
+
+async function activeMarketWorker(clubId: string) {
+  const registration = await navigator.serviceWorker.register('/vereinsmarkt/sw.js', { scope: marketWorkerScope(clubId) });
+  if (registration.active?.state === 'activated') return registration;
+  const worker = registration.installing ?? registration.waiting ?? registration.active;
+  if (!worker) throw new Error('Vereinsmarkt-Dienst noch nicht bereit.');
+  await new Promise<void>((resolve, reject) => {
+    const finish = (error?: Error) => {
+      window.clearTimeout(timer);
+      worker.removeEventListener('statechange', check);
+      error ? reject(error) : resolve();
+    };
+    const check = () => {
+      if (worker.state === 'activated') finish();
+      else if (worker.state === 'redundant') finish(new Error('Vereinsmarkt-Dienst konnte nicht gestartet werden.'));
+    };
+    const timer = window.setTimeout(() => finish(new Error('Vereinsmarkt-Dienst noch nicht bereit.')), 10_000);
+    worker.addEventListener('statechange', check);
+    check();
+  });
+  return registration;
+}
+
+const pendingMarketMigrations = new Map<string, Promise<boolean>>();
+
+export function usePushSubscription(userId: string | undefined, marketClubId?: string) {
   const vapidKey = getVapidPublicKey();
   const hasVapidKey = vapidKey.length > 0;
 
@@ -25,10 +64,48 @@ export function usePushSubscription(userId: string | undefined) {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const syncFromBrowser = useCallback(async () => {
+    if (marketClubId && typeof Notification !== 'undefined') {
+      setPermission(Notification.permission);
+      try {
+        const registration = await findPushRegistration(marketWorkerScope(marketClubId));
+        const subscription = await registration?.pushManager.getSubscription();
+        setSubscriptionActive(Boolean(subscription && userId && await updateMarketSubscription('status', marketClubId, subscription)));
+      } catch {
+        setSubscriptionActive(false);
+      }
+      return;
+    }
     const state = await readPushStateFromBrowser();
     setPermission(state.permission);
     setSubscriptionActive(state.subscriptionActive);
-  }, []);
+  }, [marketClubId, userId]);
+
+  useEffect(() => {
+    if (!marketClubId || !userId || !vapidKey || !ownsMarketBadge(marketClubId)
+      || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    const key = `${userId}:${marketClubId}`;
+    let migration = pendingMarketMigrations.get(key);
+    if (!migration) {
+      migration = (async () => {
+        const legacy = await legacyMarketSubscription();
+        if (!legacy) return false;
+        const registration = await activeMarketWorker(marketClubId);
+        const scoped = await registration.pushManager.getSubscription() ?? await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidKey) as BufferSource,
+        });
+        if (!await updateMarketSubscription('subscribe', marketClubId, scoped)) return false;
+        await legacy.unsubscribe();
+        return true;
+      })().catch(() => false).finally(() => pendingMarketMigrations.delete(key));
+      pendingMarketMigrations.set(key, migration);
+    }
+    let mounted = true;
+    void migration.then(changed => {
+      if (changed && mounted) void syncFromBrowser();
+    });
+    return () => { mounted = false; };
+  }, [marketClubId, userId, vapidKey, syncFromBrowser]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -53,7 +130,9 @@ export function usePushSubscription(userId: string | undefined) {
   );
 
   const activate = useCallback(async (): Promise<ActivateResult> => {
-    if (!hasVapidKey || !browserOk) return { ok: false, reason: 'error' };
+    if (!hasVapidKey || !browserOk || (marketClubId && isIsolatedIosHomeApp() && !ownsMarketBadge(marketClubId))) {
+      return { ok: false, reason: 'error' };
+    }
     setLoading(true);
     setLoadingAction('activate');
     setActionError(null);
@@ -66,13 +145,24 @@ export function usePushSubscription(userId: string | undefined) {
         return { ok: false, reason: 'denied' };
       }
 
+      if (marketClubId) {
+        const registration = await activeMarketWorker(marketClubId);
+        const subscription = await registration.pushManager.getSubscription() ?? await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidKey) as BufferSource,
+        });
+        if (!await updateMarketSubscription('subscribe', marketClubId, subscription)) throw new Error('Vereinsmarkt-Abo fehlgeschlagen.');
+        const legacy = await legacyMarketSubscription();
+        if (legacy) await legacy.unsubscribe();
+        await syncFromBrowser();
+        return { ok: true };
+      }
+
       const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
       await navigator.serviceWorker.ready;
 
       const existing = await registration.pushManager.getSubscription();
-      if (existing) {
-        await existing.unsubscribe();
-      }
+      if (existing) await existing.unsubscribe();
 
       const webPushSubscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
@@ -123,7 +213,7 @@ export function usePushSubscription(userId: string | undefined) {
       setLoading(false);
       setLoadingAction(null);
     }
-  }, [userId, browserOk, hasVapidKey, vapidKey, syncFromBrowser]);
+  }, [userId, browserOk, hasVapidKey, vapidKey, syncFromBrowser, marketClubId]);
 
   const deactivate = useCallback(async (): Promise<boolean> => {
     setLoading(true);
@@ -131,14 +221,20 @@ export function usePushSubscription(userId: string | undefined) {
     setActionError(null);
 
     try {
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
+      const registration = await findPushRegistration(marketClubId ? marketWorkerScope(marketClubId) : '/');
+      const subscription = await registration?.pushManager.getSubscription();
 
       if (!subscription) {
         await syncFromBrowser();
         return true;
       }
 
+      if (marketClubId) {
+        if (!await updateMarketSubscription('unsubscribe', marketClubId, subscription)) throw new Error('Vereinsmarkt-Abo konnte nicht beendet werden.');
+        await subscription.unsubscribe();
+        await syncFromBrowser();
+        return true;
+      }
       const endpoint = subscription.endpoint;
 
       const res = await fetch(PUSH_UNSUBSCRIBE_API, {
@@ -164,7 +260,7 @@ export function usePushSubscription(userId: string | undefined) {
       setLoading(false);
       setLoadingAction(null);
     }
-  }, [syncFromBrowser]);
+  }, [syncFromBrowser, marketClubId]);
 
   return {
     vapidKey,

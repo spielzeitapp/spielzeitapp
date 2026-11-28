@@ -542,7 +542,8 @@ async function countUnreadNotificationsForUser(admin, userId) {
     .from('notifications')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
-    .eq('read', false);
+    .eq('read', false)
+    .or("event_type.is.null,event_type.neq.exchange");
   if (error) return 0;
   return count ?? 0;
 }
