@@ -1,3 +1,4 @@
+import { effectiveTournamentKickoff } from './tournamentScheduleTimes.js';
 import { tournamentLivestreamUrl, TOURNAMENT_LIVESTREAM_POST, TOURNAMENT_RECORDING_POST } from './tournamentLivestream.js';
 import { publicTournamentStandings } from './publicTournamentStandings.js';
 import { resolveTournamentOwnTeam } from './tournamentOwnTeam.js';
@@ -108,14 +109,17 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
   const ageGroup = originalAge || ts?.age_group || null;
   if (originalAge) rawTeamName = teamRow?.name || rawTeamName;
 
-  let slotRes = await admin
+  const slotColumns = 'id, tournament_event_id, match_id, opponent_name, kickoff_at, planned_minutes, pitch, group_label, phase, sort_order, external_match_id, home_team, away_team, official_status, home_goals, away_goals';
+  const loadScheduleSlots = columns => admin
     .from('tournament_matches')
-    .select(
-      'id, tournament_event_id, match_id, opponent_name, kickoff_at, planned_minutes, pitch, group_label, phase, sort_order, external_match_id, home_team, away_team, official_status, home_goals, away_goals',
-    )
+    .select(columns)
     .eq('tournament_event_id', publicId)
     .order('kickoff_at', { ascending: true })
     .order('sort_order', { ascending: true });
+  let slotRes = await loadScheduleSlots(slotColumns + ', kickoff_delay_source_at, kickoff_delay_until');
+  if (slotRes.error && /kickoff_delay|column|schema cache/i.test(String(slotRes.error.message ?? ''))) {
+    slotRes = await loadScheduleSlots(slotColumns);
+  }
 
   if (slotRes.error && /phase|column/i.test(String(slotRes.error.message ?? ''))) {
     slotRes = await admin
@@ -143,7 +147,8 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
     };
   }
 
-  const slots = slotRes.data ?? [];
+  const sourceSlots = slotRes.data ?? [];
+  const slots = sourceSlots.map(slot => ({ ...slot, kickoff_at: effectiveTournamentKickoff(slot) }));
   const matchIds = slots.map((s) => s.match_id).filter(Boolean);
   const matchById = new Map();
   if (matchIds.length) {
@@ -159,7 +164,7 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
 
   const { data: sync } = await admin.from('tournament_sync_state').select('analysis,synced_at,own_team_name').eq('event_id', publicId).maybeSingle();
   const viennaDate = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Vienna' });
-  const localProgress = slots.flatMap(slot => {
+  const localProgress = sourceSlots.flatMap(slot => {
     const status = matchById.get(slot.match_id)?.status;
     const kickoff = Date.parse(slot.kickoff_at);
     if ((status !== 'live' && status !== 'finished') || !Number.isFinite(kickoff)) return [];
@@ -232,12 +237,14 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
     if (parts.length > 1) dto.recordingParts = parts;
   }
   dto.finalRanking = resolveMeinTurnierplanFinalStandings(analysis);
-  const slotsByExternalId = new Map(slots.map(slot => [slot.external_match_id, slot]));
+  const slotsByExternalId = new Map(slots.filter(slot => slot.external_match_id).map(slot => [slot.external_match_id, slot]));
   dto.schedule = (analysis.rawMatches ?? []).map(m => {
     const id = String(m.externalMatchId ?? '');
     const slot = slotsByExternalId.get(`${analysis.provider}:${id}`) ?? slotsByExternalId.get(id);
     return {
-      id, homeTeam: String(m.homeTeam), awayTeam: String(m.awayTeam), time: String(m.kickoffTimeHHmm),
+      id, homeTeam: String(m.homeTeam), awayTeam: String(m.awayTeam),
+      time: slot?.kickoff_at ? formatViennaTimeLabel(slot.kickoff_at) : String(m.kickoffTimeHHmm),
+      ownMatchId: slot ? (matchById.has(slot.match_id) ? slot.match_id : null) : undefined,
       resultDecision: m.resultDecision === 'extra_time' || m.resultDecision === 'shootout' ? m.resultDecision : undefined,
       phase: String(m.phase), groupLabel: m.groupLabel == null ? null : String(m.groupLabel),
       roundLabel: m.roundLabel == null ? null : String(m.roundLabel),

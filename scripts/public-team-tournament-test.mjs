@@ -2,6 +2,7 @@
  * TURNIER.1 – Public team tournament page logic tests (no DB).
  */
 import assert from 'assert';
+import { effectiveTournamentKickoff } from '../server/lib/tournamentScheduleTimes.js';
 import {
   normalizeOefbImportedTeamName,
   isValidPublicTournamentId,
@@ -29,6 +30,17 @@ assert.strictEqual(isValidPublicTournamentId(''), false);
 assert.strictEqual(isValidPublicTournamentId('not-a-uuid'), false);
 assert.strictEqual(isValidPublicTournamentId('ev-tournament'), true);
 assert.strictEqual(isValidPublicTournamentId('aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'), true);
+
+const scheduled = {
+  kickoff_at: '2026-11-27T20:28:00+01:00',
+  kickoff_delay_source_at: '2026-11-27T19:28:00Z',
+  kickoff_delay_until: '2026-11-27T19:43:00Z',
+};
+const effectiveKickoff = effectiveTournamentKickoff(scheduled);
+assert.equal(effectiveKickoff, scheduled.kickoff_delay_until);
+assert.equal(toPublicMatchDto({ kickoff_at: effectiveKickoff, match_status: 'upcoming' }, 'Heim').kickoffTimeLabel, '20:43');
+assert.equal(effectiveTournamentKickoff({ ...scheduled, kickoff_at: '2026-11-27T19:35:00Z' }), '2026-11-27T19:35:00Z');
+assert.equal(effectiveTournamentKickoff({ kickoff_at: scheduled.kickoff_at }), scheduled.kickoff_at);
 
 const teamSeasonA = 'ts-a';
 const slotsRaw = [
