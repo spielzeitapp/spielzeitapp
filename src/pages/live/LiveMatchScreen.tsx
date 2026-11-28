@@ -82,6 +82,7 @@ import {
   updateSubstitutionPlayers,
   updatePositionSwap,
   updateMatchRow,
+  startMatchClock,
   matchEventDbRowToEngine,
   type LiveMatchRow,
 } from '../../lib/liveMatchService';
@@ -3058,17 +3059,11 @@ export const LiveMatchScreen: React.FC = () => {
         setKickoffStartingPlayerIds(startingPlayerIds.slice(0, 7));
       }
 
-      const { ok } = await persistSingle({ type: 'start', timestamp: 0 });
-      if (!ok) return;
-      const ts = new Date().toISOString();
-      const { error } = await updateMatchRow(effectiveMatchId, {
-        status: 'live',
-        live_started_at: ts,
-        live_is_running: true,
-        live_elapsed_seconds: 0,
-      });
-      if (error) setSaveError(error);
+      const { startedAt: ts, error } = await startMatchClock(effectiveMatchId);
+      if (error || !ts) setSaveError(error ?? 'Spielstart konnte nicht gespeichert werden.');
       else {
+        setEvents(prev => prev.some(event => event.type === 'start')
+          ? prev : [{ type: 'start', timestamp: 0, id: newEventId() }, ...prev]);
         setMatchRow((prev) =>
           prev ? { ...prev, status: 'live', live_started_at: ts, live_is_running: true, live_elapsed_seconds: 0 } : null,
         );
@@ -3090,6 +3085,7 @@ export const LiveMatchScreen: React.FC = () => {
           matchId: effectiveMatchId,
           status: 'live',
           reason: 'kickoff',
+          tournamentEventId: tournamentNavContext?.tournamentEventId ?? null,
           teamSeasonId: matchRow?.team_season_id ?? null,
         });
       }
