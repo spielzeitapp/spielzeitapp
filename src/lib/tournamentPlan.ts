@@ -1,3 +1,4 @@
+import { effectiveTournamentKickoff } from '../../server/lib/tournamentScheduleTimes.js';
 import { filterOfficialTeamVariants, mergeTournamentParticipantLogos } from './tournamentParticipantLogos';
 import { meinTurnierplanLiveByMatchId } from '../../server/lib/meinTurnierplanModel.js';
 import { safeOptionalText, safeText } from './safeText';
@@ -786,7 +787,7 @@ export async function fetchTournamentMatchSlots(
     return { data: getDemoTournamentMatchSlots(tournamentEventId), error: null };
   }
 
-  const selects = [TOURNAMENT_MATCH_SELECT_FULL, TOURNAMENT_MATCH_SELECT_PHASE, TOURNAMENT_MATCH_SELECT_BASE];
+  const selects = [TOURNAMENT_MATCH_SELECT_FULL + ', kickoff_delay_source_at, kickoff_delay_until', TOURNAMENT_MATCH_SELECT_FULL, TOURNAMENT_MATCH_SELECT_PHASE, TOURNAMENT_MATCH_SELECT_BASE];
   let data: Record<string, unknown>[] | null = null;
   let error: { message?: string; code?: string } | null = null;
 
@@ -809,7 +810,7 @@ export async function fetchTournamentMatchSlots(
   const liveByMatch = meinTurnierplanLiveByMatchId(sync?.analysis);
   const ownPairings = indexOfficialOwnKnockoutPairings(sync?.analysis ?? null, sync?.own_team_name ?? null);
   const rows = (data ?? []).map((row) => {
-    const slot = mapFetchedMatchSlotRow(row);
+    const slot = mapFetchedMatchSlotRow({ ...row, kickoff_at: effectiveTournamentKickoff(row) });
     const pairing = ownPairings.get(slot.external_match_id ?? '');
     const displaySlot = !slot.match_id && pairing ? { ...slot, official_own_pairing: pairing } : slot;
     const live = liveByMatch.get(slot.external_match_id ?? '');
@@ -822,7 +823,7 @@ export async function fetchTournamentMatchSlots(
     };
   });
   const enriched = await enrichTournamentMatchSlots(rows);
-  return { data: enriched, error: null };
+  return { data: enriched.sort((a, b) => Date.parse(a.kickoff_at) - Date.parse(b.kickoff_at) || a.sort_order - b.sort_order), error: null };
 }
 
 export async function createTournamentMatchSlot(params: {
