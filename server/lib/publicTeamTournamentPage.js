@@ -116,8 +116,12 @@ export async function loadPublicTeamTournamentPage(publicIdRaw) {
     .eq('tournament_event_id', publicId)
     .order('kickoff_at', { ascending: true })
     .order('sort_order', { ascending: true });
-  let slotRes = await loadScheduleSlots(slotColumns + ', kickoff_delay_source_at, kickoff_delay_until');
-  if (slotRes.error && /kickoff_delay|column|schema cache/i.test(String(slotRes.error.message ?? ''))) {
+  const delayColumns = slotColumns + ', kickoff_delay_source_at, kickoff_delay_until';
+  let slotRes = await loadScheduleSlots(delayColumns + ', kickoff_actual_at');
+  if (slotRes.error && /column|schema cache/i.test(String(slotRes.error.message ?? ''))) {
+    slotRes = await loadScheduleSlots(delayColumns);
+  }
+  if (slotRes.error && /column|schema cache/i.test(String(slotRes.error.message ?? ''))) {
     slotRes = await loadScheduleSlots(slotColumns);
   }
 

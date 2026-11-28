@@ -1083,6 +1083,25 @@ async function assertMatchTeamSeasonWritable(
   return assertTeamSeasonWritable(teamSeasonId);
 }
 
+export async function startMatchClock(matchId: string): Promise<{ startedAt: string | null; error: string | null }> {
+  if (isDemoMatchId(matchId)) {
+    const now = new Date().toISOString();
+    const { error } = await updateMatchRow(matchId, {
+      status: 'live',
+      live_started_at: now,
+      live_is_running: true,
+      live_elapsed_seconds: 0,
+    });
+    return { startedAt: error ? null : now, error };
+  }
+
+  const writable = await assertMatchTeamSeasonWritable(matchId);
+  if (!writable.ok) return { startedAt: null, error: writable.message };
+
+  const { data, error } = await supabase.rpc('start_match_clock', { p_match: matchId });
+  return { startedAt: typeof data === 'string' ? data : null, error: error?.message ?? null };
+}
+
 export async function updateMatchRow(
   matchId: string,
   patch: Record<string, unknown>,
