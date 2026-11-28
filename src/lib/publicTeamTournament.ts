@@ -68,6 +68,7 @@ export type PublicTournamentScheduleFixture = {
   homeGoals: number | null;
   awayGoals: number | null;
   kickoffAt?: string | null;
+  ownMatchId?: string | null;
   plannedMinutes?: number;
   status?: PublicTeamTournamentMatchStatus;
   liveHomeGoals?: number | null;
