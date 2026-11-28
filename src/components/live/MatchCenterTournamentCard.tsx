@@ -120,7 +120,6 @@ type Props = {
   matchCount: number | null;
   participants: MatchCenterParticipant[];
   slots: TournamentMatchSlotView[];
-  tournamentCompleted?: boolean;
   loadingExtras?: boolean;
   liveDayMode?: LiveDayMode;
   nextOwnSlot?: TournamentMatchSlotView | null;
@@ -331,7 +330,7 @@ export function MatchCenterTournamentCard({
           to={tournamentHref}
           className={`${dsPrimaryCtaClass()} mt-1.5 mb-1 inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center px-4 py-3 text-[14px] font-semibold`}
         >
-          Turnierseite ansehen
+          {liveDayMode === 'completed' ? 'Turnierergebnisse ansehen' : 'Turnierseite ansehen'}
         </Link>
 
         {!isFan && !hasTournamentStarted && !prepareAction ? (
