@@ -7,6 +7,7 @@ import { MatchCenterIdleView } from '../components/live/MatchCenterIdleView';
 import { LiveMatchScreen } from './live/LiveMatchScreen';
 import { PremiumCard, PremiumEmptyState } from '../ui';
 import { cn } from '../ui/lib/cn';
+import { canManageMatches } from '../lib/roles';
 import { dsPrimaryCtaClass } from '../lib/premiumDesignSystem';
 import { useDemoMode } from '../demo/DemoContext';
 import { useInternalBasePath } from '../demo/demoPaths';
@@ -34,6 +35,11 @@ export const LivePage: React.FC = () => {
   const matchIdParam =
     searchParams.get('matchId')?.trim() || idFromRoute?.trim() || null;
 
+  const spectatorMatchScope =
+    !isDemo && effectiveRole && !canManageMatches(effectiveRole) &&
+    !searchParams.has('withoutLineup') && matchIdParam && teamSeasonId?.trim()
+      ? JSON.stringify([teamSeasonId, matchIdParam])
+      : null;
   const loadedScope = useRef<string | null>(null);
   const [loading, setLoading] = useState(!matchIdParam);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +47,7 @@ export const LivePage: React.FC = () => {
   const [tournamentLiveMatchId, setTournamentLiveMatchId] = useState<string | null>(null);
   const [tournamentCheckDone, setTournamentCheckDone] = useState(false);
   const [liveProbeTick, setLiveProbeTick] = useState(0);
-  const [redirectLiveMatchId, setRedirectLiveMatchId] = useState<string | null>(null);
+  const [liveRedirect, setLiveRedirect] = useState<{ scope: string; matchId: string } | null>(null);
 
   useEffect(() => {
     if (isDemo) return;
@@ -56,21 +62,21 @@ export const LivePage: React.FC = () => {
   }, [isDemo]);
 
   useEffect(() => {
-    if (!matchIdParam || isDemo || !teamSeasonId?.trim()) {
-      setRedirectLiveMatchId(null);
+    if (!spectatorMatchScope || !matchIdParam || !teamSeasonId) {
+      setLiveRedirect(null);
       return;
     }
     let cancelled = false;
     void (async () => {
-      const { data: requestedMatch } = await supabase
+      const { data: requestedMatch, error: requestedMatchError } = await supabase
         .from('matches')
         .select('status')
         .eq('id', matchIdParam)
         .maybeSingle();
       if (cancelled) return;
       // Ein gezielt geöffnetes vergangenes Spiel darf nie auf das aktuelle Livespiel springen.
-      if (requestedMatch?.status === 'finished') {
-        setRedirectLiveMatchId(null);
+      if (requestedMatchError || !requestedMatch || requestedMatch.status === 'finished') {
+        setLiveRedirect(null);
         return;
       }
       const { data } = await supabase
@@ -84,15 +90,17 @@ export const LivePage: React.FC = () => {
       if (cancelled) return;
       const liveId = data?.id ? String(data.id).trim() : '';
       if (!liveId || liveId === matchIdParam) {
-        setRedirectLiveMatchId(null);
+        setLiveRedirect(null);
         return;
       }
-      setRedirectLiveMatchId(liveId);
-    })();
+      setLiveRedirect({ scope: spectatorMatchScope, matchId: liveId });
+    })().catch(() => {
+      if (!cancelled) setLiveRedirect(null);
+    });
     return () => {
       cancelled = true;
     };
-  }, [matchIdParam, teamSeasonId, isDemo, liveProbeTick]);
+  }, [matchIdParam, teamSeasonId, spectatorMatchScope, liveProbeTick]);
 
   useEffect(() => {
     if (matchIdParam || isDemo) {
@@ -173,10 +181,10 @@ export const LivePage: React.FC = () => {
     demo.startDemoLiveMatch(matchIdParam);
   }, [isDemo, demo, matchIdParam]);
 
-  if (redirectLiveMatchId && redirectLiveMatchId !== matchIdParam) {
+  if (liveRedirect && liveRedirect.scope === spectatorMatchScope && liveRedirect.matchId !== matchIdParam) {
     return (
       <Navigate
-        to={`${basePath}/live?matchId=${encodeURIComponent(redirectLiveMatchId)}`}
+        to={`${basePath}/live?matchId=${encodeURIComponent(liveRedirect.matchId)}`}
         replace
       />
     );
@@ -193,7 +201,7 @@ export const LivePage: React.FC = () => {
   }
 
   if (matchIdParam) {
-    return <LiveMatchScreen />;
+    return <LiveMatchScreen key={matchIdParam} />;
   }
 
   if (isDemo) {
