@@ -1,5 +1,7 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
-import { Bell, BellRing, RefreshCw } from "lucide-react";
+import { Bell, BellRing, ChevronDown, RefreshCw } from "lucide-react";
+import { Button } from "../../app/components/ui/Button";
+import { NotificationStatus } from "../NotificationStatus";
 import { Modal } from "../../app/ui/Modal";
 import { supabase } from "../../lib/supabaseClient";
 import { usePushSubscription } from "../../hooks/usePushSubscription";
@@ -67,7 +69,9 @@ export function TournamentConnectedPlan({
 }) {
   const [reminderOpen, setReminderOpen] = useState(false);
   const [state, setState] = useState<ConnectedTournament | null>(null);
-  const [enabled, setEnabled] = useState(false);
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [reminderLoadAttempt, setReminderLoadAttempt] = useState(0);
+  const [reminderError, setReminderError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const currentEvent = useRef(`${eventId}|${url}`);
@@ -104,16 +108,28 @@ export function TournamentConnectedPlan({
     };
   }, [load]);
   useEffect(() => {
-    setEnabled(false);
+    setEnabled(null);
+    setReminderError(null);
     if (!userId || eventId === "ev-tournament") return;
+    let active = true;
     void supabase
       .from("tournament_reminder_subscriptions")
       .select("enabled")
       .eq("event_id", eventId)
       .eq("user_id", userId)
       .maybeSingle()
-      .then(({ data }) => setEnabled(data?.enabled === true));
-  }, [eventId, userId]);
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) {
+          setReminderError("Die Einstellung konnte nicht geladen werden.");
+          return;
+        }
+        setEnabled(data?.enabled === true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [eventId, userId, reminderLoadAttempt]);
   const refresh = async (ownTeam?: string) => {
     if (!url) return;
     setBusy(true);
@@ -136,23 +152,26 @@ export function TournamentConnectedPlan({
       setBusy(false);
     }
   };
-  const toggle = async () => {
-    if (!userId) return;
+  const saveReminder = async (nextEnabled: boolean) => {
+    if (!userId || enabled === null || busy) return;
     setBusy(true);
-    setError(null);
+    setReminderError(null);
     try {
-      if (!enabled && !push.isActive) {
-        const ok = await push.activate();
-        if (!ok.ok)
-          throw new Error("Bitte Push-Mitteilungen für die App aktivieren.");
+      if (nextEnabled && !push.isActive) {
+        const result = await push.activate();
+        if (!result.ok) {
+          throw new Error("SpielzeitApp-Push konnte nicht aktiviert werden.");
+        }
       }
-      const { error } = await supabase
-        .from("tournament_reminder_subscriptions")
-        .upsert({ event_id: eventId, user_id: userId, enabled: !enabled });
-      if (error) throw error;
-      setEnabled(!enabled);
+      if (nextEnabled !== enabled) {
+        const { error } = await supabase
+          .from("tournament_reminder_subscriptions")
+          .upsert({ event_id: eventId, user_id: userId, enabled: nextEnabled });
+        if (error) throw new Error(error.message);
+        setEnabled(nextEnabled);
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setReminderError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -164,81 +183,128 @@ export function TournamentConnectedPlan({
         Math.floor((Date.now() - Date.parse(state.synced_at)) / 60_000),
       )
     : null;
-  const content = (
-    <section className={TC_CARD}>
-      <div className={`${TC_CARD_INNER} space-y-3`}>
-        <p className={TC_SECTION_LABEL}>{url ? "Veranstalter verbunden" : "Spielerinnerung"}</p>
-        <p className="text-[16px] leading-relaxed text-white/70">
-          {state?.synced_at
-            ? `Stand ${new Date(state.synced_at).toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" })} · ${age === 0 ? "gerade aktualisiert" : `vor ${age} Min.`}`
-            : url ? "Der Veranstalterplan wird geladen." : "Rechtzeitig zurück zum Spielfeld."}{" "}
-          {url ? "Spielstände und Tabellen werden auf unserer Turnierseite aktualisiert." : "Erinnerung für unser nächstes Turnierspiel."}
+  const organizer = url ? (
+    <div className="space-y-3">
+      <p className={TC_SECTION_LABEL}>Veranstalter verbunden</p>
+      <p className="text-sm leading-relaxed text-[var(--text-sub)]">
+        {state?.synced_at
+          ? `Stand ${new Date(state.synced_at).toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" })} · ${age === 0 ? "gerade aktualisiert" : `vor ${age} Min.`}`
+          : "Der Veranstalterplan wird geladen."}{" "}
+        Spielstände und Tabellen werden auf unserer Turnierseite aktualisiert.
+      </p>
+      {state?.last_error ? (
+        <p role="status" className="text-[16px] text-amber-300">
+          {state?.last_error || "Der letzte Stand ist älter als 5 Minuten."}{" "}
+          Der zuletzt geladene Stand bleibt sichtbar.
         </p>
-        {state?.last_error ? (
-          <p role="status" className="text-[16px] text-amber-300">
-            {state?.last_error || "Der letzte Stand ist älter als 5 Minuten."}{" "}
-            Der zuletzt geladene Stand bleibt sichtbar.
-          </p>
-        ) : null}
-        {canManage && url ? (
-          <>
-            <button
-              disabled={busy}
-              onClick={() => void refresh()}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/20 px-4 text-[16px] font-semibold"
-            >
-              <RefreshCw size={18} />
-              Jetzt aktualisieren
-            </button>
-            {state?.analysis.teams?.length ? (
-              <label className="block space-y-1 text-[16px] text-white/80">
-                <span>Unsere Mannschaft im Veranstalterplan</span>
-                <select
-                  aria-label="Unsere Mannschaft im Veranstalterplan"
-                  className="min-h-11 w-full rounded-xl border border-white/20 bg-[#111114] px-3 text-white"
-                  value={state.own_team_name ?? ""}
-                  disabled={busy || Boolean(state.own_team_name)}
-                  onChange={(e) => void refresh(e.target.value)}
-                >
-                  <option value="">Bitte eindeutig zuordnen</option>
-                  {state.analysis.teams.map((t) => (
-                    <option key={t.teamName} value={t.teamName}>
-                      {t.teamName}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-          </>
-        ) : null}
-        {userId ? (
+      ) : null}
+      {canManage ? (
+        <>
           <button
             disabled={busy}
-            aria-pressed={enabled}
-            onClick={() => void toggle()}
-            className={`flex min-h-12 w-full items-center justify-center gap-2 rounded-full border px-4 text-[16px] font-semibold ${enabled ? "sz-club-accent-chip" : "sz-club-event-action"}`}
+            onClick={() => void refresh()}
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/20 px-4 text-[16px] font-semibold"
           >
-            <Bell size={20} className="shrink-0 sz-club-accent-text" />
-            {enabled
-              ? "Erinnerung aktiv · 5 Min. vorher"
-              : "5 Min. vor unserem Spiel erinnern"}
+            <RefreshCw size={18} />
+            Jetzt aktualisieren
           </button>
-        ) : null}
-        {enabled ? (
-          <p className="text-[14px] text-white/60">
-            Gilt für dieses Turnier, auch bei geschlossener App. Geänderte
-            Beginnzeiten werden berücksichtigt.
-          </p>
-        ) : null}
-        {error ? (
-          <p role="alert" className="text-[16px] text-red-300">
-            {error}
-          </p>
-        ) : null}
+          {state?.analysis.teams?.length ? (
+            <label className="block space-y-1 text-sm text-[var(--text-sub)]">
+              <span>Unsere Mannschaft im Veranstalterplan</span>
+              <select
+                aria-label="Unsere Mannschaft im Veranstalterplan"
+                className="min-h-11 w-full rounded-xl border border-slate-500/30 bg-[var(--surface)] px-3 text-[var(--text-main)]"
+                value={state.own_team_name ?? ""}
+                disabled={busy || Boolean(state.own_team_name)}
+                onChange={(e) => void refresh(e.target.value)}
+              >
+                <option value="">Bitte eindeutig zuordnen</option>
+                {state.analysis.teams.map((t) => (
+                  <option key={t.teamName} value={t.teamName}>
+                    {t.teamName}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+        </>
+      ) : null}
+      {error ? <p role="alert" className="text-sm text-red-400">{error}</p> : null}
+    </div>
+  ) : null;
+
+  const waiting = enabled === null || !push.initDone;
+  const canActivatePush = push.pushReady && push.permission !== "denied";
+  const needsPush = enabled === true && !push.isActive;
+  const reminder = userId ? (
+    <div className="space-y-4">
+      <p className="text-sm leading-relaxed text-[var(--text-sub)]">
+        Lass dich 5 Minuten vor unserem Spiel erinnern. Die Einstellung gilt für dieses Turnier.
+      </p>
+      {waiting ? (
+        reminderError ? null : (
+          <NotificationStatus title="Status wird geprüft" description="Deine Einstellungen werden geladen." />
+        )
+      ) : needsPush || (!push.isActive && !canActivatePush) ? (
+        <NotificationStatus
+          tone="warning"
+          title={enabled ? "Erinnerung eingeschaltet" : "Erinnerung ausgeschaltet"}
+          description={canActivatePush
+            ? "Aktiviere SpielzeitApp-Push, um die Erinnerung auf diesem Gerät zu erhalten."
+            : "Für Erinnerungen muss SpielzeitApp-Push auf diesem Gerät verfügbar und erlaubt sein."}
+        />
+      ) : enabled ? (
+        <NotificationStatus
+          tone="active"
+          title="Spielerinnerung aktiv"
+          description="Du erhältst die Erinnerung auf diesem Gerät, auch wenn die App geschlossen ist."
+        />
+      ) : (
+        <NotificationStatus
+          title="Spielerinnerung ausgeschaltet"
+          description="Du kannst die Erinnerung jederzeit einschalten."
+        />
+      )}
+      {!waiting && (
+        <div className="space-y-2">
+          {needsPush && canActivatePush && (
+            <Button type="button" fullWidth disabled={busy || push.loading} onClick={() => void saveReminder(true)}>
+              Push einschalten
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant={enabled ? "secondary" : "primary"}
+            fullWidth
+            disabled={busy || push.loading || (!enabled && !push.isActive && !canActivatePush)}
+            onClick={() => void saveReminder(!enabled)}
+            className="!h-auto !min-h-11 !rounded-xl !px-4 !py-2.5"
+          >
+            {enabled ? "Erinnerung ausschalten" : "Erinnerung einschalten"}
+          </Button>
+        </div>
+      )}
+      {reminderError && (
+        <div className="space-y-2">
+          <p role="alert" className="text-sm text-red-400">{reminderError}</p>
+          {enabled === null && (
+            <Button type="button" variant="secondary" fullWidth onClick={() => setReminderLoadAttempt((attempt) => attempt + 1)}>
+              Erneut laden
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  ) : null;
+
+  if (!compact) return (
+    <section className={TC_CARD}>
+      <div className={`${TC_CARD_INNER} space-y-4`}>
+        {organizer}
+        {reminder}
       </div>
     </section>
   );
-  if (!compact) return content;
   if (!userId) return null;
   const reminderLabel = enabled
     ? "Spielerinnerung aktiv · 5 Min. vorher"
@@ -251,8 +317,24 @@ export function TournamentConnectedPlan({
         {enabled ? <BellRing className="h-5 w-5 sz-club-accent-text" aria-hidden /> : <Bell className="h-5 w-5 sz-club-accent-text" aria-hidden />}
         {enabled ? <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-emerald-400" aria-hidden /> : null}
       </button>
-      <Modal open={reminderOpen} onClose={() => setReminderOpen(false)} title="Spielerinnerung">
-        {content}
+      <Modal
+        open={reminderOpen}
+        onClose={() => setReminderOpen(false)}
+        title="Spielerinnerung"
+        placement="center"
+        titleClassName="!text-lg !font-bold"
+        className="!max-w-[420px] !bg-[var(--glass-bg)] [&>.modalBody]:!pb-4 [&>.modalHeader]:!bg-[var(--glass-bg)] [&>.modalHeader]:!pt-4"
+      >
+        {reminder}
+        {organizer && (
+          <details className="mt-4 border-t border-slate-500/25 pt-3">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 text-sm font-semibold text-[var(--text-sub)] [&::-webkit-details-marker]:hidden">
+              Veranstalterplan
+              <ChevronDown size={18} aria-hidden />
+            </summary>
+            <div className="pt-2">{organizer}</div>
+          </details>
+        )}
       </Modal>
     </>
   );
