@@ -787,7 +787,8 @@ export async function fetchTournamentMatchSlots(
     return { data: getDemoTournamentMatchSlots(tournamentEventId), error: null };
   }
 
-  const selects = [TOURNAMENT_MATCH_SELECT_FULL + ', kickoff_delay_source_at, kickoff_delay_until', TOURNAMENT_MATCH_SELECT_FULL, TOURNAMENT_MATCH_SELECT_PHASE, TOURNAMENT_MATCH_SELECT_BASE];
+  const delayColumns = TOURNAMENT_MATCH_SELECT_FULL + ', kickoff_delay_source_at, kickoff_delay_until';
+  const selects = [delayColumns + ', kickoff_actual_at', delayColumns, TOURNAMENT_MATCH_SELECT_FULL, TOURNAMENT_MATCH_SELECT_PHASE, TOURNAMENT_MATCH_SELECT_BASE];
   let data: Record<string, unknown>[] | null = null;
   let error: { message?: string; code?: string } | null = null;
 
