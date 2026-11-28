@@ -1100,7 +1100,13 @@ export const LiveMatchScreen: React.FC = () => {
       if (lineRes.error) setSaveError(lineRes.error);
       if (evRes.error) setSaveError(evRes.error);
       setPageLoading(false);
-    })();
+    })().catch((error: unknown) => {
+      if (cancelled) return;
+      console.error('[LiveMatch] Laden fehlgeschlagen', error);
+      setEffectiveMatchId(null);
+      setPageError('Das Spiel konnte nicht geladen werden. Bitte versuche es erneut.');
+      setPageLoading(false);
+    });
     return () => {
       cancelled = true;
     };
@@ -4897,7 +4903,14 @@ export const LiveMatchScreen: React.FC = () => {
         ) : (
           <button
             type="button"
-            onClick={() => void onStartClick()}
+            onClick={() => {
+              setSaveError(null);
+              void onStartClick().catch((error: unknown) => {
+                console.error('[LiveMatch] Start fehlgeschlagen', error);
+                setSaveError('Der Spielstart konnte nicht abgeschlossen werden. Bitte prüfe den Spielstatus.');
+                queueRealtimeReload();
+              });
+            }}
             disabled={matchClockStatus === 'finished' || matchClockStatus === 'live'}
             aria-label={matchClockStatus === 'paused' ? 'Spiel fortsetzen' : 'Spiel beginnen'}
             className={`${mbStart} ${matchClockStatus === 'not_started' ? 'col-span-2' : ''}`}
