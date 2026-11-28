@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '../app/components/ui/Button';
+import { NotificationStatus } from './NotificationStatus';
 import { useAuth } from '../auth/AuthProvider';
 import { usePushSubscription } from '../hooks/usePushSubscription';
 import {
@@ -117,54 +118,35 @@ export const PushNotificationsButton: React.FC<Props> = ({
 
   const busy = loading || !initDone;
 
-  const primaryButtonLabel = useMemo(() => {
-    if (loadingAction === 'activate') return 'Wird aktiviert…';
-    if (loadingAction === 'deactivate') return 'Wird deaktiviert…';
-    return isActive ? 'Benachrichtigungen deaktivieren' : 'Benachrichtigungen aktivieren';
-  }, [loadingAction, isActive]);
+  const primaryButtonLabel = loadingAction === 'activate'
+    ? 'Wird aktiviert…'
+    : loadingAction === 'deactivate'
+      ? 'Wird ausgeschaltet…'
+      : isActive ? 'Benachrichtigungen ausschalten' : 'Benachrichtigungen einschalten';
 
-  if (!browserOk) {
-    return (
-      <div className={className}>
-        <h2 className="text-base font-semibold text-[var(--text-main)]">Benachrichtigungen</h2>
-        <p className="mt-1 text-sm text-[var(--text-sub)]">
-          Erhalte Updates zu Spielen, Terminen und wichtigen Änderungen.
-        </p>
-        <p className="mt-2 text-sm text-[var(--text-sub)]">
-          In diesem Browser werden Push-Benachrichtigungen nicht unterstützt.
-        </p>
-      </div>
-    );
-  }
+  const status: React.ComponentProps<typeof NotificationStatus> = !initDone
+    ? { title: 'Status wird geprüft', description: 'Die Push-Einstellungen für dieses Gerät werden geladen.' }
+    : !browserOk
+      ? { tone: 'warning', title: 'Push hier nicht verfügbar', description: 'Auf dem iPhone öffne die installierte SpielzeitApp über das App-Symbol. Verwende sonst einen Browser mit Push-Unterstützung.' }
+      : !hasVapidKey
+        ? { tone: 'warning', title: 'Push derzeit nicht verfügbar', description: 'Auf diesem Server sind Push-Benachrichtigungen noch nicht eingerichtet.' }
+        : permission === 'denied'
+          ? { tone: 'warning', title: 'Benachrichtigungen blockiert', description: 'Erlaube Benachrichtigungen für die SpielzeitApp in deinen Geräte- oder Browsereinstellungen.' }
+          : isActive
+            ? { tone: 'active', title: 'Benachrichtigungen aktiv', description: 'Du erhältst Push-Mitteilungen der SpielzeitApp auf diesem Gerät.' }
+            : { title: 'Benachrichtigungen ausgeschaltet', description: 'Du kannst Push-Mitteilungen für dieses Gerät jederzeit einschalten.' };
 
   return (
     <div className={className}>
-      <h2 className="text-base font-semibold text-[var(--text-main)]">Benachrichtigungen</h2>
-      <p className="mt-1 text-sm text-[var(--text-sub)]">
-        Erhalte Updates zu Spielen, Terminen und wichtigen Änderungen.
+      <p className="text-sm leading-relaxed text-[var(--text-sub)]">
+        Erhalte Hinweise zu Spielen, Terminen und wichtigen Änderungen, auch wenn die App geschlossen ist.
       </p>
+      <div className="mt-4">
+        <NotificationStatus {...status} />
+      </div>
 
-      {!hasVapidKey && (
-        <p className="mt-3 text-sm text-amber-200/90">
-          Push-Benachrichtigungen sind auf diesem Server noch nicht konfiguriert.
-        </p>
-      )}
-
-      {hasVapidKey && (
+      {browserOk && hasVapidKey && (
         <>
-          {isActive ? (
-            <>
-              <p className="mt-3 text-sm text-[var(--text-main)]">Push aktiv ✅</p>
-              <p className="mt-1 text-sm text-[var(--text-sub)]">
-                Du erhältst Updates zu Spielen & Terminen.
-              </p>
-            </>
-          ) : (
-            <p className="mt-3 text-sm text-[var(--text-main)]">
-              Benachrichtigungen sind derzeit deaktiviert.
-            </p>
-          )}
-
           {actionError && (
             <div className="mt-2 space-y-1" role="alert">
               <p className="text-sm text-amber-300">{actionError}</p>
@@ -184,13 +166,9 @@ export const PushNotificationsButton: React.FC<Props> = ({
               type="button"
               variant="ghost"
               fullWidth
-              disabled={busy || (!pushReady && !isActive)}
+              disabled={busy || (!isActive && (!pushReady || permission === 'denied'))}
               onClick={() => void (isActive ? onDeactivate() : onActivate())}
-              className={
-                isActive
-                  ? '!border-2 !border-red-500/65 !bg-red-950/40 !text-red-100 hover:!bg-red-900/50 focus-visible:!shadow-[0_0_0_2px_rgba(239,68,68,0.35)]'
-                  : '!border-0 !bg-gradient-to-br !from-emerald-600 !to-green-800 !text-white hover:!from-emerald-500 hover:!to-green-700 focus-visible:!shadow-[0_0_0_2px_rgba(16,185,129,0.45)]'
-              }
+              className="!h-auto !min-h-11 !rounded-xl !px-4 !py-2.5"
             >
               {primaryButtonLabel}
             </Button>
@@ -216,7 +194,11 @@ export const PushNotificationsButton: React.FC<Props> = ({
         </>
       )}
 
-      {isAdminToolsVisible && (
+      <p className="mt-4 text-xs leading-relaxed text-[var(--text-sub)]">
+        Diese Einstellung gilt für die SpielzeitApp auf diesem Gerät. Der Vereinsmarkt wird separat verwaltet.
+      </p>
+
+      {isAdminToolsVisible && browserOk && (
         <div className="mt-4 rounded-md border border-amber-500/40 bg-amber-950/30 px-3 py-2 font-mono text-[10px] leading-relaxed text-amber-100/90">
           <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-amber-400">
             Push-Debug (Admin)

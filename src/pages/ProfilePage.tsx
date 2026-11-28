@@ -573,9 +573,7 @@ export const ProfilePage: React.FC = () => {
           <Card className="text-white shadow-lg shadow-black/20">
             <CardTitle className="text-lg">Benachrichtigungen</CardTitle>
             <ProfileSectionErrorBoundary label="Push-Benachrichtigungen">
-              <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3">
-                <PushNotificationsButton isAdminToolsVisible={isAdminToolsVisible} />
-              </div>
+              <PushNotificationsButton className="mt-3" isAdminToolsVisible={isAdminToolsVisible} />
             </ProfileSectionErrorBoundary>
           </Card>
         )}
